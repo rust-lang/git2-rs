@@ -1,12 +1,23 @@
-use {raw, Oid};
+use std::kinds::marker;
 
-pub struct Object {
+use {raw, Oid, Repository};
+
+pub struct Object<'a> {
     raw: *mut raw::git_object,
+    marker1: marker::ContravariantLifetime<'a>,
+    marker2: marker::NoSend,
+    marker3: marker::NoShare,
 }
 
-impl Object {
-    pub unsafe fn from_raw(raw: *mut raw::git_object) -> Object {
-        Object { raw: raw }
+impl<'a> Object<'a> {
+    pub unsafe fn from_raw(_repo: &Repository,
+                           raw: *mut raw::git_object) -> Object {
+        Object {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoShare,
+        }
     }
 
     pub fn id(&self) -> Oid {
@@ -16,10 +27,9 @@ impl Object {
     }
 }
 
-impl Drop for Object {
+#[unsafe_destructor]
+impl<'a> Drop for Object<'a> {
     fn drop(&mut self) {
-        unsafe {
-            raw::git_object_free(self.raw);
-        }
+        unsafe { raw::git_object_free(self.raw) }
     }
 }

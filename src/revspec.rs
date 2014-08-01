@@ -1,15 +1,16 @@
 use Object;
 
-pub struct Revspec {
-    from: Option<Object>,
-    to: Option<Object>,
+pub struct Revspec<'a> {
+    from: Option<Object<'a>>,
+    to: Option<Object<'a>>,
 }
 
-impl Revspec {
-    pub fn from_objects(from: Option<Object>, to: Option<Object>) -> Revspec {
+impl<'a> Revspec<'a> {
+    pub fn from_objects<'a>(from: Option<Object<'a>>,
+                            to: Option<Object<'a>>) -> Revspec<'a> {
         Revspec { from: from, to: to }
     }
 
-    pub fn from(&self) -> Option<&Object> { self.from.as_ref() }
-    pub fn to(&self) -> Option<&Object> { self.to.as_ref() }
+    pub fn from(&self) -> Option<&Object<'a>> { self.from.as_ref() }
+    pub fn to(&self) -> Option<&Object<'a>> { self.to.as_ref() }
 }
