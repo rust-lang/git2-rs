@@ -1,0 +1,9 @@
+[package]
+
+name = "libgit2"
+version = "0.0.1"
+authors = ["Alex Crichton <alex@alexcrichton.com>"]
+build = "make -f build/cargo.mk"
+
+[dependencies.openssl]
+git = "http://github.com/sfackler/rust-openssl"
