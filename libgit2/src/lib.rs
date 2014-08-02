@@ -86,6 +86,8 @@ extern {
     pub fn git_repository_init(repo: *mut *mut git_repository,
                                path: *const c_char,
                                is_bare: c_uint) -> c_int;
+    pub fn git_repository_get_namespace(repo: *mut git_repository)
+                                        -> *const c_char;
     pub fn git_repository_head(out: *mut *mut git_reference,
                                repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_bare(repo: *mut git_repository) -> c_int;

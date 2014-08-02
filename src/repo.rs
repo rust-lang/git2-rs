@@ -145,6 +145,21 @@ impl Repository {
             }
         }
     }
+
+    /// Get the currently active namespace for this repository.
+    ///
+    /// If there is no namespace, `None` is returned.
+    pub fn get_namespace(&self) -> Option<String> {
+        unsafe {
+            let ptr = raw::git_repository_get_namespace(self.raw);
+            if ptr.is_null() {
+                None
+            } else {
+                let cstr = CString::new(ptr, false);
+                Some(String::from_utf8_lossy(cstr.as_bytes_no_nul()).to_string())
+            }
+        }
+    }
 }
 
 #[unsafe_destructor]
@@ -183,6 +198,7 @@ mod tests {
 
         let repo = Repository::init(path, true).unwrap();
         assert!(repo.is_bare());
+        assert!(repo.get_namespace().is_none());
     }
 
     #[test]
