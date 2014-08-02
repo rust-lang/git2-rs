@@ -26,13 +26,12 @@ impl Error {
         }
     }
 
-    pub fn from_str(s: &'static str) -> Error {
-        assert_eq!(*s.as_bytes().last().unwrap(), 0);
+    pub fn from_str(s: &str) -> Error {
         Error {
             raw: raw::git_error {
-                message: s.as_bytes().as_ptr() as *mut libc::c_char,
+                message: unsafe { s.to_c_str().unwrap() as *mut _ },
                 klass: raw::GIT_ERROR as libc::c_int,
-            }
+            },
         }
     }
 
@@ -100,5 +99,13 @@ impl fmt::Show for Error {
         try!(write!(f, "[{}] ", self.raw.klass));
         let cstr = unsafe { CString::new(self.raw.message as *const _, false) };
         f.write(cstr.as_bytes_no_nul())
+    }
+}
+
+impl Drop for Error {
+    fn drop(&mut self) {
+        if !self.raw.message.is_null() {
+            unsafe { libc::free(self.raw.message as *mut libc::c_void) }
+        }
     }
 }
