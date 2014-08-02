@@ -15,6 +15,7 @@ impl Oid {
     /// This function is unsafe as it does not know if the memory pointed to by
     /// `oid` is valid or not.
     pub unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
+        ::init();
         Oid { raw: *oid }
     }
 
@@ -23,6 +24,7 @@ impl Oid {
     /// If the string is not a valid 40-character hex string, an error is
     /// returned.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
+        ::init();
         let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
         try!(::doit(|| unsafe {
             raw::git_oid_fromstrn(&mut raw,
@@ -36,6 +38,7 @@ impl Oid {
     ///
     /// If the array given is not 20 bytes in length, an error is returned.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
+        ::init();
         let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
         if bytes.len() != raw::GIT_OID_RAWSZ {
             Err(Error::from_str("raw byte array must be 20 bytes"))
