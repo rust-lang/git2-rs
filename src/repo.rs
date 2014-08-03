@@ -5,6 +5,7 @@ use libc::{c_int, c_uint, c_char};
 
 use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
 use StringArray;
+use build::RepoBuilder;
 
 pub struct Repository {
     raw: *mut raw::git_repository,
@@ -23,11 +24,7 @@ impl Repository {
         try!(doit(|| unsafe {
             raw::git_repository_open(&mut ret, s.as_ptr())
         }));
-        Ok(Repository {
-            raw: ret,
-            marker1: marker::NoShare,
-            marker2: marker::NoSend,
-        })
+        Ok(unsafe { Repository::from_raw(ret) })
     }
 
     /// Creates a new repository in the specified folder.
@@ -40,11 +37,26 @@ impl Repository {
         try!(doit(|| unsafe {
             raw::git_repository_init(&mut ret, s.as_ptr(), bare as c_uint)
         }));
-        Ok(Repository {
-            raw: ret,
+        Ok(unsafe { Repository::from_raw(ret) })
+    }
+
+    /// Clone a remote repository.
+    ///
+    /// See the `RepoBuilder` struct for more information. This function will
+    /// delegate to a fresh `RepoBuilder`
+    pub fn clone(url: &str, into: &Path) -> Result<Repository, Error> {
+        RepoBuilder::new().clone(url, into)
+    }
+
+    /// Create a repository from the raw underlying pointer.
+    ///
+    /// This function will take ownership of the pointer specified.
+    pub unsafe fn from_raw(ptr: *mut raw::git_repository) -> Repository {
+        Repository {
+            raw: ptr,
             marker1: marker::NoShare,
             marker2: marker::NoSend,
-        })
+        }
     }
 
     /// Execute a rev-parse operation against the `spec` listed.

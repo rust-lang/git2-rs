@@ -1,10 +1,13 @@
 extern crate libc;
 extern crate openssl;
 
-use libc::{c_int, c_char, c_uint, size_t, c_uchar};
+use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void};
 
 pub static GIT_OID_RAWSZ: uint = 20;
 pub static GIT_OID_HEXSZ: uint = GIT_OID_RAWSZ * 2;
+pub static GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
+pub static GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
+pub static GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 
 pub enum git_object {}
 pub enum git_reference {}
@@ -12,6 +15,8 @@ pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
 pub enum git_tag {}
+pub enum git_cred {}
+pub enum git_tree {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -50,6 +55,7 @@ pub struct git_time {
     pub offset: c_int,
 }
 
+pub type git_off_t = i64;
 pub type git_time_t = i64;
 
 bitflags!(
@@ -101,6 +107,132 @@ pub enum git_repository_state_t {
 pub enum git_direction {
     GIT_DIRECTION_FETCH = 0,
     GIT_DIRECTION_PUSH = 1,
+}
+
+#[repr(C)]
+pub struct git_clone_options {
+    pub version: c_uint,
+    pub checkout_opts: git_checkout_options,
+    pub remote_callbacks: git_remote_callbacks,
+    pub bare: c_int,
+    pub local: git_clone_local_t,
+    pub checkout_branch: *const c_char,
+    pub signature: *mut git_signature,
+    pub repository_cb: Option<git_repository_create_cb>,
+    pub repository_cb_payload: *mut c_void,
+    pub remote_cb: Option<git_remote_create_cb>,
+    pub remote_cb_payload: *mut c_void,
+}
+
+#[repr(C)]
+pub enum git_clone_local_t {
+    GIT_CLONE_LOCAL_AUTO,
+    GIT_CLONE_LOCAL,
+    GIT_CLONE_NO_LOCAL,
+    GIT_CLONE_LOCAL_NO_LINKS,
+}
+
+#[repr(C)]
+pub struct git_checkout_options {
+    pub version: c_uint,
+    pub checkout_strategy: c_uint,
+    pub disable_filters: c_int,
+    pub dir_mode: c_uint,
+    pub file_mode: c_uint,
+    pub file_open_flags: c_int,
+    pub notify_flags: c_uint,
+    pub notify_cb: Option<git_checkout_notify_cb>,
+    pub notify_payload: *mut c_void,
+    pub progress_cb: Option<git_checkout_progress_cb>,
+    pub progress_payload: *mut c_void,
+    pub paths: git_strarray,
+    pub baseline: *mut git_tree,
+    pub target_directory: *const c_char,
+    pub ancestor_label: *const c_char,
+    pub our_label: *const c_char,
+    pub their_label: *const c_char,
+}
+
+pub type git_checkout_notify_cb = extern fn(git_checkout_notify_t,
+                                            *const c_char,
+                                            *const git_diff_file,
+                                            *const git_diff_file,
+                                            *const git_diff_file,
+                                            *mut c_void) -> c_int;
+pub type git_checkout_progress_cb = extern fn(*const c_char,
+                                              size_t,
+                                              size_t,
+                                              *mut c_void);
+
+#[repr(C)]
+pub struct git_remote_callbacks {
+    pub version: c_uint,
+    pub sideband_progress: Option<git_transport_message_cb>,
+    pub completion: Option<extern fn(git_remote_completion_type,
+                                     *mut c_void) -> c_int>,
+    pub credentials: Option<git_cred_acquire_cb>,
+    pub transfer_progress: Option<git_transfer_progress_cb>,
+    pub update_tips: Option<extern fn(*const c_char,
+                                      *const git_oid,
+                                      *const git_oid,
+                                      *mut c_void) -> c_int>,
+    pub payload: *mut c_void,
+}
+
+#[repr(C)]
+pub enum git_remote_completion_type {
+    GIT_REMOTE_COMPLETION_DOWNLOAD,
+    GIT_REMOTE_COMPLETION_INDEXING,
+    GIT_REMOTE_COMPLETION_ERROR,
+}
+
+pub type git_transport_message_cb = extern fn(*const c_char, c_int,
+                                              *mut c_void) -> c_int;
+pub type git_cred_acquire_cb = extern fn(*mut *mut git_cred,
+                                         *const c_char, *const c_char,
+                                         c_uint, *mut c_void) -> c_int;
+pub type git_transfer_progress_cb = extern fn(*const git_transfer_progress,
+                                              *mut c_void) -> c_int;
+
+#[repr(C)]
+pub struct git_transfer_progress {
+    total_objects: c_uint,
+    indexed_objects: c_uint,
+    received_objects: c_uint,
+    local_objects: c_uint,
+    total_deltas: c_uint,
+    indexed_deltas: c_uint,
+    received_bytes: size_t,
+}
+
+#[repr(C)]
+pub struct git_diff_file {
+    id: git_oid,
+    path: *const c_char,
+    size: git_off_t,
+    flags: u32,
+    mode: u16,
+}
+
+pub type git_repository_create_cb = extern fn(*mut *mut git_repository,
+                                              *const c_char,
+                                              c_int, *mut c_void) -> c_int;
+pub type git_remote_create_cb = extern fn(*mut *mut git_remote,
+                                          *mut git_repository,
+                                          *const c_char,
+                                          *const c_char,
+                                          *mut c_void) -> c_int;
+
+#[repr(C)]
+pub enum git_checkout_notify_t {
+    GIT_CHECKOUT_NOTIFY_NONE = 0,
+    GIT_CHECKOUT_NOTIFY_CONFLICT = (1 << 0),
+    GIT_CHECKOUT_NOTIFY_DIRTY = (1 << 1),
+    GIT_CHECKOUT_NOTIFY_UPDATED = (1 << 2),
+    GIT_CHECKOUT_NOTIFY_UNTRACKED = (1 << 3),
+    GIT_CHECKOUT_NOTIFY_IGNORED = (1 << 4),
+
+    GIT_CHECKOUT_NOTIFY_ALL = 0x0FFFF,
 }
 
 #[link(name = "git2", kind = "static")]
@@ -246,5 +378,14 @@ extern {
     pub fn git_signature_now(out: *mut *mut git_signature,
                              name: *const c_char,
                              email: *const c_char) -> c_int;
+    pub fn git_signature_dup(dest: *mut *mut git_signature,
+                             sig: *const git_signature) -> c_int;
 
+    // clone
+    pub fn git_clone(out: *mut *mut git_repository,
+                     url: *const c_char,
+                     local_path: *const c_char,
+                     options: *const git_clone_options) -> c_int;
+    pub fn git_clone_init_options(opts: *mut git_clone_options,
+                                  version: c_uint) -> c_int;
 }

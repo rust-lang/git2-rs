@@ -74,6 +74,18 @@ impl Signature {
     pub fn raw(&self) -> *const raw::git_signature { self.raw as *const _ }
 }
 
+impl Clone for Signature {
+    fn clone(&self) -> Signature {
+        let mut raw = 0 as *mut raw::git_signature;
+        unsafe {
+            ::doit(|| {
+                raw::git_signature_dup(&mut raw, &*self.raw)
+            }).unwrap();
+        }
+        Signature { raw: raw }
+    }
+}
+
 impl Drop for Signature {
     fn drop(&mut self) {
         unsafe { raw::git_signature_free(self.raw) }
@@ -94,5 +106,7 @@ mod tests {
         let s = Signature::now("foo", "bar").unwrap();
         assert_eq!(s.name(), "foo");
         assert_eq!(s.email(), "bar");
+
+        drop(s.clone());
     }
 }

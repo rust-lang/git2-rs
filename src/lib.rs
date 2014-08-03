@@ -84,6 +84,8 @@ pub enum Direction {
     Fetch, Push,
 }
 
+pub mod build;
+
 mod error;
 mod object;
 mod oid;
