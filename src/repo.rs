@@ -1,8 +1,10 @@
 use std::c_str::CString;
 use std::kinds::marker;
-use libc::{c_int, c_uint};
+use std::str;
+use libc::{c_int, c_uint, c_char};
 
-use {raw, Revspec, Error, doit, init, Object, RepositoryState};
+use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
+use StringArray;
 
 pub struct Repository {
     raw: *mut raw::git_repository,
@@ -148,18 +150,73 @@ impl Repository {
 
     /// Get the currently active namespace for this repository.
     ///
-    /// If there is no namespace, `None` is returned.
-    pub fn get_namespace(&self) -> Option<String> {
-        unsafe {
-            let ptr = raw::git_repository_get_namespace(self.raw);
-            if ptr.is_null() {
-                None
-            } else {
-                let cstr = CString::new(ptr, false);
-                Some(String::from_utf8_lossy(cstr.as_bytes_no_nul()).to_string())
-            }
-        }
+    /// If there is no namespace, or the namespace is not a valid utf8 string,
+    /// `None` is returned.
+    pub fn namespace(&self) -> Option<&str> {
+        self.namespace_bytes().and_then(str::from_utf8)
     }
+
+    /// Get the currently active namespace for this repository as a byte array.
+    ///
+    /// If there is no namespace, `None` is returned.
+    pub fn namespace_bytes(&self) -> Option<&[u8]> {
+        unsafe { ::opt_bytes(self, raw::git_repository_get_namespace(self.raw)) }
+    }
+
+    /// List all remotes for a given repository
+    pub fn remote_list(&self) -> Result<StringArray, Error> {
+        let mut arr = raw::git_strarray {
+            strings: 0 as *mut *mut c_char,
+            count: 0,
+        };
+        try!(::doit(|| unsafe {
+            raw::git_remote_list(&mut arr, self.raw)
+        }));
+        Ok(unsafe { StringArray::from_raw(arr) })
+    }
+
+    /// Get the information for a particular remote
+    pub fn remote_load(&self, name: &str) -> Result<Remote, Error> {
+        let mut ret = 0 as *mut raw::git_remote;
+        let name = name.to_c_str();
+        try!(doit(|| unsafe {
+            raw::git_remote_load(&mut ret, self.raw, name.as_ptr())
+        }));
+        Ok(unsafe { Remote::from_raw(self, ret) })
+    }
+
+    /// Add a remote with the default fetch refspec to the repository's
+    /// configuration.
+    pub fn remote_create(&self, name: &str, url: &str) -> Result<Remote, Error> {
+        let mut ret = 0 as *mut raw::git_remote;
+        let name = name.to_c_str();
+        let url = url.to_c_str();
+        try!(doit(|| unsafe {
+            raw::git_remote_create(&mut ret, self.raw, name.as_ptr(),
+                                   url.as_ptr())
+        }));
+        Ok(unsafe { Remote::from_raw(self, ret) })
+    }
+
+    /// Create an anonymous remote
+    ///
+    /// Create a remote with the given url and refspec in memory. You can use
+    /// this when you have a URL instead of a remote's name. Note that anonymous
+    /// remotes cannot be converted to persisted remotes.
+    pub fn remote_create_anonymous(&self, url: &str,
+                                   fetch: &str) -> Result<Remote, Error> {
+        let mut ret = 0 as *mut raw::git_remote;
+        let url = url.to_c_str();
+        let fetch = fetch.to_c_str();
+        try!(doit(|| unsafe {
+            raw::git_remote_create_anonymous(&mut ret, self.raw, url.as_ptr(),
+                                             fetch.as_ptr())
+        }));
+        Ok(unsafe { Remote::from_raw(self, ret) })
+    }
+
+    /// Get the underlying raw repository
+    pub fn raw(&self) -> *mut raw::git_repository { self.raw }
 }
 
 #[unsafe_destructor]
@@ -171,16 +228,8 @@ impl Drop for Repository {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, Command, File};
-    use std::str;
-
+    use std::io::{TempDir, File};
     use super::Repository;
-
-    macro_rules! git( ( $cwd:expr, $($arg:expr),*) => ({
-        let out = Command::new("git").cwd($cwd) $(.arg($arg))* .output().unwrap();
-        assert!(out.status.success());
-        str::from_utf8(out.output.as_slice()).unwrap().trim().to_string()
-    }) )
 
     #[test]
     fn smoke_init() {
@@ -198,7 +247,7 @@ mod tests {
 
         let repo = Repository::init(path, true).unwrap();
         assert!(repo.is_bare());
-        assert!(repo.get_namespace().is_none());
+        assert!(repo.namespace().is_none());
     }
 
     #[test]

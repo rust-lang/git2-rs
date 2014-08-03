@@ -4,13 +4,30 @@ extern crate libc;
 extern crate raw = "libgit2";
 
 use std::rt;
+use std::mem;
 use std::sync::{Once, ONCE_INIT};
+use std::c_str::CString;
 
-pub use oid::Oid;
 pub use error::Error;
-pub use repo::Repository;
 pub use object::Object;
+pub use oid::Oid;
+pub use refspec::Refspec;
+pub use remote::{Remote, Refspecs};
+pub use repo::Repository;
 pub use revspec::Revspec;
+pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
+pub use signature::Signature;
+
+#[cfg(test)]
+macro_rules! git( ( $cwd:expr, $($arg:expr),*) => ({
+    let mut cmd = ::std::io::Command::new("git");
+    cmd.cwd($cwd)$(.arg($arg))*;
+    let out = cmd.output().unwrap();
+    if !out.status.success() {
+        fail!("cmd failed: {}", cmd);
+    }
+    ::std::str::from_utf8(out.output.as_slice()).unwrap().trim().to_string()
+}) )
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
@@ -60,11 +77,19 @@ pub enum RepositoryState {
     ApplyMailboxOrRebase,
 }
 
-mod oid;
+pub enum Direction {
+    Fetch, Push,
+}
+
 mod error;
-mod repo;
 mod object;
+mod oid;
+mod refspec;
+mod remote;
+mod repo;
 mod revspec;
+mod signature;
+mod string_array;
 
 fn doit(f: || -> libc::c_int) -> Result<libc::c_int, Error> {
     match f() {
@@ -83,5 +108,15 @@ fn init() {
                 raw::git_threads_shutdown();
             });
         })
+    }
+}
+
+unsafe fn opt_bytes<'a, T>(_: &'a T,
+                           c: *const libc::c_char) -> Option<&'a [u8]> {
+    if c.is_null() {
+        None
+    } else {
+        let s = CString::new(c, false);
+        Some(mem::transmute(s.as_bytes_no_nul()))
     }
 }
