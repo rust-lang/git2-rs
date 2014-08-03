@@ -279,8 +279,11 @@ mod tests {
     fn smoke_revparse() {
         let td = TempDir::new("test").unwrap();
         git!(td.path(), "init");
+        git!(td.path(), "config", "user.name", "foo");
+        git!(td.path(), "config", "user.email", "foo");
         File::create(&td.path().join("foo")).write_str("foobar").unwrap();
         git!(td.path(), "add", ".");
+
         git!(td.path(), "commit", "-m", "foo");
         let expected_rev = git!(td.path(), "rev-parse", "HEAD");
 

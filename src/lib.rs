@@ -20,13 +20,16 @@ pub use signature::Signature;
 
 #[cfg(test)]
 macro_rules! git( ( $cwd:expr, $($arg:expr),*) => ({
+    use std::str;
     let mut cmd = ::std::io::Command::new("git");
     cmd.cwd($cwd)$(.arg($arg))*;
     let out = cmd.output().unwrap();
     if !out.status.success() {
-        fail!("cmd failed: {}", cmd);
+        let err = str::from_utf8(out.error.as_slice()).unwrap_or("<not-utf8>");
+        let out = str::from_utf8(out.output.as_slice()).unwrap_or("<not-utf8>");
+        fail!("cmd failed: {}\n{}\n{}\n", cmd, out, err);
     }
-    ::std::str::from_utf8(out.output.as_slice()).unwrap().trim().to_string()
+    str::from_utf8(out.output.as_slice()).unwrap().trim().to_string()
 }) )
 
 /// An enumeration of possible errors that can happen when working with a git

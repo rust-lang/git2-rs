@@ -365,9 +365,13 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let repo = td.path().join("repo");
         let remote = td.path().join("remote");
-        let repo = Repository::init(&repo, false).unwrap();
         Repository::init(&remote, true).unwrap();
+        Repository::init(&repo, false).unwrap();
 
+        git!(&repo, "config", "user.name", "foo");
+        git!(&repo, "config", "user.email", "foo");
+
+        let repo = Repository::open(&repo).unwrap();
         let url = format!("file://{}", remote.display());
         let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
         assert_eq!(origin.name(), Some("origin"));
