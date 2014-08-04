@@ -183,6 +183,8 @@ pub enum ObjectKind {
     Tag,
 }
 
+mod call;
+
 pub mod build;
 
 mod error;
@@ -196,13 +198,6 @@ mod revspec;
 mod signature;
 mod string_array;
 mod submodule;
-
-fn doit(f: || -> libc::c_int) -> Result<libc::c_int, Error> {
-    match f() {
-        n if n < 0 => Err(Error::last_error().unwrap()),
-        n => Ok(n),
-    }
-}
 
 fn init() {
     static mut INIT: Once = ONCE_INIT;

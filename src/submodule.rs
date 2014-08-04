@@ -1,9 +1,11 @@
 use std::str;
 use std::kinds::marker;
-use libc;
 
 use {raw, Oid, Repository, Error};
 
+/// A structure to represent a git [submodule][1]
+///
+/// [1]: http://git-scm.com/book/en/Git-Tools-Submodules
 pub struct Submodule<'a> {
     raw: *mut raw::git_submodule,
     marker1: marker::ContravariantLifetime<'a>,
@@ -40,15 +42,14 @@ impl<'a> Submodule<'a> {
     /// the index to be ready to commit.
     pub fn new<'a>(repo: &'a Repository, url: &str, path: &Path,
                    use_gitlink: bool) -> Result<Submodule<'a>, Error> {
-        let url = url.to_c_str();
-        let path = path.to_c_str();
         let mut raw = 0 as *mut raw::git_submodule;
-        try!(::doit(|| unsafe {
-            raw::git_submodule_add_setup(&mut raw, repo.raw(), url.as_ptr(),
-                                         path.as_ptr(),
-                                         use_gitlink as libc::c_int)
-        }));
-        Ok(unsafe { Submodule::from_raw(repo, raw) })
+        unsafe {
+            try_call!(raw::git_submodule_add_setup(&mut raw, repo.raw(),
+                                                   url.to_c_str(),
+                                                   path.to_c_str(),
+                                                   use_gitlink));
+            Ok(Submodule::from_raw(repo, raw))
+        }
     }
 
     /// Lookup submodule information by name or path.
@@ -57,12 +58,12 @@ impl<'a> Submodule<'a> {
     /// this returns a structure describing the submodule.
     pub fn lookup<'a>(repo: &'a Repository, name: &str)
                       -> Result<Submodule<'a>, Error> {
-        let name = name.to_c_str();
         let mut raw = 0 as *mut raw::git_submodule;
-        try!(::doit(|| unsafe {
-            raw::git_submodule_lookup(&mut raw, repo.raw(), name.as_ptr())
-        }));
-        Ok(unsafe { Submodule::from_raw(repo, raw) })
+        unsafe {
+            try_call!(raw::git_submodule_lookup(&mut raw, repo.raw(),
+                                                name.to_c_str()));
+            Ok(Submodule::from_raw(repo, raw))
+        }
     }
 
     /// Get the submodule's branch.
@@ -164,9 +165,9 @@ impl<'a> Submodule<'a> {
     /// By default, existing entries will not be overwritten, but passing `true`
     /// for `overwrite` forces them to be updated.
     pub fn init(&mut self, overwrite: bool) -> Result<(), Error> {
-        try!(::doit(|| unsafe {
-            raw::git_submodule_init(self.raw, overwrite as libc::c_int)
-        }));
+        unsafe {
+            try_call!(raw::git_submodule_init(self.raw, overwrite));
+        }
         Ok(())
     }
 
@@ -176,9 +177,9 @@ impl<'a> Submodule<'a> {
     /// directory.
     pub fn open(&self) -> Result<Repository, Error> {
         let mut raw = 0 as *mut raw::git_repository;
-        try!(::doit(|| unsafe {
-            raw::git_submodule_open(&mut raw, self.raw)
-        }));
+        unsafe {
+            try_call!(raw::git_submodule_open(&mut raw, self.raw));
+        }
         Ok(unsafe { Repository::from_raw(raw) })
     }
 
@@ -193,9 +194,9 @@ impl<'a> Submodule<'a> {
     /// If `force` is `true`, then data will be reloaded even if it doesn't seem
     /// out of date
     pub fn reload(&mut self, force: bool) -> Result<(), Error> {
-        try!(::doit(|| unsafe {
-            raw::git_submodule_reload(self.raw, force as libc::c_int)
-        }));
+        unsafe {
+            try_call!(raw::git_submodule_reload(self.raw, force));
+        }
         Ok(())
     }
 
@@ -207,7 +208,7 @@ impl<'a> Submodule<'a> {
     /// changes to submodule settings) and/or `sync()` which writes
     /// settings about remotes to the actual submodule repository.
     pub fn save(&mut self) -> Result<(), Error> {
-        try!(::doit(|| unsafe { raw::git_submodule_save(self.raw) }));
+        unsafe { try_call!(raw::git_submodule_save(self.raw)); }
         Ok(())
     }
 
@@ -218,7 +219,7 @@ impl<'a> Submodule<'a> {
     /// if you have altered the URL for the submodule (or it has been altered
     /// by a fetch of upstream changes) and you need to update your local repo.
     pub fn sync(&mut self) -> Result<(), Error> {
-        try!(::doit(|| unsafe { raw::git_submodule_sync(self.raw) }));
+        unsafe { try_call!(raw::git_submodule_sync(self.raw)); }
         Ok(())
     }
 }

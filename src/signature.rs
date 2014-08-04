@@ -22,9 +22,9 @@ impl Signature {
     /// user.name or user.email are not set.
     pub fn default(repo: &Repository) -> Result<Signature, Error> {
         let mut ret = 0 as *mut raw::git_signature;
-        try!(::doit(|| unsafe {
-            raw::git_signature_default(&mut ret, repo.raw())
-        }));
+        unsafe {
+            try_call!(raw::git_signature_default(&mut ret, repo.raw()));
+        }
         Ok(Signature { raw: ret })
     }
 
@@ -33,12 +33,11 @@ impl Signature {
     /// See `new` for more information
     pub fn now(name: &str, email: &str) -> Result<Signature, Error> {
         ::init();
-        let name = name.to_c_str();
-        let email = email.to_c_str();
         let mut ret = 0 as *mut raw::git_signature;
-        try!(::doit(|| unsafe {
-            raw::git_signature_now(&mut ret, name.as_ptr(), email.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_signature_now(&mut ret, name.to_c_str(),
+                                             email.to_c_str()));
+        }
         Ok(Signature { raw: ret })
     }
 
@@ -51,14 +50,13 @@ impl Signature {
     pub fn new(name: &str, email: &str, time: u64,
                offset: int) -> Result<Signature, Error> {
         ::init();
-        let name = name.to_c_str();
-        let email = email.to_c_str();
         let mut ret = 0 as *mut raw::git_signature;
-        try!(::doit(|| unsafe {
-            raw::git_signature_new(&mut ret, name.as_ptr(), email.as_ptr(),
-                                   time as raw::git_time_t,
-                                   offset as libc::c_int)
-        }));
+        unsafe {
+            try_call!(raw::git_signature_new(&mut ret, name.to_c_str(),
+                                             email.to_c_str(),
+                                             time as raw::git_time_t,
+                                             offset as libc::c_int));
+        }
         Ok(Signature { raw: ret })
     }
 
@@ -83,11 +81,8 @@ impl Signature {
 impl Clone for Signature {
     fn clone(&self) -> Signature {
         let mut raw = 0 as *mut raw::git_signature;
-        unsafe {
-            ::doit(|| {
-                raw::git_signature_dup(&mut raw, &*self.raw)
-            }).unwrap();
-        }
+        let rc = unsafe { raw::git_signature_dup(&mut raw, &*self.raw) };
+        assert_eq!(rc, 0);
         Signature { raw: raw }
     }
 }

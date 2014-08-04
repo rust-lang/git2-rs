@@ -105,9 +105,10 @@ impl RepoBuilder {
     /// into the specified local path.
     pub fn clone(&self, url: &str, into: &Path) -> Result<Repository, Error> {
         let mut opts: raw::git_clone_options = unsafe { mem::zeroed() };
-        try!(::doit(|| unsafe {
-            raw::git_clone_init_options(&mut opts, raw::GIT_CLONE_OPTIONS_VERSION)
-        }));
+        unsafe {
+            try_call!(raw::git_clone_init_options(&mut opts,
+                                                  raw::GIT_CLONE_OPTIONS_VERSION));
+        }
         opts.bare = self.bare as libc::c_int;
         opts.checkout_branch = self.branch.as_ref().map(|s| {
             s.as_ptr()
@@ -129,13 +130,12 @@ impl RepoBuilder {
             None => {}
         }
 
-        let url = url.to_c_str();
-        let into = into.to_c_str();
         let mut raw = 0 as *mut raw::git_repository;
-        try!(::doit(|| unsafe {
-            raw::git_clone(&mut raw, url.as_ptr(), into.as_ptr(), &opts)
-        }));
-        Ok(unsafe { Repository::from_raw(raw) })
+        unsafe {
+            try_call!(raw::git_clone(&mut raw, url.to_c_str(), into.to_c_str(),
+                                     &opts));
+            Ok(Repository::from_raw(raw))
+        }
     }
 }
 

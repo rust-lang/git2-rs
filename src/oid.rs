@@ -26,11 +26,12 @@ impl Oid {
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         ::init();
         let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
-        try!(::doit(|| unsafe {
-            raw::git_oid_fromstrn(&mut raw,
-                                  s.as_bytes().as_ptr() as *const libc::c_char,
-                                  s.len() as libc::size_t)
-        }));
+        unsafe {
+            try_call!(raw::git_oid_fromstrn(&mut raw,
+                                            s.as_bytes().as_ptr()
+                                                as *const libc::c_char,
+                                            s.len() as libc::size_t));
+        }
         Ok(Oid { raw: raw })
     }
 

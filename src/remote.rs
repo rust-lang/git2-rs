@@ -3,7 +3,7 @@ use std::kinds::marker;
 use std::str;
 use libc;
 
-use {raw, Repository, Direction, Fetch, Push, Error, Refspec, StringArray};
+use {raw, Repository, Direction, Error, Refspec, StringArray};
 use Signature;
 
 /// A structure represending a [remote][1] of a git repository.
@@ -113,12 +113,9 @@ impl<'a> Remote<'a> {
 
     /// Open a connection to a remote.
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
-        try!(::doit(|| unsafe {
-            raw::git_remote_connect(self.raw, match dir {
-                Fetch => raw::GIT_DIRECTION_FETCH,
-                Push => raw::GIT_DIRECTION_PUSH,
-            })
-        }));
+        unsafe {
+            try_call!(raw::git_remote_connect(self.raw, dir));
+        }
         Ok(())
     }
 
@@ -136,25 +133,23 @@ impl<'a> Remote<'a> {
     ///
     /// Anonymous remotes cannot be saved
     pub fn save(&self) -> Result<(), Error> {
-        try!(::doit(|| unsafe { raw::git_remote_save(&*self.raw) }));
+        unsafe { try_call!(raw::git_remote_save(&*self.raw)); }
         Ok(())
     }
 
     /// Add a fetch refspec to the remote
     pub fn add_fetch(&mut self, spec: &str) -> Result<(), Error> {
-        let spec = spec.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_remote_add_fetch(self.raw, spec.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_remote_add_fetch(self.raw, spec.to_c_str()));
+        }
         Ok(())
     }
 
     /// Add a push refspec to the remote
     pub fn add_push(&mut self, spec: &str) -> Result<(), Error> {
-        let spec = spec.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_remote_add_push(self.raw, spec.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_remote_add_push(self.raw, spec.to_c_str()));
+        }
         Ok(())
     }
 
@@ -169,10 +164,9 @@ impl<'a> Remote<'a> {
     ///
     /// Existing connections will not be updated.
     pub fn set_url(&mut self, url: &str) -> Result<(), Error> {
-        let url = url.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_remote_set_url(self.raw, url.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_remote_set_url(self.raw, url.to_c_str()));
+        }
         Ok(())
     }
 
@@ -183,10 +177,9 @@ impl<'a> Remote<'a> {
     /// Existing connections will not be updated.
     pub fn set_pushurl(&mut self, pushurl: Option<&str>) -> Result<(), Error> {
         let pushurl = pushurl.map(|s| s.to_c_str());
-        let pushurl = pushurl.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
-        try!(::doit(|| unsafe {
-            raw::git_remote_set_pushurl(self.raw, pushurl)
-        }));
+        unsafe {
+            try_call!(raw::git_remote_set_pushurl(self.raw, pushurl));
+        }
         Ok(())
     }
 
@@ -208,9 +201,9 @@ impl<'a> Remote<'a> {
             count: v2.len() as libc::size_t,
         };
 
-        try!(::doit(|| unsafe {
-            raw::git_remote_set_fetch_refspecs(self.raw, &mut arr)
-        }));
+        unsafe {
+            try_call!(raw::git_remote_set_fetch_refspecs(self.raw, &mut arr));
+        }
         Ok(())
     }
 
@@ -224,9 +217,9 @@ impl<'a> Remote<'a> {
             count: v2.len() as libc::size_t,
         };
 
-        try!(::doit(|| unsafe {
-            raw::git_remote_set_push_refspecs(self.raw, &mut arr)
-        }));
+        unsafe {
+            try_call!(raw::git_remote_set_push_refspecs(self.raw, &mut arr));
+        }
         Ok(())
     }
 
@@ -242,7 +235,7 @@ impl<'a> Remote<'a> {
     /// All remote-tracking branches and configuration settings for the remote
     /// will be removed.
     pub fn delete(&mut self) -> Result<(), Error> {
-        try!(::doit(|| unsafe { raw::git_remote_delete(self.raw) }));
+        unsafe { try_call!(raw::git_remote_delete(self.raw)); }
         Ok(())
     }
 
@@ -254,7 +247,7 @@ impl<'a> Remote<'a> {
     /// The .idx file will be created and both it and the packfile with be
     /// renamed to their final name.
     pub fn download(&mut self) -> Result<(), Error> {
-        try!(::doit(|| unsafe { raw::git_remote_download(self.raw) }));
+        unsafe { try_call!(raw::git_remote_download(self.raw)); }
         Ok(())
     }
 
@@ -275,11 +268,11 @@ impl<'a> Remote<'a> {
             count: 0,
             strings: 0 as *mut *mut libc::c_char,
         };
-        let new_name = new_name.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_remote_rename(&mut problems, self.raw, new_name.as_ptr())
-        }));
-        let _s = unsafe { StringArray::from_raw(problems) };
+        unsafe {
+            try_call!(raw::git_remote_rename(&mut problems, self.raw,
+                                             new_name.to_c_str()));
+            let _s = StringArray::from_raw(problems);
+        }
         Ok(())
     }
 
@@ -289,30 +282,27 @@ impl<'a> Remote<'a> {
     /// disconnect and update the remote-tracking branches.
     pub fn fetch(&mut self, signature: &Signature,
                  msg: Option<&str>) -> Result<(), Error> {
-        let msg = msg.map(|s| s.to_c_str());
-        let msg = msg.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
-
-        try!(::doit(|| unsafe {
-            raw::git_remote_fetch(self.raw, signature.raw() as *const _, msg)
-        }));
+        unsafe {
+            try_call!(raw::git_remote_fetch(self.raw,
+                                            &*signature.raw(),
+                                            msg.map(|s| s.to_c_str())));
+        }
         Ok(())
     }
 
     /// Update the tips to the new state
     pub fn update_tips(&mut self, signature: &Signature,
                        msg: Option<&str>) -> Result<(), Error> {
-        let msg = msg.map(|s| s.to_c_str());
-        let msg = msg.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
-
-        try!(::doit(|| unsafe {
-            raw::git_remote_update_tips(self.raw, signature.raw() as *const _, msg)
-        }));
+        unsafe {
+            try_call!(raw::git_remote_update_tips(self.raw, &*signature.raw(),
+                                                  msg.map(|s| s.to_c_str())));
+        }
         Ok(())
     }
 
     /// Retrieve the update FETCH_HEAD setting.
     pub fn update_fetchhead(&mut self) -> Result<(), Error> {
-        try!(::doit(|| unsafe { raw::git_remote_update_fetchhead(self.raw) }));
+        unsafe { try_call!(raw::git_remote_update_fetchhead(self.raw)); }
         Ok(())
     }
 }
@@ -334,9 +324,8 @@ impl<'a> Iterator<Refspec<'a>> for Refspecs<'a> {
 impl<'a> Clone for Remote<'a> {
     fn clone(&self) -> Remote<'a> {
         let mut ret = 0 as *mut raw::git_remote;
-        ::doit(|| unsafe {
-            raw::git_remote_dup(&mut ret, self.raw)
-        }).unwrap();
+        let rc = unsafe { call!(raw::git_remote_dup(&mut ret, self.raw)) };
+        assert_eq!(rc, 0);
         Remote {
             raw: ret,
             marker1: marker::ContravariantLifetime,

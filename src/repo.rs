@@ -3,7 +3,7 @@ use std::kinds::marker;
 use std::str;
 use libc::{c_int, c_uint, c_char, size_t, c_void};
 
-use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
+use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use build::RepoBuilder;
 
@@ -28,11 +28,10 @@ impl Repository {
     /// The path can point to either a normal or bare repository.
     pub fn open(path: &Path) -> Result<Repository, Error> {
         init();
-        let s = path.to_c_str();
         let mut ret = 0 as *mut raw::git_repository;
-        try!(doit(|| unsafe {
-            raw::git_repository_open(&mut ret, s.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_repository_open(&mut ret, path.to_c_str()));
+        }
         Ok(unsafe { Repository::from_raw(ret) })
     }
 
@@ -41,11 +40,11 @@ impl Repository {
     /// The folder must exist prior to invoking this function.
     pub fn init(path: &Path, bare: bool) -> Result<Repository, Error> {
         init();
-        let s = path.to_c_str();
         let mut ret = 0 as *mut raw::git_repository;
-        try!(doit(|| unsafe {
-            raw::git_repository_init(&mut ret, s.as_ptr(), bare as c_uint)
-        }));
+        unsafe {
+            try_call!(raw::git_repository_init(&mut ret, path.to_c_str(),
+                                               bare as c_uint));
+        }
         Ok(unsafe { Repository::from_raw(ret) })
     }
 
@@ -73,19 +72,18 @@ impl Repository {
     /// The resulting revision specification is returned, or an error is
     /// returned if one occurs.
     pub fn revparse(&self, spec: &str) -> Result<Revspec, Error> {
-        let s = spec.to_c_str();
-        let mut spec = raw::git_revspec {
+        let mut raw = raw::git_revspec {
             from: 0 as *mut _,
             to: 0 as *mut _,
             flags: raw::git_revparse_mode_t::empty(),
         };
-        try!(doit(|| unsafe {
-            raw::git_revparse(&mut spec, self.raw, s.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_revparse(&mut raw, self.raw, spec.to_c_str()));
+        }
 
-        if spec.flags.contains(raw::GIT_REVPARSE_SINGLE) {
-            assert!(spec.to.is_null());
-            let obj = unsafe { Object::from_raw(self, spec.from) };
+        if raw.flags.contains(raw::GIT_REVPARSE_SINGLE) {
+            assert!(raw.to.is_null());
+            let obj = unsafe { Object::from_raw(self, raw.from) };
             Ok(Revspec::from_objects(Some(obj), None))
         } else {
             fail!()
@@ -94,11 +92,11 @@ impl Repository {
 
     /// Find a single object, as specified by a revision string.
     pub fn revparse_single(&self, spec: &str) -> Result<Object, Error> {
-        let s = spec.to_c_str();
         let mut obj = 0 as *mut raw::git_object;
-        try!(doit(|| unsafe {
-            raw::git_revparse_single(&mut obj, self.raw, s.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_revparse_single(&mut obj, self.raw,
+                                               spec.to_c_str()));
+        }
         assert!(!obj.is_null());
         Ok(unsafe { Object::from_raw(self, obj) })
     }
@@ -115,9 +113,9 @@ impl Repository {
 
     /// Tests whether this repository is empty.
     pub fn is_empty(&self) -> Result<bool, Error> {
-        let empty = try!(doit(|| unsafe {
-            raw::git_repository_is_empty(self.raw)
-        }));
+        let empty = unsafe {
+            try_call!(raw::git_repository_is_empty(self.raw))
+        };
         Ok(empty == 1)
     }
 
@@ -190,33 +188,30 @@ impl Repository {
             strings: 0 as *mut *mut c_char,
             count: 0,
         };
-        try!(::doit(|| unsafe {
-            raw::git_remote_list(&mut arr, self.raw)
-        }));
+        unsafe {
+            try_call!(raw::git_remote_list(&mut arr, self.raw));
+        }
         Ok(unsafe { StringArray::from_raw(arr) })
     }
 
     /// Get the information for a particular remote
     pub fn remote_load(&self, name: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let name = name.to_c_str();
-        try!(doit(|| unsafe {
-            raw::git_remote_load(&mut ret, self.raw, name.as_ptr())
-        }));
-        Ok(unsafe { Remote::from_raw(self, ret) })
+        unsafe {
+            try_call!(raw::git_remote_load(&mut ret, self.raw, name.to_c_str()));
+            Ok(Remote::from_raw(self, ret))
+        }
     }
 
     /// Add a remote with the default fetch refspec to the repository's
     /// configuration.
     pub fn remote_create(&self, name: &str, url: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let name = name.to_c_str();
-        let url = url.to_c_str();
-        try!(doit(|| unsafe {
-            raw::git_remote_create(&mut ret, self.raw, name.as_ptr(),
-                                   url.as_ptr())
-        }));
-        Ok(unsafe { Remote::from_raw(self, ret) })
+        unsafe {
+            try_call!(raw::git_remote_create(&mut ret, self.raw,
+                                             name.to_c_str(), url.to_c_str()));
+            Ok(Remote::from_raw(self, ret))
+        }
     }
 
     /// Create an anonymous remote
@@ -227,13 +222,12 @@ impl Repository {
     pub fn remote_create_anonymous(&self, url: &str,
                                    fetch: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let url = url.to_c_str();
-        let fetch = fetch.to_c_str();
-        try!(doit(|| unsafe {
-            raw::git_remote_create_anonymous(&mut ret, self.raw, url.as_ptr(),
-                                             fetch.as_ptr())
-        }));
-        Ok(unsafe { Remote::from_raw(self, ret) })
+        unsafe {
+            try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw,
+                                                       url.to_c_str(),
+                                                       fetch.to_c_str()));
+            Ok(Remote::from_raw(self, ret))
+        }
     }
 
     /// Get the underlying raw repository
@@ -252,17 +246,10 @@ impl Repository {
     /// will be left alone, however.)
     pub fn reset<'a>(&'a self, target: &Object<'a>, kind: ResetType,
                      sig: &Signature, msg: Option<&str>) -> Result<(), Error> {
-        let msg = msg.map(|s| s.to_c_str());
-        let msg = msg.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
-        let kind = match kind {
-            ::Soft => raw::GIT_RESET_SOFT,
-            ::Mixed => raw::GIT_RESET_MIXED,
-            ::Hard => raw::GIT_RESET_HARD,
-        };
-
-        try!(doit(|| unsafe {
-            raw::git_reset(self.raw, target.raw(), kind, sig.raw(), msg)
-        }));
+        unsafe {
+            try_call!(raw::git_reset(self.raw, target.raw(), kind, sig.raw(),
+                                     msg.map(|s| s.to_c_str())));
+        }
         Ok(())
     }
 
@@ -286,40 +273,39 @@ impl Repository {
         };
         let target = target.map(|t| t.raw()).unwrap_or(0 as *mut _);
 
-        try!(::doit(|| unsafe {
-            raw::git_reset_default(self.raw, target, &mut arr)
-        }));
+        unsafe {
+            try_call!(raw::git_reset_default(self.raw, target, &mut arr));
+        }
         Ok(())
     }
 
     /// Retrieve and resolve the reference pointed at by HEAD.
     pub fn head(&self) -> Result<Reference, Error> {
         let mut ret = 0 as *mut raw::git_reference;
-        try!(::doit(|| unsafe {
-            raw::git_repository_head(&mut ret, self.raw)
-        }));
-        Ok(unsafe { Reference::from_raw(self, ret) })
+        unsafe {
+            try_call!(raw::git_repository_head(&mut ret, self.raw));
+            Ok(Reference::from_raw(self, ret))
+        }
     }
 
     /// Create an iterator for the repo's references
     pub fn references(&self) -> Result<References, Error> {
         let mut ret = 0 as *mut raw::git_reference_iterator;
-        try!(::doit(|| unsafe {
-            raw::git_reference_iterator_new(&mut ret, self.raw)
-        }));
-        Ok(unsafe { References::from_raw(self, ret) })
+        unsafe {
+            try_call!(raw::git_reference_iterator_new(&mut ret, self.raw));
+            Ok(References::from_raw(self, ret))
+        }
     }
 
     /// Create an iterator for the repo's references that match the specified
     /// glob
     pub fn references_glob(&self, glob: &str) -> Result<References, Error> {
         let mut ret = 0 as *mut raw::git_reference_iterator;
-        let glob = glob.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_reference_iterator_glob_new(&mut ret, self.raw,
-                                                 glob.as_ptr())
-        }));
-        Ok(unsafe { References::from_raw(self, ret) })
+        unsafe {
+            try_call!(raw::git_reference_iterator_glob_new(&mut ret, self.raw,
+                                                           glob.to_c_str()));
+            Ok(References::from_raw(self, ret))
+        }
     }
 
     /// Load all submodules for this repository and return them.
@@ -330,14 +316,15 @@ impl Repository {
         }
         let mut ret = Vec::new();
 
-        try!(::doit(|| unsafe {
+        unsafe {
             let mut data = Data {
                 repo: self,
                 ret: &mut ret,
             };
-            raw::git_submodule_foreach(self.raw, append,
-                                       &mut data as *mut _ as *mut c_void)
-        }));
+            try_call!(raw::git_submodule_foreach(self.raw, append,
+                                                 &mut data as *mut _
+                                                           as *mut c_void));
+        }
 
         return Ok(ret);
 

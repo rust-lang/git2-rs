@@ -50,14 +50,13 @@ impl<'a> Reference<'a> {
                    sig: &Signature,
                    log_message: &str) -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        let name = name.to_c_str();
-        let log_message = log_message.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_reference_create(&mut raw, repo.raw(), name.as_ptr(),
-                                      &*id.raw(), force as libc::c_int,
-                                      &*sig.raw(), log_message.as_ptr())
-        }));
-        Ok(unsafe { Reference::from_raw(repo, raw) })
+        unsafe {
+            try_call!(raw::git_reference_create(&mut raw, repo.raw(),
+                                                name.to_c_str(),
+                                                &*id.raw(), force, &*sig.raw(),
+                                                log_message.to_c_str()));
+            Ok(Reference::from_raw(repo, raw))
+        }
     }
 
     /// Create a new symbolic reference.
@@ -69,27 +68,25 @@ impl<'a> Reference<'a> {
                             force: bool, sig: &Signature,
                             log_message: &str) -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        let name = name.to_c_str();
-        let target = target.to_c_str();
-        let log_message = log_message.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_reference_symbolic_create(&mut raw, repo.raw(), name.as_ptr(),
-                                               target.as_ptr(),
-                                               force as libc::c_int,
-                                               &*sig.raw(), log_message.as_ptr())
-        }));
-        Ok(unsafe { Reference::from_raw(repo, raw) })
+        unsafe {
+            try_call!(raw::git_reference_symbolic_create(&mut raw, repo.raw(),
+                                                         name.to_c_str(),
+                                                         target.to_c_str(),
+                                                         force, &*sig.raw(),
+                                                         log_message.to_c_str()));
+            Ok(Reference::from_raw(repo, raw))
+        }
     }
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn lookup<'a>(repo: &'a Repository, name: &str)
                       -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        let name = name.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_reference_lookup(&mut raw, repo.raw(), name.as_ptr())
-        }));
-        Ok(unsafe { Reference::from_raw(repo, raw) })
+        unsafe {
+            try_call!(raw::git_reference_lookup(&mut raw, repo.raw(),
+                                                name.to_c_str()));
+            Ok(Reference::from_raw(repo, raw))
+        }
     }
 
     /// Lookup a reference by name and resolve immediately to OID.
@@ -99,11 +96,11 @@ impl<'a> Reference<'a> {
     /// allocate or free any `Reference` objects for simple situations.
     pub fn name_to_id(repo: &Repository, name: &str) -> Result<Oid, Error> {
         let mut ret: raw::git_oid = unsafe { mem::zeroed() };
-        let name = name.to_c_str();
-        try!(::doit(|| unsafe {
-            raw::git_reference_name_to_id(&mut ret, repo.raw(), name.as_ptr())
-        }));
-        Ok(unsafe { Oid::from_raw(&ret) })
+        unsafe {
+            try_call!(raw::git_reference_name_to_id(&mut ret, repo.raw(),
+                                                    name.to_c_str()));
+            Ok(Oid::from_raw(&ret))
+        }
     }
 
     /// Ensure the reference name is well-formed.
@@ -124,9 +121,7 @@ impl<'a> Reference<'a> {
     /// This function will return an error if the reference has changed from the
     /// time it was looked up.
     pub fn delete(&mut self) -> Result<(), Error> {
-        try!(::doit(|| unsafe {
-            raw::git_reference_delete(self.raw)
-        }));
+        unsafe { try_call!(raw::git_reference_delete(self.raw)); }
         Ok(())
     }
 
@@ -219,9 +214,7 @@ impl<'a> Reference<'a> {
     /// reference is returned.
     pub fn resolve(&self) -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        try!(::doit(|| unsafe {
-            raw::git_reference_resolve(&mut raw, &*self.raw)
-        }));
+        unsafe { try_call!(raw::git_reference_resolve(&mut raw, &*self.raw)); }
         Ok(Reference {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -238,14 +231,13 @@ impl<'a> Reference<'a> {
     /// the given name, the renaming will fail.
     pub fn rename(&mut self, new_name: &str, force: bool, sig: &Signature,
                   msg: &str) -> Result<Reference<'a>, Error> {
-        let new_name = new_name.to_c_str();
-        let msg = msg.to_c_str();
         let mut raw = 0 as *mut raw::git_reference;
-        try!(::doit(|| unsafe {
-            raw::git_reference_rename(&mut raw, self.raw, new_name.as_ptr(),
-                                      force as libc::c_int,
-                                      &*sig.raw(), msg.as_ptr())
-        }));
+        unsafe {
+            try_call!(raw::git_reference_rename(&mut raw, self.raw,
+                                                new_name.to_c_str(),
+                                                force, &*sig.raw(),
+                                                msg.to_c_str()));
+        }
         Ok(Reference {
             raw: raw,
             marker1: marker::ContravariantLifetime,
