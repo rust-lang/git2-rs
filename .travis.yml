@@ -3,7 +3,7 @@ install:
 script:
 - cargo build --verbose
 - cargo test --verbose
-- rustdoc --test src/lib.rs -L target
+- rustdoc --test src/lib.rs -L target --crate-name git2 -L target/deps
 - cargo doc
 after_success: ! '[ $TRAVIS_BRANCH = master ] && [ $TRAVIS_PULL_REQUEST = false ]
   && echo ''<meta http-equiv=refresh content=0;url=git2/index.html>'' > target/doc/index.html

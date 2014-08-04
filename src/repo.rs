@@ -7,6 +7,15 @@ use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References};
 use build::RepoBuilder;
 
+/// An owned git repository, representing all state associated with the
+/// underlying filesystem.
+///
+/// This structure corresponds to a `git_repository` in libgit2. Many other
+/// types in git2-rs are derivative from this structure and are attached to its
+/// lifetime.
+///
+/// When a repository goes out of scope it is freed in memory but not deleted
+/// from the filesystem.
 pub struct Repository {
     raw: *mut raw::git_repository,
     marker1: marker::NoShare,

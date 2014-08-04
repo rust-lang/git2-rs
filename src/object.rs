@@ -2,6 +2,9 @@ use std::kinds::marker;
 
 use {raw, Oid, Repository, ObjectKind, Error};
 
+/// A structure to represent a git [object][1]
+///
+/// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Object<'a> {
     raw: *mut raw::git_object,
     marker1: marker::ContravariantLifetime<'a>,
@@ -10,6 +13,10 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
+    /// Create a new object from its raw component.
+    ///
+    /// This method is unsafe as there is no guarantee that `raw` is a valid
+    /// pointer.
     pub unsafe fn from_raw(_repo: &Repository,
                            raw: *mut raw::git_object) -> Object {
         Object {

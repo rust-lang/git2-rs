@@ -6,6 +6,12 @@ use libc;
 use {raw, Repository, Direction, Fetch, Push, Error, Refspec, StringArray};
 use Signature;
 
+/// A structure represending a [remote][1] of a git repository.
+///
+/// [1]: http://git-scm.com/book/en/Git-Basics-Working-with-Remotes
+///
+/// The lifetime is the lifetime of the repository that it is attached to. The
+/// remote is used to manage fetches and pushes as well as refspecs.
 pub struct Remote<'a> {
     raw: *mut raw::git_remote,
     marker1: marker::ContravariantLifetime<'a>,
@@ -13,6 +19,7 @@ pub struct Remote<'a> {
     marker3: marker::NoShare,
 }
 
+/// An iterator over the refspecs that a remote contains.
 pub struct Refspecs<'a> {
     cur: uint,
     cnt: uint,
@@ -20,6 +27,10 @@ pub struct Refspecs<'a> {
 }
 
 impl<'a> Remote<'a> {
+    /// Creates a new remote from its raw pointer.
+    ///
+    /// This method is unsafe as there is no guarantee that `raw` is valid or
+    /// tha no other remote is using it.
     pub unsafe fn from_raw(_repo: &Repository,
                            raw: *mut raw::git_remote) -> Remote {
         Remote {

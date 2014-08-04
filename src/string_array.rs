@@ -2,21 +2,33 @@ use std::str;
 
 use raw;
 
+/// A string array structure used by libgit2
+///
+/// Some apis return arrays of strings which originate from libgit2. This
+/// wrapper type behaves a little like `Vec<&str>` but does so without copying
+/// the underlying strings until necessary.
 pub struct StringArray {
     raw: raw::git_strarray,
 }
 
+/// A forward iterator over the strings of an array, casted to `&str`.
 pub struct StringArrayItems<'a> {
     cur: uint,
     arr: &'a StringArray,
 }
 
+/// A forward iterator over the strings of an array, casted to `&[u8]`.
 pub struct StringArrayBytes<'a> {
     cur: uint,
     arr: &'a StringArray,
 }
 
 impl StringArray {
+    /// Creates a new string array from the raw representation.
+    ///
+    /// This is unsafe because it consumes ownership of the array and there is
+    /// no guarantee that the array itself is valid or that no one else is using
+    /// it.
     pub unsafe fn from_raw(raw: raw::git_strarray) -> StringArray {
         StringArray { raw: raw }
     }

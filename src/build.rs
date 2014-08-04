@@ -1,3 +1,5 @@
+//! Builder-pattern objects for configuration various git operations.
+
 use std::c_str::CString;
 use std::io;
 use std::mem;
@@ -34,6 +36,10 @@ pub struct CheckoutBuilder {
 }
 
 impl RepoBuilder {
+    /// Creates a new repository builder with all of the default configuration.
+    ///
+    /// When ready, the `clone()` method can be used to clone a new repository
+    /// using this configuration.
     pub fn new() -> RepoBuilder {
         RepoBuilder {
             bare: false,
@@ -134,6 +140,8 @@ impl RepoBuilder {
 }
 
 impl CheckoutBuilder {
+    /// Creates a new builder for checkouts with all of its default
+    /// configuration.
     pub fn new() -> CheckoutBuilder {
         CheckoutBuilder {
             disable_filters: false,

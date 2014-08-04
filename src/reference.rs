@@ -5,6 +5,9 @@ use libc;
 
 use {raw, Repository, Error, Oid, Signature};
 
+/// A structure to represent a git [reference][1].
+///
+/// [1]: http://git-scm.com/book/en/Git-Internals-Git-References
 pub struct Reference<'a> {
     raw: *mut raw::git_reference,
     marker1: marker::ContravariantLifetime<'a>,
@@ -12,16 +15,22 @@ pub struct Reference<'a> {
     marker3: marker::NoShare,
 }
 
+/// An iterator over the references in a repository.
 pub struct References<'a> {
     repo: &'a Repository,
     raw: *mut raw::git_reference_iterator,
 }
 
+/// An iterator over the names of references in a repository.
 pub struct ReferenceNames<'a> {
     inner: References<'a>,
 }
 
 impl<'a> Reference<'a> {
+    /// Creates a new reference from a raw pointer.
+    ///
+    /// This methods is unsafe as there is no guarantee that `raw` is a valid
+    /// pointer.
     pub unsafe fn from_raw(_repo: &Repository,
                            raw: *mut raw::git_reference) -> Reference {
         Reference {
@@ -83,6 +92,11 @@ impl<'a> Reference<'a> {
         Ok(unsafe { Reference::from_raw(repo, raw) })
     }
 
+    /// Lookup a reference by name and resolve immediately to OID.
+    ///
+    /// This function provides a quick way to resolve a reference name straight
+    /// through to the object id that it refers to. This avoids having to
+    /// allocate or free any `Reference` objects for simple situations.
     pub fn name_to_id(repo: &Repository, name: &str) -> Result<Oid, Error> {
         let mut ret: raw::git_oid = unsafe { mem::zeroed() };
         let name = name.to_c_str();
@@ -272,6 +286,9 @@ impl<'a> Drop for Reference<'a> {
 }
 
 impl<'a> References<'a> {
+    /// Creates a new iterator from its raw underlying pointer.
+    ///
+    /// This function is unsafe as there is no guarantee that `raw` is valid.
     pub unsafe fn from_raw(repo: &Repository,
                            raw: *mut raw::git_reference_iterator)
                            -> References {
@@ -301,6 +318,13 @@ impl<'a> Drop for References<'a> {
 }
 
 impl<'a> ReferenceNames<'a> {
+    /// Consumes a `References` iterator to create an iterator over just the
+    /// name of some references.
+    ///
+    /// This is more efficient if only the names are desired of references as
+    /// the references themselves don't have to be allocated and deallocated.
+    ///
+    /// The returned iterator will yield strings as opposed to a `Reference`.
     pub fn new(refs: References) -> ReferenceNames {
         ReferenceNames { inner: refs }
     }

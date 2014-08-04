@@ -1,4 +1,70 @@
+//! # libgit2 bindings for Rust
+//!
+//! This library contains bindings to the [libgit2][1] C library which is used
+//! to manage git repositories. The library itself is a work in progress and is
+//! likely lacking some bindings here and there, so be warned.
+//!
+//! [1]: https://libgit2.github.com/
+//!
+//! The git2-rs library strives to be as close to libgit2 as possible, but also
+//! strives to make using libgit2 as safe as possible. All resource management
+//! is automatic as well as adding strong types to all interfaces (including
+//! `Result`)
+//!
+//! ## Creating a `Repository`
+//!
+//! The `Repository` is the source from which almost all other objects in git-rs
+//! are spawned. A repository can be created through opening, initializing, or
+//! cloning.
+//!
+//! ### Initializing a new repository
+//!
+//! The `init` method will create a new repository, assuming one does not
+//! already exist.
+//!
+//! ```no_run
+//! use git2::Repository;
+//!
+//! let path = Path::new("/path/to/a/repo");
+//! let repo = match Repository::init(&path, false) { // false for not a bare repo
+//!     Ok(repo) => repo,
+//!     Err(e) => fail!("failed to init `{}`: {}", path.display(), e),
+//! };
+//! ```
+//!
+//! ### Opening an existing repository
+//!
+//! ```no_run
+//! use git2::Repository;
+//!
+//! let path = Path::new("/path/to/a/repo");
+//! let repo = match Repository::open(&path) {
+//!     Ok(repo) => repo,
+//!     Err(e) => fail!("failed to open `{}`: {}", path.display(), e),
+//! };
+//! ```
+//!
+//! ### Cloning an existing repository
+//!
+//! ```no_run
+//! use git2::Repository;
+//!
+//! let url = "https://github.com/alexcrichton/git2-rs";
+//! let path = Path::new("/path/to/a/repo");
+//! let repo = match Repository::clone(url, &path) {
+//!     Ok(repo) => repo,
+//!     Err(e) => fail!("failed to clone `{}`: {}", path.display(), e),
+//! };
+//! ```
+//!
+//! ## Working with a `Repository`
+//!
+//! All deriviative objects, references, etc are attached to the lifetime of the
+//! source `Repository`, to ensure that they do not outlive the repository
+//! itself.
+
 #![feature(macro_rules, unsafe_destructor)]
+#![deny(missing_doc)]
 
 extern crate libc;
 extern crate raw = "libgit2";
@@ -67,7 +133,9 @@ pub enum ErrorCode {
     Modified,
 }
 
+/// A listing of the possible states that a repository can be in.
 #[deriving(PartialEq, Eq, Clone, Show)]
+#[allow(missing_doc)]
 pub enum RepositoryState {
     Clean,
     Merge,
@@ -81,21 +149,36 @@ pub enum RepositoryState {
     ApplyMailboxOrRebase,
 }
 
+/// An enumeration of the possible directions for a remote.
 pub enum Direction {
-    Fetch, Push,
+    /// Data will be fetched (read) from this remote.
+    Fetch,
+    /// Data will be pushed (written) to this remote.
+    Push,
 }
 
+/// An enumeration of the operations that can be performed for the `reset`
+/// method on a `Repository`.
 pub enum ResetType {
+    /// Move the head to the given commit.
     Soft,
+    /// Soft plus reset the index to the commit.
     Mixed,
+    /// Mixed plus changes in the working tree are discarded.
     Hard,
 }
 
+/// An enumeration all possible kinds objects may have.
 pub enum ObjectKind {
+    /// An object which corresponds to a any git object
     Any,
+    /// An object which corresponds to a git commit
     Commit,
+    /// An object which corresponds to a git tree
     Tree,
+    /// An object which corresponds to a git blob
     Blob,
+    /// An object which corresponds to a git tag
     Tag,
 }
 

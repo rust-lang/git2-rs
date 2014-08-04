@@ -26,6 +26,7 @@ impl Error {
         }
     }
 
+    /// Creates a new error from the given string as the error.
     pub fn from_str(s: &str) -> Error {
         Error {
             raw: raw::git_error {

@@ -3,6 +3,11 @@ use std::str;
 
 use {raw, Remote, Direction, Push, Fetch};
 
+/// A structure to represent a git [refspec][1].
+///
+/// Refspecs are currently mainly accessed/created through a `Remote`.
+///
+/// [1]: http://git-scm.com/book/en/Git-Internals-The-Refspec
 pub struct Refspec<'a> {
     raw: *const raw::git_refspec,
     marker1: marker::ContravariantLifetime<'a>,
@@ -12,6 +17,9 @@ pub struct Refspec<'a> {
 }
 
 impl<'a> Refspec<'a> {
+    /// Creates a new refspec from the raw components.
+    ///
+    /// This is unsafe as the `raw` pointer is not guaranteed to be valid.
     pub unsafe fn from_raw<'a>(_repo: &'a Remote,
                                raw: *const raw::git_refspec) -> Refspec<'a> {
         Refspec {

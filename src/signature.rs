@@ -3,6 +3,12 @@ use libc;
 
 use {raw, Repository, Error};
 
+/// A Signature is used to indicate authorship of various actions throughout the
+/// library.
+///
+/// Signatures contain a name, email, and timestamp. All fields can be specified
+/// with `new`, the `now` constructor omits the timestamp, and the `default`
+/// constructor reads configuration from the given repository.
 pub struct Signature {
     raw: *mut raw::git_signature,
 }
