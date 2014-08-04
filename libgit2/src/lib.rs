@@ -9,16 +9,17 @@ pub static GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
 pub static GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub static GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 
+pub enum git_blob {}
+pub enum git_cred {}
 pub enum git_object {}
 pub enum git_reference {}
+pub enum git_reference_iterator {}
 pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
-pub enum git_tag {}
-pub enum git_cred {}
-pub enum git_tree {}
-pub enum git_reference_iterator {}
 pub enum git_submodule {}
+pub enum git_tag {}
+pub enum git_tree {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -553,4 +554,27 @@ extern {
     pub fn git_submodule_sync(submodule: *mut git_submodule) -> c_int;
     pub fn git_submodule_url(submodule: *mut git_submodule) -> *const c_char;
     pub fn git_submodule_wd_id(submodule: *mut git_submodule) -> *const git_oid;
+
+    // blob
+    pub fn git_blob_free(blob: *mut git_blob);
+    pub fn git_blob_id(blob: *const git_blob) -> *const git_oid;
+    pub fn git_blob_is_binary(blob: *const git_blob) -> c_int;
+    pub fn git_blob_lookup(blob: *mut *mut git_blob, repo: *mut git_repository,
+                           id: *const git_oid) -> c_int;
+    pub fn git_blob_lookup_prefix(blob: *mut *mut git_blob,
+                                  repo: *mut git_repository,
+                                  id: *const git_oid,
+                                  len: size_t) -> c_int;
+    pub fn git_blob_rawcontent(blob: *const git_blob) -> *const c_void;
+    pub fn git_blob_rawsize(blob: *const git_blob) -> git_off_t;
+    pub fn git_blob_create_frombuffer(id: *mut git_oid,
+                                      repo: *mut git_repository,
+                                      buffer: *const c_void,
+                                      len: size_t) -> c_int;
+    pub fn git_blob_create_fromdisk(id: *mut git_oid,
+                                    repo: *mut git_repository,
+                                    path: *const c_char) -> c_int;
+    pub fn git_blob_create_fromworkdir(id: *mut git_oid,
+                                       repo: *mut git_repository,
+                                       relative_path: *const c_char) -> c_int;
 }

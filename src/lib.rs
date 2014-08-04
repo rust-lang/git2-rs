@@ -74,6 +74,7 @@ use std::mem;
 use std::sync::{Once, ONCE_INIT};
 use std::c_str::CString;
 
+pub use blob::Blob;
 pub use error::Error;
 pub use object::Object;
 pub use oid::Oid;
@@ -187,6 +188,7 @@ mod call;
 
 pub mod build;
 
+mod blob;
 mod error;
 mod object;
 mod oid;
