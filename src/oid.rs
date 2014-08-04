@@ -47,6 +47,9 @@ impl Oid {
             Ok(Oid { raw: raw })
         }
     }
+
+    /// Gain access to the underlying raw oid pointer
+    pub fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
 }
 
 impl fmt::Show for Oid {

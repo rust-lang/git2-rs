@@ -282,7 +282,7 @@ impl<'a> Remote<'a> {
         let msg = msg.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
 
         try!(::doit(|| unsafe {
-            raw::git_remote_fetch(self.raw, signature.raw(), msg)
+            raw::git_remote_fetch(self.raw, signature.raw() as *const _, msg)
         }));
         Ok(())
     }
@@ -294,7 +294,7 @@ impl<'a> Remote<'a> {
         let msg = msg.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
 
         try!(::doit(|| unsafe {
-            raw::git_remote_update_tips(self.raw, signature.raw(), msg)
+            raw::git_remote_update_tips(self.raw, signature.raw() as *const _, msg)
         }));
         Ok(())
     }

@@ -1,10 +1,10 @@
 use std::c_str::CString;
 use std::kinds::marker;
 use std::str;
-use libc::{c_int, c_uint, c_char};
+use libc::{c_int, c_uint, c_char, size_t};
 
 use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
-use StringArray;
+use {StringArray, ResetType, Signature, Oid, ObjectKind};
 use build::RepoBuilder;
 
 pub struct Repository {
@@ -229,6 +229,78 @@ impl Repository {
 
     /// Get the underlying raw repository
     pub fn raw(&self) -> *mut raw::git_repository { self.raw }
+
+    /// Sets the current head to the specified object and optionally resets
+    /// the index and working tree to match.
+    ///
+    /// A soft reset means the head will be moved to the commit.
+    ///
+    /// A mixed reset will trigger a soft reset, plus the index will be
+    /// replaced with the content of the commit tree.
+    ///
+    /// A hard reset will trigger a mixed reset and the working directory will
+    /// be replaced with the content of the index. (Untracked and ignored files
+    /// will be left alone, however.)
+    pub fn reset<'a>(&'a self, target: &Object<'a>, kind: ResetType,
+                     sig: &Signature, msg: Option<&str>) -> Result<(), Error> {
+        let msg = msg.map(|s| s.to_c_str());
+        let msg = msg.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _);
+        let kind = match kind {
+            ::Soft => raw::GIT_RESET_SOFT,
+            ::Mixed => raw::GIT_RESET_MIXED,
+            ::Hard => raw::GIT_RESET_HARD,
+        };
+
+        try!(doit(|| unsafe {
+            raw::git_reset(self.raw, target.raw(), kind, sig.raw(), msg)
+        }));
+        Ok(())
+    }
+
+    /// Updates some entries in the index from the target commit tree.
+    ///
+    /// The scope of the updated entries is determined by the paths being
+    /// in the iterator provided.
+    ///
+    /// Passing a `None` target will result in removing entries in the index
+    /// matching the provided pathspecs.
+    pub fn reset_default<'a,
+                         T: ToCStr,
+                         I: Iterator<T>>(&'a self,
+                                         target: Option<&Object<'a>>,
+                                         paths: I) -> Result<(), Error> {
+        let v = paths.map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const c_char>>();
+        let mut arr = raw::git_strarray {
+            strings: v2.as_ptr() as *mut _,
+            count: v2.len() as size_t,
+        };
+        let target = target.map(|t| t.raw()).unwrap_or(0 as *mut _);
+
+        try!(::doit(|| unsafe {
+            raw::git_reset_default(self.raw, target, &mut arr)
+        }));
+        Ok(())
+    }
+
+    /// Lookup a reference to one of the objects in a repository.
+    pub fn lookup(&self, oid: &Oid,
+                  kind: Option<ObjectKind>) -> Result<Object, Error> {
+        let mut raw = 0 as *mut raw::git_object;
+        let kind = match kind {
+            Some(::Any) => raw::GIT_OBJ_ANY,
+            Some(::Commit) => raw::GIT_OBJ_COMMIT,
+            Some(::Tree) => raw::GIT_OBJ_TREE,
+            Some(::Blob) => raw::GIT_OBJ_BLOB,
+            Some(::Tag) => raw::GIT_OBJ_TAG,
+            None => raw::GIT_OBJ_ANY,
+        };
+
+        try!(doit(|| unsafe {
+            raw::git_object_lookup(&mut raw, self.raw, oid.raw(), kind)
+        }));
+        Ok(unsafe { Object::from_raw(self, raw) })
+    }
 }
 
 #[unsafe_destructor]
@@ -241,7 +313,7 @@ impl Drop for Repository {
 #[cfg(test)]
 mod tests {
     use std::io::{TempDir, File};
-    use super::Repository;
+    use {Repository, Signature};
 
     #[test]
     fn smoke_init() {
@@ -307,5 +379,9 @@ mod tests {
 
         assert_eq!(repo.revparse_single("HEAD").unwrap().id().to_string(),
                    expected_rev);
+        let obj = repo.lookup(&from.id(), None).unwrap().clone();
+        let sig = Signature::default(&repo).unwrap();
+        repo.reset(&obj, ::Hard, &sig, None).unwrap();
+        repo.reset(&obj, ::Soft, &sig, Some("foo")).unwrap();
     }
 }

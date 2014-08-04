@@ -71,7 +71,7 @@ impl Signature {
     }
 
     /// Get access to the underlying raw signature
-    pub fn raw(&self) -> *const raw::git_signature { self.raw as *const _ }
+    pub fn raw(&self) -> *mut raw::git_signature { self.raw }
 }
 
 impl Clone for Signature {

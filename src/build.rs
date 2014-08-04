@@ -108,7 +108,7 @@ impl RepoBuilder {
         }).unwrap_or(0 as *const _);
         opts.signature = self.sig.as_ref().map(|s| {
             s.raw()
-        }).unwrap_or(0 as *const _) as *mut _;
+        }).unwrap_or(0 as *mut _);
 
         opts.local = match (self.local, self.hardlinks) {
             (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,

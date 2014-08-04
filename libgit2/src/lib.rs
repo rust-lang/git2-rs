@@ -261,6 +261,27 @@ pub enum git_checkout_strategy_t {
 
 }
 
+#[repr(C)]
+pub enum git_reset_t {
+    GIT_RESET_SOFT = 1,
+    GIT_RESET_MIXED = 2,
+    GIT_RESET_HARD = 3,
+}
+
+#[repr(C)]
+pub enum git_otype {
+    GIT_OBJ_ANY = -2,
+    GIT_OBJ_BAD = -1,
+    GIT_OBJ__EXT1 = 0,
+    GIT_OBJ_COMMIT = 1,
+    GIT_OBJ_TREE = 2,
+    GIT_OBJ_BLOB = 3,
+    GIT_OBJ_TAG = 4,
+    GIT_OBJ__EXT2 = 5,
+    GIT_OBJ_OFS_DELTA = 6,
+    GIT_OBJ_REF_DELTA = 7,
+}
+
 #[link(name = "git2", kind = "static")]
 #[link(name = "z")]
 extern {
@@ -299,6 +320,11 @@ extern {
                           source: *mut git_object) -> c_int;
     pub fn git_object_id(obj: *const git_object) -> *const git_oid;
     pub fn git_object_free(object: *mut git_object);
+    pub fn git_object_lookup(dest: *mut *mut git_object,
+                             repo: *mut git_repository,
+                             id: *const git_oid,
+                             kind: git_otype) -> c_int;
+    pub fn git_object_type(obj: *const git_object) -> git_otype;
 
     // oid
     pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar);
@@ -414,4 +440,14 @@ extern {
                      options: *const git_clone_options) -> c_int;
     pub fn git_clone_init_options(opts: *mut git_clone_options,
                                   version: c_uint) -> c_int;
+
+    // reset
+    pub fn git_reset(repo: *mut git_repository,
+                     target: *mut git_object,
+                     reset_type: git_reset_t,
+                     signature: *mut git_signature,
+                     log_message: *const c_char) -> c_int;
+    pub fn git_reset_default(repo: *mut git_repository,
+                             target: *mut git_object,
+                             pathspecs: *mut git_strarray) -> c_int;
 }

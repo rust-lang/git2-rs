@@ -84,6 +84,20 @@ pub enum Direction {
     Fetch, Push,
 }
 
+pub enum ResetType {
+    Soft,
+    Mixed,
+    Hard,
+}
+
+pub enum ObjectKind {
+    Any,
+    Commit,
+    Tree,
+    Blob,
+    Tag,
+}
+
 pub mod build;
 
 mod error;
