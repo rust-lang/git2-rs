@@ -18,6 +18,7 @@ pub enum git_tag {}
 pub enum git_cred {}
 pub enum git_tree {}
 pub enum git_reference_iterator {}
+pub enum git_submodule {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -514,4 +515,42 @@ extern {
                                          force: c_int,
                                          sig: *const git_signature,
                                          log_message: *const c_char) -> c_int;
+
+    // submodules
+    pub fn git_submodule_add_finalize(submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_add_setup(submodule: *mut *mut git_submodule,
+                                   repo: *mut git_repository,
+                                   url: *const c_char,
+                                   path: *const c_char,
+                                   use_gitlink: c_int) -> c_int;
+    pub fn git_submodule_add_to_index(submodule: *mut git_submodule,
+                                      write_index: c_int) -> c_int;
+    pub fn git_submodule_branch(submodule: *mut git_submodule) -> *const c_char;
+    pub fn git_submodule_foreach(repo: *mut git_repository,
+                                 callback: extern fn(*mut git_submodule,
+                                                     *const c_char,
+                                                     *mut c_void) -> c_int,
+                                 payload: *mut c_void) -> c_int;
+    pub fn git_submodule_free(submodule: *mut git_submodule);
+    pub fn git_submodule_head_id(submodule: *mut git_submodule) -> *const git_oid;
+    pub fn git_submodule_index_id(submodule: *mut git_submodule) -> *const git_oid;
+    pub fn git_submodule_init(submodule: *mut git_submodule,
+                              overwrite: c_int) -> c_int;
+    pub fn git_submodule_location(status: *mut c_uint,
+                                  submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_lookup(out: *mut *mut git_submodule,
+                                repo: *mut git_repository,
+                                name: *const c_char) -> c_int;
+    pub fn git_submodule_name(submodule: *mut git_submodule) -> *const c_char;
+    pub fn git_submodule_open(repo: *mut *mut git_repository,
+                              submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_path(submodule: *mut git_submodule) -> *const c_char;
+    pub fn git_submodule_reload(submodule: *mut git_submodule,
+                                force: c_int) -> c_int;
+    pub fn git_submodule_reload_all(repo: *mut git_repository,
+                                    force: c_int) -> c_int;
+    pub fn git_submodule_save(submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_sync(submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_url(submodule: *mut git_submodule) -> *const c_char;
+    pub fn git_submodule_wd_id(submodule: *mut git_submodule) -> *const git_oid;
 }

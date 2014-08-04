@@ -77,13 +77,14 @@ use std::c_str::CString;
 pub use error::Error;
 pub use object::Object;
 pub use oid::Oid;
+pub use reference::{Reference, References, ReferenceNames};
 pub use refspec::Refspec;
 pub use remote::{Remote, Refspecs};
-pub use reference::{Reference, References, ReferenceNames};
 pub use repo::Repository;
 pub use revspec::Revspec;
-pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use signature::Signature;
+pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
+pub use submodule::Submodule;
 
 #[cfg(test)]
 macro_rules! git( ( $cwd:expr, $($arg:expr),*) => ({
@@ -194,6 +195,7 @@ mod repo;
 mod revspec;
 mod signature;
 mod string_array;
+mod submodule;
 
 fn doit(f: || -> libc::c_int) -> Result<libc::c_int, Error> {
     match f() {

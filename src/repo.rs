@@ -1,10 +1,10 @@
 use std::c_str::CString;
 use std::kinds::marker;
 use std::str;
-use libc::{c_int, c_uint, c_char, size_t};
+use libc::{c_int, c_uint, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
-use {StringArray, ResetType, Signature, Reference, References};
+use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use build::RepoBuilder;
 
 /// An owned git repository, representing all state associated with the
@@ -320,6 +320,36 @@ impl Repository {
                                                  glob.as_ptr())
         }));
         Ok(unsafe { References::from_raw(self, ret) })
+    }
+
+    /// Load all submodules for this repository and return them.
+    pub fn submodules(&self) -> Result<Vec<Submodule>, Error> {
+        struct Data<'a, 'b> {
+            repo: &'a Repository,
+            ret: &'b mut Vec<Submodule<'a>>,
+        }
+        let mut ret = Vec::new();
+
+        try!(::doit(|| unsafe {
+            let mut data = Data {
+                repo: self,
+                ret: &mut ret,
+            };
+            raw::git_submodule_foreach(self.raw, append,
+                                       &mut data as *mut _ as *mut c_void)
+        }));
+
+        return Ok(ret);
+
+        extern fn append(repo: *mut raw::git_submodule,
+                         _name: *const c_char,
+                         data: *mut c_void) -> c_int {
+            unsafe {
+                let data = &mut *(data as *mut Data);
+                data.ret.push(Submodule::from_raw(data.repo, repo));
+            }
+            0
+        }
     }
 }
 
