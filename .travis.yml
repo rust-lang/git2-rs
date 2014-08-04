@@ -1,8 +1,15 @@
 install:
-  - curl http://www.rust-lang.org/rustup.sh | sudo sh -
+- curl http://www.rust-lang.org/rustup.sh | sudo sh -
 script:
-  - cargo build --verbose
-  - cargo test --verbose
-  - rustdoc --test src/lib.rs -L target/deps -L target
+- cargo build --verbose
+- cargo test --verbose
+- rustdoc --test src/lib.rs -L target
+- cargo doc
+after_success: ! '[ $TRAVIS_BRANCH = master ] && [ $TRAVIS_PULL_REQUEST = false ]
+  && echo ''<meta http-equiv=refresh content=0;url=git2/index.html>'' > target/doc/index.html
+  && sudo pip install ghp-import && ghp-import -n target/doc && git push -fq https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git
+  gh-pages '
 env:
-  - LD_LIBRARY_PATH=/usr/local/lib
+  global:
+  - LD_LIBRARY_PATH: /usr/local/lib
+  - secure: e1hWVY9DVAuvwEJ3r8dGcH51nq+WieVZa5gnBIAde1joE3V0nz+suhQRJbU0oXoNj5JLTKwHqkSltvz5P9WeKOshqdRBtM83KaX5d5oiVuQVEs+JHPIvdOWWq8Kmpv19ypUqJXnb5sFzqgSOJCN/p3erxgfBc/NOkmBavPSXVxI=
