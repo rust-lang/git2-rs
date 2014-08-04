@@ -50,6 +50,9 @@ impl Oid {
 
     /// Gain access to the underlying raw oid pointer
     pub fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
+
+    /// View this OID as a byte-slice 20 bytes in length.
+    pub fn as_bytes(&self) -> &[u8] { self.raw.id.as_slice() }
 }
 
 impl fmt::Show for Oid {
