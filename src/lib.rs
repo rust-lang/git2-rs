@@ -69,12 +69,15 @@
 extern crate libc;
 extern crate raw = "libgit2";
 
-use std::rt;
-use std::mem;
-use std::sync::{Once, ONCE_INIT};
 use std::c_str::CString;
+use std::fmt;
+use std::mem;
+use std::rt;
+use std::str;
+use std::sync::{Once, ONCE_INIT};
 
 pub use blob::Blob;
+pub use buf::Buf;
 pub use error::Error;
 pub use object::Object;
 pub use oid::Oid;
@@ -86,6 +89,7 @@ pub use revspec::Revspec;
 pub use signature::Signature;
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
+pub use tree::{Tree, TreeEntry};
 
 #[cfg(test)]
 macro_rules! git( ( $cwd:expr, $($arg:expr),*) => ({
@@ -171,6 +175,7 @@ pub enum ResetType {
 }
 
 /// An enumeration all possible kinds objects may have.
+#[deriving(PartialEq, Eq)]
 pub enum ObjectKind {
     /// An object which corresponds to a any git object
     Any,
@@ -189,6 +194,7 @@ mod call;
 pub mod build;
 
 mod blob;
+mod buf;
 mod error;
 mod object;
 mod oid;
@@ -200,6 +206,7 @@ mod revspec;
 mod signature;
 mod string_array;
 mod submodule;
+mod tree;
 
 fn init() {
     static mut INIT: Once = ONCE_INIT;
@@ -222,4 +229,65 @@ unsafe fn opt_bytes<'a, T>(_: &'a T,
         let s = CString::new(c, false);
         Some(mem::transmute(s.as_bytes_no_nul()))
     }
+}
+
+impl ObjectKind {
+    /// Convert an object type to its string representation.
+    pub fn str(&self) -> &'static str {
+        unsafe {
+            let ptr = call!(raw::git_object_type2string(*self));
+            str::raw::c_str_to_static_slice(ptr)
+        }
+    }
+
+    /// Determine if the given git_otype is a valid loose object type.
+    pub fn is_loose(&self) -> bool {
+        unsafe { (call!(raw::git_object_typeisloose(*self)) == 1) }
+    }
+
+    /// Convert a raw git_otype to an ObjectKind
+    pub fn from_raw(raw: raw::git_otype) -> Option<ObjectKind> {
+        match raw {
+            raw::GIT_OBJ_ANY => Some(::Any),
+            raw::GIT_OBJ_BAD => None,
+            raw::GIT_OBJ__EXT1 => None,
+            raw::GIT_OBJ_COMMIT => Some(::Commit),
+            raw::GIT_OBJ_TREE => Some(::Tree),
+            raw::GIT_OBJ_BLOB => Some(::Blob),
+            raw::GIT_OBJ_TAG => Some(::Tag),
+            raw::GIT_OBJ__EXT2 => None,
+            raw::GIT_OBJ_OFS_DELTA => None,
+            raw::GIT_OBJ_REF_DELTA => None,
+        }
+    }
+
+    /// Convert this kind into its raw representation
+    pub fn raw(&self) -> raw::git_otype {
+        call::convert(self)
+    }
+
+    /// Convert a string object type representation to its object type.
+    pub fn from_str(s: &str) -> Option<ObjectKind> {
+        let raw = unsafe { call!(raw::git_object_string2type(s.to_c_str())) };
+        ObjectKind::from_raw(raw)
+    }
+}
+
+impl fmt::Show for ObjectKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.str().fmt(f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ObjectKind;
+
+    #[test]
+    fn convert() {
+        assert_eq!(::Blob.str(), "blob");
+        assert_eq!(ObjectKind::from_str("blob"), Some(::Blob));
+        assert!(::Blob.is_loose());
+    }
+
 }

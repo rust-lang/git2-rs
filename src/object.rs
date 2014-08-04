@@ -1,6 +1,7 @@
 use std::kinds::marker;
+use std::mem;
 
-use {raw, Oid, Repository, ObjectKind, Error};
+use {raw, Oid, Repository, ObjectKind, Error, Buf};
 
 /// A structure to represent a git [object][1]
 ///
@@ -52,17 +53,38 @@ impl<'a> Object<'a> {
     ///
     /// If the type is unknown, then `None` is returned.
     pub fn kind(&self) -> Option<ObjectKind> {
-        match unsafe { raw::git_object_type(&*self.raw) } {
-            raw::GIT_OBJ_ANY => Some(::Any),
-            raw::GIT_OBJ_BAD => None,
-            raw::GIT_OBJ__EXT1 => None,
-            raw::GIT_OBJ_COMMIT => Some(::Commit),
-            raw::GIT_OBJ_TREE => Some(::Tree),
-            raw::GIT_OBJ_BLOB => Some(::Blob),
-            raw::GIT_OBJ_TAG => Some(::Tag),
-            raw::GIT_OBJ__EXT2 => None,
-            raw::GIT_OBJ_OFS_DELTA => None,
-            raw::GIT_OBJ_REF_DELTA => None,
+        ObjectKind::from_raw(unsafe { raw::git_object_type(&*self.raw) })
+    }
+
+    /// Recursively peel an object until an object of the specified type is met.
+    ///
+    /// If you pass `Any` as the target type, then the object will be
+    /// peeled until the type changes (e.g. a tag will be chased until the
+    /// referenced object is no longer a tag).
+    pub fn peel(&self, kind: ObjectKind) -> Result<Object, Error> {
+        let mut raw = 0 as *mut raw::git_object;
+        unsafe {
+            try_call!(raw::git_object_peel(&mut raw, &*self.raw(), kind));
+        }
+        Ok(Object {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoShare,
+        })
+    }
+
+    /// Get a short abbreviated OID string for the object
+    ///
+    /// This starts at the "core.abbrev" length (default 7 characters) and
+    /// iteratively extends to a longer string if that length is ambiguous. The
+    /// result will be unambiguous (at least until new objects are added to the
+    /// repository).
+    pub fn short_id(&self) -> Result<Buf, Error> {
+        unsafe {
+            let mut raw: raw::git_buf = mem::zeroed();
+            try_call!(raw::git_object_short_id(&mut raw, &*self.raw()));
+            Ok(Buf::from_raw(raw))
         }
     }
 }

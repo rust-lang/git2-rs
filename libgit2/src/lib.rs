@@ -20,6 +20,7 @@ pub enum git_repository {}
 pub enum git_submodule {}
 pub enum git_tag {}
 pub enum git_tree {}
+pub enum git_tree_entry {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -293,6 +294,32 @@ pub enum git_ref_t {
     GIT_REF_LISTALL = GIT_REF_OID as int | GIT_REF_SYMBOLIC as int,
 }
 
+#[repr(C)]
+pub enum git_filemode_t {
+    GIT_FILEMODE_UNREADABLE          = 0000000,
+    GIT_FILEMODE_TREE                = 0040000,
+    GIT_FILEMODE_BLOB                = 0100644,
+    GIT_FILEMODE_BLOB_EXECUTABLE     = 0100755,
+    GIT_FILEMODE_LINK                = 0120000,
+    GIT_FILEMODE_COMMIT              = 0160000,
+}
+
+#[repr(C)]
+pub enum git_treewalk_mode {
+    GIT_TREEWALK_PRE = 0,
+    GIT_TREEWALK_POST = 1,
+}
+
+pub type git_treewalk_cb = extern fn(*const c_char, *const git_tree_entry,
+                                     *mut c_void) -> c_int;
+
+#[repr(C)]
+pub struct git_buf {
+    pub ptr: *mut c_char,
+    pub asize: size_t,
+    pub size: size_t,
+}
+
 #[link(name = "git2", kind = "static")]
 #[link(name = "z")]
 extern {
@@ -336,6 +363,14 @@ extern {
                              id: *const git_oid,
                              kind: git_otype) -> c_int;
     pub fn git_object_type(obj: *const git_object) -> git_otype;
+    pub fn git_object_peel(peeled: *mut *mut git_object,
+                           object: *const git_object,
+                           target_type: git_otype) -> c_int;
+    pub fn git_object_short_id(out: *mut git_buf,
+                               obj: *const git_object) -> c_int;
+    pub fn git_object_type2string(kind: git_otype) -> *const c_char;
+    pub fn git_object_string2type(s: *const c_char) -> git_otype;
+    pub fn git_object_typeisloose(kind: git_otype) -> c_int;
 
     // oid
     pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar);
@@ -577,4 +612,44 @@ extern {
     pub fn git_blob_create_fromworkdir(id: *mut git_oid,
                                        repo: *mut git_repository,
                                        relative_path: *const c_char) -> c_int;
+
+    // tree
+    pub fn git_tree_entry_byid(tree: *const git_tree,
+                               id: *const git_oid) -> *const git_tree_entry;
+    pub fn git_tree_entry_byindex(tree: *const git_tree,
+                                  idx: size_t) -> *const git_tree_entry;
+    pub fn git_tree_entry_byname(tree: *const git_tree,
+                                 filename: *const c_char) -> *const git_tree_entry;
+    pub fn git_tree_entry_bypath(out: *mut *mut git_tree_entry,
+                                 tree: *const git_tree,
+                                 filename: *const c_char) -> *const git_tree_entry;
+    pub fn git_tree_entry_cmp(e1: *const git_tree_entry,
+                              e2: *const git_tree_entry) -> c_int;
+    pub fn git_tree_entry_dup(dest: *mut *mut git_tree_entry,
+                              src: *const git_tree_entry) -> c_int;
+    pub fn git_tree_entry_filemode(entry: *const git_tree_entry) -> git_filemode_t;
+    pub fn git_tree_entry_filemode_raw(entry: *const git_tree_entry) -> git_filemode_t;
+    pub fn git_tree_entry_free(entry: *mut git_tree_entry);
+    pub fn git_tree_entry_id(entry: *const git_tree_entry) -> *const git_oid;
+    pub fn git_tree_entry_name(entry: *const git_tree_entry) -> *const c_char;
+    pub fn git_tree_entry_to_object(out: *mut *mut git_object,
+                                    repo: *mut git_repository,
+                                    entry: *const git_tree_entry) -> c_int;
+    pub fn git_tree_entry_type(entry: *const git_tree_entry) -> git_otype;
+    pub fn git_tree_entrycount(tree: *const git_tree) -> size_t;
+    pub fn git_tree_free(tree: *mut git_tree);
+    pub fn git_tree_id(tree: *const git_tree) -> *const git_oid;
+    pub fn git_tree_lookup(tree: *mut *mut git_tree,
+                           repo: *mut git_repository,
+                           id: *const git_oid) -> c_int;
+    pub fn git_tree_walk(tree: *const git_tree,
+                         mode: git_treewalk_mode,
+                         callback: git_treewalk_cb,
+                         payload: *mut c_void) -> c_int;
+
+    // buf
+    pub fn git_buf_free(buffer: *mut git_buf);
+    pub fn git_buf_grow(buffer: *mut git_buf, target_size: size_t) -> c_int;
+    pub fn git_buf_set(buffer: *mut git_buf, data: *const c_void,
+                       datalen: size_t) -> c_int;
 }

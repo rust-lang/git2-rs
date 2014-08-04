@@ -416,6 +416,8 @@ mod tests {
         assert_eq!(repo.revparse_single("HEAD").unwrap().id().to_string(),
                    expected_rev);
         let obj = Object::lookup(&repo, from.id(), None).unwrap().clone();
+        obj.peel(::Any).unwrap();
+        obj.short_id().unwrap();
         let sig = Signature::default(&repo).unwrap();
         repo.reset(&obj, ::Hard, &sig, None).unwrap();
         repo.reset(&obj, ::Soft, &sig, Some("foo")).unwrap();
