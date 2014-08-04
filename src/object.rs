@@ -1,6 +1,6 @@
 use std::kinds::marker;
 
-use {raw, Oid, Repository, ObjectKind};
+use {raw, Oid, Repository, ObjectKind, Error};
 
 pub struct Object<'a> {
     raw: *mut raw::git_object,
@@ -18,6 +18,25 @@ impl<'a> Object<'a> {
             marker2: marker::NoSend,
             marker3: marker::NoShare,
         }
+    }
+
+    /// Lookup a reference to one of the objects in a repository.
+    pub fn lookup(repo: &Repository, oid: Oid,
+                  kind: Option<ObjectKind>) -> Result<Object, Error> {
+        let mut raw = 0 as *mut raw::git_object;
+        let kind = match kind {
+            Some(::Any) => raw::GIT_OBJ_ANY,
+            Some(::Commit) => raw::GIT_OBJ_COMMIT,
+            Some(::Tree) => raw::GIT_OBJ_TREE,
+            Some(::Blob) => raw::GIT_OBJ_BLOB,
+            Some(::Tag) => raw::GIT_OBJ_TAG,
+            None => raw::GIT_OBJ_ANY,
+        };
+
+        try!(::doit(|| unsafe {
+            raw::git_object_lookup(&mut raw, repo.raw(), oid.raw(), kind)
+        }));
+        Ok(unsafe { Object::from_raw(repo, raw) })
     }
 
     /// Get the id (SHA1) of a repository object

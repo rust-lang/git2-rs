@@ -17,6 +17,7 @@ pub enum git_repository {}
 pub enum git_tag {}
 pub enum git_cred {}
 pub enum git_tree {}
+pub enum git_reference_iterator {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -282,6 +283,14 @@ pub enum git_otype {
     GIT_OBJ_REF_DELTA = 7,
 }
 
+#[repr(C)]
+pub enum git_ref_t {
+    GIT_REF_INVALID = 0,
+    GIT_REF_OID = 1,
+    GIT_REF_SYMBOLIC = 2,
+    GIT_REF_LISTALL = GIT_REF_OID as int | GIT_REF_SYMBOLIC as int,
+}
+
 #[link(name = "git2", kind = "static")]
 #[link(name = "z")]
 extern {
@@ -450,4 +459,45 @@ extern {
     pub fn git_reset_default(repo: *mut git_repository,
                              target: *mut git_object,
                              pathspecs: *mut git_strarray) -> c_int;
+
+    // reference
+    pub fn git_reference_cmp(ref1: *const git_reference,
+                             ref2: *const git_reference) -> c_int;
+    pub fn git_reference_delete(r: *mut git_reference) -> c_int;
+    pub fn git_reference_free(r: *mut git_reference);
+    pub fn git_reference_is_branch(r: *const git_reference) -> c_int;
+    pub fn git_reference_is_note(r: *const git_reference) -> c_int;
+    pub fn git_reference_is_remote(r: *const git_reference) -> c_int;
+    pub fn git_reference_is_tag(r: *const git_reference) -> c_int;
+    pub fn git_reference_is_valid_name(name: *const c_char) -> c_int;
+    pub fn git_reference_lookup(out: *mut *mut git_reference,
+                                repo: *mut git_repository,
+                                name: *const c_char) -> c_int;
+    pub fn git_reference_name(r: *const git_reference) -> *const c_char;
+    pub fn git_reference_name_to_id(out: *mut git_oid,
+                                    repo: *mut git_repository,
+                                    name: *const c_char) -> c_int;
+    pub fn git_reference_rename(new_ref: *mut *mut git_reference,
+                                r: *mut git_reference,
+                                new_name: *const c_char,
+                                force: c_int,
+                                sig: *const git_signature,
+                                log_message: *const c_char) -> c_int;
+    pub fn git_reference_resolve(out: *mut *mut git_reference,
+                                 r: *const git_reference) -> c_int;
+    pub fn git_reference_shorthand(r: *const git_reference) -> *const c_char;
+    pub fn git_reference_symbolic_target(r: *const git_reference) -> *const c_char;
+    pub fn git_reference_target(r: *const git_reference) -> *const git_oid;
+    pub fn git_reference_target_peel(r: *const git_reference) -> *const git_oid;
+    pub fn git_reference_type(r: *const git_reference) -> git_ref_t;
+    pub fn git_reference_iterator_new(out: *mut *mut git_reference_iterator,
+                                      repo: *mut git_repository) -> c_int;
+    pub fn git_reference_iterator_glob_new(out: *mut *mut git_reference_iterator,
+                                           repo: *mut git_repository,
+                                           glob: *const c_char) -> c_int;
+    pub fn git_reference_iterator_free(iter: *mut git_reference_iterator);
+    pub fn git_reference_next(out: *mut *mut git_reference,
+                              iter: *mut git_reference_iterator) -> c_int;
+    pub fn git_reference_next_name(out: *mut *const c_char,
+                                   iter: *mut git_reference_iterator) -> c_int;
 }

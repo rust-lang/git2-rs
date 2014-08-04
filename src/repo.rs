@@ -4,7 +4,7 @@ use std::str;
 use libc::{c_int, c_uint, c_char, size_t};
 
 use {raw, Revspec, Error, doit, init, Object, RepositoryState, Remote};
-use {StringArray, ResetType, Signature, Oid, ObjectKind};
+use {StringArray, ResetType, Signature, Reference, References};
 use build::RepoBuilder;
 
 pub struct Repository {
@@ -283,23 +283,34 @@ impl Repository {
         Ok(())
     }
 
-    /// Lookup a reference to one of the objects in a repository.
-    pub fn lookup(&self, oid: &Oid,
-                  kind: Option<ObjectKind>) -> Result<Object, Error> {
-        let mut raw = 0 as *mut raw::git_object;
-        let kind = match kind {
-            Some(::Any) => raw::GIT_OBJ_ANY,
-            Some(::Commit) => raw::GIT_OBJ_COMMIT,
-            Some(::Tree) => raw::GIT_OBJ_TREE,
-            Some(::Blob) => raw::GIT_OBJ_BLOB,
-            Some(::Tag) => raw::GIT_OBJ_TAG,
-            None => raw::GIT_OBJ_ANY,
-        };
-
-        try!(doit(|| unsafe {
-            raw::git_object_lookup(&mut raw, self.raw, oid.raw(), kind)
+    /// Retrieve and resolve the reference pointed at by HEAD.
+    pub fn head(&self) -> Result<Reference, Error> {
+        let mut ret = 0 as *mut raw::git_reference;
+        try!(::doit(|| unsafe {
+            raw::git_repository_head(&mut ret, self.raw)
         }));
-        Ok(unsafe { Object::from_raw(self, raw) })
+        Ok(unsafe { Reference::from_raw(self, ret) })
+    }
+
+    /// Create an iterator for the repo's references
+    pub fn references(&self) -> Result<References, Error> {
+        let mut ret = 0 as *mut raw::git_reference_iterator;
+        try!(::doit(|| unsafe {
+            raw::git_reference_iterator_new(&mut ret, self.raw)
+        }));
+        Ok(unsafe { References::from_raw(self, ret) })
+    }
+
+    /// Create an iterator for the repo's references that match the specified
+    /// glob
+    pub fn references_glob(&self, glob: &str) -> Result<References, Error> {
+        let mut ret = 0 as *mut raw::git_reference_iterator;
+        let glob = glob.to_c_str();
+        try!(::doit(|| unsafe {
+            raw::git_reference_iterator_glob_new(&mut ret, self.raw,
+                                                 glob.as_ptr())
+        }));
+        Ok(unsafe { References::from_raw(self, ret) })
     }
 }
 
@@ -313,7 +324,7 @@ impl Drop for Repository {
 #[cfg(test)]
 mod tests {
     use std::io::{TempDir, File};
-    use {Repository, Signature};
+    use {Repository, Signature, Object};
 
     #[test]
     fn smoke_init() {
@@ -367,7 +378,6 @@ mod tests {
         git!(td.path(), "config", "user.email", "foo");
         File::create(&td.path().join("foo")).write_str("foobar").unwrap();
         git!(td.path(), "add", ".");
-
         git!(td.path(), "commit", "-m", "foo");
         let expected_rev = git!(td.path(), "rev-parse", "HEAD");
 
@@ -379,7 +389,7 @@ mod tests {
 
         assert_eq!(repo.revparse_single("HEAD").unwrap().id().to_string(),
                    expected_rev);
-        let obj = repo.lookup(&from.id(), None).unwrap().clone();
+        let obj = Object::lookup(&repo, from.id(), None).unwrap().clone();
         let sig = Signature::default(&repo).unwrap();
         repo.reset(&obj, ::Hard, &sig, None).unwrap();
         repo.reset(&obj, ::Soft, &sig, Some("foo")).unwrap();
