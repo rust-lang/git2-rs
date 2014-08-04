@@ -32,6 +32,46 @@ impl<'a> Reference<'a> {
         }
     }
 
+    /// Create a new direct reference.
+    ///
+    /// This function will return an error if a reference already exists with
+    /// the given name unless force is true, in which case it will be
+    /// overwritten.
+    pub fn new<'a>(repo: &'a Repository, name: &str, id: Oid, force: bool,
+                   sig: &Signature,
+                   log_message: &str) -> Result<Reference<'a>, Error> {
+        let mut raw = 0 as *mut raw::git_reference;
+        let name = name.to_c_str();
+        let log_message = log_message.to_c_str();
+        try!(::doit(|| unsafe {
+            raw::git_reference_create(&mut raw, repo.raw(), name.as_ptr(),
+                                      &*id.raw(), force as libc::c_int,
+                                      &*sig.raw(), log_message.as_ptr())
+        }));
+        Ok(unsafe { Reference::from_raw(repo, raw) })
+    }
+
+    /// Create a new symbolic reference.
+    ///
+    /// This function will return an error if a reference already exists with
+    /// the given name unless force is true, in which case it will be
+    /// overwritten.
+    pub fn new_symbolic<'a>(repo: &'a Repository, name: &str, target: &str,
+                            force: bool, sig: &Signature,
+                            log_message: &str) -> Result<Reference<'a>, Error> {
+        let mut raw = 0 as *mut raw::git_reference;
+        let name = name.to_c_str();
+        let target = target.to_c_str();
+        let log_message = log_message.to_c_str();
+        try!(::doit(|| unsafe {
+            raw::git_reference_symbolic_create(&mut raw, repo.raw(), name.as_ptr(),
+                                               target.as_ptr(),
+                                               force as libc::c_int,
+                                               &*sig.raw(), log_message.as_ptr())
+        }));
+        Ok(unsafe { Reference::from_raw(repo, raw) })
+    }
+
     /// Lookup a reference to one of the objects in a repository.
     pub fn lookup<'a>(repo: &'a Repository, name: &str)
                       -> Result<Reference<'a>, Error> {
@@ -323,6 +363,19 @@ mod tests {
         assert_eq!(head.shorthand(), Some("master"));
         assert!(head.resolve().unwrap() == head);
 
+        let sig = Signature::default(&repo).unwrap();
+        let mut tag1 = Reference::new(&repo, "refs/tags/tag1",
+                                      head.target().unwrap(),
+                                      false,
+                                      &sig, "test").unwrap();
+        assert!(tag1.is_tag());
+        tag1.delete().unwrap();
+
+        let mut sym1 = Reference::new_symbolic(&repo, "refs/tags/tag1",
+                                               "refs/heads/master", false,
+                                               &sig, "test").unwrap();
+        sym1.delete().unwrap();
+
         {
             assert!(repo.references().unwrap().count() == 1);
             assert!(repo.references().unwrap().next().unwrap() == head);
@@ -333,7 +386,6 @@ mod tests {
             assert!(repo.references_glob("refs/heads/*").unwrap().count() == 1);
         }
 
-        let sig = Signature::default(&repo).unwrap();
         let mut head = head.rename("refs/foo", true, &sig, "test").unwrap();
         head.delete().unwrap();
 

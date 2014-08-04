@@ -500,4 +500,18 @@ extern {
                               iter: *mut git_reference_iterator) -> c_int;
     pub fn git_reference_next_name(out: *mut *const c_char,
                                    iter: *mut git_reference_iterator) -> c_int;
+    pub fn git_reference_create(out: *mut *mut git_reference,
+                                repo: *mut git_repository,
+                                name: *const c_char,
+                                id: *const git_oid,
+                                force: c_int,
+                                sig: *const git_signature,
+                                log_message: *const c_char) -> c_int;
+    pub fn git_reference_symbolic_create(out: *mut *mut git_reference,
+                                         repo: *mut git_repository,
+                                         name: *const c_char,
+                                         target: *const c_char,
+                                         force: c_int,
+                                         sig: *const git_signature,
+                                         log_message: *const c_char) -> c_int;
 }
