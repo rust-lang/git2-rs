@@ -46,6 +46,9 @@ impl Buf {
             })
         }
     }
+
+    /// Gain access to the underlying raw buffer.
+    pub fn raw(&mut self) -> *mut raw::git_buf { &mut self.raw as *mut _ }
 }
 
 impl Drop for Buf {

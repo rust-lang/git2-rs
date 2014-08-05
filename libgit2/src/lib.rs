@@ -10,8 +10,12 @@ pub static GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub static GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 
 pub enum git_blob {}
+pub enum git_branch_iterator {}
 pub enum git_commit {}
+pub enum git_config {}
+pub enum git_config_iterator {}
 pub enum git_cred {}
+pub enum git_index {}
 pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
@@ -22,8 +26,6 @@ pub enum git_submodule {}
 pub enum git_tag {}
 pub enum git_tree {}
 pub enum git_tree_entry {}
-pub enum git_branch_iterator {}
-pub enum git_index {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -355,6 +357,23 @@ pub struct git_index_time {
     pub nanoseconds: c_uint,
 }
 
+#[repr(C)]
+pub struct git_config_entry {
+    pub name: *const c_char,
+    pub value: *const c_char,
+    pub level: git_config_level_t,
+}
+
+#[repr(C)]
+pub enum git_config_level_t {
+    GIT_CONFIG_LEVEL_SYSTEM = 1,
+    GIT_CONFIG_LEVEL_XDG = 2,
+    GIT_CONFIG_LEVEL_GLOBAL = 3,
+    GIT_CONFIG_LEVEL_LOCAL = 4,
+    GIT_CONFIG_LEVEL_APP = 5,
+    GIT_CONFIG_HIGHEST_LEVEL = -1,
+}
+
 #[link(name = "git2", kind = "static")]
 #[link(name = "z")]
 extern {
@@ -381,6 +400,10 @@ extern {
     pub fn git_repository_workdir(repo: *mut git_repository) -> *const c_char;
     pub fn git_repository_index(out: *mut *mut git_index,
                                 repo: *mut git_repository) -> c_int;
+    pub fn git_repository_config(out: *mut *mut git_config,
+                                 repo: *mut git_repository) -> c_int;
+    pub fn git_repository_config_snapshot(out: *mut *mut git_config,
+                                          repo: *mut git_repository) -> c_int;
 
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
@@ -820,4 +843,72 @@ extern {
     pub fn git_index_write_tree_to(out: *mut git_oid,
                                    index: *mut git_index,
                                    repo: *mut git_repository) -> c_int;
+
+    // config
+    pub fn git_config_add_file_ondisk(cfg: *mut git_config,
+                                      path: *const c_char,
+                                      level: git_config_level_t,
+                                      force: c_int) -> c_int;
+    pub fn git_config_delete_entry(cfg: *mut git_config,
+                                   name: *const c_char) -> c_int;
+    pub fn git_config_delete_multivar(cfg: *mut git_config,
+                                      name: *const c_char,
+                                      regexp: *const c_char) -> c_int;
+    pub fn git_config_find_global(out: *mut git_buf) -> c_int;
+    pub fn git_config_find_system(out: *mut git_buf) -> c_int;
+    pub fn git_config_find_xdg(out: *mut git_buf) -> c_int;
+    pub fn git_config_free(cfg: *mut git_config);
+    pub fn git_config_get_bool(out: *mut c_int,
+                               cfg: *const git_config,
+                               name: *const c_char) -> c_int;
+    pub fn git_config_get_entry(out: *mut *const git_config_entry,
+                                cfg: *const git_config,
+                                name: *const c_char) -> c_int;
+    pub fn git_config_get_int32(out: *mut i32,
+                                cfg: *const git_config,
+                                name: *const c_char) -> c_int;
+    pub fn git_config_get_int64(out: *mut i64,
+                                cfg: *const git_config,
+                                name: *const c_char) -> c_int;
+    pub fn git_config_get_string(out: *mut *const c_char,
+                                 cfg: *const git_config,
+                                 name: *const c_char) -> c_int;
+    pub fn git_config_iterator_free(iter: *mut git_config_iterator);
+    pub fn git_config_iterator_glob_new(out: *mut *mut git_config_iterator,
+                                        cfg: *const git_config,
+                                        regexp: *const c_char) -> c_int;
+    pub fn git_config_iterator_new(out: *mut *mut git_config_iterator,
+                                   cfg: *const git_config) -> c_int;
+    pub fn git_config_new(out: *mut *mut git_config) -> c_int;
+    pub fn git_config_next(entry: *mut *mut git_config_entry,
+                           iter: *mut git_config_iterator) -> c_int;
+    pub fn git_config_open_default(out: *mut *mut git_config) -> c_int;
+    pub fn git_config_open_global(out: *mut *mut git_config,
+                                  config: *mut git_config) -> c_int;
+    pub fn git_config_open_level(out: *mut *mut git_config,
+                                 parent: *const git_config,
+                                 level: git_config_level_t) -> c_int;
+    pub fn git_config_open_ondisk(out: *mut *mut git_config,
+                                  path: *const c_char) -> c_int;
+    pub fn git_config_parse_bool(out: *mut c_int,
+                                 value: *const c_char) -> c_int;
+    pub fn git_config_parse_int32(out: *mut i32,
+                                  value: *const c_char) -> c_int;
+    pub fn git_config_parse_int64(out: *mut i64,
+                                  value: *const c_char) -> c_int;
+    pub fn git_config_refresh(cfg: *mut git_config) -> c_int;
+    pub fn git_config_set_bool(cfg: *mut git_config,
+                               name: *const c_char,
+                               value: c_int) -> c_int;
+    pub fn git_config_set_int32(cfg: *mut git_config,
+                                name: *const c_char,
+                                value: i32) -> c_int;
+    pub fn git_config_set_int64(cfg: *mut git_config,
+                                name: *const c_char,
+                                value: i64) -> c_int;
+    pub fn git_config_set_string(cfg: *mut git_config,
+                                 name: *const c_char,
+                                 value: *const c_char) -> c_int;
+    pub fn git_config_snapshot(out: *mut *mut git_config,
+                               config: *mut git_config) -> c_int;
 }

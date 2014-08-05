@@ -5,7 +5,7 @@ use libc::{c_int, c_uint, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
-use {Branches, BranchType, Index};
+use {Branches, BranchType, Index, Config};
 use build::RepoBuilder;
 
 /// An owned git repository, representing all state associated with the
@@ -357,6 +357,19 @@ impl Repository {
         unsafe {
             try_call!(raw::git_repository_index(&mut raw, self.raw()));
             Ok(Index::from_raw(raw))
+        }
+    }
+
+    /// Get the configuration file for this repository.
+    ///
+    /// If a configuration file has not been set, the default config set for the
+    /// repository will be returned, including global and system configurations
+    /// (if they are available).
+    pub fn config(&self) -> Result<Config, Error> {
+        let mut raw = 0 as *mut raw::git_config;
+        unsafe {
+            try_call!(raw::git_repository_config(&mut raw, self.raw()));
+            Ok(Config::from_raw(raw))
         }
     }
 }

@@ -81,6 +81,7 @@ pub use blob::Blob;
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};
+pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use error::Error;
 pub use index::{Index, IndexEntry};
 pub use object::Object;
@@ -188,6 +189,26 @@ pub enum BranchType {
     Remote,
 }
 
+/// An enumeration of the possible priority levels of a config file.
+///
+/// The levels corresponding to the escalation logic (higher to lower) when
+/// searching for config entries.
+#[deriving(PartialEq, Eq, Show)]
+pub enum ConfigLevel {
+    /// System-wide configuration file, e.g. /etc/gitconfig
+    ConfigSystem,
+    /// XDG-compatible configuration file, e.g. ~/.config/git/config
+    ConfigXDG,
+    /// User-specific configuration, e.g. ~/.gitconfig
+    ConfigGlobal,
+    /// Reopsitory specific config, e.g. $PWD/.git/config
+    ConfigLocal,
+    /// Application specific configuration file
+    ConfigApp,
+    /// Highest level available
+    ConfigHighest,
+}
+
 mod call;
 
 pub mod build;
@@ -196,6 +217,7 @@ mod blob;
 mod branch;
 mod buf;
 mod commit;
+mod config;
 mod error;
 mod index;
 mod object;
@@ -280,6 +302,20 @@ impl ObjectKind {
 impl fmt::Show for ObjectKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.str().fmt(f)
+    }
+}
+
+impl ConfigLevel {
+    /// Converts a raw configuration level to a ConfigLevel
+    pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
+        match raw {
+            raw::GIT_CONFIG_LEVEL_SYSTEM => ::ConfigSystem,
+            raw::GIT_CONFIG_LEVEL_XDG => ::ConfigXDG,
+            raw::GIT_CONFIG_LEVEL_GLOBAL => ::ConfigGlobal,
+            raw::GIT_CONFIG_LEVEL_LOCAL => ::ConfigLocal,
+            raw::GIT_CONFIG_LEVEL_APP => ::ConfigApp,
+            raw::GIT_CONFIG_HIGHEST_LEVEL => ::ConfigHighest,
+        }
     }
 }
 

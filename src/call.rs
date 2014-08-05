@@ -136,4 +136,17 @@ mod impls {
             self.map(|s| s.convert()).unwrap_or(raw::GIT_BRANCH_ALL)
         }
     }
+
+    impl Convert<raw::git_config_level_t> for ::ConfigLevel {
+        fn convert(&self) -> raw::git_config_level_t {
+            match *self {
+                ::ConfigSystem => raw::GIT_CONFIG_LEVEL_SYSTEM,
+                ::ConfigXDG => raw::GIT_CONFIG_LEVEL_XDG,
+                ::ConfigGlobal => raw::GIT_CONFIG_LEVEL_GLOBAL,
+                ::ConfigLocal => raw::GIT_CONFIG_LEVEL_LOCAL,
+                ::ConfigApp => raw::GIT_CONFIG_LEVEL_APP,
+                ::ConfigHighest => raw::GIT_CONFIG_HIGHEST_LEVEL,
+            }
+        }
+    }
 }
