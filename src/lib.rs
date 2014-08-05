@@ -26,7 +26,7 @@
 //! use git2::Repository;
 //!
 //! let path = Path::new("/path/to/a/repo");
-//! let repo = match Repository::init(&path, false) { // false for not a bare repo
+//! let repo = match Repository::init(&path) {
 //!     Ok(repo) => repo,
 //!     Err(e) => fail!("failed to init `{}`: {}", path.display(), e),
 //! };

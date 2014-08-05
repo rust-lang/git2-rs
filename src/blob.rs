@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn buffer() {
         let td = TempDir::new("test").unwrap();
-        let repo = Repository::init(td.path(), false).unwrap();
+        let repo = Repository::init(td.path()).unwrap();
         let id = Blob::new(&repo, &[5, 4, 6]).unwrap();
         let blob = Blob::lookup(&repo, id).unwrap();
 
@@ -120,7 +120,7 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let path = td.path().join("foo");
         File::create(&path).write(&[7, 8, 9]).unwrap();
-        let repo = Repository::init(td.path(), false).unwrap();
+        let repo = Repository::init(td.path()).unwrap();
         let id = Blob::new_path(&repo, &path).unwrap();
         let blob = Blob::lookup(&repo, id).unwrap();
         assert_eq!(blob.content(), &[7, 8, 9]);

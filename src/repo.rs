@@ -35,10 +35,8 @@ impl Repository {
         Ok(unsafe { Repository::from_raw(ret) })
     }
 
-    /// Creates a new repository in the specified folder.
-    ///
-    /// The folder must exist prior to invoking this function.
-    pub fn init(path: &Path, bare: bool) -> Result<Repository, Error> {
+    /// Internal init, so that a boolean arg isn't exposed to userland.
+    fn init_(path: &Path, bare: bool) -> Result<Repository, Error> {
         init();
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
@@ -46,6 +44,20 @@ impl Repository {
                                                bare as c_uint));
         }
         Ok(unsafe { Repository::from_raw(ret) })
+    }
+
+    /// Creates a new repository in the specified folder.
+    ///
+    /// The folder must exist prior to invoking this function.
+    pub fn init(path: &Path) -> Result<Repository, Error> {
+        Repository::init_(path, false)
+    }
+
+    /// Creates a new `--bare` repository in the specified folder.
+    ///
+    /// The folder must exist prior to invoking this function.
+    pub fn init_bare(path: &Path) -> Result<Repository, Error> {
+        Repository::init_(path, true)
     }
 
     /// Clone a remote repository.
@@ -391,7 +403,7 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let path = td.path();
 
-        let repo = Repository::init(path, false).unwrap();
+        let repo = Repository::init(path).unwrap();
         assert!(!repo.is_bare());
     }
 
@@ -400,7 +412,7 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let path = td.path();
 
-        let repo = Repository::init(path, true).unwrap();
+        let repo = Repository::init_bare(path).unwrap();
         assert!(repo.is_bare());
         assert!(repo.namespace().is_none());
     }
@@ -409,7 +421,7 @@ mod tests {
     fn smoke_open() {
         let td = TempDir::new("test").unwrap();
         let path = td.path();
-        Repository::init(td.path(), false).unwrap();
+        Repository::init(td.path()).unwrap();
         let repo = Repository::open(path).unwrap();
         assert!(!repo.is_bare());
         assert!(!repo.is_shallow());
@@ -422,7 +434,7 @@ mod tests {
     fn smoke_open_bare() {
         let td = TempDir::new("test").unwrap();
         let path = td.path();
-        Repository::init(td.path(), true).unwrap();
+        Repository::init_bare(td.path()).unwrap();
 
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());

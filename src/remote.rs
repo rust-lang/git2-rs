@@ -341,7 +341,7 @@ mod tests {
         repo.remote_create("origin", "/path/to/nowhere").unwrap();
         drop(repo);
 
-        let repo = Repository::init(td.path(), false).unwrap();
+        let repo = Repository::init(td.path()).unwrap();
         let origin = repo.remote_load("origin").unwrap();
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some("/path/to/nowhere"));
@@ -351,7 +351,7 @@ mod tests {
     fn create_remote() {
         let td = TempDir::new("test").unwrap();
         let remote = td.path().join("remote");
-        Repository::init(&remote, true).unwrap();
+        Repository::init_bare(&remote).unwrap();
 
         let (_td, repo) = ::test::repo_init();
         let url = format!("file://{}", remote.display());
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn create_remote_anonymous() {
         let td = TempDir::new("test").unwrap();
-        let repo = Repository::init(td.path(), false).unwrap();
+        let repo = Repository::init(td.path()).unwrap();
 
         let origin = repo.remote_create_anonymous("/path/to/nowhere",
                                                   "master").unwrap();
