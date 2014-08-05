@@ -13,7 +13,7 @@ pub struct Branch<'a> {
     inner: Reference<'a>,
 }
 
-/// dox
+/// An iterator over the branches inside of a repository.
 pub struct Branches<'a> {
     repo: &'a Repository,
     raw: *mut raw::git_branch_iterator,

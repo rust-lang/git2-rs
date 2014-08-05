@@ -20,7 +20,7 @@ pub struct ConfigEntry<'a> {
     marker3: marker::NoShare,
 }
 
-/// dox
+/// An iterator over the `ConfigEntry` values of a `Config` structure.
 pub struct ConfigEntries<'a> {
     raw: *mut raw::git_config_iterator,
     _config: &'a Config,
