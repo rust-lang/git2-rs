@@ -245,20 +245,24 @@ impl<'a> Drop for TreeEntry<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
-    use {Repository, Commit, Tree};
+    use std::io::File;
+    use {Commit, Tree, Signature};
 
     #[test]
     fn smoke() {
-        let td = TempDir::new("test").unwrap();
-        git!(td.path(), "init");
-        git!(td.path(), "config", "user.name", "foo");
-        git!(td.path(), "config", "user.email", "bar");
-        File::create(&td.path().join("foo")).write_str("foobar").unwrap();
-        git!(td.path(), "add", ".");
-        git!(td.path(), "commit", "-m", "foo");
-
-        let repo = Repository::open(td.path()).unwrap();
+        let (td, repo) = ::test::repo_init();
+        {
+            let mut index = repo.index().unwrap();
+            File::create(&td.path().join("foo")).write_str("foo").unwrap();
+            index.add_path(&Path::new("foo")).unwrap();
+            let id = index.write_tree().unwrap();
+            let sig = Signature::default(&repo).unwrap();
+            let tree = Tree::lookup(&repo, id).unwrap();
+            let parent = Commit::lookup(&repo, repo.head().unwrap().target()
+                                                   .unwrap()).unwrap();
+            Commit::new(&repo, Some("HEAD"), &sig, &sig, "another commit",
+                        &tree, [&parent]).unwrap();
+        }
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = Commit::lookup(&repo, target).unwrap();

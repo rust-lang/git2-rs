@@ -171,26 +171,18 @@ impl<'a> Drop for Branches<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
-    use {Repository, Commit, Signature, Branch};
+    use {Commit, Signature, Branch};
 
     #[test]
     fn smoke() {
-        let td = TempDir::new("test").unwrap();
-        git!(td.path(), "init");
-        git!(td.path(), "config", "user.name", "foo");
-        git!(td.path(), "config", "user.email", "bar");
-        File::create(&td.path().join("foo")).write_str("foobar").unwrap();
-        git!(td.path(), "add", ".");
-        git!(td.path(), "commit", "-m", "foo");
-
-        let repo = Repository::open(td.path()).unwrap();
+        let (_td, repo) = ::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = Commit::lookup(&repo, target).unwrap();
 
         let sig = Signature::default(&repo).unwrap();
-        let mut b1 = Branch::new(&repo, "foo", &commit, false, &sig, "bar").unwrap();
+        let mut b1 = Branch::new(&repo, "foo", &commit, false, &sig,
+                                 "bar").unwrap();
         assert!(!b1.is_head());
 
         assert_eq!(repo.branches(None).unwrap().count(), 2);

@@ -344,8 +344,7 @@ impl<'a> Iterator<&'a str> for ReferenceNames<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
-    use {Reference, Repository, Signature};
+    use {Reference, Signature};
 
     #[test]
     fn smoke() {
@@ -355,17 +354,7 @@ mod tests {
 
     #[test]
     fn smoke2() {
-        let td = TempDir::new("test").unwrap();
-        git!(td.path(), "init");
-        assert!(Repository::init(td.path(), false).unwrap().head().is_err());
-
-        git!(td.path(), "config", "user.name", "foo");
-        git!(td.path(), "config", "user.email", "foo");
-        File::create(&td.path().join("foo")).write_str("foobar").unwrap();
-        git!(td.path(), "add", ".");
-        git!(td.path(), "commit", "-m", "foo");
-
-        let repo = Repository::init(td.path(), false).unwrap();
+        let (_td, repo) = ::test::repo_init();
         let mut head = repo.head().unwrap();
         assert!(head.is_branch());
         assert!(!head.is_remote());

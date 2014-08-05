@@ -75,21 +75,9 @@ impl<'a> Remote<'a> {
         unsafe { ::opt_bytes(self, raw::git_remote_name(&*self.raw)) }
     }
 
-    /// Get the remote's owner.
-    ///
-    /// Returns `None` if the owner is not valid utf-8
-    pub fn owner(&self) -> Option<&str> {
-        str::from_utf8(self.owner_bytes())
-    }
-
-    /// Get the remote's owner as a byte array.
-    pub fn owner_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_remote_owner(&*self.raw)).unwrap() }
-    }
-
     /// Get the remote's url.
     ///
-    /// Returns `None` if the owner is not valid utf-8
+    /// Returns `None` if the url is not valid utf-8
     pub fn url(&self) -> Option<&str> {
         str::from_utf8(self.url_bytes())
     }
@@ -101,7 +89,7 @@ impl<'a> Remote<'a> {
 
     /// Get the remote's pushurl.
     ///
-    /// Returns `None` if the owner is not valid utf-8
+    /// Returns `None` if the pushurl is not valid utf-8
     pub fn pushurl(&self) -> Option<&str> {
         self.pushurl_bytes().and_then(str::from_utf8)
     }
@@ -349,33 +337,26 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let td = TempDir::new("test").unwrap();
-        git!(td.path(), "init");
-        git!(td.path(), "remote", "add", "origin", "/path/to/nowhere");
+        let (td, repo) = ::test::repo_init();
+        repo.remote_create("origin", "/path/to/nowhere").unwrap();
+        drop(repo);
 
         let repo = Repository::init(td.path(), false).unwrap();
         let origin = repo.remote_load("origin").unwrap();
         assert_eq!(origin.name(), Some("origin"));
-        assert_eq!(origin.owner(), Some(""));
         assert_eq!(origin.url(), Some("/path/to/nowhere"));
     }
 
     #[test]
     fn create_remote() {
         let td = TempDir::new("test").unwrap();
-        let repo = td.path().join("repo");
         let remote = td.path().join("remote");
         Repository::init(&remote, true).unwrap();
-        Repository::init(&repo, false).unwrap();
 
-        git!(&repo, "config", "user.name", "foo");
-        git!(&repo, "config", "user.email", "foo");
-
-        let repo = Repository::open(&repo).unwrap();
+        let (_td, repo) = ::test::repo_init();
         let url = format!("file://{}", remote.display());
         let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
         assert_eq!(origin.name(), Some("origin"));
-        assert_eq!(origin.owner(), Some(""));
         assert_eq!(origin.url(), Some(url.as_slice()));
         assert_eq!(origin.pushurl(), None);
 

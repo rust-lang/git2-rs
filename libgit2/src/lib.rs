@@ -1,7 +1,7 @@
 extern crate libc;
 extern crate openssl;
 
-use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void};
+use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
 pub static GIT_OID_RAWSZ: uint = 20;
 pub static GIT_OID_HEXSZ: uint = GIT_OID_RAWSZ * 2;
@@ -23,6 +23,7 @@ pub enum git_tag {}
 pub enum git_tree {}
 pub enum git_tree_entry {}
 pub enum git_branch_iterator {}
+pub enum git_index {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -329,6 +330,31 @@ pub enum git_branch_t {
     GIT_BRANCH_ALL = GIT_BRANCH_LOCAL as int | GIT_BRANCH_REMOTE as int,
 }
 
+pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
+                                               *mut c_void) -> c_int;
+
+#[repr(C)]
+pub struct git_index_entry {
+    pub ctime: git_index_time,
+    pub mtime: git_index_time,
+    pub dev: c_uint,
+    pub ino: c_uint,
+    pub mode: c_uint,
+    pub uid: c_uint,
+    pub gid: c_uint,
+    pub file_size: git_off_t,
+    pub id: git_oid,
+    pub flags: c_ushort,
+    pub flags_extended: c_ushort,
+    pub path: *const c_char,
+}
+
+#[repr(C)]
+pub struct git_index_time {
+    pub seconds: git_time_t,
+    pub nanoseconds: c_uint,
+}
+
 #[link(name = "git2", kind = "static")]
 #[link(name = "z")]
 extern {
@@ -353,6 +379,8 @@ extern {
     pub fn git_repository_path(repo: *mut git_repository) -> *const c_char;
     pub fn git_repository_state(repo: *mut git_repository) -> c_int;
     pub fn git_repository_workdir(repo: *mut git_repository) -> *const c_char;
+    pub fn git_repository_index(out: *mut *mut git_index,
+                                repo: *mut git_repository) -> c_int;
 
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
@@ -411,7 +439,6 @@ extern {
     pub fn git_remote_delete(remote: *mut git_remote) -> c_int;
     pub fn git_remote_free(remote: *mut git_remote);
     pub fn git_remote_name(remote: *const git_remote) -> *const c_char;
-    pub fn git_remote_owner(remote: *const git_remote) -> *const c_char;
     pub fn git_remote_pushurl(remote: *const git_remote) -> *const c_char;
     pub fn git_remote_refspec_count(remote: *const git_remote) -> size_t;
     pub fn git_remote_url(remote: *const git_remote) -> *const c_char;
@@ -741,4 +768,56 @@ extern {
                                    upstream_name: *const c_char) -> c_int;
     pub fn git_branch_upstream(out: *mut *mut git_reference,
                                branch: *const git_reference) -> c_int;
+
+    // index
+    pub fn git_index_add(index: *mut git_index,
+                         entry: *const git_index_entry) -> c_int;
+    pub fn git_index_add_all(index: *mut git_index,
+                             pathspec: *const git_strarray,
+                             flags: c_uint,
+                             callback: git_index_matched_path_cb,
+                             payload: *mut c_void) -> c_int;
+    pub fn git_index_add_bypath(index: *mut git_index,
+                                path: *const c_char) -> c_int;
+    pub fn git_index_clear(index: *mut git_index) -> c_int;
+    pub fn git_index_entry_stage(entry: *const git_index_entry) -> c_int;
+    pub fn git_index_entrycount(entry: *const git_index) -> size_t;
+    pub fn git_index_find(at_pos: *mut size_t,
+                          index: *mut git_index,
+                          path: *const c_char) -> c_int;
+    pub fn git_index_free(index: *mut git_index);
+    pub fn git_index_get_byindex(index: *mut git_index,
+                                 n: size_t) -> *const git_index_entry;
+    pub fn git_index_get_bypath(index: *mut git_index,
+                                path: *const c_char,
+                                stage: c_int) -> *const git_index_entry;
+    pub fn git_index_new(index: *mut *mut git_index) -> c_int;
+    pub fn git_index_open(index: *mut *mut git_index,
+                          index_path: *const c_char) -> c_int;
+    pub fn git_index_path(index: *const git_index) -> *const c_char;
+    pub fn git_index_read(index: *mut git_index, force: c_int) -> c_int;
+    pub fn git_index_read_tree(index: *mut git_index,
+                               tree: *const git_tree) -> c_int;
+    pub fn git_index_remove(index: *mut git_index,
+                            path: *const c_char,
+                            stage: c_int) -> c_int;
+    pub fn git_index_remove_all(index: *mut git_index,
+                                pathspec: *const git_strarray,
+                                callback: git_index_matched_path_cb,
+                                payload: *mut c_void) -> c_int;
+    pub fn git_index_remove_bypath(index: *mut git_index,
+                                   path: *const c_char) -> c_int;
+    pub fn git_index_remove_directory(index: *mut git_index,
+                                      dir: *const c_char,
+                                      stage: c_int) -> c_int;
+    pub fn git_index_update_all(index: *mut git_index,
+                                pathspec: *const git_strarray,
+                                callback: git_index_matched_path_cb,
+                                payload: *mut c_void) -> c_int;
+    pub fn git_index_write(index: *mut git_index) -> c_int;
+    pub fn git_index_write_tree(out: *mut git_oid,
+                                index: *mut git_index) -> c_int;
+    pub fn git_index_write_tree_to(out: *mut git_oid,
+                                   index: *mut git_index,
+                                   repo: *mut git_repository) -> c_int;
 }

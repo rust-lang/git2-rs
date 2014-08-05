@@ -41,6 +41,7 @@ impl RepoBuilder {
     /// When ready, the `clone()` method can be used to clone a new repository
     /// using this configuration.
     pub fn new() -> RepoBuilder {
+        ::init();
         RepoBuilder {
             bare: false,
             branch: None,

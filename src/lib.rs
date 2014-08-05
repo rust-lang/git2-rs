@@ -81,6 +81,7 @@ pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};
 pub use error::Error;
+pub use index::{Index, IndexEntry};
 pub use object::Object;
 pub use oid::Oid;
 pub use reference::{Reference, References, ReferenceNames};
@@ -92,20 +93,6 @@ pub use signature::Signature;
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
 pub use tree::{Tree, TreeEntry};
-
-#[cfg(test)]
-macro_rules! git( ( $cwd:expr, $($arg:expr),*) => ({
-    use std::str;
-    let mut cmd = ::std::io::Command::new("git");
-    cmd.cwd($cwd)$(.arg($arg))*;
-    let out = cmd.output().unwrap();
-    if !out.status.success() {
-        let err = str::from_utf8(out.error.as_slice()).unwrap_or("<not-utf8>");
-        let out = str::from_utf8(out.output.as_slice()).unwrap_or("<not-utf8>");
-        fail!("cmd failed: {}\n{}\n{}\n", cmd, out, err);
-    }
-    str::from_utf8(out.output.as_slice()).unwrap().trim().to_string()
-}) )
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
@@ -209,6 +196,7 @@ mod branch;
 mod buf;
 mod commit;
 mod error;
+mod index;
 mod object;
 mod oid;
 mod reference;
@@ -220,6 +208,8 @@ mod signature;
 mod string_array;
 mod submodule;
 mod tree;
+
+#[cfg(test)] mod test;
 
 fn init() {
     static mut INIT: Once = ONCE_INIT;

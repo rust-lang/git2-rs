@@ -5,7 +5,7 @@ use libc::{c_int, c_uint, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
-use {Branches, BranchType};
+use {Branches, BranchType, Index};
 use build::RepoBuilder;
 
 /// An owned git repository, representing all state associated with the
@@ -19,8 +19,7 @@ use build::RepoBuilder;
 /// from the filesystem.
 pub struct Repository {
     raw: *mut raw::git_repository,
-    marker1: marker::NoShare,
-    marker2: marker::NoSend,
+    marker: marker::NoShare,
 }
 
 impl Repository {
@@ -64,8 +63,7 @@ impl Repository {
     pub unsafe fn from_raw(ptr: *mut raw::git_repository) -> Repository {
         Repository {
             raw: ptr,
-            marker1: marker::NoShare,
-            marker2: marker::NoSend,
+            marker: marker::NoShare,
         }
     }
 
@@ -349,6 +347,18 @@ impl Repository {
             Ok(Branches::from_raw(self, raw))
         }
     }
+
+    /// Get the Index file for this repository.
+    ///
+    /// If a custom index has not been set, the default index for the repository
+    /// will be returned (the one located in .git/index).
+    pub fn index(&self) -> Result<Index, Error> {
+        let mut raw = 0 as *mut raw::git_index;
+        unsafe {
+            try_call!(raw::git_repository_index(&mut raw, self.raw()));
+            Ok(Index::from_raw(raw))
+        }
+    }
 }
 
 #[unsafe_destructor]
@@ -360,7 +370,7 @@ impl Drop for Repository {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
+    use std::io::TempDir;
     use {Repository, Signature, Object};
 
     #[test]
@@ -386,8 +396,7 @@ mod tests {
     fn smoke_open() {
         let td = TempDir::new("test").unwrap();
         let path = td.path();
-        git!(td.path(), "init");
-
+        Repository::init(td.path(), false).unwrap();
         let repo = Repository::open(path).unwrap();
         assert!(!repo.is_bare());
         assert!(!repo.is_shallow());
@@ -400,7 +409,7 @@ mod tests {
     fn smoke_open_bare() {
         let td = TempDir::new("test").unwrap();
         let path = td.path();
-        git!(td.path(), "init", "--bare");
+        Repository::init(td.path(), true).unwrap();
 
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
@@ -409,23 +418,13 @@ mod tests {
 
     #[test]
     fn smoke_revparse() {
-        let td = TempDir::new("test").unwrap();
-        git!(td.path(), "init");
-        git!(td.path(), "config", "user.name", "foo");
-        git!(td.path(), "config", "user.email", "foo");
-        File::create(&td.path().join("foo")).write_str("foobar").unwrap();
-        git!(td.path(), "add", ".");
-        git!(td.path(), "commit", "-m", "foo");
-        let expected_rev = git!(td.path(), "rev-parse", "HEAD");
+        let (_td, repo) = ::test::repo_init();
+        let rev = repo.revparse("HEAD").unwrap();
+        assert!(rev.to().is_none());
+        let from = rev.from().unwrap();
+        assert!(rev.from().is_some());
 
-        let repo = Repository::open(td.path()).unwrap();
-        let actual_rev = repo.revparse("HEAD").unwrap();
-        let from = actual_rev.from().unwrap();
-        assert!(actual_rev.to().is_none());
-        assert_eq!(expected_rev, from.id().to_string());
-
-        assert_eq!(repo.revparse_single("HEAD").unwrap().id().to_string(),
-                   expected_rev);
+        assert_eq!(repo.revparse_single("HEAD").unwrap().id(), from.id());
         let obj = Object::lookup(&repo, from.id(), None).unwrap().clone();
         obj.peel(::Any).unwrap();
         obj.short_id().unwrap();

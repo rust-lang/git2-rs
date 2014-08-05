@@ -268,24 +268,15 @@ impl<'a> Drop for Commit<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
-    use {Repository, Commit, Signature, Tree};
+    use {Commit, Signature, Tree};
 
     #[test]
     fn smoke() {
-        let td = TempDir::new("test").unwrap();
-        git!(td.path(), "init");
-        git!(td.path(), "config", "user.name", "foo");
-        git!(td.path(), "config", "user.email", "bar");
-        File::create(&td.path().join("foo")).write_str("foobar").unwrap();
-        git!(td.path(), "add", ".");
-        git!(td.path(), "commit", "-m", "foo");
-
-        let repo = Repository::open(td.path()).unwrap();
+        let (_td, repo) = ::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let mut commit = Commit::lookup(&repo, target).unwrap();
-        assert_eq!(commit.message(), Some("foo\n"));
+        assert_eq!(commit.message(), Some("initial"));
         assert_eq!(commit.id(), target);
         commit.message_raw().unwrap();
         commit.raw_header().unwrap();
@@ -294,10 +285,10 @@ mod tests {
         commit.tree_id();
         assert_eq!(commit.parents().count(), 0);
 
-        assert_eq!(commit.author().name(), Some("foo"));
-        assert_eq!(commit.author().email(), Some("bar"));
-        assert_eq!(commit.committer().name(), Some("foo"));
-        assert_eq!(commit.committer().email(), Some("bar"));
+        assert_eq!(commit.author().name(), Some("name"));
+        assert_eq!(commit.author().email(), Some("email"));
+        assert_eq!(commit.committer().name(), Some("name"));
+        assert_eq!(commit.committer().email(), Some("email"));
 
         let sig = Signature::default(&repo).unwrap();
         let tree = Tree::lookup(&repo, commit.tree_id()).unwrap();
