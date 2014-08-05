@@ -121,4 +121,19 @@ mod impls {
             self.unwrap_or(::Any).convert()
         }
     }
+
+    impl Convert<raw::git_branch_t> for ::BranchType {
+        fn convert(&self) -> raw::git_branch_t {
+            match *self {
+                ::Remote => raw::GIT_BRANCH_REMOTE,
+                ::Local => raw::GIT_BRANCH_LOCAL,
+            }
+        }
+    }
+
+    impl Convert<raw::git_branch_t> for Option<::BranchType> {
+        fn convert(&self) -> raw::git_branch_t {
+            self.map(|s| s.convert()).unwrap_or(raw::GIT_BRANCH_ALL)
+        }
+    }
 }

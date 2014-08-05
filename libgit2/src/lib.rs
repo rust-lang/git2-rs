@@ -22,6 +22,7 @@ pub enum git_submodule {}
 pub enum git_tag {}
 pub enum git_tree {}
 pub enum git_tree_entry {}
+pub enum git_branch_iterator {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -319,6 +320,13 @@ pub struct git_buf {
     pub ptr: *mut c_char,
     pub asize: size_t,
     pub size: size_t,
+}
+
+#[repr(C)]
+pub enum git_branch_t {
+    GIT_BRANCH_LOCAL = 1,
+    GIT_BRANCH_REMOTE = 2,
+    GIT_BRANCH_ALL = GIT_BRANCH_LOCAL as int | GIT_BRANCH_REMOTE as int,
 }
 
 #[link(name = "git2", kind = "static")]
@@ -699,4 +707,38 @@ extern {
                              tree: *const git_tree,
                              parent_count: size_t,
                              parents: *const *const git_commit) -> c_int;
+
+    // branch
+    pub fn git_branch_create(out: *mut *mut git_reference,
+                             repo: *mut git_repository,
+                             branch_name: *const c_char,
+                             target: *const git_commit,
+                             force: c_int,
+                             signature: *const git_signature,
+                             log_message: *const c_char) -> c_int;
+    pub fn git_branch_delete(branch: *mut git_reference) -> c_int;
+    pub fn git_branch_is_head(branch: *const git_reference) -> c_int;
+    pub fn git_branch_iterator_free(iter: *mut git_branch_iterator);
+    pub fn git_branch_iterator_new(iter: *mut *mut git_branch_iterator,
+                                   repo: *mut git_repository,
+                                   list_flags: git_branch_t) -> c_int;
+    pub fn git_branch_lookup(out: *mut *mut git_reference,
+                             repo: *mut git_repository,
+                             branch_name: *const c_char,
+                             branch_type: git_branch_t) -> c_int;
+    pub fn git_branch_move(out: *mut *mut git_reference,
+                           branch: *mut git_reference,
+                           new_branch_name: *const c_char,
+                           force: c_int,
+                           signature: *const git_signature,
+                           log_message: *const c_char) -> c_int;
+    pub fn git_branch_name(out: *mut *const c_char,
+                           branch: *const git_reference) -> c_int;
+    pub fn git_branch_next(out: *mut *mut git_reference,
+                           out_type: *mut git_branch_t,
+                           iter: *mut git_branch_iterator) -> c_int;
+    pub fn git_branch_set_upstream(branch: *mut git_reference,
+                                   upstream_name: *const c_char) -> c_int;
+    pub fn git_branch_upstream(out: *mut *mut git_reference,
+                               branch: *const git_reference) -> c_int;
 }

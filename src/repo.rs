@@ -5,6 +5,7 @@ use libc::{c_int, c_uint, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
+use {Branches, BranchType};
 use build::RepoBuilder;
 
 /// An owned git repository, representing all state associated with the
@@ -337,6 +338,15 @@ impl Repository {
                 data.ret.push(Submodule::from_raw(data.repo, repo));
             }
             0
+        }
+    }
+
+    /// Create an iterator which loops over the requested branches.
+    pub fn branches(&self, filter: Option<BranchType>) -> Result<Branches, Error> {
+        let mut raw = 0 as *mut raw::git_branch_iterator;
+        unsafe {
+            try_call!(raw::git_branch_iterator_new(&mut raw, self.raw(), filter));
+            Ok(Branches::from_raw(self, raw))
         }
     }
 }

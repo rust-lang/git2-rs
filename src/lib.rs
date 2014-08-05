@@ -77,6 +77,7 @@ use std::str;
 use std::sync::{Once, ONCE_INIT};
 
 pub use blob::Blob;
+pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};
 pub use error::Error;
@@ -190,11 +191,21 @@ pub enum ObjectKind {
     Tag,
 }
 
+/// An enumeration for the possible types of branches
+#[deriving(PartialEq, Eq, Show)]
+pub enum BranchType {
+    /// A local branch not on a remote.
+    Local,
+    /// A branch for a remote.
+    Remote,
+}
+
 mod call;
 
 pub mod build;
 
 mod blob;
+mod branch;
 mod buf;
 mod commit;
 mod error;
