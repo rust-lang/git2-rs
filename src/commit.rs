@@ -2,7 +2,7 @@ use std::kinds::marker;
 use std::str;
 use libc;
 
-use {raw, Oid, Repository, Error, Signature};
+use {raw, Oid, Repository, Error, Signature, Tree};
 
 /// A structure to represent a git [commit][1]
 ///
@@ -35,6 +35,41 @@ impl<'a> Commit<'a> {
             marker3: marker::NoShare,
         }
     }
+
+    /// Create new commit in the repository
+    ///
+    /// If the `update_ref` is not `None`, name of the reference that will be
+    /// updated to point to this commit. If the reference is not direct, it will
+    /// be resolved to a direct reference. Use "HEAD" to update the HEAD of the
+    /// current branch and make it point to this commit. If the reference
+    /// doesn't exist yet, it will be created. If it does exist, the first
+    /// parent must be the tip of this branch.
+    pub fn new<'a>(repo: &'a Repository,
+                   update_ref: Option<&str>,
+                   author: &Signature,
+                   committer: &Signature,
+                   message: &str,
+                   tree: &Tree<'a>,
+                   parents: &[&Commit<'a>]) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let parent_ptrs: Vec<*const raw::git_commit> =  parents.iter().map(|p| {
+            p.raw() as *const raw::git_commit
+        }).collect();
+        unsafe {
+            try_call!(raw::git_commit_create(&mut raw,
+                                             repo.raw(),
+                                             update_ref.map(|s| s.to_c_str()),
+                                             &*author.raw(),
+                                             &*committer.raw(),
+                                             0 as *const libc::c_char,
+                                             message.to_c_str(),
+                                             &*tree.raw(),
+                                             parents.len() as libc::size_t,
+                                             parent_ptrs.as_ptr()));
+            Ok(Oid::from_raw(&raw))
+        }
+    }
+
 
     /// Lookup a reference to one of the commits in a repository.
     pub fn lookup(repo: &Repository, oid: Oid) -> Result<Commit, Error> {
@@ -176,6 +211,34 @@ impl<'a> Commit<'a> {
             Signature::from_raw_const(self, ptr)
         }
     }
+
+    /// Amend this existing commit with all non-`None` values
+    ///
+    /// This creates a new commit that is exactly the same as the old commit,
+    /// except that any non-`None` values will be updated. The new commit has
+    /// the same parents as the old commit.
+    ///
+    /// For information about `update_ref`, see `new`.
+    pub fn amend(&self,
+                 update_ref: Option<&str>,
+                 author: Option<&Signature>,
+                 committer: Option<&Signature>,
+                 message_encoding: Option<&str>,
+                 message: Option<&str>,
+                 tree: Option<&Tree<'a>>) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_commit_amend(&mut raw,
+                                            &*self.raw(),
+                                            update_ref.map(|s| s.to_c_str()),
+                                            author.map(|s| &*s.raw()),
+                                            committer.map(|s| &*s.raw()),
+                                            message_encoding.map(|s| s.to_c_str()),
+                                            message.map(|s| s.to_c_str()),
+                                            tree.map(|t| &*t.raw())));
+            Ok(Oid::from_raw(&raw))
+        }
+    }
 }
 
 impl<'a, 'b> Iterator<Commit<'a>> for Parents<'a, 'b> {
@@ -206,10 +269,10 @@ impl<'a> Drop for Commit<'a> {
 #[cfg(test)]
 mod tests {
     use std::io::{TempDir, File};
-    use {Repository, Commit};
+    use {Repository, Commit, Signature, Tree};
 
     #[test]
-    fn smoke_revparse() {
+    fn smoke() {
         let td = TempDir::new("test").unwrap();
         git!(td.path(), "init");
         git!(td.path(), "config", "user.name", "foo");
@@ -235,6 +298,17 @@ mod tests {
         assert_eq!(commit.author().email(), Some("bar"));
         assert_eq!(commit.committer().name(), Some("foo"));
         assert_eq!(commit.committer().email(), Some("bar"));
+
+        let sig = Signature::default(&repo).unwrap();
+        let tree = Tree::lookup(&repo, commit.tree_id()).unwrap();
+        let id = Commit::new(&repo, Some("HEAD"), &sig, &sig, "bar", &tree,
+                             [&commit]).unwrap();
+        let head = Commit::lookup(&repo, id).unwrap();
+
+        let new_head = head.amend(Some("HEAD"), None, None, None,
+                                  Some("new message"), None).unwrap();
+        let new_head = Commit::lookup(&repo, new_head).unwrap();
+        assert_eq!(new_head.message(), Some("new message"));
     }
 }
 

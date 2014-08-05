@@ -28,6 +28,7 @@ impl Buf {
     /// This method is unsafe as there is no guarantee that the pointers inside
     /// the buffer are valid.
     pub unsafe fn from_raw(raw: raw::git_buf) -> Buf {
+        ::init();
         Buf { raw: raw }
     }
 

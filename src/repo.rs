@@ -53,6 +53,7 @@ impl Repository {
     /// See the `RepoBuilder` struct for more information. This function will
     /// delegate to a fresh `RepoBuilder`
     pub fn clone(url: &str, into: &Path) -> Result<Repository, Error> {
+        ::init();
         RepoBuilder::new().clone(url, into)
     }
 

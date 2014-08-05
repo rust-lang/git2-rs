@@ -681,4 +681,22 @@ extern {
     pub fn git_commit_tree(tree_out: *mut *mut git_tree,
                            commit: *const git_commit) -> c_uint;
     pub fn git_commit_tree_id(commit: *const git_commit) -> *const git_oid;
+    pub fn git_commit_amend(id: *mut git_oid,
+                            commit_to_amend: *const git_commit,
+                            update_ref: *const c_char,
+                            author: *const git_signature,
+                            committer: *const git_signature,
+                            message_encoding: *const c_char,
+                            message: *const c_char,
+                            tree: *const git_tree) -> c_int;
+    pub fn git_commit_create(id: *mut git_oid,
+                             repo: *mut git_repository,
+                             update_ref: *const c_char,
+                             author: *const git_signature,
+                             committer: *const git_signature,
+                             message_encoding: *const c_char,
+                             message: *const c_char,
+                             tree: *const git_tree,
+                             parent_count: size_t,
+                             parents: *const *const git_commit) -> c_int;
 }
