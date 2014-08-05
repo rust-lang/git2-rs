@@ -67,6 +67,7 @@
 #![deny(missing_doc)]
 
 extern crate libc;
+extern crate time;
 extern crate raw = "libgit2";
 
 use std::c_str::CString;

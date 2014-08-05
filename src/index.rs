@@ -1,5 +1,8 @@
 use std::kinds::marker;
+use std::mem;
+use std::c_str::CString;
 use libc;
+use time;
 
 use {raw, Repository, Error, Tree, Oid};
 
@@ -12,12 +15,23 @@ pub struct Index {
 }
 
 /// A structure to represent an entry or a file inside of an index.
-pub struct IndexEntry<'a> {
-    raw: *const raw::git_index_entry,
-    marker1: marker::ContravariantLifetime<'a>,
-    marker2: marker::NoShare,
-    marker3: marker::NoCopy,
-    marker4: marker::NoSend,
+///
+/// All fields of an entry are public for modification and inspection. This is
+/// also how a new index entry is created.
+#[allow(missing_doc)]
+pub struct IndexEntry {
+    pub ctime: time::Timespec,
+    pub mtime: time::Timespec,
+    pub dev: uint,
+    pub ino: uint,
+    pub mode: uint,
+    pub uid: uint,
+    pub gid: uint,
+    pub file_size: u64,
+    pub id: Oid,
+    pub flags: u16,
+    pub flags_extended: u16,
+    pub path: CString,
 }
 
 impl Index {
@@ -64,8 +78,10 @@ impl Index {
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
     pub fn add(&mut self, source_entry: &IndexEntry) -> Result<(), Error> {
+        let mut entry: raw::git_index_entry = unsafe { mem::zeroed() };
+        source_entry.configure(&mut entry);
         unsafe {
-            try_call!(raw::git_index_add(self.raw, &*source_entry.raw));
+            try_call!(raw::git_index_add(self.raw, &entry));
             Ok(())
         }
     }
@@ -111,7 +127,7 @@ impl Index {
     pub fn get(&self, n: uint) -> Option<IndexEntry> {
         unsafe {
             let ptr = raw::git_index_get_byindex(self.raw, n as libc::size_t);
-            if ptr.is_null() {None} else {Some(IndexEntry::from_raw(self, ptr))}
+            if ptr.is_null() {None} else {Some(IndexEntry::from_raw(ptr))}
         }
     }
 
@@ -120,7 +136,7 @@ impl Index {
         unsafe {
             let ptr = call!(raw::git_index_get_bypath(self.raw, path.to_c_str(),
                                                       stage as libc::c_int));
-            if ptr.is_null() {None} else {Some(IndexEntry::from_raw(self, ptr))}
+            if ptr.is_null() {None} else {Some(IndexEntry::from_raw(ptr))}
         }
     }
 
@@ -236,22 +252,57 @@ impl Drop for Index {
     }
 }
 
-impl<'a> IndexEntry<'a> {
+impl IndexEntry {
     /// Creates a new entry from its raw pointer.
-    pub unsafe fn from_raw(_index: &Index, raw: *const raw::git_index_entry)
-                           -> IndexEntry {
+    pub unsafe fn from_raw(raw: *const raw::git_index_entry) -> IndexEntry {
+        let raw::git_index_entry {
+            ctime, mtime, dev, ino, mode, uid, gid, file_size, id, flags,
+            flags_extended, path
+        } = *raw;
         IndexEntry {
-            raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoShare,
-            marker3: marker::NoCopy,
-            marker4: marker::NoSend,
+            dev: dev as uint,
+            ino: ino as uint,
+            mode: mode as uint,
+            uid: uid as uint,
+            gid: gid as uint,
+            file_size: file_size as u64,
+            id: Oid::from_raw(&id),
+            flags: flags as u16,
+            flags_extended: flags_extended as u16,
+            path: CString::new(path, false).clone(),
+            mtime: time::Timespec {
+                sec: mtime.seconds as i64,
+                nsec: mtime.nanoseconds as i32,
+            },
+            ctime: time::Timespec {
+                sec: ctime.seconds as i64,
+                nsec: ctime.nanoseconds as i32,
+            },
         }
     }
 
-    /// Return the stage number from a git index entry
-    pub fn stage(&self) -> uint {
-        unsafe { raw::git_index_entry_stage(self.raw) as uint }
+    /// Configures a raw git entry from this entry
+    pub fn configure(&self, raw: &mut raw::git_index_entry) {
+        *raw = raw::git_index_entry {
+            dev: self.dev as libc::c_uint,
+            ino: self.ino as libc::c_uint,
+            mode: self.mode as libc::c_uint,
+            uid: self.uid as libc::c_uint,
+            gid: self.gid as libc::c_uint,
+            file_size: self.file_size as raw::git_off_t,
+            id: unsafe { *self.id.raw() },
+            flags: self.flags as libc::c_ushort,
+            flags_extended: self.flags_extended as libc::c_ushort,
+            path: self.path.as_ptr(),
+            mtime: raw::git_index_time {
+                seconds: self.mtime.sec as raw::git_time_t,
+                nanoseconds: self.mtime.nsec as libc::c_uint,
+            },
+            ctime: raw::git_index_time {
+                seconds: self.ctime.sec as raw::git_time_t,
+                nanoseconds: self.ctime.nsec as libc::c_uint,
+            },
+        };
     }
 }
 
