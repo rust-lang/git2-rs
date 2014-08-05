@@ -623,7 +623,7 @@ extern {
                                  filename: *const c_char) -> *const git_tree_entry;
     pub fn git_tree_entry_bypath(out: *mut *mut git_tree_entry,
                                  tree: *const git_tree,
-                                 filename: *const c_char) -> *const git_tree_entry;
+                                 filename: *const c_char) -> c_int;
     pub fn git_tree_entry_cmp(e1: *const git_tree_entry,
                               e2: *const git_tree_entry) -> c_int;
     pub fn git_tree_entry_dup(dest: *mut *mut git_tree_entry,
