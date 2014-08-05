@@ -1,4 +1,5 @@
 use std::str;
+use std::kinds::marker;
 use libc;
 
 use {raw, Repository, Error};
@@ -9,36 +10,38 @@ use {raw, Repository, Error};
 /// Signatures contain a name, email, and timestamp. All fields can be specified
 /// with `new`, the `now` constructor omits the timestamp, and the `default`
 /// constructor reads configuration from the given repository.
-pub struct Signature {
+pub struct Signature<'a> {
     raw: *mut raw::git_signature,
+    marker: marker::ContravariantLifetime<'a>,
+    owned: bool,
 }
 
-impl Signature {
+impl<'a> Signature<'a> {
     /// Create a new action signature with default user and now timestamp.
     ///
     /// This looks up the user.name and user.email from the configuration and
     /// uses the current time as the timestamp, and creates a new signature
     /// based on that information. It will return `NotFound` if either the
     /// user.name or user.email are not set.
-    pub fn default(repo: &Repository) -> Result<Signature, Error> {
+    pub fn default(repo: &Repository) -> Result<Signature<'static>, Error> {
         let mut ret = 0 as *mut raw::git_signature;
         unsafe {
             try_call!(raw::git_signature_default(&mut ret, repo.raw()));
+            Ok(Signature::from_raw(ret))
         }
-        Ok(Signature { raw: ret })
     }
 
     /// Create a new action signature with a timestamp of 'now'.
     ///
     /// See `new` for more information
-    pub fn now(name: &str, email: &str) -> Result<Signature, Error> {
+    pub fn now(name: &str, email: &str) -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
         unsafe {
             try_call!(raw::git_signature_now(&mut ret, name.to_c_str(),
                                              email.to_c_str()));
+            Ok(Signature::from_raw(ret))
         }
-        Ok(Signature { raw: ret })
     }
 
     /// Create a new action signature.
@@ -48,7 +51,7 @@ impl Signature {
     ///
     /// Returns error if either `name` or `email` contain angle brackets.
     pub fn new(name: &str, email: &str, time: u64,
-               offset: int) -> Result<Signature, Error> {
+               offset: int) -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
         unsafe {
@@ -56,40 +59,90 @@ impl Signature {
                                              email.to_c_str(),
                                              time as raw::git_time_t,
                                              offset as libc::c_int));
+            Ok(Signature::from_raw(ret))
         }
-        Ok(Signature { raw: ret })
+    }
+
+    /// Consumes ownership of a raw signature pointer
+    ///
+    /// This function is unsafe as the pointer is not guranteed to be valid.
+    pub unsafe fn from_raw(raw: *mut raw::git_signature) -> Signature<'static> {
+        Signature {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+            owned: true,
+        }
+    }
+
+    /// Creates a new signature from the give raw pointer, tied to the lifetime
+    /// of the given object.
+    ///
+    /// This function is unsafe as there is no guarantee that `raw` is valid for
+    /// `'a` nor if it's a valid pointer.
+    pub unsafe fn from_raw_const<'a, T>(_lt: &'a T,
+                                        raw: *const raw::git_signature)
+                                        -> Signature<'a> {
+        Signature {
+            raw: raw as *mut raw::git_signature,
+            marker: marker::ContravariantLifetime,
+            owned: false,
+        }
     }
 
     /// Gets the name on the signature.
-    pub fn name(&self) -> &str {
-        str::from_utf8(unsafe {
-            ::opt_bytes(self, (*self.raw).name as *const _).unwrap()
-        }).unwrap()
+    ///
+    /// Returns `None` if the name is not valid utf-8
+    pub fn name(&self) -> Option<&str> {
+        str::from_utf8(self.name_bytes())
+    }
+
+    /// Gets the name on the signature as a byte slice.
+    pub fn name_bytes(&self) -> &[u8] {
+        unsafe { ::opt_bytes(self, (*self.raw).name as *const _).unwrap() }
     }
 
     /// Gets the email on the signature.
-    pub fn email(&self) -> &str {
-        str::from_utf8(unsafe {
-            ::opt_bytes(self, (*self.raw).email as *const _).unwrap()
-        }).unwrap()
+    ///
+    /// Returns `None` if the email is not valid utf-8
+    pub fn email(&self) -> Option<&str> {
+        str::from_utf8(self.email_bytes())
+    }
+
+    /// Gets the email on the signature as a byte slice.
+    pub fn email_bytes(&self) -> &[u8] {
+        unsafe { ::opt_bytes(self, (*self.raw).email as *const _).unwrap() }
+    }
+
+    /// Get the `when` of this signature in seconds since the epoch.
+    pub fn when(&self) -> u64 {
+        unsafe { (*self.raw).when.time as u64 }
+    }
+
+    /// Get the offset of `when`, in minutes, of the signature's time zone from
+    /// UTC.
+    pub fn when_offset(&self) -> int {
+        unsafe { (*self.raw).when.offset as int }
     }
 
     /// Get access to the underlying raw signature
     pub fn raw(&self) -> *mut raw::git_signature { self.raw }
 }
 
-impl Clone for Signature {
-    fn clone(&self) -> Signature {
+impl Clone for Signature<'static> {
+    fn clone(&self) -> Signature<'static> {
         let mut raw = 0 as *mut raw::git_signature;
         let rc = unsafe { raw::git_signature_dup(&mut raw, &*self.raw) };
         assert_eq!(rc, 0);
-        Signature { raw: raw }
+        unsafe { Signature::from_raw(raw) }
     }
 }
 
-impl Drop for Signature {
+#[unsafe_destructor]
+impl<'a> Drop for Signature<'a> {
     fn drop(&mut self) {
-        unsafe { raw::git_signature_free(self.raw) }
+        if self.owned {
+            unsafe { raw::git_signature_free(self.raw) }
+        }
     }
 }
 
@@ -105,8 +158,8 @@ mod tests {
         assert!(Signature::now("<foo>", "bar").is_err());
 
         let s = Signature::now("foo", "bar").unwrap();
-        assert_eq!(s.name(), "foo");
-        assert_eq!(s.email(), "bar");
+        assert_eq!(s.name(), Some("foo"));
+        assert_eq!(s.email(), Some("bar"));
 
         drop(s.clone());
     }

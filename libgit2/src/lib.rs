@@ -10,6 +10,7 @@ pub static GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub static GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 
 pub enum git_blob {}
+pub enum git_commit {}
 pub enum git_cred {}
 pub enum git_object {}
 pub enum git_reference {}
@@ -652,4 +653,32 @@ extern {
     pub fn git_buf_grow(buffer: *mut git_buf, target_size: size_t) -> c_int;
     pub fn git_buf_set(buffer: *mut git_buf, data: *const c_void,
                        datalen: size_t) -> c_int;
+
+    // commit
+    pub fn git_commit_author(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_committer(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_free(commit: *mut git_commit);
+    pub fn git_commit_id(commit: *const git_commit) -> *const git_oid;
+    pub fn git_commit_lookup(commit: *mut *mut git_commit,
+                             repo: *mut git_repository,
+                             id: *const git_oid) -> c_int;
+    pub fn git_commit_message(commit: *const git_commit) -> *const c_char;
+    pub fn git_commit_message_encoding(commit: *const git_commit) -> *const c_char;
+    pub fn git_commit_message_raw(commit: *const git_commit) -> *const c_char;
+    pub fn git_commit_nth_gen_ancestor(commit: *mut *mut git_commit,
+                                       commit: *const git_commit,
+                                       n: c_uint) -> c_int;
+    pub fn git_commit_parent(out: *mut *mut git_commit,
+                             commit: *const git_commit,
+                             n: c_uint) -> c_int;
+    pub fn git_commit_parent_id(commit: *const git_commit,
+                                n: c_uint) -> *const git_oid;
+    pub fn git_commit_parentcount(commit: *const git_commit) -> c_uint;
+    pub fn git_commit_raw_header(commit: *const git_commit) -> *const c_char;
+    pub fn git_commit_summary(commit: *mut git_commit) -> *const c_char;
+    pub fn git_commit_time(commit: *const git_commit) -> git_time_t;
+    pub fn git_commit_time_offset(commit: *const git_commit) -> c_int;
+    pub fn git_commit_tree(tree_out: *mut *mut git_tree,
+                           commit: *const git_commit) -> c_uint;
+    pub fn git_commit_tree_id(commit: *const git_commit) -> *const git_oid;
 }

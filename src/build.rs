@@ -13,7 +13,7 @@ use {raw, Signature, Error, Repository};
 pub struct RepoBuilder {
     bare: bool,
     branch: Option<CString>,
-    sig: Option<Signature>,
+    sig: Option<Signature<'static>>,
     local: bool,
     hardlinks: bool,
     checkout: Option<CheckoutBuilder>,
@@ -69,7 +69,7 @@ impl RepoBuilder {
     /// Specify the identity that will be used when updating the reflog.
     ///
     /// If not specified, the default signature will be used.
-    pub fn signature(&mut self, sig: Signature) -> &mut RepoBuilder {
+    pub fn signature(&mut self, sig: Signature<'static>) -> &mut RepoBuilder {
         self.sig = Some(sig);
         self
     }

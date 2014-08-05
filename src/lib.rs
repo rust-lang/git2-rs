@@ -78,6 +78,7 @@ use std::sync::{Once, ONCE_INIT};
 
 pub use blob::Blob;
 pub use buf::Buf;
+pub use commit::{Commit, Parents};
 pub use error::Error;
 pub use object::Object;
 pub use oid::Oid;
@@ -195,6 +196,7 @@ pub mod build;
 
 mod blob;
 mod buf;
+mod commit;
 mod error;
 mod object;
 mod oid;
