@@ -5,6 +5,9 @@ use {raw, Repository, Error, Reference, Commit, Signature, BranchType};
 
 /// A structure to represent a git [branch][1]
 ///
+/// A branch is currently just a wrapper to an underlying `Reference`. The
+/// reference can be accessed through the `get` and `unwrap` methods.
+///
 /// [1]: http://git-scm.com/book/en/Git-Branching-What-a-Branch-Is
 pub struct Branch<'a> {
     inner: Reference<'a>,
