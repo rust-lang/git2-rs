@@ -340,12 +340,16 @@ impl Repository {
 
         return Ok(ret);
 
-        extern fn append(repo: *mut raw::git_submodule,
-                         _name: *const c_char,
+        extern fn append(_repo: *mut raw::git_submodule,
+                         name: *const c_char,
                          data: *mut c_void) -> c_int {
             unsafe {
                 let data = &mut *(data as *mut Data);
-                data.ret.push(Submodule::from_raw(data.repo, repo));
+                let mut raw = 0 as *mut raw::git_submodule;
+                let rc = raw::git_submodule_lookup(&mut raw, data.repo.raw(),
+                                                   name);
+                assert_eq!(rc, 0);
+                data.ret.push(Submodule::from_raw(data.repo, raw));
             }
             0
         }
