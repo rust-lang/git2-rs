@@ -33,6 +33,7 @@ impl Config {
     /// This object is empty, so you have to add a file to it before you can do
     /// anything with it.
     pub fn new() -> Result<Config, Error> {
+        ::init();
         let mut raw = 0 as *mut raw::git_config;
         unsafe {
             try_call!(raw::git_config_new(&mut raw));
@@ -42,6 +43,7 @@ impl Config {
 
     /// Create a new config instance containing a single on-disk file
     pub fn open(path: &Path) -> Result<Config, Error> {
+        ::init();
         let mut raw = 0 as *mut raw::git_config;
         unsafe {
             try_call!(raw::git_config_open_ondisk(&mut raw, path.to_c_str()));
@@ -55,6 +57,7 @@ impl Config {
     /// files and opens them into a single prioritized config object that can
     /// be used when accessing default config data outside a repository.
     pub fn open_default() -> Result<Config, Error> {
+        ::init();
         let mut raw = 0 as *mut raw::git_config;
         unsafe {
             try_call!(raw::git_config_open_default(&mut raw));
@@ -74,6 +77,7 @@ impl Config {
     /// This method will not guess the path to the xdg compatible config file
     /// (`.config/git/config`).
     pub fn find_global() -> Result<Path, Error> {
+        ::init();
         let mut buf = Buf::new();
         unsafe { try_call!(raw::git_config_find_global(buf.raw())); }
         Ok(Path::new(buf.get()))
@@ -83,6 +87,7 @@ impl Config {
     ///
     /// If /etc/gitconfig doesn't exist, it will look for %PROGRAMFILES%
     pub fn find_system() -> Result<Path, Error> {
+        ::init();
         let mut buf = Buf::new();
         unsafe { try_call!(raw::git_config_find_system(buf.raw())); }
         Ok(Path::new(buf.get()))
@@ -93,6 +98,7 @@ impl Config {
     /// The xdg compatible configuration file is usually located in
     /// `$HOME/.config/git/config`.
     pub fn find_xdg() -> Result<Path, Error> {
+        ::init();
         let mut buf = Buf::new();
         unsafe { try_call!(raw::git_config_find_xdg(buf.raw())); }
         Ok(Path::new(buf.get()))
