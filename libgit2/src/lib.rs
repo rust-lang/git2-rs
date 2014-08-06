@@ -1,5 +1,9 @@
+#![feature(phase)]
+
+#[phase(plugin)]
+extern crate link_config = "link-config";
+
 extern crate libc;
-extern crate openssl;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -396,8 +400,8 @@ pub enum git_submodule_ignore_t {
     GIT_SUBMODULE_IGNORE_DEFAULT   = 0
 }
 
-#[link(name = "git2", kind = "static")]
-#[link(name = "z")]
+link_config!("libgit2", ["only_static"])
+
 extern {
     // threads
     pub fn git_threads_init() -> c_int;
