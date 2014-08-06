@@ -354,7 +354,12 @@ mod tests {
         Repository::init_bare(&remote).unwrap();
 
         let (_td, repo) = ::test::repo_init();
-        let url = format!("file://{}", remote.display());
+        let url = if cfg!(unix) {
+            format!("file://{}", remote.display())
+        } else {
+            format!("file:///{}", remote.display().to_string()
+                                        .as_slice().replace("\\", "/"))
+        };
         let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some(url.as_slice()));

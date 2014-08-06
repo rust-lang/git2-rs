@@ -241,10 +241,10 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let mut s1 = Submodule::new(&repo, "/path/to/nowhere",
-                                    &td.path().join("foo"), true).unwrap();
+                                    &Path::new("foo"), true).unwrap();
         s1.init(false).unwrap();
         let s2 = Submodule::new(&repo, "/path/to/nowhere",
-                                &td.path().join("bar"), true).unwrap();
+                                &Path::new("bar"), true).unwrap();
         drop((s1, s2));
 
         let mut submodules = repo.submodules().unwrap();

@@ -394,7 +394,13 @@ mod tests {
     fn smoke2() {
         let td = TempDir::new("test").unwrap();
         Repository::init_bare(&td.path().join("bare")).unwrap();
-        let url = format!("file://{}/bare", td.path().display());
+        let url = if cfg!(unix) {
+            format!("file://{}/bare", td.path().display())
+        } else {
+            format!("file:///{}/bare", td.path().display().to_string()
+                                         .as_slice().replace("\\", "/"))
+        };
+
         let dst = td.path().join("foo");
         RepoBuilder::new().clone(url.as_slice(), &dst).unwrap();
         fs::rmdir_recursive(&dst).unwrap();
