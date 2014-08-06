@@ -3,7 +3,7 @@ use {Repository, Commit, Tree, Signature};
 
 pub fn repo_init() -> (TempDir, Repository) {
     let td = TempDir::new("test").unwrap();
-    let repo = Repository::init(td.path(), false).unwrap();
+    let repo = Repository::init(td.path()).unwrap();
     {
         let mut config = repo.config().unwrap();
         config.set_str("user.name", "name").unwrap();

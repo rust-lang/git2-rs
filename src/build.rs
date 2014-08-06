@@ -393,7 +393,7 @@ mod tests {
     #[test]
     fn smoke2() {
         let td = TempDir::new("test").unwrap();
-        Repository::init(&td.path().join("bare"), true).unwrap();
+        Repository::init_bare(&td.path().join("bare")).unwrap();
         let url = format!("file://{}/bare", td.path().display());
         let dst = td.path().join("foo");
         RepoBuilder::new().clone(url.as_slice(), &dst).unwrap();

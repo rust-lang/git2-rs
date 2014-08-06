@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn smoke() {
         let td = TempDir::new("test").unwrap();
-        let repo = Repository::init(td.path(), false).unwrap();
+        let repo = Repository::init(td.path()).unwrap();
         let mut s1 = Submodule::new(&repo, "/path/to/nowhere",
                                     &td.path().join("foo"), true).unwrap();
         s1.init(false).unwrap();
