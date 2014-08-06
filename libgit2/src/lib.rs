@@ -374,6 +374,28 @@ pub enum git_config_level_t {
     GIT_CONFIG_HIGHEST_LEVEL = -1,
 }
 
+#[repr(C)]
+pub enum git_submodule_update_t {
+    GIT_SUBMODULE_UPDATE_RESET    = -1,
+    GIT_SUBMODULE_UPDATE_CHECKOUT = 1,
+    GIT_SUBMODULE_UPDATE_REBASE   = 2,
+    GIT_SUBMODULE_UPDATE_MERGE    = 3,
+    GIT_SUBMODULE_UPDATE_NONE     = 4,
+    GIT_SUBMODULE_UPDATE_DEFAULT  = 0
+}
+
+#[repr(C)]
+pub enum git_submodule_ignore_t {
+    GIT_SUBMODULE_IGNORE_RESET     = -1,
+
+    GIT_SUBMODULE_IGNORE_NONE      = 1,
+    GIT_SUBMODULE_IGNORE_UNTRACKED = 2,
+    GIT_SUBMODULE_IGNORE_DIRTY     = 3,
+    GIT_SUBMODULE_IGNORE_ALL       = 4,
+
+    GIT_SUBMODULE_IGNORE_DEFAULT   = 0
+}
+
 #[link(name = "git2", kind = "static")]
 #[link(name = "z")]
 extern {
@@ -645,7 +667,17 @@ extern {
     pub fn git_submodule_reload_all(repo: *mut git_repository,
                                     force: c_int) -> c_int;
     pub fn git_submodule_save(submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_set_ignore(submodule: *mut git_submodule,
+                                    ignore: git_submodule_ignore_t)
+                                    -> git_submodule_ignore_t;
+    pub fn git_submodule_set_update(submodule: *mut git_submodule,
+                                    update: git_submodule_update_t)
+                                    -> git_submodule_update_t;
+    pub fn git_submodule_set_url(submodule: *mut git_submodule,
+                                 url: *const c_char) -> c_int;
     pub fn git_submodule_sync(submodule: *mut git_submodule) -> c_int;
+    pub fn git_submodule_update(submodule: *mut git_submodule)
+                                -> git_submodule_update_t;
     pub fn git_submodule_url(submodule: *mut git_submodule) -> *const c_char;
     pub fn git_submodule_wd_id(submodule: *mut git_submodule) -> *const git_oid;
 
