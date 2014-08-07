@@ -20,9 +20,17 @@ pub fn convert<T, U: Convert<T>>(u: &U) -> T { u.convert() }
 
 pub fn try(ret: libc::c_int) -> Result<libc::c_int, Error> {
     match ret {
-        n if n < 0 => Err(Error::last_error().unwrap()),
+        n if n < 0 => Err(last_error()),
         n => Ok(n),
     }
+}
+
+fn last_error() -> Error {
+    // Apparently libgit2 isn't necessarily guaranteed to set the last error
+    // whenever a function returns a negative value!
+    Error::last_error().unwrap_or_else(|| {
+        Error::from_str("an unknown error occurred")
+    })
 }
 
 mod impls {

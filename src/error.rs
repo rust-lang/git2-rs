@@ -13,14 +13,12 @@ pub struct Error {
 impl Error {
     /// Returns the last error, or `None` if one is not available.
     pub fn last_error() -> Option<Error> {
-        let mut ret = Error {
-            raw: raw::git_error {
-                message: 0 as *mut libc::c_char,
-                klass: 0,
-            }
+        let mut raw = raw::git_error {
+            message: 0 as *mut libc::c_char,
+            klass: 0,
         };
-        if unsafe { raw::giterr_detach(&mut ret.raw) } == 0 {
-            Some(ret)
+        if unsafe { raw::giterr_detach(&mut raw) } == 0 {
+            Some(Error { raw: raw })
         } else {
             None
         }
@@ -32,7 +30,7 @@ impl Error {
             raw: raw::git_error {
                 message: unsafe { s.to_c_str().unwrap() as *mut _ },
                 klass: raw::GIT_ERROR as libc::c_int,
-            },
+            }
         }
     }
 
@@ -105,8 +103,6 @@ impl fmt::Show for Error {
 
 impl Drop for Error {
     fn drop(&mut self) {
-        if !self.raw.message.is_null() {
-            unsafe { libc::free(self.raw.message as *mut libc::c_void) }
-        }
+        unsafe { libc::free(self.raw.message as *mut libc::c_void) }
     }
 }
