@@ -16,7 +16,7 @@ pub struct Remote<'a> {
     raw: *mut raw::git_remote,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 /// An iterator over the refspecs that a remote contains.
@@ -37,7 +37,7 @@ impl<'a> Remote<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -318,7 +318,7 @@ impl<'a> Clone for Remote<'a> {
             raw: ret,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 }

@@ -12,7 +12,7 @@ pub struct Blob<'a> {
     raw: *mut raw::git_blob,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 impl<'a> Blob<'a> {
@@ -26,7 +26,7 @@ impl<'a> Blob<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 

@@ -10,7 +10,7 @@ pub struct Submodule<'a> {
     raw: *mut raw::git_submodule,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 impl<'a> Submodule<'a> {
@@ -24,7 +24,7 @@ impl<'a> Submodule<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 

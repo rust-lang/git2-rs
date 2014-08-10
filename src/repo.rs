@@ -19,7 +19,7 @@ use build::RepoBuilder;
 /// from the filesystem.
 pub struct Repository {
     raw: *mut raw::git_repository,
-    marker: marker::NoShare,
+    marker: marker::NoSync,
 }
 
 impl Repository {
@@ -75,7 +75,7 @@ impl Repository {
     pub unsafe fn from_raw(ptr: *mut raw::git_repository) -> Repository {
         Repository {
             raw: ptr,
-            marker: marker::NoShare,
+            marker: marker::NoSync,
         }
     }
 

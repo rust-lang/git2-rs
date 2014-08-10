@@ -7,7 +7,7 @@ use {raw, Error, ConfigLevel, Buf};
 /// A structure representing a git configuration key/value store
 pub struct Config {
     raw: *mut raw::git_config,
-    marker: marker::NoShare,
+    marker: marker::NoSync,
 }
 
 /// A struct representing a certain entry owned by a `Config` instance.
@@ -17,14 +17,14 @@ pub struct ConfigEntry<'a> {
     raw: *const raw::git_config_entry,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 /// An iterator over the `ConfigEntry` values of a `Config` structure.
 pub struct ConfigEntries<'a> {
     raw: *mut raw::git_config_iterator,
     _config: &'a Config,
-    marker: marker::NoShare,
+    marker: marker::NoSync,
 }
 
 impl Config {
@@ -108,7 +108,7 @@ impl Config {
     ///
     /// This function is unsafe as the validity of `raw` cannot be guaranteed.
     pub unsafe fn from_raw(raw: *mut raw::git_config) -> Config {
-        Config { raw: raw, marker: marker::NoShare }
+        Config { raw: raw, marker: marker::NoSync }
     }
 
     /// Gain access to the underlying raw pointer of this config
@@ -354,7 +354,7 @@ impl<'a> ConfigEntry<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -390,7 +390,7 @@ impl<'a> ConfigEntries<'a> {
     /// This function is unsafe as the validity of `raw` is not guaranteed.
     pub unsafe fn from_raw(config: &Config, raw: *mut raw::git_config_iterator)
                            -> ConfigEntries {
-        ConfigEntries { raw: raw, _config: config, marker: marker::NoShare }
+        ConfigEntries { raw: raw, _config: config, marker: marker::NoSync }
     }
 }
 
@@ -408,7 +408,7 @@ impl<'a, 'b> Iterator<ConfigEntry<'b>> for &'b ConfigEntries<'a> {
                     raw: raw as *const raw::git_config_entry,
                     marker1: marker::ContravariantLifetime,
                     marker2: marker::NoSend,
-                    marker3: marker::NoShare,
+                    marker3: marker::NoSync,
                 })
             } else {
                 None

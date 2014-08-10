@@ -12,7 +12,7 @@ pub struct Reference<'a> {
     raw: *mut raw::git_reference,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 /// An iterator over the references in a repository.
@@ -43,7 +43,7 @@ impl<'a> Reference<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -225,7 +225,7 @@ impl<'a> Reference<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         })
     }
 
@@ -248,7 +248,7 @@ impl<'a> Reference<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         })
     }
 

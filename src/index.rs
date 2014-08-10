@@ -11,7 +11,7 @@ use {raw, Repository, Error, Tree, Oid};
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Index {
     raw: *mut raw::git_index,
-    marker: marker::NoShare,
+    marker: marker::NoSync,
 }
 
 /// A structure to represent an entry or a file inside of an index.
@@ -69,7 +69,7 @@ impl Index {
     ///
     /// This function is unsafe as it cannot guarantee the validity of `raw`.
     pub unsafe fn from_raw(raw: *mut raw::git_index) -> Index {
-        Index { raw: raw, marker: marker::NoShare }
+        Index { raw: raw, marker: marker::NoSync }
     }
 
     /// Add or update an index entry from an in-memory struct

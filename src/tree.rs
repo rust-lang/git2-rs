@@ -12,7 +12,7 @@ pub struct Tree<'a> {
     raw: *mut raw::git_tree,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 /// A structure representing an entry inside of a tree. An entry is borrowed
@@ -22,7 +22,7 @@ pub struct TreeEntry<'a> {
     owned: bool,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 impl<'a> Tree<'a> {
@@ -36,7 +36,7 @@ impl<'a> Tree<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -133,7 +133,7 @@ impl<'a> TreeEntry<'a> {
             owned: false,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -147,7 +147,7 @@ impl<'a> TreeEntry<'a> {
             owned: true,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 

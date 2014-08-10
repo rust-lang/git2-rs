@@ -10,7 +10,7 @@ pub struct Object<'a> {
     raw: *mut raw::git_object,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 impl<'a> Object<'a> {
@@ -24,7 +24,7 @@ impl<'a> Object<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -70,7 +70,7 @@ impl<'a> Object<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         })
     }
 
@@ -98,7 +98,7 @@ impl<'a> Clone for Object<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 }

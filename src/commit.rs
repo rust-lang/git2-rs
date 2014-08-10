@@ -11,7 +11,7 @@ pub struct Commit<'a> {
     raw: *mut raw::git_commit,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
-    marker3: marker::NoShare,
+    marker3: marker::NoSync,
 }
 
 /// An iterator over the parent commits of a commit.
@@ -32,7 +32,7 @@ impl<'a> Commit<'a> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         }
     }
 
@@ -254,7 +254,7 @@ impl<'a, 'b> Iterator<Commit<'a>> for Parents<'a, 'b> {
             raw: raw,
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
-            marker3: marker::NoShare,
+            marker3: marker::NoSync,
         })
     }
 }
