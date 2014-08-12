@@ -16,6 +16,7 @@ pub struct Buf {
 impl Buf {
     /// Creates a new empty buffer.
     pub fn new() -> Buf {
+        ::init();
         Buf { raw: raw::git_buf {
             ptr: 0 as *mut libc::c_char,
             size: 0,

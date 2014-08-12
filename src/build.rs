@@ -144,6 +144,7 @@ impl CheckoutBuilder {
     /// Creates a new builder for checkouts with all of its default
     /// configuration.
     pub fn new() -> CheckoutBuilder {
+        ::init();
         CheckoutBuilder {
             disable_filters: false,
             dir_perm: None,

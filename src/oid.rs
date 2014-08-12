@@ -15,7 +15,6 @@ impl Oid {
     /// This function is unsafe as it does not know if the memory pointed to by
     /// `oid` is valid or not.
     pub unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
-        ::init();
         Oid { raw: *oid }
     }
 

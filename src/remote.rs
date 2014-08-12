@@ -43,12 +43,14 @@ impl<'a> Remote<'a> {
 
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
+        ::init();
         let remote_name = remote_name.to_c_str();
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
     }
 
     /// Return whether a string is a valid remote URL
     pub fn is_valid_url(url: &str) -> bool {
+        ::init();
         let url = url.to_c_str();
         unsafe { raw::git_remote_valid_url(url.as_ptr()) == 1 }
     }
@@ -56,6 +58,7 @@ impl<'a> Remote<'a> {
     /// Return whether the passed URL is supported by this version of the
     /// library.
     pub fn is_supported_url(url: &str) -> bool {
+        ::init();
         let url = url.to_c_str();
         unsafe { raw::git_remote_supported_url(url.as_ptr()) == 1 }
     }

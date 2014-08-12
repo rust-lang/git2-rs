@@ -13,6 +13,7 @@ pub struct Error {
 impl Error {
     /// Returns the last error, or `None` if one is not available.
     pub fn last_error() -> Option<Error> {
+        ::init();
         let mut raw = raw::git_error {
             message: 0 as *mut libc::c_char,
             klass: 0,
@@ -26,6 +27,7 @@ impl Error {
 
     /// Creates a new error from the given string as the error.
     pub fn from_str(s: &str) -> Error {
+        ::init();
         Error {
             raw: raw::git_error {
                 message: unsafe { s.to_c_str().unwrap() as *mut _ },
