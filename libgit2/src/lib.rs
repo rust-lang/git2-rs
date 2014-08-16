@@ -1,4 +1,5 @@
 #![feature(phase)]
+#![allow(non_camel_case_types)]
 
 #[phase(plugin)]
 extern crate link_config = "link-config";
