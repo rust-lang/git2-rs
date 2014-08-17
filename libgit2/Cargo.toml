@@ -6,4 +6,4 @@ authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = "make -f build/cargo.mk"
 
 [dependencies.link-config]
-git = "http://github.com/alexcrichton/link-config"
+git = "https://github.com/alexcrichton/link-config"
