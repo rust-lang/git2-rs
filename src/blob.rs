@@ -1,6 +1,6 @@
 use std::kinds::marker;
 use std::mem;
-use stdraw = std::raw;
+use std::raw as stdraw;
 use libc;
 
 use {raw, Oid, Repository, Error};

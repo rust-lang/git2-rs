@@ -1,6 +1,6 @@
 use std::mem;
 use std::str;
-use stdraw = std::raw;
+use std::raw as stdraw;
 use libc;
 
 use raw;
