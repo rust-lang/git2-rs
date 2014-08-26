@@ -403,6 +403,12 @@ pub enum git_submodule_ignore_t {
 
 link_config!("libgit2", ["only_static"])
 
+#[cfg(windows)]
+#[link(name = "winhttp")]
+#[link(name = "rpcrt4")]
+#[link(name = "ole32")]
+extern {}
+
 extern {
     // threads
     pub fn git_threads_init() -> c_int;
