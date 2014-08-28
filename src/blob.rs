@@ -112,7 +112,7 @@ mod tests {
         let blob = Blob::lookup(&repo, id).unwrap();
 
         assert_eq!(blob.id(), id);
-        assert_eq!(blob.content(), &[5, 4, 6]);
+        assert_eq!(blob.content(), [5, 4, 6].as_slice());
     }
 
     #[test]
@@ -123,6 +123,6 @@ mod tests {
         let repo = Repository::init(td.path()).unwrap();
         let id = Blob::new_path(&repo, &path).unwrap();
         let blob = Blob::lookup(&repo, id).unwrap();
-        assert_eq!(blob.content(), &[7, 8, 9]);
+        assert_eq!(blob.content(), [7, 8, 9].as_slice());
     }
 }

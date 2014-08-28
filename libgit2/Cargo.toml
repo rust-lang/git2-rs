@@ -7,3 +7,6 @@ build = "make -f build/cargo.mk"
 
 [dependencies.link-config]
 git = "https://github.com/alexcrichton/link-config"
+
+[dependencies.openssl-static-sys]
+git = "git://github.com/alexcrichton/openssl-static-sys"

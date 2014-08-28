@@ -238,6 +238,7 @@ fn init() {
     static mut INIT: Once = ONCE_INIT;
     unsafe {
         INIT.doit(|| {
+            raw::openssl_init();
             assert!(raw::git_threads_init() == 0,
                     "couldn't initialize the libgit2 library!");
             rt::at_exit(proc() {
