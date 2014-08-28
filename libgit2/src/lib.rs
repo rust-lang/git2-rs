@@ -416,36 +416,36 @@ extern {}
 pub fn openssl_init() {
     if !cfg!(target_os = "linux") { return }
 
-    // Currently, libgit2 leverages openssl for SSL support when cloning
-    // repositories over HTTPS. This means that we're picking up an openssl
-    // dependency on non-windows platforms (where it has its own HTTPS
-    // subsystem). As a result, we need to link to openssl.
+    // Currently, libgit2 leverages OpenSSL for SSL support when cloning
+    // repositories over HTTPS. This means that we're picking up an OpenSSL
+    // dependency on non-Windows platforms (where it has its own HTTPS
+    // subsystem). As a result, we need to link to OpenSSL.
     //
-    // Now actually *linking* to openssl isn't so hard. We just need to make
+    // Now actually *linking* to OpenSSL isn't so hard. We just need to make
     // sure to use pkg-config to discover any relevant system dependencies for
-    // differences between distributions like centos and ubuntu. The actual
+    // differences between distributions like CentOS and Ubuntu. The actual
     // trickiness comes about when we start *distributing* the resulting
-    // binaries. Currently cargo is distributed in binary form as nightlies,
-    // which means we're distributing a binary with openssl linked in.
+    // binaries. Currently Cargo is distributed in binary form as nightlies,
+    // which means we're distributing a binary with OpenSSL linked in.
     //
-    // For historical reasons, the linux nightly builder is running a centos
+    // For historical reasons, the Linux nightly builder is running a CentOS
     // distribution in order to have as much ABI compatibility with other
     // distributions as possible. Sadly, however, this compatibility does not
-    // extend to openssl. Currently openssl has two major versions, 0.9 and 1.0,
-    // which are incompatible (many ABI differences). The centos builder we
+    // extend to OpenSSL. Currently OpenSSL has two major versions, 0.9 and 1.0,
+    // which are incompatible (many ABI differences). The CentOS builder we
     // build on has version 1.0, as do most distributions today. Some still have
     // 0.9, however. This means that if we are to distribute the binaries built
-    // by the centos machine, we would only be compatible with openssl 1.0 and
+    // by the CentOS machine, we would only be compatible with OpenSSL 1.0 and
     // we would fail to run (a dynamic linker error at runtime) on systems with
     // only 9.8 installed (hopefully).
     //
-    // But wait, the plot thickens! Apparently centos has dubbed their openssl
+    // But wait, the plot thickens! Apparently CentOS has dubbed their OpenSSL
     // library as `libssl.so.10`, notably the `10` is included at the end. On
-    // the other hand ubuntu, for example, only distributes `libssl.so`. This
-    // means that the binaries created at centos are hard-wired to probe for a
+    // the other hand Ubuntu, for example, only distributes `libssl.so`. This
+    // means that the binaries created at CentOS are hard-wired to probe for a
     // file called `libssl.so.10` at runtime (using the LD_LIBRARY_PATH), which
     // will not be found on ubuntu. The conclusion of this is that binaries
-    // built on centos cannot be distributed to ubuntu and run successfully.
+    // built on CentOS cannot be distributed to Ubuntu and run successfully.
     //
     // There are a number of sneaky things we could do, including, but not
     // limited to:
@@ -460,14 +460,14 @@ pub fn openssl_init() {
     //    overkill for this problem. It's also dubious if we can find a
     //    libssl.so reliably on the target system.
     //
-    // 2. Somehow re-work the centos installation so that the linked-against
+    // 2. Somehow re-work the CentOS installation so that the linked-against
     //    library is called libssl.so instead of libssl.so.10
     //
     //    The problem with this approach is that systems with 0.9 installed will
     //    start to silently fail, due to also having libraries called libssl.so
     //    (probably symlinked under a more appropriate version).
     //
-    // 3. Compile cargo against both openssl 1.0 *and* openssl 0.9, and
+    // 3. Compile Cargo against both OpenSSL 1.0 *and* OpenSSL 0.9, and
     //    distribute both. Also make sure that the linked-against name of the
     //    library is `libssl.so`. At runtime we determine which version is
     //    installed, and we then the appropriate binary.
@@ -475,20 +475,20 @@ pub fn openssl_init() {
     //    This approach clearly has drawbacks in terms of infrastructure and
     //    feasibility.
     //
-    // 4. Build a nightly of cargo for each distribution we'd like to support.
-    //    You would then pick the appropriate cargo nightly to install locally.
+    // 4. Build a nightly of Cargo for each distribution we'd like to support.
+    //    You would then pick the appropriate Cargo nightly to install locally.
     //
     // So, with all this in mind, the decision was made to *statically* link
-    // openssl. This solves any problem of relying on a downstream openssl
+    // OpenSSL. This solves any problem of relying on a downstream OpenSSL
     // version being available. This does, however, open a can of worms related
     // to security issues. It's generally a good idea to dynamically link
-    // openssl as you'll get security updates over time without having to do
+    // OpenSSL as you'll get security updates over time without having to do
     // anything (the system administrator will update the local openssl
     // package). By statically linking, we're forfeiting this feature.
     //
-    // The conclusion was made it is likely appropriate for the cargo nightlies
-    // to statically link openssl, but highly encourage distributions and
-    // packagers of cargo to dynamically link openssl. Packagers are targeting
+    // The conclusion was made it is likely appropriate for the Cargo nightlies
+    // to statically link OpenSSL, but highly encourage distributions and
+    // packagers of Cargo to dynamically link OpenSSL. Packagers are targeting
     // one system and are distributing to only that system, so none of the
     // problems mentioned above would arise.
     //
@@ -502,30 +502,30 @@ pub fn openssl_init() {
     // This library will bring in libssl.a and libcrypto.a into the local build,
     // allowing them to be picked up by this crate. This allows us to configure
     // our own buildbots to have pkg-config point to these local pre-built
-    // copies of a static openssl (with very few dependencies) while allowing
-    // most other builds of cargo to naturally dynamically link openssl.
+    // copies of a static OpenSSL (with very few dependencies) while allowing
+    // most other builds of Cargo to naturally dynamically link OpenSSL.
     //
-    // So in summary, if you're with me so far, we've statically linked openssl
-    // to the cargo binary (or any binary, for that matter) and we're ready to
+    // So in summary, if you're with me so far, we've statically linked OpenSSL
+    // to the Cargo binary (or any binary, for that matter) and we're ready to
     // distribute it to *all* linux distributions. Remember that our original
     // intent for openssl was for HTTPS support, which implies that we need some
     // for of CA certificate store to validate certificates. This is normally
     // installed in a standard system location.
     //
-    // Unfortunately, as one might imagine, openssl is configured for where this
+    // Unfortunately, as one might imagine, OpenSSL is configured for where this
     // standard location is at *build time*, but it often varies widely
-    // per-system. Consequently, it was discovered that openssl will respect the
+    // per-system. Consequently, it was discovered that OpenSSL will respect the
     // SSL_CERT_FILE and SSL_CERT_DIR environment variables in order to assist
     // in discovering the location of this file (hurray!).
     //
     // So, finally getting to the point, this function solely exists to support
-    // our static builds of openssl by probing for the "standard system
+    // our static builds of OpenSSL by probing for the "standard system
     // location" of certificates and setting relevant environment variable to
     // point to them.
     //
-    // Ah, and as a final note, this is only a problem on linux, not on osx. On
-    // osx the openssl binaries are stable enough that we can just rely on
-    // dynamic linkage (plus they have some weird modifications to openssl which
+    // Ah, and as a final note, this is only a problem on Linux, not on OS X. On
+    // OS X the OpenSSL binaries are stable enough that we can just rely on
+    // dynamic linkage (plus they have some weird modifications to OpenSSL which
     // means we wouldn't want to link statically).
     openssl_static_sys::init_ssl_cert_env_vars();
 }
