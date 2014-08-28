@@ -32,7 +32,7 @@ impl<'a> Branch<'a> {
                    branch_name: &str,
                    target: &Commit<'a>,
                    force: bool,
-                   signature: &Signature,
+                   signature: Option<&Signature>,
                    log_message: &str) -> Result<Branch<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
@@ -41,7 +41,8 @@ impl<'a> Branch<'a> {
                                              branch_name.to_c_str(),
                                              &*target.raw(),
                                              force,
-                                             &*signature.raw(),
+                                             &*signature.map(|s| s.raw())
+                                                        .unwrap_or(0 as *mut _),
                                              log_message.to_c_str()));
             Ok(Branch::wrap(Reference::from_raw(repo, raw)))
         }
@@ -78,13 +79,15 @@ impl<'a> Branch<'a> {
 
     /// Move/rename an existing local branch reference.
     pub fn move(&mut self, new_branch_name: &str, force: bool,
-                signature: &Signature,
+                signature: Option<&Signature>,
                 log_message: &str) -> Result<Branch<'a>, Error> {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
                                            new_branch_name.to_c_str(),
-                                           force, &*signature.raw(),
+                                           force,
+                                           &*signature.map(|s| s.raw())
+                                                      .unwrap_or(0 as *mut _),
                                            log_message.to_c_str()));
             Ok(Branch::wrap(Reference::from_raw_ptr(ret)))
         }
@@ -181,13 +184,13 @@ mod tests {
         let commit = Commit::lookup(&repo, target).unwrap();
 
         let sig = Signature::default(&repo).unwrap();
-        let mut b1 = Branch::new(&repo, "foo", &commit, false, &sig,
+        let mut b1 = Branch::new(&repo, "foo", &commit, false, None,
                                  "bar").unwrap();
         assert!(!b1.is_head());
 
         assert_eq!(repo.branches(None).unwrap().count(), 2);
         Branch::lookup(&repo, "foo", ::Local).unwrap();
-        let mut b1 = b1.move("bar", false, &sig, "bar2").unwrap();
+        let mut b1 = b1.move("bar", false, Some(&sig), "bar2").unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));
         assert!(b1.upstream().is_err());
         b1.set_upstream(Some("master")).unwrap();

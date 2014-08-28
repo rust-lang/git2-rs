@@ -53,13 +53,15 @@ impl<'a> Reference<'a> {
     /// the given name unless force is true, in which case it will be
     /// overwritten.
     pub fn new<'a>(repo: &'a Repository, name: &str, id: Oid, force: bool,
-                   sig: &Signature,
+                   sig: Option<&Signature>,
                    log_message: &str) -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_create(&mut raw, repo.raw(),
                                                 name.to_c_str(),
-                                                &*id.raw(), force, &*sig.raw(),
+                                                &*id.raw(), force,
+                                                &*sig.map(|s| s.raw())
+                                                     .unwrap_or(0 as *mut _),
                                                 log_message.to_c_str()));
             Ok(Reference::from_raw(repo, raw))
         }
@@ -71,14 +73,16 @@ impl<'a> Reference<'a> {
     /// the given name unless force is true, in which case it will be
     /// overwritten.
     pub fn new_symbolic<'a>(repo: &'a Repository, name: &str, target: &str,
-                            force: bool, sig: &Signature,
+                            force: bool, sig: Option<&Signature>,
                             log_message: &str) -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_symbolic_create(&mut raw, repo.raw(),
                                                          name.to_c_str(),
                                                          target.to_c_str(),
-                                                         force, &*sig.raw(),
+                                                         force,
+                                                         &*sig.map(|s| s.raw())
+                                                              .unwrap_or(0 as *mut _),
                                                          log_message.to_c_str()));
             Ok(Reference::from_raw(repo, raw))
         }
@@ -235,13 +239,16 @@ impl<'a> Reference<'a> {
     ///
     /// If the force flag is not enabled, and there's already a reference with
     /// the given name, the renaming will fail.
-    pub fn rename(&mut self, new_name: &str, force: bool, sig: &Signature,
+    pub fn rename(&mut self, new_name: &str, force: bool,
+                  sig: Option<&Signature>,
                   msg: &str) -> Result<Reference<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_rename(&mut raw, self.raw,
                                                 new_name.to_c_str(),
-                                                force, &*sig.raw(),
+                                                force,
+                                                &*sig.map(|s| s.raw())
+                                                     .unwrap_or(0 as *mut _),
                                                 msg.to_c_str()));
         }
         Ok(Reference {
@@ -378,13 +385,13 @@ mod tests {
         let mut tag1 = Reference::new(&repo, "refs/tags/tag1",
                                       head.target().unwrap(),
                                       false,
-                                      &sig, "test").unwrap();
+                                      None, "test").unwrap();
         assert!(tag1.is_tag());
         tag1.delete().unwrap();
 
         let mut sym1 = Reference::new_symbolic(&repo, "refs/tags/tag1",
                                                "refs/heads/master", false,
-                                               &sig, "test").unwrap();
+                                               Some(&sig), "test").unwrap();
         sym1.delete().unwrap();
 
         {
@@ -397,7 +404,7 @@ mod tests {
             assert!(repo.references_glob("refs/heads/*").unwrap().count() == 1);
         }
 
-        let mut head = head.rename("refs/foo", true, &sig, "test").unwrap();
+        let mut head = head.rename("refs/foo", true, None, "test").unwrap();
         head.delete().unwrap();
 
     }

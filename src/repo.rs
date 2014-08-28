@@ -257,9 +257,11 @@ impl Repository {
     /// be replaced with the content of the index. (Untracked and ignored files
     /// will be left alone, however.)
     pub fn reset<'a>(&'a self, target: &Object<'a>, kind: ResetType,
-                     sig: &Signature, msg: Option<&str>) -> Result<(), Error> {
+                     sig: Option<&Signature>, msg: Option<&str>)
+                     -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_reset(self.raw, target.raw(), kind, sig.raw(),
+            try_call!(raw::git_reset(self.raw, target.raw(), kind,
+                                     sig.map(|s| s.raw()).unwrap_or(0 as *mut _),
                                      msg.map(|s| s.to_c_str())));
         }
         Ok(())
@@ -458,7 +460,7 @@ mod tests {
         obj.peel(::Any).unwrap();
         obj.short_id().unwrap();
         let sig = Signature::default(&repo).unwrap();
-        repo.reset(&obj, ::Hard, &sig, None).unwrap();
-        repo.reset(&obj, ::Soft, &sig, Some("foo")).unwrap();
+        repo.reset(&obj, ::Hard, None, None).unwrap();
+        repo.reset(&obj, ::Soft, Some(&sig), Some("foo")).unwrap();
     }
 }

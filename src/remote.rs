@@ -271,21 +271,24 @@ impl<'a> Remote<'a> {
     ///
     /// Convenience function to connect to a remote, download the data,
     /// disconnect and update the remote-tracking branches.
-    pub fn fetch(&mut self, signature: &Signature,
+    pub fn fetch(&mut self, signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_remote_fetch(self.raw,
-                                            &*signature.raw(),
+                                            &*signature.map(|s| s.raw())
+                                                       .unwrap_or(0 as *mut _),
                                             msg.map(|s| s.to_c_str())));
         }
         Ok(())
     }
 
     /// Update the tips to the new state
-    pub fn update_tips(&mut self, signature: &Signature,
+    pub fn update_tips(&mut self, signature: Option<&Signature>,
                        msg: Option<&str>) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_remote_update_tips(self.raw, &*signature.raw(),
+            try_call!(raw::git_remote_update_tips(self.raw,
+                                                  &*signature.map(|s| s.raw())
+                                                             .unwrap_or(0 as *mut _),
                                                   msg.map(|s| s.to_c_str())));
         }
         Ok(())
@@ -406,10 +409,10 @@ mod tests {
 
         origin.rename("origin2").unwrap();
         let sig = Signature::default(&repo).unwrap();
-        origin.fetch(&sig, None).unwrap();
-        origin.fetch(&sig, Some("foo")).unwrap();
-        origin.update_tips(&sig, None).unwrap();
-        origin.update_tips(&sig, Some("foo")).unwrap();
+        origin.fetch(Some(&sig), None).unwrap();
+        origin.fetch(None, Some("foo")).unwrap();
+        origin.update_tips(Some(&sig), None).unwrap();
+        origin.update_tips(None, Some("foo")).unwrap();
         origin.delete().unwrap();
     }
 
