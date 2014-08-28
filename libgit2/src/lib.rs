@@ -73,6 +73,7 @@ pub type git_off_t = i64;
 pub type git_time_t = i64;
 
 bitflags!(
+    #[repr(C)]
     flags git_revparse_mode_t: c_uint {
         static GIT_REVPARSE_SINGLE = 1 << 0,
         static GIT_REVPARSE_RANGE = 1 << 1,
