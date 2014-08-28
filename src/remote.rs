@@ -6,7 +6,7 @@ use libc;
 use {raw, Repository, Direction, Error, Refspec, StringArray};
 use Signature;
 
-/// A structure represending a [remote][1] of a git repository.
+/// A structure representing a [remote][1] of a git repository.
 ///
 /// [1]: http://git-scm.com/book/en/Git-Basics-Working-with-Remotes
 ///
@@ -30,7 +30,7 @@ impl<'a> Remote<'a> {
     /// Creates a new remote from its raw pointer.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is valid or
-    /// tha no other remote is using it.
+    /// that no other remote is using it.
     pub unsafe fn from_raw(_repo: &Repository,
                            raw: *mut raw::git_remote) -> Remote {
         Remote {
