@@ -15,10 +15,10 @@ pub struct Commit<'a> {
 }
 
 /// An iterator over the parent commits of a commit.
-pub struct Parents<'a, 'b> {
+pub struct Parents<'a, 'b:'a> {
     cur: uint,
     max: uint,
-    commit: &'b Commit<'a>,
+    commit: &'a Commit<'b>,
 }
 
 impl<'a> Commit<'a> {
@@ -188,7 +188,7 @@ impl<'a> Commit<'a> {
     }
 
     /// Creates a new iterator over the parents of this commit.
-    pub fn parents<'b>(&'b self) -> Parents<'a, 'b> {
+    pub fn parents<'b>(&'b self) -> Parents<'b, 'a> {
         Parents {
             cur: 0,
             max: unsafe { raw::git_commit_parentcount(&*self.raw) as uint },
@@ -241,7 +241,7 @@ impl<'a> Commit<'a> {
     }
 }
 
-impl<'a, 'b> Iterator<Commit<'a>> for Parents<'a, 'b> {
+impl<'a, 'b> Iterator<Commit<'a>> for Parents<'b, 'a> {
     fn next(&mut self) -> Option<Commit<'a>> {
         if self.cur == self.max { return None }
         self.cur += 1;
