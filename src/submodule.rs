@@ -110,7 +110,7 @@ impl<'a> Submodule<'a> {
     /// Get the path for the submodule.
     pub fn path(&self) -> Path {
         let bytes = unsafe {
-            ::opt_bytes(self, raw::git_submodule_name(self.raw)).unwrap()
+            ::opt_bytes(self, raw::git_submodule_path(self.raw)).unwrap()
         };
         Path::new(bytes)
     }
