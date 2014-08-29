@@ -404,12 +404,15 @@ pub enum git_submodule_ignore_t {
     GIT_SUBMODULE_IGNORE_DEFAULT   = 0
 }
 
+// We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
+#[cfg(not(windows))]
 link_config!("libgit2", ["only_static"])
 
 #[cfg(windows)]
 #[link(name = "winhttp")]
 #[link(name = "rpcrt4")]
 #[link(name = "ole32")]
+#[link(name = "git2", kind = "static")]
 extern {}
 
 /// Initialize openssl for the libgit2 library
