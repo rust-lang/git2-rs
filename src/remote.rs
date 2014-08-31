@@ -1,9 +1,10 @@
 use std::c_str::CString;
 use std::kinds::marker;
+use std::mem;
 use std::str;
 use libc;
 
-use {raw, Repository, Direction, Error, Refspec, StringArray};
+use {raw, Repository, Direction, Error, Refspec, StringArray, Cred};
 use Signature;
 
 /// A structure representing a [remote][1] of a git repository.
@@ -12,21 +13,32 @@ use Signature;
 ///
 /// The lifetime is the lifetime of the repository that it is attached to. The
 /// remote is used to manage fetches and pushes as well as refspecs.
-pub struct Remote<'a> {
+pub struct Remote<'a, 'b> {
     raw: *mut raw::git_remote,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
+    credentials: Option<Credentials<'b>>,
 }
 
 /// An iterator over the refspecs that a remote contains.
-pub struct Refspecs<'a> {
+pub struct Refspecs<'a, 'b: 'a> {
     cur: uint,
     cnt: uint,
-    remote: &'a Remote<'a>,
+    remote: &'a Remote<'a, 'b>,
 }
 
-impl<'a> Remote<'a> {
+/// Callback used to acquire credentials for when a remote is fetched.
+///
+/// * `url` - the resource for which the credentials are required.
+/// * `username_from_url` - the username that was embedded in the url, or `None`
+///                         if it was not included.
+/// * `allowed_types` - a bitmask stating which cred types are ok to return.
+pub type Credentials<'a> = |url: &str,
+                            username_from_url: Option<&str>,
+                            allowed_types: uint|: 'a -> Result<Cred, Error>;
+
+impl<'a, 'b> Remote<'a, 'b> {
     /// Creates a new remote from its raw pointer.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is valid or
@@ -38,6 +50,7 @@ impl<'a> Remote<'a> {
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
             marker3: marker::NoSync,
+            credentials: None,
         }
     }
 
@@ -105,6 +118,7 @@ impl<'a> Remote<'a> {
     /// Open a connection to a remote.
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
         unsafe {
+            try!(self.set_callbacks());
             try_call!(raw::git_remote_connect(self.raw, dir));
         }
         Ok(())
@@ -238,7 +252,10 @@ impl<'a> Remote<'a> {
     /// The .idx file will be created and both it and the packfile with be
     /// renamed to their final name.
     pub fn download(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_remote_download(self.raw)); }
+        unsafe {
+            try!(self.set_callbacks());
+            try_call!(raw::git_remote_download(self.raw));
+        }
         Ok(())
     }
 
@@ -274,6 +291,7 @@ impl<'a> Remote<'a> {
     pub fn fetch(&mut self, signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
         unsafe {
+            try!(self.set_callbacks());
             try_call!(raw::git_remote_fetch(self.raw,
                                             &*signature.map(|s| s.raw())
                                                        .unwrap_or(0 as *mut _),
@@ -299,9 +317,84 @@ impl<'a> Remote<'a> {
         unsafe { try_call!(raw::git_remote_update_fetchhead(self.raw)); }
         Ok(())
     }
+
+    /// Set the callback through which to fetch credentials if required.
+    ///
+    /// It is strongly recommended to audit the `credentials` callback for
+    /// failure as it will likely leak resources if it fails.
+    pub fn set_credentials(&mut self, credentials: Credentials<'b>) {
+        self.credentials = Some(credentials);
+    }
+
+    unsafe fn set_callbacks(&mut self) -> Result<(), Error> {
+        let mut callbacks: raw::git_remote_callbacks = mem::zeroed();
+        try_call!(raw::git_remote_init_callbacks(&mut callbacks,
+                                    raw::GIT_REMOTE_CALLBACKS_VERSION));
+        if self.credentials.is_some() {
+            callbacks.credentials = Some(credentials_cb);
+        }
+        callbacks.payload = self as *mut _ as *mut _;
+        try_call!(raw::git_remote_set_callbacks(self.raw, &callbacks));
+        Ok(())
+    }
 }
 
-impl<'a> Iterator<Refspec<'a>> for Refspecs<'a> {
+extern fn credentials_cb(ret: *mut *mut raw::git_cred,
+                         url: *const libc::c_char,
+                         username_from_url: *const libc::c_char,
+                         allowed_types: libc::c_uint,
+                         payload: *mut libc::c_void) -> libc::c_int {
+    unsafe {
+        let payload: &mut Remote = &mut *(payload as *mut Remote);
+        let callback = match payload.credentials {
+            Some(ref mut c) => c,
+            None => return raw::GIT_PASSTHROUGH as libc::c_int,
+        };
+        call_credentials_cb(ret, url, username_from_url, allowed_types,
+                            callback)
+    }
+}
+
+pub unsafe extern fn call_credentials_cb(ret: *mut *mut raw::git_cred,
+                                         url: *const libc::c_char,
+                                         username_from_url: *const libc::c_char,
+                                         allowed_types: libc::c_uint,
+                                         cb: &mut Credentials) -> libc::c_int {
+    *ret = 0 as *mut raw::git_cred;
+    let url = CString::new(url, false);
+    let url = match url.as_str()  {
+        Some(url) => url,
+        None => return raw::GIT_PASSTHROUGH as libc::c_int,
+    };
+    let username_from_url = if username_from_url.is_null() {
+        None
+    } else {
+        Some(CString::new(username_from_url, false))
+    };
+    let username_from_url = match username_from_url {
+        Some(ref username) => match username.as_str() {
+            Some(s) => Some(s),
+            None => return raw::GIT_PASSTHROUGH as libc::c_int,
+        },
+        None => None,
+    };
+
+    match (*cb)(url, username_from_url, allowed_types as uint) {
+        Ok(cred) => {
+            // Turns out it's a memory safety issue if we pass through any
+            // and all credentials into libgit2
+            if allowed_types & (cred.credtype() as libc::c_uint) != 0 {
+                *ret = cred.unwrap();
+                0
+            } else {
+                raw::GIT_PASSTHROUGH as libc::c_int
+            }
+        }
+        Err(e) => e.raw_code() as libc::c_int,
+    }
+}
+
+impl<'a, 'b> Iterator<Refspec<'a>> for Refspecs<'a, 'b> {
     fn next(&mut self) -> Option<Refspec<'a>> {
         if self.cur == self.cnt { return None }
         let ret = unsafe {
@@ -315,8 +408,8 @@ impl<'a> Iterator<Refspec<'a>> for Refspecs<'a> {
     }
 }
 
-impl<'a> Clone for Remote<'a> {
-    fn clone(&self) -> Remote<'a> {
+impl<'a, 'b> Clone for Remote<'a, 'b> {
+    fn clone(&self) -> Remote<'a, 'b> {
         let mut ret = 0 as *mut raw::git_remote;
         let rc = unsafe { call!(raw::git_remote_dup(&mut ret, self.raw)) };
         assert_eq!(rc, 0);
@@ -325,12 +418,13 @@ impl<'a> Clone for Remote<'a> {
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
             marker3: marker::NoSync,
+            credentials: None,
         }
     }
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Remote<'a> {
+impl<'a, 'b> Drop for Remote<'a, 'b> {
     fn drop(&mut self) {
         unsafe { raw::git_remote_free(self.raw) }
     }

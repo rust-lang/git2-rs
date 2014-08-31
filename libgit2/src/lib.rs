@@ -21,7 +21,6 @@ pub enum git_branch_iterator {}
 pub enum git_commit {}
 pub enum git_config {}
 pub enum git_config_iterator {}
-pub enum git_cred {}
 pub enum git_index {}
 pub enum git_object {}
 pub enum git_reference {}
@@ -404,6 +403,45 @@ pub enum git_submodule_ignore_t {
     GIT_SUBMODULE_IGNORE_DEFAULT   = 0
 }
 
+#[repr(C)]
+pub struct git_cred {
+    pub credtype: git_credtype_t,
+    pub free: extern fn(*mut git_cred),
+}
+
+#[repr(C)]
+pub enum git_credtype_t {
+    GIT_CREDTYPE_USERPASS_PLAINTEXT = 1 << 0,
+    GIT_CREDTYPE_SSH_KEY = 1 << 1,
+    GIT_CREDTYPE_SSH_CUSTOM = 1 << 2,
+    GIT_CREDTYPE_DEFAULT = 1 << 3,
+    GIT_CREDTYPE_SSH_INTERACTIVE = 1 << 4,
+}
+
+pub type git_cred_ssh_interactive_callback = extern fn(
+    name: *const c_char,
+    name_len: c_int,
+    instruction: *const c_char,
+    instruction_len: c_int,
+    num_prompts: c_int,
+    prompts: *const LIBSSH2_USERAUTH_KBDINT_PROMPT,
+    responses: *mut LIBSSH2_USERAUTH_KBDINT_RESPONSE,
+    abstract: *mut *mut c_void
+);
+
+pub type git_cred_sign_callback = extern fn(
+    session: *mut LIBSSH2_SESSION,
+    sig: *mut *mut c_uchar,
+    sig_len: *mut size_t,
+    data: *const c_uchar,
+    data_len: size_t,
+    abstract: *mut *mut c_void,
+);
+
+pub enum LIBSSH2_SESSION {}
+pub enum LIBSSH2_USERAUTH_KBDINT_PROMPT {}
+pub enum LIBSSH2_USERAUTH_KBDINT_RESPONSE {}
+
 // We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
 #[cfg(not(windows))]
 link_config!("libgit2", ["only_static"])
@@ -665,6 +703,11 @@ extern {
                                          array: *mut git_strarray) -> c_int;
     pub fn git_remote_set_push_refspecs(remote: *mut git_remote,
                                         array: *mut git_strarray) -> c_int;
+    pub fn git_remote_set_callbacks(remote: *mut git_remote,
+                                    callbacks: *const git_remote_callbacks)
+                                    -> c_int;
+    pub fn git_remote_init_callbacks(opts: *mut git_remote_callbacks,
+                                     version: c_uint) -> c_int;
 
     // refspec
     pub fn git_refspec_direction(spec: *const git_refspec) -> git_direction;
@@ -1078,4 +1121,33 @@ extern {
                                  value: *const c_char) -> c_int;
     pub fn git_config_snapshot(out: *mut *mut git_config,
                                config: *mut git_config) -> c_int;
+
+    // cred
+    pub fn git_cred_default_new(out: *mut *mut git_cred) -> c_int;
+    pub fn git_cred_has_username(cred: *mut git_cred) -> c_int;
+    pub fn git_cred_ssh_custom_new(out: *mut *mut git_cred,
+                                   username: *const c_char,
+                                   publickey: *const c_char,
+                                   publickey_len: size_t,
+                                   sign_callback: git_cred_sign_callback,
+                                   payload: *mut c_void) -> c_int;
+    pub fn git_cred_ssh_interactive_new(out: *mut *mut git_cred,
+                                        username: *const c_char,
+                                        prompt_callback: git_cred_ssh_interactive_callback,
+                                        payload: *mut c_void) -> c_int;
+    pub fn git_cred_ssh_key_from_agent(out: *mut *mut git_cred,
+                                       username: *const c_char) -> c_int;
+    pub fn git_cred_ssh_key_new(out: *mut *mut git_cred,
+                                username: *const c_char,
+                                publickey: *const c_char,
+                                privatekey: *const c_char,
+                                passphrase: *const c_char) -> c_int;
+    pub fn git_cred_userpass(cred: *mut *mut git_cred,
+                             url: *const c_char,
+                             user_from_url: *const c_char,
+                             allowed_types: c_uint,
+                             payload: *mut c_void) -> c_int;
+    pub fn git_cred_userpass_plaintext_new(out: *mut *mut git_cred,
+                                           username: *const c_char,
+                                           password: *const c_char) -> c_int;
 }

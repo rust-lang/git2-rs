@@ -5,18 +5,18 @@ use std::io;
 use std::mem;
 use libc;
 
-use {raw, Signature, Error, Repository};
+use {raw, Signature, Error, Repository, Credentials};
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
-#[deriving(Clone)]
-pub struct RepoBuilder {
+pub struct RepoBuilder<'a> {
     bare: bool,
     branch: Option<CString>,
     sig: Option<Signature<'static>>,
     local: bool,
     hardlinks: bool,
     checkout: Option<CheckoutBuilder>,
+    credentials: Option<Credentials<'a>>,
 }
 
 /// A builder struct for configuring checkouts of a repository.
@@ -35,12 +35,12 @@ pub struct CheckoutBuilder {
     checkout_opts: uint,
 }
 
-impl RepoBuilder {
+impl<'a> RepoBuilder<'a> {
     /// Creates a new repository builder with all of the default configuration.
     ///
     /// When ready, the `clone()` method can be used to clone a new repository
     /// using this configuration.
-    pub fn new() -> RepoBuilder {
+    pub fn new() -> RepoBuilder<'a> {
         ::init();
         RepoBuilder {
             bare: false,
@@ -49,12 +49,13 @@ impl RepoBuilder {
             local: true,
             hardlinks: true,
             checkout: None,
+            credentials: None,
         }
     }
 
     /// Indicate whether the repository will be cloned as a bare repository or
     /// not.
-    pub fn bare(&mut self, bare: bool) -> &mut RepoBuilder {
+    pub fn bare(&mut self, bare: bool) -> &mut RepoBuilder<'a> {
         self.bare = bare;
         self
     }
@@ -62,7 +63,7 @@ impl RepoBuilder {
     /// Specify the name of the branch to check out after the clone.
     ///
     /// If not specified, the remote's default branch will be used.
-    pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder {
+    pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder<'a> {
         self.branch = Some(branch.to_c_str());
         self
     }
@@ -70,7 +71,7 @@ impl RepoBuilder {
     /// Specify the identity that will be used when updating the reflog.
     ///
     /// If not specified, the default signature will be used.
-    pub fn signature(&mut self, sig: Signature<'static>) -> &mut RepoBuilder {
+    pub fn signature(&mut self, sig: Signature<'static>) -> &mut RepoBuilder<'a> {
         self.sig = Some(sig);
         self
     }
@@ -80,14 +81,14 @@ impl RepoBuilder {
     ///
     /// If `true`, the git-aware transport will be bypassed for local paths. If
     /// `false`, the git-aware transport will not be bypassed.
-    pub fn local(&mut self, local: bool) -> &mut RepoBuilder {
+    pub fn local(&mut self, local: bool) -> &mut RepoBuilder<'a> {
         self.local = local;
         self
     }
 
     /// Set the flag for whether hardlinks are used when using a local git-aware
     /// transport mechanism.
-    pub fn hardlinks(&mut self, links: bool) -> &mut RepoBuilder {
+    pub fn hardlinks(&mut self, links: bool) -> &mut RepoBuilder<'a> {
         self.hardlinks = links;
         self
     }
@@ -95,8 +96,18 @@ impl RepoBuilder {
     /// Configure the checkout which will be performed by consuming a checkout
     /// builder.
     pub fn with_checkout(&mut self,
-                         checkout: CheckoutBuilder) -> &mut RepoBuilder {
+                         checkout: CheckoutBuilder) -> &mut RepoBuilder<'a> {
         self.checkout = Some(checkout);
+        self
+    }
+
+    /// Set the credentials callback to be used if credentials are required.
+    ///
+    /// It is strongly recommended to audit the `credentials` callback for
+    /// failure as it will likely leak resources if it fails.
+    pub fn credentials(&mut self,
+                       credentials: Credentials<'a>) -> &mut RepoBuilder<'a> {
+        self.credentials = Some(credentials);
         self
     }
 
@@ -104,7 +115,7 @@ impl RepoBuilder {
     ///
     /// This will use the options configured so far to clone the specified url
     /// into the specified local path.
-    pub fn clone(&self, url: &str, into: &Path) -> Result<Repository, Error> {
+    pub fn clone(&mut self, url: &str, into: &Path) -> Result<Repository, Error> {
         let mut opts: raw::git_clone_options = unsafe { mem::zeroed() };
         unsafe {
             try_call!(raw::git_clone_init_options(&mut opts,
@@ -126,6 +137,13 @@ impl RepoBuilder {
         opts.checkout_opts.checkout_strategy =
             raw::GIT_CHECKOUT_SAFE_CREATE as libc::c_uint;
 
+        if self.credentials.is_some() {
+            opts.remote_callbacks.payload = self as *mut _ as *mut _;
+            opts.remote_callbacks.credentials = Some(get_credentials);
+        } else {
+            opts.remote_callbacks.payload = 0 as *mut _;
+        }
+
         match self.checkout {
             Some(ref c) => unsafe { c.configure(&mut opts.checkout_opts) },
             None => {}
@@ -137,6 +155,22 @@ impl RepoBuilder {
                                      &opts));
             Ok(Repository::from_raw(raw))
         }
+    }
+}
+
+extern fn get_credentials(ret: *mut *mut raw::git_cred,
+                          url: *const libc::c_char,
+                          username_from_url: *const libc::c_char,
+                          allowed_types: libc::c_uint,
+                          payload: *mut libc::c_void) -> libc::c_int {
+    unsafe {
+        let payload: &mut RepoBuilder = &mut *(payload as *mut RepoBuilder);
+        let callback = match payload.credentials {
+            Some(ref mut c) => c,
+            None => return raw::GIT_PASSTHROUGH as libc::c_int,
+        };
+        ::remote::call_credentials_cb(ret, url, username_from_url,
+                                      allowed_types, callback)
     }
 }
 
