@@ -6,3 +6,6 @@ authors = ["Alex Crichton <alex@alexcrichton.com>"]
 
 [dependencies.libgit2]
 path = "libgit2"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"

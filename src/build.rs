@@ -40,7 +40,7 @@ impl<'a> RepoBuilder<'a> {
     ///
     /// When ready, the `clone()` method can be used to clone a new repository
     /// using this configuration.
-    pub fn new() -> RepoBuilder<'a> {
+    pub fn new<'a>() -> RepoBuilder<'a> {
         ::init();
         RepoBuilder {
             bare: false,

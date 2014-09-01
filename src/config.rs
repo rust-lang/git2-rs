@@ -187,7 +187,7 @@ impl Config {
     ///
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
-    pub fn get_str(&self, name: &str) -> Result<&str, Error> {
+    pub fn get_str<'a>(&self, name: &str) -> Result<&str, Error> {
         match str::from_utf8(try!(self.get_bytes(name))) {
             Some(s) => Ok(s),
             None => Err(Error::from_str("configuration value is not valid utf8")),

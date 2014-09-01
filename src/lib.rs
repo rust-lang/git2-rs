@@ -68,6 +68,7 @@
 
 extern crate libc;
 extern crate time;
+extern crate url;
 extern crate raw = "libgit2";
 
 use std::c_str::CString;
@@ -82,7 +83,7 @@ pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};
 pub use config::{Config, ConfigEntry, ConfigEntries};
-pub use cred::Cred;
+pub use cred::{Cred, CredentialHelper};
 pub use error::Error;
 pub use index::{Index, IndexEntry};
 pub use object::Object;
