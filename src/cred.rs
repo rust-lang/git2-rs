@@ -9,11 +9,13 @@ pub struct Cred {
     raw: *mut raw::git_cred,
 }
 
-/// dox
+/// Management of the gitcredentials(7) interface.
 pub struct CredentialHelper {
+    /// A public field representing the currently discovered username from
+    /// configuration.
+    pub username: Option<String>,
     protocol: Option<String>,
     host: Option<String>,
-    username: Option<String>,
     url: String,
     commands: Vec<String>,
 }
