@@ -211,6 +211,19 @@ pub enum ConfigLevel {
     ConfigHighest,
 }
 
+bitflags! {
+    #[doc = "
+Types of credentials that can be requested by a credential callback.
+"]
+    flags CredentialType: uint {
+        static UserPassPlaintext = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as uint,
+        static SshKey = raw::GIT_CREDTYPE_SSH_KEY as uint,
+        static SshCustom = raw::GIT_CREDTYPE_SSH_CUSTOM as uint,
+        static Default = raw::GIT_CREDTYPE_DEFAULT as uint,
+        static SshInteractive = raw::GIT_CREDTYPE_SSH_INTERACTIVE as uint
+    }
+}
+
 mod call;
 
 pub mod build;

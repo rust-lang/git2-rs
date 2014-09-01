@@ -5,7 +5,7 @@ use std::str;
 use libc;
 
 use {raw, Repository, Direction, Error, Refspec, StringArray, Cred};
-use Signature;
+use {Signature, CredentialType};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -36,7 +36,8 @@ pub struct Refspecs<'a, 'b: 'a> {
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
 pub type Credentials<'a> = |url: &str,
                             username_from_url: Option<&str>,
-                            allowed_types: uint|: 'a -> Result<Cred, Error>;
+                            allowed_types: CredentialType|: 'a
+                           -> Result<Cred, Error>;
 
 impl<'a, 'b> Remote<'a, 'b> {
     /// Creates a new remote from its raw pointer.
@@ -379,7 +380,8 @@ pub unsafe extern fn call_credentials_cb(ret: *mut *mut raw::git_cred,
         None => None,
     };
 
-    match (*cb)(url, username_from_url, allowed_types as uint) {
+    match (*cb)(url, username_from_url,
+                CredentialType::from_bits_truncate(allowed_types as uint)) {
         Ok(cred) => {
             // Turns out it's a memory safety issue if we pass through any
             // and all credentials into libgit2
