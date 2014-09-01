@@ -9,7 +9,7 @@ build = "make -C build"
 git = "https://github.com/alexcrichton/link-config"
 
 [dependencies.openssl-static-sys]
-git = "git://github.com/alexcrichton/openssl-static-sys"
+git = "https://github.com/alexcrichton/openssl-static-sys"
 
 [dependencies.libssh2-static-sys]
-git = "git://github.com/alexcrichton/libssh2-static-sys"
+git = "https://github.com/alexcrichton/libssh2-static-sys"
