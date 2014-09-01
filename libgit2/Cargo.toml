@@ -3,10 +3,13 @@
 name = "libgit2"
 version = "0.0.1"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
-build = "make -f build/cargo.mk"
+build = "make -C build"
 
 [dependencies.link-config]
 git = "https://github.com/alexcrichton/link-config"
 
 [dependencies.openssl-static-sys]
 git = "git://github.com/alexcrichton/openssl-static-sys"
+
+[dependencies.libssh2-static-sys]
+git = "git://github.com/alexcrichton/libssh2-static-sys"
