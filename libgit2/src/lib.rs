@@ -447,9 +447,13 @@ pub enum LIBSSH2_USERAUTH_KBDINT_RESPONSE {}
 link_config!("libgit2", ["only_static"])
 
 #[cfg(windows)]
-#[link(name = "winhttp")]
-#[link(name = "rpcrt4")]
-#[link(name = "ole32")]
+#[link(name = "winhttp")] // needed by git2
+#[link(name = "rpcrt4")]  // needed by git2
+#[link(name = "ole32")]   // needed by git2
+#[link(name = "ws2_32")]  // needed by ssh2
+#[link(name = "bcrypt")]  // needed by ssh2
+#[link(name = "crypt32")] // needed by ssh2
+#[link(name = "libssh2", kind = "static")]
 #[link(name = "git2", kind = "static")]
 extern {}
 
