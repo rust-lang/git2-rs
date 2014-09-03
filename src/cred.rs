@@ -233,7 +233,7 @@ impl CredentialHelper {
             self.commands.push(cmd.slice_from(1).to_string());
         } else if cmd.starts_with("/") || cmd.starts_with("\\") ||
                   cmd.slice_from(1).starts_with(":\\") {
-            self.commands.push(cmd.to_string());
+            self.commands.push(format!("\"{}\"", cmd));
         } else {
             self.commands.push(format!("git credential-{}", cmd));
         }
