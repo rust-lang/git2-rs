@@ -4,7 +4,10 @@ use libc;
 
 use {raw, Remote, Error, Signature};
 
-/// dox
+/// A structure to represent a pending push operation to a remote.
+///
+/// Remotes can create a `Push` which is then used to push data to the upstream
+/// repository.
 pub struct Push<'a> {
     raw: *mut raw::git_push,
     marker1: marker::ContravariantLifetime<'a>,
