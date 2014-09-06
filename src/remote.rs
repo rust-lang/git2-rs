@@ -5,7 +5,7 @@ use std::str;
 use libc;
 
 use {raw, Repository, Direction, Error, Refspec, StringArray, Cred};
-use {Signature, CredentialType};
+use {Signature, CredentialType, Push};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -337,6 +337,15 @@ impl<'a, 'b> Remote<'a, 'b> {
         callbacks.payload = self as *mut _ as *mut _;
         try_call!(raw::git_remote_set_callbacks(self.raw, &callbacks));
         Ok(())
+    }
+
+    /// Create a new push object
+    pub fn push<'a>(&'a mut self) -> Result<Push<'a>, Error> {
+        let mut ret = 0 as *mut raw::git_push;
+        unsafe {
+            try_call!(raw::git_push_new(&mut ret, self.raw));
+            Ok(Push::from_raw(self, ret))
+        }
     }
 }
 

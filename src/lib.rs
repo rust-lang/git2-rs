@@ -69,7 +69,7 @@
 extern crate libc;
 extern crate time;
 extern crate url;
-extern crate raw = "libgit2";
+extern crate "libgit2" as raw;
 
 use std::c_str::CString;
 use std::fmt;
@@ -88,6 +88,7 @@ pub use error::Error;
 pub use index::{Index, IndexEntry};
 pub use object::Object;
 pub use oid::Oid;
+pub use push::{Push, Status};
 pub use reference::{Reference, References, ReferenceNames};
 pub use refspec::Refspec;
 pub use remote::{Remote, Refspecs, Credentials};
@@ -238,6 +239,7 @@ mod error;
 mod index;
 mod object;
 mod oid;
+mod push;
 mod reference;
 mod refspec;
 mod remote;

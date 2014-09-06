@@ -32,6 +32,7 @@ pub enum git_submodule {}
 pub enum git_tag {}
 pub enum git_tree {}
 pub enum git_tree_entry {}
+pub enum git_push {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -441,6 +442,12 @@ pub type git_cred_sign_callback = extern fn(
 pub enum LIBSSH2_SESSION {}
 pub enum LIBSSH2_USERAUTH_KBDINT_PROMPT {}
 pub enum LIBSSH2_USERAUTH_KBDINT_RESPONSE {}
+
+#[repr(C)]
+pub struct git_push_options {
+    pub version: c_uint,
+    pub pb_parallelism: c_uint,
+}
 
 // We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
 #[cfg(not(windows))]
@@ -1154,4 +1161,25 @@ extern {
     pub fn git_cred_userpass_plaintext_new(out: *mut *mut git_cred,
                                            username: *const c_char,
                                            password: *const c_char) -> c_int;
+
+    // push
+    pub fn git_push_add_refspec(push: *mut git_push,
+                                refspec: *const c_char) -> c_int;
+    pub fn git_push_finish(push: *mut git_push) -> c_int;
+    pub fn git_push_free(push: *mut git_push);
+    pub fn git_push_init_options(opts: *mut git_push_options,
+                                 version: c_uint) -> c_int;
+    pub fn git_push_new(out: *mut *mut git_push,
+                        remote: *mut git_remote) -> c_int;
+    pub fn git_push_set_options(push: *mut git_push,
+                                opts: *const git_push_options) -> c_int;
+    pub fn git_push_unpack_ok(push: *const git_push) -> c_int;
+    pub fn git_push_update_tips(push: *mut git_push,
+                                signature: *const git_signature,
+                                reflog_message: *const c_char) -> c_int;
+    pub fn git_push_status_foreach(push: *mut git_push,
+                                   cb: extern fn(*const c_char,
+                                                 *const c_char,
+                                                 *mut c_void) -> c_int,
+                                   data: *mut c_void) -> c_int;
 }
