@@ -460,7 +460,7 @@ link_config!("libgit2", ["only_static"])
 #[link(name = "ws2_32")]  // needed by ssh2
 #[link(name = "bcrypt")]  // needed by ssh2
 #[link(name = "crypt32")] // needed by ssh2
-#[link(name = "libssh2", kind = "static")]
+#[link(name = "ssh2", kind = "static")]
 #[link(name = "git2", kind = "static")]
 extern {}
 
