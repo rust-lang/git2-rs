@@ -308,8 +308,10 @@ impl IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{mod, fs, File};
-    use {Index, Object, Commit, Tree, Reference, Signature};
+    use std::io::{mod, fs, File, TempDir};
+    use url::Url;
+
+    use {Index, Object, Commit, Tree, Reference, Signature, Repository};
 
     #[test]
     fn smoke() {
@@ -347,6 +349,7 @@ mod tests {
         index.add_path(&Path::new("foo/bar")).unwrap();
         index.write().unwrap();
 
+        // Make sure we can use this repo somewhere else now.
         let id = index.write_tree().unwrap();
         let tree = Tree::lookup(&repo, id).unwrap();
         let sig = Signature::default(&repo).unwrap();
@@ -354,6 +357,13 @@ mod tests {
         let parent = Commit::lookup(&repo, id).unwrap();
         let commit = Commit::new(&repo, Some("HEAD"), &sig, &sig, "commit",
                                  &tree, [&parent]).unwrap();
+        let obj = Object::lookup(&repo, commit, None).unwrap();
+        repo.reset(&obj, ::Hard, None, None).unwrap();
+
+        let td2 = TempDir::new("git").unwrap();
+        let url = Url::from_file_path(&root).unwrap();
+        let url = url.to_string();
+        let repo = Repository::clone(url.as_slice(), td2.path()).unwrap();
         let obj = Object::lookup(&repo, commit, None).unwrap();
         repo.reset(&obj, ::Hard, None, None).unwrap();
     }

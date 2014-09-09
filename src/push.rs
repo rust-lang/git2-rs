@@ -124,6 +124,7 @@ impl<'a> Drop for Push<'a> {
 #[cfg(test)]
 mod tests {
     use std::io::TempDir;
+    use url::Url;
     use Repository;
 
     #[test]
@@ -133,7 +134,8 @@ mod tests {
         Repository::init_bare(&remote).unwrap();
 
         let (_td, repo) = ::test::repo_init();
-        let url = format!("file://{}", remote.display());
+        let url = Url::from_file_path(&remote).unwrap();
+        let url = url.to_string();
         let mut remote = repo.remote_create("origin", url.as_slice()).unwrap();
 
         let mut push = remote.push().unwrap();
