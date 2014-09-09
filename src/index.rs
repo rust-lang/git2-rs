@@ -308,7 +308,8 @@ impl IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use Index;
+    use std::io::{mod, fs, File};
+    use {Index, Object, Commit, Tree, Reference, Signature};
 
     #[test]
     fn smoke() {
@@ -333,6 +334,28 @@ mod tests {
         index.write().unwrap();
         index.write_tree().unwrap();
         index.write_tree_to(&repo).unwrap();
+    }
+
+    #[test]
+    fn smoke_add() {
+        let (_td, repo) = ::test::repo_init();
+        let mut index = repo.index().unwrap();
+
+        let root = repo.path().dir_path();
+        fs::mkdir(&root.join("foo"), io::UserDir).unwrap();
+        File::create(&root.join("foo/bar")).unwrap();
+        index.add_path(&Path::new("foo/bar")).unwrap();
+        index.write().unwrap();
+
+        let id = index.write_tree().unwrap();
+        let tree = Tree::lookup(&repo, id).unwrap();
+        let sig = Signature::default(&repo).unwrap();
+        let id = Reference::name_to_id(&repo, "HEAD").unwrap();
+        let parent = Commit::lookup(&repo, id).unwrap();
+        let commit = Commit::new(&repo, Some("HEAD"), &sig, &sig, "commit",
+                                 &tree, [&parent]).unwrap();
+        let obj = Object::lookup(&repo, commit, None).unwrap();
+        repo.reset(&obj, ::Hard, None, None).unwrap();
     }
 }
 
