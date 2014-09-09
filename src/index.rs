@@ -1,6 +1,8 @@
 use std::kinds::marker;
 use std::mem;
 use std::c_str::CString;
+use std::path::PosixPath;
+
 use libc;
 use time;
 
@@ -100,8 +102,13 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn add_path(&mut self, path: &Path) -> Result<(), Error> {
+        // Git apparently expects '/' to be separators for paths
+        let mut posix_path = PosixPath::new(".");
+        for comp in path.components() {
+            posix_path.push(comp);
+        }
         unsafe {
-            try_call!(raw::git_index_add_bypath(self.raw, path.to_c_str()));
+            try_call!(raw::git_index_add_bypath(self.raw, posix_path.to_c_str()));
             Ok(())
         }
     }
