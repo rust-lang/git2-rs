@@ -5,7 +5,7 @@ use std::io;
 use std::mem;
 use libc;
 
-use {raw, Signature, Error, Repository, Credentials};
+use {raw, Signature, Error, Repository, RemoteCallbacks};
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
@@ -16,7 +16,7 @@ pub struct RepoBuilder<'a> {
     local: bool,
     hardlinks: bool,
     checkout: Option<CheckoutBuilder>,
-    credentials: Option<Credentials<'a>>,
+    callbacks: Option<RemoteCallbacks<'a>>,
 }
 
 /// A builder struct for configuring checkouts of a repository.
@@ -49,7 +49,7 @@ impl<'a> RepoBuilder<'a> {
             local: true,
             hardlinks: true,
             checkout: None,
-            credentials: None,
+            callbacks: None,
         }
     }
 
@@ -101,13 +101,10 @@ impl<'a> RepoBuilder<'a> {
         self
     }
 
-    /// Set the credentials callback to be used if credentials are required.
-    ///
-    /// It is strongly recommended to audit the `credentials` callback for
-    /// failure as it will likely leak resources if it fails.
-    pub fn credentials(&mut self,
-                       credentials: Credentials<'a>) -> &mut RepoBuilder<'a> {
-        self.credentials = Some(credentials);
+    /// Set the callbacks which will be used to monitor the download progress.
+    pub fn set_remote_callbacks(&mut self, callbacks: RemoteCallbacks<'a>)
+                                -> &mut RepoBuilder<'a> {
+        self.callbacks = Some(callbacks);
         self
     }
 
@@ -137,11 +134,11 @@ impl<'a> RepoBuilder<'a> {
         opts.checkout_opts.checkout_strategy =
             raw::GIT_CHECKOUT_SAFE_CREATE as libc::c_uint;
 
-        if self.credentials.is_some() {
-            opts.remote_callbacks.payload = self as *mut _ as *mut _;
-            opts.remote_callbacks.credentials = Some(get_credentials);
-        } else {
-            opts.remote_callbacks.payload = 0 as *mut _;
+        match self.callbacks {
+            Some(ref mut cbs) => unsafe {
+                opts.remote_callbacks = cbs.raw();
+            },
+            None => {}
         }
 
         match self.checkout {
@@ -155,22 +152,6 @@ impl<'a> RepoBuilder<'a> {
                                      &opts));
             Ok(Repository::from_raw(raw))
         }
-    }
-}
-
-extern fn get_credentials(ret: *mut *mut raw::git_cred,
-                          url: *const libc::c_char,
-                          username_from_url: *const libc::c_char,
-                          allowed_types: libc::c_uint,
-                          payload: *mut libc::c_void) -> libc::c_int {
-    unsafe {
-        let payload: &mut RepoBuilder = &mut *(payload as *mut RepoBuilder);
-        let callback = match payload.credentials {
-            Some(ref mut c) => c,
-            None => return raw::GIT_PASSTHROUGH as libc::c_int,
-        };
-        ::remote::call_credentials_cb(ret, url, username_from_url,
-                                      allowed_types, callback)
     }
 }
 

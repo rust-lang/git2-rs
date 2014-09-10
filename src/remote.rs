@@ -1,11 +1,10 @@
 use std::c_str::CString;
 use std::kinds::marker;
-use std::mem;
 use std::str;
 use libc;
 
-use {raw, Repository, Direction, Error, Refspec, StringArray, Cred};
-use {Signature, CredentialType, Push};
+use {raw, Repository, Direction, Error, Refspec, StringArray};
+use {Signature, Push, RemoteCallbacks};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -18,7 +17,7 @@ pub struct Remote<'a, 'b> {
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
-    credentials: Option<Credentials<'b>>,
+    callbacks: Option<&'b mut RemoteCallbacks<'b>>,
 }
 
 /// An iterator over the refspecs that a remote contains.
@@ -27,17 +26,6 @@ pub struct Refspecs<'a, 'b: 'a> {
     cnt: uint,
     remote: &'a Remote<'a, 'b>,
 }
-
-/// Callback used to acquire credentials for when a remote is fetched.
-///
-/// * `url` - the resource for which the credentials are required.
-/// * `username_from_url` - the username that was embedded in the url, or `None`
-///                         if it was not included.
-/// * `allowed_types` - a bitmask stating which cred types are ok to return.
-pub type Credentials<'a> = |url: &str,
-                            username_from_url: Option<&str>,
-                            allowed_types: CredentialType|: 'a
-                           -> Result<Cred, Error>;
 
 impl<'a, 'b> Remote<'a, 'b> {
     /// Creates a new remote from its raw pointer.
@@ -51,7 +39,7 @@ impl<'a, 'b> Remote<'a, 'b> {
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
             marker3: marker::NoSync,
-            credentials: None,
+            callbacks: None,
         }
     }
 
@@ -119,7 +107,7 @@ impl<'a, 'b> Remote<'a, 'b> {
     /// Open a connection to a remote.
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
         unsafe {
-            try!(self.set_callbacks());
+            try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_connect(self.raw, dir));
         }
         Ok(())
@@ -254,14 +242,14 @@ impl<'a, 'b> Remote<'a, 'b> {
     /// renamed to their final name.
     pub fn download(&mut self) -> Result<(), Error> {
         unsafe {
-            try!(self.set_callbacks());
+            try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_download(self.raw));
         }
         Ok(())
     }
 
     /// Get the number of refspecs for a remote
-    pub fn refspecs(&self) -> Refspecs {
+    pub fn refspecs<'a>(&'a self) -> Refspecs<'a, 'b> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as uint };
         Refspecs { cur: 0, cnt: cnt, remote: self }
     }
@@ -292,7 +280,7 @@ impl<'a, 'b> Remote<'a, 'b> {
     pub fn fetch(&mut self, signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
         unsafe {
-            try!(self.set_callbacks());
+            try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_fetch(self.raw,
                                             &*signature.map(|s| s.raw())
                                                        .unwrap_or(0 as *mut _),
@@ -319,26 +307,6 @@ impl<'a, 'b> Remote<'a, 'b> {
         Ok(())
     }
 
-    /// Set the callback through which to fetch credentials if required.
-    ///
-    /// It is strongly recommended to audit the `credentials` callback for
-    /// failure as it will likely leak resources if it fails.
-    pub fn set_credentials(&mut self, credentials: Credentials<'b>) {
-        self.credentials = Some(credentials);
-    }
-
-    unsafe fn set_callbacks(&mut self) -> Result<(), Error> {
-        let mut callbacks: raw::git_remote_callbacks = mem::zeroed();
-        try_call!(raw::git_remote_init_callbacks(&mut callbacks,
-                                    raw::GIT_REMOTE_CALLBACKS_VERSION));
-        if self.credentials.is_some() {
-            callbacks.credentials = Some(credentials_cb);
-        }
-        callbacks.payload = self as *mut _ as *mut _;
-        try_call!(raw::git_remote_set_callbacks(self.raw, &callbacks));
-        Ok(())
-    }
-
     /// Create a new push object
     pub fn push<'a>(&'a mut self) -> Result<Push<'a>, Error> {
         let mut ret = 0 as *mut raw::git_push;
@@ -347,61 +315,23 @@ impl<'a, 'b> Remote<'a, 'b> {
             Ok(Push::from_raw(self, ret))
         }
     }
-}
 
-extern fn credentials_cb(ret: *mut *mut raw::git_cred,
-                         url: *const libc::c_char,
-                         username_from_url: *const libc::c_char,
-                         allowed_types: libc::c_uint,
-                         payload: *mut libc::c_void) -> libc::c_int {
-    unsafe {
-        let payload: &mut Remote = &mut *(payload as *mut Remote);
-        let callback = match payload.credentials {
-            Some(ref mut c) => c,
-            None => return raw::GIT_PASSTHROUGH as libc::c_int,
-        };
-        call_credentials_cb(ret, url, username_from_url, allowed_types,
-                            callback)
+    /// Set the callbacks to be invoked when the transfer is in-progress.
+    ///
+    /// This will overwrite the previously set callbacks.
+    pub fn set_callbacks(&mut self, callbacks: &'b mut RemoteCallbacks<'b>) {
+        self.callbacks = Some(callbacks);
     }
-}
 
-pub unsafe extern fn call_credentials_cb(ret: *mut *mut raw::git_cred,
-                                         url: *const libc::c_char,
-                                         username_from_url: *const libc::c_char,
-                                         allowed_types: libc::c_uint,
-                                         cb: &mut Credentials) -> libc::c_int {
-    *ret = 0 as *mut raw::git_cred;
-    let url = CString::new(url, false);
-    let url = match url.as_str()  {
-        Some(url) => url,
-        None => return raw::GIT_PASSTHROUGH as libc::c_int,
-    };
-    let username_from_url = if username_from_url.is_null() {
-        None
-    } else {
-        Some(CString::new(username_from_url, false))
-    };
-    let username_from_url = match username_from_url {
-        Some(ref username) => match username.as_str() {
-            Some(s) => Some(s),
-            None => return raw::GIT_PASSTHROUGH as libc::c_int,
-        },
-        None => None,
-    };
-
-    match (*cb)(url, username_from_url,
-                CredentialType::from_bits_truncate(allowed_types as uint)) {
-        Ok(cred) => {
-            // Turns out it's a memory safety issue if we pass through any
-            // and all credentials into libgit2
-            if allowed_types & (cred.credtype() as libc::c_uint) != 0 {
-                *ret = cred.unwrap();
-                0
-            } else {
-                raw::GIT_PASSTHROUGH as libc::c_int
-            }
+    fn set_raw_callbacks(&mut self) -> Result<(), Error> {
+        match self.callbacks {
+            Some(ref mut cbs) => unsafe {
+                let raw = cbs.raw();
+                try_call!(raw::git_remote_set_callbacks(self.raw, &raw));
+            },
+            None => {}
         }
-        Err(e) => e.raw_code() as libc::c_int,
+        Ok(())
     }
 }
 
@@ -429,7 +359,7 @@ impl<'a, 'b> Clone for Remote<'a, 'b> {
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
             marker3: marker::NoSync,
-            credentials: None,
+            callbacks: None,
         }
     }
 }
@@ -444,7 +374,9 @@ impl<'a, 'b> Drop for Remote<'a, 'b> {
 #[cfg(test)]
 mod tests {
     use std::io::TempDir;
-    use {Repository, Remote, Signature};
+    use std::cell::Cell;
+    use url::Url;
+    use {Repository, Remote, Signature, RemoteCallbacks};
 
     #[test]
     fn smoke() {
@@ -538,5 +470,26 @@ mod tests {
         assert!(!Remote::is_valid_name("\x01"));
         assert!(Remote::is_valid_url("http://example.com/foo/bar"));
         assert!(!Remote::is_valid_url("test"));
+    }
+
+    #[test]
+    fn transfer_cb() {
+        let (td, _repo) = ::test::repo_init();
+        let td2 = TempDir::new("git").unwrap();
+        let url = Url::from_file_path(td.path()).unwrap();
+        let url = url.to_string();
+
+        let repo = Repository::init(td2.path()).unwrap();
+        let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
+
+        let mut callbacks = RemoteCallbacks::new();
+        let progress_hit = Cell::new(false);
+        callbacks.progress = Some(|_progress| {
+            progress_hit.set(true);
+            true
+        });
+        origin.set_callbacks(&mut callbacks);
+        origin.fetch(None, None).unwrap();
+        assert!(progress_hit.get());
     }
 }

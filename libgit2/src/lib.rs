@@ -213,22 +213,22 @@ pub type git_transfer_progress_cb = extern fn(*const git_transfer_progress,
 
 #[repr(C)]
 pub struct git_transfer_progress {
-    total_objects: c_uint,
-    indexed_objects: c_uint,
-    received_objects: c_uint,
-    local_objects: c_uint,
-    total_deltas: c_uint,
-    indexed_deltas: c_uint,
-    received_bytes: size_t,
+    pub total_objects: c_uint,
+    pub indexed_objects: c_uint,
+    pub received_objects: c_uint,
+    pub local_objects: c_uint,
+    pub total_deltas: c_uint,
+    pub indexed_deltas: c_uint,
+    pub received_bytes: size_t,
 }
 
 #[repr(C)]
 pub struct git_diff_file {
-    id: git_oid,
-    path: *const c_char,
-    size: git_off_t,
-    flags: u32,
-    mode: u16,
+    pub id: git_oid,
+    pub path: *const c_char,
+    pub size: git_off_t,
+    pub flags: u32,
+    pub mode: u16,
 }
 
 pub type git_repository_create_cb = extern fn(*mut *mut git_repository,
