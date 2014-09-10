@@ -482,9 +482,8 @@ mod tests {
         let repo = Repository::init(td2.path()).unwrap();
         let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
 
-        let mut callbacks = RemoteCallbacks::new();
         let progress_hit = Cell::new(false);
-        callbacks.progress = Some(|_progress| {
+        let mut callbacks = RemoteCallbacks::new().transfer_progress(|_progress| {
             progress_hit.set(true);
             true
         });

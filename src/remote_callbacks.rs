@@ -4,6 +4,7 @@ use std::c_str::CString;
 use std::kinds::marker;
 use std::mem;
 use std::str;
+use std::slice;
 use libc;
 
 use {raw, Repository, Direction, Error, Refspec, StringArray, Cred};
@@ -15,17 +16,9 @@ use {Signature, CredentialType, Push};
 /// These callbacks are used to manage facilities such as authentication,
 /// transfer progress, etc.
 pub struct RemoteCallbacks<'a> {
-    /// The callback through which to fetch credentials if required.
-    ///
-    /// It is strongly recommended to audit the `credentials` callback for
-    /// failure as it will likely leak resources if it fails.
-    pub progress: Option<TransferProgress<'a>>,
-
-    /// The callback through which progress is monitored.
-    ///
-    /// It is strongly recommended to audit the `progress` callback for
-    /// failure as it will likely leak resources if it fails.
-    pub credentials: Option<Credentials<'a>>,
+    progress: Option<TransferProgress<'a>>,
+    credentials: Option<Credentials<'a>>,
+    sideband_progress: Option<TransportMessage<'a>>,
 }
 
 /// Struct representing the progress by an in-flight transfer.
@@ -67,13 +60,48 @@ pub type Credentials<'a> = |url: &str,
 /// * `progress` - the progress being made so far.
 pub type TransferProgress<'a> = |progress: Progress|: 'a -> bool;
 
+/// Callback for receiving messages delivered by the transport.
+///
+/// The return value indicates whether the network operation should continue.
+pub type TransportMessage<'a> = |message: &[u8]|: 'a -> bool;
+
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
     pub fn new() -> RemoteCallbacks<'a> {
         RemoteCallbacks {
             credentials: None,
             progress: None,
+            sideband_progress: None,
         }
+    }
+
+    /// The callback through which to fetch credentials if required.
+    ///
+    /// It is strongly recommended to audit the `credentials` callback for
+    /// failure as it will likely leak resources if it fails.
+    pub fn credentials(mut self, cb: Credentials<'a>) -> RemoteCallbacks<'a> {
+        self.credentials = Some(cb);
+        self
+    }
+
+    /// The callback through which progress is monitored.
+    ///
+    /// It is strongly recommended to audit the `progress` callback for
+    /// failure as it will likely leak resources if it fails.
+    pub fn transfer_progress(mut self, cb: TransferProgress<'a>)
+                             -> RemoteCallbacks<'a> {
+        self.progress = Some(cb);
+        self
+    }
+
+    /// Textual progress from the remote.
+    ///
+    /// Text sent over the progress side-band will be passed to this function
+    /// (this is the 'counting objects' output.
+    pub fn sideband_progress(mut self, cb: TransportMessage<'a>)
+                             -> RemoteCallbacks<'a> {
+        self.sideband_progress = Some(cb);
+        self
     }
 
     /// Convert this set of callbacks to a raw callbacks structure.
@@ -89,6 +117,9 @@ impl<'a> RemoteCallbacks<'a> {
         }
         if self.credentials.is_some() {
             callbacks.credentials = Some(credentials_cb);
+        }
+        if self.sideband_progress.is_some() {
+            callbacks.sideband_progress = Some(sideband_progress_cb);
         }
         callbacks.payload = self as *mut _ as *mut _;
         return callbacks;
@@ -160,5 +191,21 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
             received_bytes: (*stats).received_bytes as uint,
         };
         if (*callback)(progress) {0} else {-1}
+    }
+}
+
+extern fn sideband_progress_cb(str: *const libc::c_char,
+                               len: libc::c_int,
+                               payload: *mut libc::c_void) -> libc::c_int {
+    unsafe {
+        let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
+        let callback = match payload.sideband_progress {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+        let r = slice::raw::buf_as_slice(str as *const u8, len as uint, |buf| {
+            (*callback)(buf)
+        });
+        if r {0} else {-1}
     }
 }

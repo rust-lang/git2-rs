@@ -102,8 +102,8 @@ impl<'a> RepoBuilder<'a> {
     }
 
     /// Set the callbacks which will be used to monitor the download progress.
-    pub fn set_remote_callbacks(&mut self, callbacks: RemoteCallbacks<'a>)
-                                -> &mut RepoBuilder<'a> {
+    pub fn remote_callbacks(&mut self, callbacks: RemoteCallbacks<'a>)
+                            -> &mut RepoBuilder<'a> {
         self.callbacks = Some(callbacks);
         self
     }
