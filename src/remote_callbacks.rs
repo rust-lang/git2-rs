@@ -1,14 +1,9 @@
-#![allow(warnings)]
-
 use std::c_str::CString;
-use std::kinds::marker;
 use std::mem;
-use std::str;
 use std::slice;
 use libc;
 
-use {raw, Repository, Direction, Error, Refspec, StringArray, Cred};
-use {Signature, CredentialType, Push};
+use {raw, Error, Cred, CredentialType};
 
 /// A structure to contain the callbacks which are invoked when a repository is
 /// being updated or downloaded.
