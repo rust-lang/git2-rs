@@ -1,5 +1,5 @@
 use std::io::TempDir;
-use {Repository, Commit, Tree, Signature};
+use Repository;
 
 pub fn repo_init() -> (TempDir, Repository) {
     let td = TempDir::new("test").unwrap();
@@ -11,9 +11,9 @@ pub fn repo_init() -> (TempDir, Repository) {
         let mut index = repo.index().unwrap();
         let id = index.write_tree().unwrap();
 
-        let tree = Tree::lookup(&repo, id).unwrap();
-        let sig = Signature::default(&repo).unwrap();
-        Commit::new(&repo, Some("HEAD"), &sig, &sig, "initial",
+        let tree = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial",
                     &tree, []).unwrap();
     }
     (td, repo)

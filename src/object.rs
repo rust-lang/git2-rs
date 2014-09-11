@@ -28,17 +28,6 @@ impl<'a> Object<'a> {
         }
     }
 
-    /// Lookup a reference to one of the objects in a repository.
-    pub fn lookup(repo: &Repository, oid: Oid,
-                  kind: Option<ObjectKind>) -> Result<Object, Error> {
-        let mut raw = 0 as *mut raw::git_object;
-        unsafe {
-            try_call!(raw::git_object_lookup(&mut raw, repo.raw(), oid.raw(),
-                                             kind));
-            Ok(Object::from_raw(repo, raw))
-        }
-    }
-
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
         unsafe {

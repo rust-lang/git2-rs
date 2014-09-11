@@ -36,50 +36,6 @@ impl<'a> Commit<'a> {
         }
     }
 
-    /// Create new commit in the repository
-    ///
-    /// If the `update_ref` is not `None`, name of the reference that will be
-    /// updated to point to this commit. If the reference is not direct, it will
-    /// be resolved to a direct reference. Use "HEAD" to update the HEAD of the
-    /// current branch and make it point to this commit. If the reference
-    /// doesn't exist yet, it will be created. If it does exist, the first
-    /// parent must be the tip of this branch.
-    pub fn new<'a>(repo: &'a Repository,
-                   update_ref: Option<&str>,
-                   author: &Signature,
-                   committer: &Signature,
-                   message: &str,
-                   tree: &Tree<'a>,
-                   parents: &[&Commit<'a>]) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
-        let parent_ptrs: Vec<*const raw::git_commit> =  parents.iter().map(|p| {
-            p.raw() as *const raw::git_commit
-        }).collect();
-        unsafe {
-            try_call!(raw::git_commit_create(&mut raw,
-                                             repo.raw(),
-                                             update_ref.map(|s| s.to_c_str()),
-                                             &*author.raw(),
-                                             &*committer.raw(),
-                                             0 as *const libc::c_char,
-                                             message.to_c_str(),
-                                             &*tree.raw(),
-                                             parents.len() as libc::size_t,
-                                             parent_ptrs.as_ptr()));
-            Ok(Oid::from_raw(&raw))
-        }
-    }
-
-
-    /// Lookup a reference to one of the commits in a repository.
-    pub fn lookup(repo: &Repository, oid: Oid) -> Result<Commit, Error> {
-        let mut raw = 0 as *mut raw::git_commit;
-        unsafe {
-            try_call!(raw::git_commit_lookup(&mut raw, repo.raw(), oid.raw()));
-            Ok(Commit::from_raw(repo, raw))
-        }
-    }
-
     /// Get the id (SHA1) of a repository commit
     pub fn id(&self) -> Oid {
         unsafe { Oid::from_raw(raw::git_commit_id(&*self.raw)) }
@@ -268,14 +224,12 @@ impl<'a> Drop for Commit<'a> {
 
 #[cfg(test)]
 mod tests {
-    use {Commit, Signature, Tree};
-
     #[test]
     fn smoke() {
         let (_td, repo) = ::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
-        let mut commit = Commit::lookup(&repo, target).unwrap();
+        let mut commit = repo.find_commit(target).unwrap();
         assert_eq!(commit.message(), Some("initial"));
         assert_eq!(commit.id(), target);
         commit.message_raw().unwrap();
@@ -290,15 +244,15 @@ mod tests {
         assert_eq!(commit.committer().name(), Some("name"));
         assert_eq!(commit.committer().email(), Some("email"));
 
-        let sig = Signature::default(&repo).unwrap();
-        let tree = Tree::lookup(&repo, commit.tree_id()).unwrap();
-        let id = Commit::new(&repo, Some("HEAD"), &sig, &sig, "bar", &tree,
+        let sig = repo.signature().unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        let id = repo.commit(Some("HEAD"), &sig, &sig, "bar", &tree,
                              [&commit]).unwrap();
-        let head = Commit::lookup(&repo, id).unwrap();
+        let head = repo.find_commit(id).unwrap();
 
         let new_head = head.amend(Some("HEAD"), None, None, None,
                                   Some("new message"), None).unwrap();
-        let new_head = Commit::lookup(&repo, new_head).unwrap();
+        let new_head = repo.find_commit(new_head).unwrap();
         assert_eq!(new_head.message(), Some("new message"));
     }
 }

@@ -318,7 +318,7 @@ mod tests {
     use std::io::{mod, fs, File, TempDir};
     use url::Url;
 
-    use {Index, Object, Commit, Tree, Reference, Signature, Repository};
+    use {Index, Repository};
 
     #[test]
     fn smoke() {
@@ -358,20 +358,20 @@ mod tests {
 
         // Make sure we can use this repo somewhere else now.
         let id = index.write_tree().unwrap();
-        let tree = Tree::lookup(&repo, id).unwrap();
-        let sig = Signature::default(&repo).unwrap();
-        let id = Reference::name_to_id(&repo, "HEAD").unwrap();
-        let parent = Commit::lookup(&repo, id).unwrap();
-        let commit = Commit::new(&repo, Some("HEAD"), &sig, &sig, "commit",
+        let tree = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        let id = repo.refname_to_id("HEAD").unwrap();
+        let parent = repo.find_commit(id).unwrap();
+        let commit = repo.commit(Some("HEAD"), &sig, &sig, "commit",
                                  &tree, [&parent]).unwrap();
-        let obj = Object::lookup(&repo, commit, None).unwrap();
+        let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ::Hard, None, None).unwrap();
 
         let td2 = TempDir::new("git").unwrap();
         let url = Url::from_file_path(&root).unwrap();
         let url = url.to_string();
         let repo = Repository::clone(url.as_slice(), td2.path()).unwrap();
-        let obj = Object::lookup(&repo, commit, None).unwrap();
+        let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ::Hard, None, None).unwrap();
     }
 }

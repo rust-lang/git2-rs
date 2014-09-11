@@ -376,16 +376,16 @@ mod tests {
     use std::io::TempDir;
     use std::cell::Cell;
     use url::Url;
-    use {Repository, Remote, Signature, RemoteCallbacks};
+    use {Repository, Remote, RemoteCallbacks};
 
     #[test]
     fn smoke() {
         let (td, repo) = ::test::repo_init();
-        repo.remote_create("origin", "/path/to/nowhere").unwrap();
+        repo.remote("origin", "/path/to/nowhere").unwrap();
         drop(repo);
 
         let repo = Repository::init(td.path()).unwrap();
-        let origin = repo.remote_load("origin").unwrap();
+        let origin = repo.find_remote("origin").unwrap();
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some("/path/to/nowhere"));
     }
@@ -403,7 +403,7 @@ mod tests {
             format!("file:///{}", remote.display().to_string()
                                         .as_slice().replace("\\", "/"))
         };
-        let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
+        let mut origin = repo.remote("origin", url.as_slice()).unwrap();
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some(url.as_slice()));
         assert_eq!(origin.pushurl(), None);
@@ -418,7 +418,7 @@ mod tests {
             assert!(spec.is_force());
         }
         {
-            let remotes = repo.remote_list().unwrap();
+            let remotes = repo.remotes().unwrap();
             assert_eq!(remotes.len(), 1);
             assert_eq!(remotes.get(0), Some("origin"));
             assert_eq!(remotes.iter().count(), 1);
@@ -445,7 +445,7 @@ mod tests {
         origin.set_push_refspecs(["foo"].iter().map(|a| *a)).unwrap();
 
         origin.rename("origin2").unwrap();
-        let sig = Signature::default(&repo).unwrap();
+        let sig = repo.signature().unwrap();
         origin.fetch(Some(&sig), None).unwrap();
         origin.fetch(None, Some("foo")).unwrap();
         origin.update_tips(Some(&sig), None).unwrap();
@@ -458,8 +458,8 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
 
-        let origin = repo.remote_create_anonymous("/path/to/nowhere",
-                                                  "master").unwrap();
+        let origin = repo.remote_anonymous("/path/to/nowhere",
+                                           "master").unwrap();
         assert_eq!(origin.name(), None);
         drop(origin.clone());
     }
@@ -480,7 +480,7 @@ mod tests {
         let url = url.to_string();
 
         let repo = Repository::init(td2.path()).unwrap();
-        let mut origin = repo.remote_create("origin", url.as_slice()).unwrap();
+        let mut origin = repo.remote("origin", url.as_slice()).unwrap();
 
         let progress_hit = Cell::new(false);
         let mut callbacks = RemoteCallbacks::new().transfer_progress(|_progress| {

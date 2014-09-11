@@ -1,11 +1,13 @@
 use std::c_str::CString;
 use std::kinds::marker;
+use std::mem;
 use std::str;
 use libc::{c_int, c_uint, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
-use {Branches, BranchType, Index, Config};
+use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
+use {ObjectKind};
 use build::RepoBuilder;
 
 /// An owned git repository, representing all state associated with the
@@ -195,7 +197,7 @@ impl Repository {
     }
 
     /// List all remotes for a given repository
-    pub fn remote_list(&self) -> Result<StringArray, Error> {
+    pub fn remotes(&self) -> Result<StringArray, Error> {
         let mut arr = raw::git_strarray {
             strings: 0 as *mut *mut c_char,
             count: 0,
@@ -207,7 +209,7 @@ impl Repository {
     }
 
     /// Get the information for a particular remote
-    pub fn remote_load(&self, name: &str) -> Result<Remote, Error> {
+    pub fn find_remote(&self, name: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
         unsafe {
             try_call!(raw::git_remote_load(&mut ret, self.raw, name.to_c_str()));
@@ -217,7 +219,7 @@ impl Repository {
 
     /// Add a remote with the default fetch refspec to the repository's
     /// configuration.
-    pub fn remote_create(&self, name: &str, url: &str) -> Result<Remote, Error> {
+    pub fn remote(&self, name: &str, url: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
         unsafe {
             try_call!(raw::git_remote_create(&mut ret, self.raw,
@@ -231,8 +233,8 @@ impl Repository {
     /// Create a remote with the given url and refspec in memory. You can use
     /// this when you have a URL instead of a remote's name. Note that anonymous
     /// remotes cannot be converted to persisted remotes.
-    pub fn remote_create_anonymous(&self, url: &str,
-                                   fetch: &str) -> Result<Remote, Error> {
+    pub fn remote_anonymous(&self, url: &str,
+                            fetch: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
         unsafe {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw,
@@ -390,6 +392,261 @@ impl Repository {
             Ok(Config::from_raw(raw))
         }
     }
+
+    /// Write an in-memory buffer to the ODB as a blob.
+    ///
+    /// The Oid returned can in turn be passed to `find_blob` to get a handle to
+    /// the blob.
+    pub fn blob(&self, data: &[u8]) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        unsafe {
+            let ptr = data.as_ptr() as *const c_void;
+            let len = data.len() as size_t;
+            try_call!(raw::git_blob_create_frombuffer(&mut raw, self.raw(),
+                                                      ptr, len));
+            Ok(Oid::from_raw(&raw))
+        }
+    }
+
+    /// Read a file from the filesystem and write its content to the Object
+    /// Database as a loose blob
+    ///
+    /// The Oid returned can in turn be passed to `find_blob` to get a handle to
+    /// the blob.
+    pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
+                                                    path.to_c_str()));
+            Ok(Oid::from_raw(&raw))
+        }
+    }
+
+    /// Lookup a reference to one of the objects in a repository.
+    pub fn find_blob(&self, oid: Oid) -> Result<Blob, Error> {
+        let mut raw = 0 as *mut raw::git_blob;
+        unsafe {
+            try_call!(raw::git_blob_lookup(&mut raw, self.raw(), oid.raw()));
+            Ok(Blob::from_raw(self, raw))
+        }
+    }
+
+    /// Create a new branch pointing at a target commit
+    ///
+    /// A new direct reference will be created pointing to this target commit.
+    /// If `force` is true and a reference already exists with the given name,
+    /// it'll be replaced.
+    pub fn branch<'a>(&'a self,
+                      branch_name: &str,
+                      target: &Commit<'a>,
+                      force: bool,
+                      signature: Option<&Signature>,
+                      log_message: &str) -> Result<Branch<'a>, Error> {
+        let mut raw = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_branch_create(&mut raw,
+                                             self.raw(),
+                                             branch_name.to_c_str(),
+                                             &*target.raw(),
+                                             force,
+                                             &*signature.map(|s| s.raw())
+                                                        .unwrap_or(0 as *mut _),
+                                             log_message.to_c_str()));
+            Ok(Branch::wrap(Reference::from_raw(self, raw)))
+        }
+    }
+
+    /// Lookup a branch by its name in a repository.
+    pub fn find_branch(&self, name: &str, branch_type: BranchType)
+                       -> Result<Branch, Error> {
+        let mut ret = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_branch_lookup(&mut ret, self.raw(),
+                                             name.to_c_str(), branch_type));
+            Ok(Branch::wrap(Reference::from_raw(self, ret)))
+        }
+    }
+
+    /// Create new commit in the repository
+    ///
+    /// If the `update_ref` is not `None`, name of the reference that will be
+    /// updated to point to this commit. If the reference is not direct, it will
+    /// be resolved to a direct reference. Use "HEAD" to update the HEAD of the
+    /// current branch and make it point to this commit. If the reference
+    /// doesn't exist yet, it will be created. If it does exist, the first
+    /// parent must be the tip of this branch.
+    pub fn commit<'a>(&'a self,
+                      update_ref: Option<&str>,
+                      author: &Signature,
+                      committer: &Signature,
+                      message: &str,
+                      tree: &Tree<'a>,
+                      parents: &[&Commit<'a>]) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let parent_ptrs: Vec<*const raw::git_commit> =  parents.iter().map(|p| {
+            p.raw() as *const raw::git_commit
+        }).collect();
+        unsafe {
+            try_call!(raw::git_commit_create(&mut raw,
+                                             self.raw(),
+                                             update_ref.map(|s| s.to_c_str()),
+                                             &*author.raw(),
+                                             &*committer.raw(),
+                                             0 as *const c_char,
+                                             message.to_c_str(),
+                                             &*tree.raw(),
+                                             parents.len() as size_t,
+                                             parent_ptrs.as_ptr()));
+            Ok(Oid::from_raw(&raw))
+        }
+    }
+
+
+    /// Lookup a reference to one of the commits in a repository.
+    pub fn find_commit(&self, oid: Oid) -> Result<Commit, Error> {
+        let mut raw = 0 as *mut raw::git_commit;
+        unsafe {
+            try_call!(raw::git_commit_lookup(&mut raw, self.raw(), oid.raw()));
+            Ok(Commit::from_raw(self, raw))
+        }
+    }
+
+    /// Lookup a reference to one of the objects in a repository.
+    pub fn find_object(&self, oid: Oid,
+                       kind: Option<ObjectKind>) -> Result<Object, Error> {
+        let mut raw = 0 as *mut raw::git_object;
+        unsafe {
+            try_call!(raw::git_object_lookup(&mut raw, self.raw(), oid.raw(),
+                                             kind));
+            Ok(Object::from_raw(self, raw))
+        }
+    }
+
+    /// Create a new direct reference.
+    ///
+    /// This function will return an error if a reference already exists with
+    /// the given name unless force is true, in which case it will be
+    /// overwritten.
+    pub fn reference(&self, name: &str, id: Oid, force: bool,
+                     sig: Option<&Signature>,
+                     log_message: &str) -> Result<Reference, Error> {
+        let mut raw = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_reference_create(&mut raw, self.raw(),
+                                                name.to_c_str(),
+                                                &*id.raw(), force,
+                                                &*sig.map(|s| s.raw())
+                                                     .unwrap_or(0 as *mut _),
+                                                log_message.to_c_str()));
+            Ok(Reference::from_raw(self, raw))
+        }
+    }
+
+    /// Create a new symbolic reference.
+    ///
+    /// This function will return an error if a reference already exists with
+    /// the given name unless force is true, in which case it will be
+    /// overwritten.
+    pub fn reference_symbolic(&self, name: &str, target: &str,
+                              force: bool, sig: Option<&Signature>,
+                              log_message: &str)
+                              -> Result<Reference, Error> {
+        let mut raw = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_reference_symbolic_create(&mut raw, self.raw(),
+                                                         name.to_c_str(),
+                                                         target.to_c_str(),
+                                                         force,
+                                                         &*sig.map(|s| s.raw())
+                                                              .unwrap_or(0 as *mut _),
+                                                         log_message.to_c_str()));
+            Ok(Reference::from_raw(self, raw))
+        }
+    }
+
+    /// Lookup a reference to one of the objects in a repository.
+    pub fn find_reference(&self, name: &str) -> Result<Reference, Error> {
+        let mut raw = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_reference_lookup(&mut raw, self.raw(),
+                                                name.to_c_str()));
+            Ok(Reference::from_raw(self, raw))
+        }
+    }
+
+    /// Lookup a reference by name and resolve immediately to OID.
+    ///
+    /// This function provides a quick way to resolve a reference name straight
+    /// through to the object id that it refers to. This avoids having to
+    /// allocate or free any `Reference` objects for simple situations.
+    pub fn refname_to_id(&self, name: &str) -> Result<Oid, Error> {
+        let mut ret: raw::git_oid = unsafe { mem::zeroed() };
+        unsafe {
+            try_call!(raw::git_reference_name_to_id(&mut ret, self.raw(),
+                                                    name.to_c_str()));
+            Ok(Oid::from_raw(&ret))
+        }
+    }
+
+    /// Create a new action signature with default user and now timestamp.
+    ///
+    /// This looks up the user.name and user.email from the configuration and
+    /// uses the current time as the timestamp, and creates a new signature
+    /// based on that information. It will return `NotFound` if either the
+    /// user.name or user.email are not set.
+    pub fn signature(&self) -> Result<Signature<'static>, Error> {
+        let mut ret = 0 as *mut raw::git_signature;
+        unsafe {
+            try_call!(raw::git_signature_default(&mut ret, self.raw()));
+            Ok(Signature::from_raw(ret))
+        }
+    }
+
+    /// Set up a new git submodule for checkout.
+    ///
+    /// This does "git submodule add" up to the fetch and checkout of the
+    /// submodule contents. It preps a new submodule, creates an entry in
+    /// `.gitmodules` and creates an empty initialized repository either at the
+    /// given path in the working directory or in `.git/modules` with a gitlink
+    /// from the working directory to the new repo.
+    ///
+    /// To fully emulate "git submodule add" call this function, then `open()`
+    /// the submodule repo and perform the clone step as needed. Lastly, call
+    /// `finalize()` to wrap up adding the new submodule and `.gitmodules` to
+    /// the index to be ready to commit.
+    pub fn submodule(&self, url: &str, path: &Path,
+                     use_gitlink: bool) -> Result<Submodule, Error> {
+        let mut raw = 0 as *mut raw::git_submodule;
+        unsafe {
+            try_call!(raw::git_submodule_add_setup(&mut raw, self.raw(),
+                                                   url.to_c_str(),
+                                                   path.to_c_str(),
+                                                   use_gitlink));
+            Ok(Submodule::from_raw(self, raw))
+        }
+    }
+
+    /// Lookup submodule information by name or path.
+    ///
+    /// Given either the submodule name or path (they are usually the same),
+    /// this returns a structure describing the submodule.
+    pub fn find_submodule(&self, name: &str) -> Result<Submodule, Error> {
+        let mut raw = 0 as *mut raw::git_submodule;
+        unsafe {
+            try_call!(raw::git_submodule_lookup(&mut raw, self.raw(),
+                                                name.to_c_str()));
+            Ok(Submodule::from_raw(self, raw))
+        }
+    }
+
+    /// Lookup a reference to one of the objects in a repository.
+    pub fn find_tree(&self, oid: Oid) -> Result<Tree, Error> {
+        let mut raw = 0 as *mut raw::git_tree;
+        unsafe {
+            try_call!(raw::git_tree_lookup(&mut raw, self.raw(), oid.raw()));
+            Ok(Tree::from_raw(self, raw))
+        }
+    }
 }
 
 #[unsafe_destructor]
@@ -402,7 +659,7 @@ impl Drop for Repository {
 #[cfg(test)]
 mod tests {
     use std::io::TempDir;
-    use {Repository, Signature, Object};
+    use {Repository};
 
     #[test]
     fn smoke_init() {
@@ -456,10 +713,10 @@ mod tests {
         assert!(rev.from().is_some());
 
         assert_eq!(repo.revparse_single("HEAD").unwrap().id(), from.id());
-        let obj = Object::lookup(&repo, from.id(), None).unwrap().clone();
+        let obj = repo.find_object(from.id(), None).unwrap().clone();
         obj.peel(::Any).unwrap();
         obj.short_id().unwrap();
-        let sig = Signature::default(&repo).unwrap();
+        let sig = repo.signature().unwrap();
         repo.reset(&obj, ::Hard, None, None).unwrap();
         repo.reset(&obj, ::Soft, Some(&sig), Some("foo")).unwrap();
     }

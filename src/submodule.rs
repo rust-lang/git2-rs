@@ -28,44 +28,6 @@ impl<'a> Submodule<'a> {
         }
     }
 
-    /// Set up a new git submodule for checkout.
-    ///
-    /// This does "git submodule add" up to the fetch and checkout of the
-    /// submodule contents. It preps a new submodule, creates an entry in
-    /// `.gitmodules` and creates an empty initialized repository either at the
-    /// given path in the working directory or in `.git/modules` with a gitlink
-    /// from the working directory to the new repo.
-    ///
-    /// To fully emulate "git submodule add" call this function, then `open()`
-    /// the submodule repo and perform the clone step as needed. Lastly, call
-    /// `finalize()` to wrap up adding the new submodule and `.gitmodules` to
-    /// the index to be ready to commit.
-    pub fn new<'a>(repo: &'a Repository, url: &str, path: &Path,
-                   use_gitlink: bool) -> Result<Submodule<'a>, Error> {
-        let mut raw = 0 as *mut raw::git_submodule;
-        unsafe {
-            try_call!(raw::git_submodule_add_setup(&mut raw, repo.raw(),
-                                                   url.to_c_str(),
-                                                   path.to_c_str(),
-                                                   use_gitlink));
-            Ok(Submodule::from_raw(repo, raw))
-        }
-    }
-
-    /// Lookup submodule information by name or path.
-    ///
-    /// Given either the submodule name or path (they are usually the same),
-    /// this returns a structure describing the submodule.
-    pub fn lookup<'a>(repo: &'a Repository, name: &str)
-                      -> Result<Submodule<'a>, Error> {
-        let mut raw = 0 as *mut raw::git_submodule;
-        unsafe {
-            try_call!(raw::git_submodule_lookup(&mut raw, repo.raw(),
-                                                name.to_c_str()));
-            Ok(Submodule::from_raw(repo, raw))
-        }
-    }
-
     /// Get the submodule's branch.
     ///
     /// Returns `None` if the branch is not valid utf-8 or if the branch is not
@@ -233,17 +195,17 @@ impl<'a> Drop for Submodule<'a> {
 
 #[cfg(test)]
 mod tests {
-    use {Submodule, Repository};
     use std::io::TempDir;
+    use Repository;
 
     #[test]
     fn smoke() {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
-        let mut s1 = Submodule::new(&repo, "/path/to/nowhere",
+        let mut s1 = repo.submodule("/path/to/nowhere",
                                     &Path::new("foo"), true).unwrap();
         s1.init(false).unwrap();
-        let s2 = Submodule::new(&repo, "/path/to/nowhere",
+        let s2 = repo.submodule("/path/to/nowhere",
                                 &Path::new("bar"), true).unwrap();
         drop((s1, s2));
 
@@ -257,7 +219,7 @@ mod tests {
         assert!(s.index_id().is_none());
         assert!(s.workdir_id().is_none());
 
-        Submodule::lookup(&repo, "bar").unwrap();
+        repo.find_submodule("bar").unwrap();
         s.open().unwrap();
         assert!(s.path() == Path::new("bar"));
         s.reload(true).unwrap();

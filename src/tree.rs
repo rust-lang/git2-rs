@@ -40,15 +40,6 @@ impl<'a> Tree<'a> {
         }
     }
 
-    /// Lookup a reference to one of the objects in a repository.
-    pub fn lookup(repo: &Repository, oid: Oid) -> Result<Tree, Error> {
-        let mut raw = 0 as *mut raw::git_tree;
-        unsafe {
-            try_call!(raw::git_tree_lookup(&mut raw, repo.raw(), oid.raw()));
-            Ok(Tree::from_raw(repo, raw))
-        }
-    }
-
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
         unsafe { Oid::from_raw(raw::git_tree_id(&*self.raw)) }
@@ -246,7 +237,6 @@ impl<'a> Drop for TreeEntry<'a> {
 #[cfg(test)]
 mod tests {
     use std::io::File;
-    use {Commit, Tree, Signature};
 
     #[test]
     fn smoke() {
@@ -256,18 +246,18 @@ mod tests {
             File::create(&td.path().join("foo")).write_str("foo").unwrap();
             index.add_path(&Path::new("foo")).unwrap();
             let id = index.write_tree().unwrap();
-            let sig = Signature::default(&repo).unwrap();
-            let tree = Tree::lookup(&repo, id).unwrap();
-            let parent = Commit::lookup(&repo, repo.head().unwrap().target()
-                                                   .unwrap()).unwrap();
-            Commit::new(&repo, Some("HEAD"), &sig, &sig, "another commit",
+            let sig = repo.signature().unwrap();
+            let tree = repo.find_tree(id).unwrap();
+            let parent = repo.find_commit(repo.head().unwrap().target()
+                                              .unwrap()).unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "another commit",
                         &tree, [&parent]).unwrap();
         }
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
-        let commit = Commit::lookup(&repo, target).unwrap();
+        let commit = repo.find_commit(target).unwrap();
 
-        let tree = Tree::lookup(&repo, commit.tree_id()).unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
         assert_eq!(tree.id(), commit.tree_id());
         assert_eq!(tree.len(), 1);
         let e1 = tree.get(0).unwrap();

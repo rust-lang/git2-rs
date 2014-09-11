@@ -1,6 +1,5 @@
 use std::kinds::marker;
 use std::str;
-use std::mem;
 use libc;
 
 use {raw, Repository, Error, Oid, Signature};
@@ -44,72 +43,6 @@ impl<'a> Reference<'a> {
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
             marker3: marker::NoSync,
-        }
-    }
-
-    /// Create a new direct reference.
-    ///
-    /// This function will return an error if a reference already exists with
-    /// the given name unless force is true, in which case it will be
-    /// overwritten.
-    pub fn new<'a>(repo: &'a Repository, name: &str, id: Oid, force: bool,
-                   sig: Option<&Signature>,
-                   log_message: &str) -> Result<Reference<'a>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
-        unsafe {
-            try_call!(raw::git_reference_create(&mut raw, repo.raw(),
-                                                name.to_c_str(),
-                                                &*id.raw(), force,
-                                                &*sig.map(|s| s.raw())
-                                                     .unwrap_or(0 as *mut _),
-                                                log_message.to_c_str()));
-            Ok(Reference::from_raw(repo, raw))
-        }
-    }
-
-    /// Create a new symbolic reference.
-    ///
-    /// This function will return an error if a reference already exists with
-    /// the given name unless force is true, in which case it will be
-    /// overwritten.
-    pub fn new_symbolic<'a>(repo: &'a Repository, name: &str, target: &str,
-                            force: bool, sig: Option<&Signature>,
-                            log_message: &str) -> Result<Reference<'a>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
-        unsafe {
-            try_call!(raw::git_reference_symbolic_create(&mut raw, repo.raw(),
-                                                         name.to_c_str(),
-                                                         target.to_c_str(),
-                                                         force,
-                                                         &*sig.map(|s| s.raw())
-                                                              .unwrap_or(0 as *mut _),
-                                                         log_message.to_c_str()));
-            Ok(Reference::from_raw(repo, raw))
-        }
-    }
-
-    /// Lookup a reference to one of the objects in a repository.
-    pub fn lookup<'a>(repo: &'a Repository, name: &str)
-                      -> Result<Reference<'a>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
-        unsafe {
-            try_call!(raw::git_reference_lookup(&mut raw, repo.raw(),
-                                                name.to_c_str()));
-            Ok(Reference::from_raw(repo, raw))
-        }
-    }
-
-    /// Lookup a reference by name and resolve immediately to OID.
-    ///
-    /// This function provides a quick way to resolve a reference name straight
-    /// through to the object id that it refers to. This avoids having to
-    /// allocate or free any `Reference` objects for simple situations.
-    pub fn name_to_id(repo: &Repository, name: &str) -> Result<Oid, Error> {
-        let mut ret: raw::git_oid = unsafe { mem::zeroed() };
-        unsafe {
-            try_call!(raw::git_reference_name_to_id(&mut ret, repo.raw(),
-                                                    name.to_c_str()));
-            Ok(Oid::from_raw(&ret))
         }
     }
 
@@ -351,7 +284,7 @@ impl<'a> Iterator<&'a str> for ReferenceNames<'a> {
 
 #[cfg(test)]
 mod tests {
-    use {Reference, Signature};
+    use {Reference};
 
     #[test]
     fn smoke() {
@@ -371,8 +304,8 @@ mod tests {
         assert!(head == repo.head().unwrap());
         assert_eq!(head.name(), Some("refs/heads/master"));
 
-        assert!(head == Reference::lookup(&repo, "refs/heads/master").unwrap());
-        assert_eq!(Reference::name_to_id(&repo, "refs/heads/master").unwrap(),
+        assert!(head == repo.find_reference("refs/heads/master").unwrap());
+        assert_eq!(repo.refname_to_id("refs/heads/master").unwrap(),
                    head.target().unwrap());
 
         assert!(head.symbolic_target().is_none());
@@ -381,15 +314,15 @@ mod tests {
         assert_eq!(head.shorthand(), Some("master"));
         assert!(head.resolve().unwrap() == head);
 
-        let sig = Signature::default(&repo).unwrap();
-        let mut tag1 = Reference::new(&repo, "refs/tags/tag1",
+        let sig = repo.signature().unwrap();
+        let mut tag1 = repo.reference("refs/tags/tag1",
                                       head.target().unwrap(),
                                       false,
                                       None, "test").unwrap();
         assert!(tag1.is_tag());
         tag1.delete().unwrap();
 
-        let mut sym1 = Reference::new_symbolic(&repo, "refs/tags/tag1",
+        let mut sym1 = repo.reference_symbolic("refs/tags/tag1",
                                                "refs/heads/master", false,
                                                Some(&sig), "test").unwrap();
         sym1.delete().unwrap();

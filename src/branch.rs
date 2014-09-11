@@ -1,7 +1,7 @@
 use std::str;
 use libc;
 
-use {raw, Repository, Error, Reference, Commit, Signature, BranchType};
+use {raw, Repository, Error, Reference, Signature, BranchType};
 
 /// A structure to represent a git [branch][1]
 ///
@@ -22,43 +22,6 @@ pub struct Branches<'a> {
 impl<'a> Branch<'a> {
     /// Creates a new branch from a reference
     pub fn wrap(reference: Reference) -> Branch { Branch { inner: reference } }
-
-    /// Create a new branch pointing at a target commit
-    ///
-    /// A new direct reference will be created pointing to this target commit.
-    /// If `force` is true and a reference already exists with the given name,
-    /// it'll be replaced.
-    pub fn new<'a>(repo: &'a Repository,
-                   branch_name: &str,
-                   target: &Commit<'a>,
-                   force: bool,
-                   signature: Option<&Signature>,
-                   log_message: &str) -> Result<Branch<'a>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
-        unsafe {
-            try_call!(raw::git_branch_create(&mut raw,
-                                             repo.raw(),
-                                             branch_name.to_c_str(),
-                                             &*target.raw(),
-                                             force,
-                                             &*signature.map(|s| s.raw())
-                                                        .unwrap_or(0 as *mut _),
-                                             log_message.to_c_str()));
-            Ok(Branch::wrap(Reference::from_raw(repo, raw)))
-        }
-    }
-
-    /// Lookup a branch by its name in a repository.
-    pub fn lookup<'a>(repo: &'a Repository, name: &str,
-                      branch_type: BranchType)
-                      -> Result<Branch<'a>, Error> {
-        let mut ret = 0 as *mut raw::git_reference;
-        unsafe {
-            try_call!(raw::git_branch_lookup(&mut ret, repo.raw(),
-                                             name.to_c_str(), branch_type));
-            Ok(Branch::wrap(Reference::from_raw(repo, ret)))
-        }
-    }
 
     /// Gain access to the reference that is this branch
     pub fn get(&self) -> &Reference<'a> { &self.inner }
@@ -174,22 +137,19 @@ impl<'a> Drop for Branches<'a> {
 
 #[cfg(test)]
 mod tests {
-    use {Commit, Signature, Branch};
-
     #[test]
     fn smoke() {
         let (_td, repo) = ::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
-        let commit = Commit::lookup(&repo, target).unwrap();
+        let commit = repo.find_commit(target).unwrap();
 
-        let sig = Signature::default(&repo).unwrap();
-        let mut b1 = Branch::new(&repo, "foo", &commit, false, None,
-                                 "bar").unwrap();
+        let sig = repo.signature().unwrap();
+        let mut b1 = repo.branch("foo", &commit, false, None, "bar").unwrap();
         assert!(!b1.is_head());
 
         assert_eq!(repo.branches(None).unwrap().count(), 2);
-        Branch::lookup(&repo, "foo", ::Local).unwrap();
+        repo.find_branch("foo", ::Local).unwrap();
         let mut b1 = b1.move("bar", false, Some(&sig), "bar2").unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));
         assert!(b1.upstream().is_err());

@@ -2,7 +2,7 @@ use std::str;
 use std::kinds::marker;
 use libc;
 
-use {raw, Repository, Error};
+use {raw, Error};
 
 /// A Signature is used to indicate authorship of various actions throughout the
 /// library.
@@ -17,20 +17,6 @@ pub struct Signature<'a> {
 }
 
 impl<'a> Signature<'a> {
-    /// Create a new action signature with default user and now timestamp.
-    ///
-    /// This looks up the user.name and user.email from the configuration and
-    /// uses the current time as the timestamp, and creates a new signature
-    /// based on that information. It will return `NotFound` if either the
-    /// user.name or user.email are not set.
-    pub fn default(repo: &Repository) -> Result<Signature<'static>, Error> {
-        let mut ret = 0 as *mut raw::git_signature;
-        unsafe {
-            try_call!(raw::git_signature_default(&mut ret, repo.raw()));
-            Ok(Signature::from_raw(ret))
-        }
-    }
-
     /// Create a new action signature with a timestamp of 'now'.
     ///
     /// See `new` for more information

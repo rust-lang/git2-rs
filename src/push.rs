@@ -136,7 +136,7 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let url = Url::from_file_path(&remote).unwrap();
         let url = url.to_string();
-        let mut remote = repo.remote_create("origin", url.as_slice()).unwrap();
+        let mut remote = repo.remote("origin", url.as_slice()).unwrap();
 
         let mut push = remote.push().unwrap();
         push.add_refspec("refs/heads/master").unwrap();
