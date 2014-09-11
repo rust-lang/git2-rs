@@ -85,7 +85,7 @@ pub use commit::{Commit, Parents};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use error::Error;
-pub use index::{Index, IndexEntry};
+pub use index::{Index, IndexEntry, IndexEntries};
 pub use object::Object;
 pub use oid::Oid;
 pub use push::{Push, Status};

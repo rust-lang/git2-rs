@@ -1,6 +1,7 @@
+use std::c_str::CString;
+use std::iter::Range;
 use std::kinds::marker;
 use std::mem;
-use std::c_str::CString;
 use std::path::PosixPath;
 
 use libc;
@@ -14,6 +15,12 @@ use {raw, Repository, Error, Tree, Oid};
 pub struct Index {
     raw: *mut raw::git_index,
     marker: marker::NoSync,
+}
+
+/// An iterator over the entries in an index
+pub struct IndexEntries<'a> {
+    range: Range<uint>,
+    index: &'a Index,
 }
 
 /// A structure to represent an entry or a file inside of an index.
@@ -138,6 +145,11 @@ impl Index {
         }
     }
 
+    /// Get an iterator over the entries in this index.
+    pub fn iter(&self) -> IndexEntries {
+        IndexEntries { range: range(0, self.len()), index: self }
+    }
+
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: int) -> Option<IndexEntry> {
         unsafe {
@@ -259,6 +271,12 @@ impl Drop for Index {
     }
 }
 
+impl<'a> Iterator<IndexEntry> for IndexEntries<'a> {
+    fn next(&mut self) -> Option<IndexEntry> {
+        self.range.next().map(|i| self.index.get(i).unwrap())
+    }
+}
+
 impl IndexEntry {
     /// Creates a new entry from its raw pointer.
     pub unsafe fn from_raw(raw: *const raw::git_index_entry) -> IndexEntry {
@@ -355,6 +373,7 @@ mod tests {
         File::create(&root.join("foo/bar")).unwrap();
         index.add_path(&Path::new("foo/bar")).unwrap();
         index.write().unwrap();
+        assert_eq!(index.iter().count(), 1);
 
         // Make sure we can use this repo somewhere else now.
         let id = index.write_tree().unwrap();
