@@ -449,6 +449,10 @@ pub struct git_push_options {
     pub pb_parallelism: c_uint,
 }
 
+pub type git_tag_foreach_cb = extern fn(name: *const c_char,
+                                        oid: *mut git_oid,
+                                        payload: *mut c_void) -> c_int;
+
 // We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
 #[cfg(not(windows))]
 link_config!("libgit2", ["only_static"])
@@ -1182,4 +1186,58 @@ extern {
                                                  *const c_char,
                                                  *mut c_void) -> c_int,
                                    data: *mut c_void) -> c_int;
+
+    // tags
+    pub fn git_tag_annotation_create(oid: *mut git_oid,
+                                     repo: *mut git_repository,
+                                     tag_name: *const c_char,
+                                     target: *const git_object,
+                                     tagger: *const git_signature,
+                                     message: *const c_char) -> c_int;
+    pub fn git_tag_create(oid: *mut git_oid,
+                          repo: *mut git_repository,
+                          tag_name: *const c_char,
+                          target: *const git_object,
+                          tagger: *const git_signature,
+                          message: *const c_char,
+                          force: c_int) -> c_int;
+    pub fn git_tag_create_frombuffer(oid: *mut git_oid,
+                                     repo: *mut git_repository,
+                                     buffer: *const c_char,
+                                     force: c_int) -> c_int;
+    pub fn git_tag_create_lightweight(oid: *mut git_oid,
+                                      repo: *mut git_repository,
+                                      tag_name: *const c_char,
+                                      target: *const git_object,
+                                      force: c_int) -> c_int;
+    pub fn git_tag_delete(repo: *mut git_repository,
+                          tag_name: *const c_char) -> c_int;
+    pub fn git_tag_foreach(repo: *mut git_repository,
+                           callback: git_tag_foreach_cb,
+                           payload: *mut c_void) -> c_int;
+    pub fn git_tag_free(tag: *mut git_tag);
+    pub fn git_tag_id(tag: *const git_tag) -> *const git_oid;
+    pub fn git_tag_list(tag_names: *mut git_strarray,
+                        repo: *mut git_repository) -> c_int;
+    pub fn git_tag_list_match(tag_names: *mut git_strarray,
+                              pattern: *const c_char,
+                              repo: *mut git_repository) -> c_int;
+    pub fn git_tag_lookup(out: *mut *mut git_tag,
+                          repo: *mut git_repository,
+                          id: *const git_oid) -> c_int;
+    pub fn git_tag_lookup_prefix(out: *mut *mut git_tag,
+                                 repo: *mut git_repository,
+                                 id: *const git_oid,
+                                 len: size_t) -> c_int;
+    pub fn git_tag_message(tag: *const git_tag) -> *const c_char;
+    pub fn git_tag_name(tag: *const git_tag) -> *const c_char;
+    pub fn git_tag_peel(tag_target_out: *mut *mut git_object,
+                        tag: *const git_tag) -> c_int;
+    pub fn git_tag_tagger(tag: *const git_tag) -> *const git_signature;
+    pub fn git_tag_target(target_out: *mut *mut git_object,
+                          tag: *const git_tag) -> c_int;
+    pub fn git_tag_target_id(tag: *const git_tag) -> *const git_oid;
+    pub fn git_tag_target_type(tag: *const git_tag) -> git_otype;
+
+
 }

@@ -99,6 +99,7 @@ pub use revspec::Revspec;
 pub use signature::Signature;
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
+pub use tag::Tag;
 pub use tree::{Tree, TreeEntry};
 
 /// An enumeration of possible errors that can happen when working with a git
@@ -251,6 +252,7 @@ mod revspec;
 mod signature;
 mod string_array;
 mod submodule;
+mod tag;
 mod tree;
 
 #[cfg(test)] mod test;

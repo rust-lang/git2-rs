@@ -7,7 +7,7 @@ use libc::{c_int, c_uint, c_char, size_t, c_void};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectKind};
+use {ObjectKind, Tag};
 use build::RepoBuilder;
 
 /// An owned git repository, representing all state associated with the
@@ -646,6 +646,69 @@ impl Repository {
             try_call!(raw::git_tree_lookup(&mut raw, self.raw(), oid.raw()));
             Ok(Tree::from_raw(self, raw))
         }
+    }
+
+    /// Create a new tag in the repository from an object
+    ///
+    /// A new reference will also be created pointing to this tag object. If
+    /// `force` is true and a reference already exists with the given name, it'll
+    /// be replaced.
+    ///
+    /// The message will not be cleaned up.
+    ///
+    /// The tag name will be checked for validity. You must avoid the characters
+    /// '~', '^', ':', ' \ ', '?', '[', and '*', and the sequences ".." and " @
+    /// {" which have special meaning to revparse.
+    pub fn tag<'a>(&'a self, name: &str, target: &Object<'a>,
+                   tagger: &Signature, message: &str,
+                   force: bool) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_tag_create(&mut raw, self.raw, name.to_c_str(),
+                                          &*target.raw(), &*tagger.raw(),
+                                          message.to_c_str(), force));
+            Ok(Oid::from_raw(&raw))
+        }
+    }
+
+    /// Lookup a tag object from the repository.
+    pub fn find_tag(&self, id: Oid) -> Result<Tag, Error> {
+        let mut raw = 0 as *mut raw::git_tag;
+        unsafe {
+            try_call!(raw::git_tag_lookup(&mut raw, self.raw, id.raw()));
+            Ok(Tag::from_raw(self, raw))
+        }
+    }
+
+    /// Delete an existing tag reference.
+    ///
+    /// The tag name will be checked for validity, see `tag` for some rules
+    /// about valid names.
+    pub fn tag_delete(&self, name: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_tag_delete(self.raw, name.to_c_str()));
+            Ok(())
+        }
+    }
+
+    /// Get a list with all the tags in the repository.
+    ///
+    /// An optional fnmatch pattern can also be specified.
+    pub fn tag_names(&self, pattern: Option<&str>) -> Result<StringArray, Error> {
+        let mut arr = raw::git_strarray {
+            strings: 0 as *mut *mut c_char,
+            count: 0,
+        };
+        unsafe {
+            match pattern {
+                Some(s) => {
+                    try_call!(raw::git_tag_list_match(&mut arr, s.to_c_str(),
+                                                      self.raw));
+                }
+                None => { try_call!(raw::git_tag_list(&mut arr, self.raw)); }
+            }
+        }
+        Ok(unsafe { StringArray::from_raw(arr) })
     }
 }
 

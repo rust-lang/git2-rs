@@ -20,6 +20,12 @@ impl<'a> Object<'a> {
     /// pointer.
     pub unsafe fn from_raw(_repo: &Repository,
                            raw: *mut raw::git_object) -> Object {
+        Object::from_raw_ptr(raw)
+    }
+
+    /// Even more unsafe than `from_raw`, the output lifetime is not attached to
+    /// any input.
+    pub unsafe fn from_raw_ptr<'a>(raw: *mut raw::git_object) -> Object<'a> {
         Object {
             raw: raw,
             marker1: marker::ContravariantLifetime,
