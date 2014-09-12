@@ -453,6 +453,14 @@ pub type git_tag_foreach_cb = extern fn(name: *const c_char,
                                         oid: *mut git_oid,
                                         payload: *mut c_void) -> c_int;
 
+#[repr(C)]
+pub enum git_index_add_option_t {
+    GIT_INDEX_ADD_DEFAULT = 0,
+    GIT_INDEX_ADD_FORCE = 1 << 0,
+    GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH = 1 << 1,
+    GIT_INDEX_ADD_CHECK_PATHSPEC = 1 << 2,
+}
+
 // We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
 #[cfg(not(windows))]
 link_config!("libgit2", ["only_static"])
@@ -1023,7 +1031,7 @@ extern {
     pub fn git_index_add_all(index: *mut git_index,
                              pathspec: *const git_strarray,
                              flags: c_uint,
-                             callback: git_index_matched_path_cb,
+                             callback: Option<git_index_matched_path_cb>,
                              payload: *mut c_void) -> c_int;
     pub fn git_index_add_bypath(index: *mut git_index,
                                 path: *const c_char) -> c_int;
@@ -1051,7 +1059,7 @@ extern {
                             stage: c_int) -> c_int;
     pub fn git_index_remove_all(index: *mut git_index,
                                 pathspec: *const git_strarray,
-                                callback: git_index_matched_path_cb,
+                                callback: Option<git_index_matched_path_cb>,
                                 payload: *mut c_void) -> c_int;
     pub fn git_index_remove_bypath(index: *mut git_index,
                                    path: *const c_char) -> c_int;
@@ -1060,7 +1068,7 @@ extern {
                                       stage: c_int) -> c_int;
     pub fn git_index_update_all(index: *mut git_index,
                                 pathspec: *const git_strarray,
-                                callback: git_index_matched_path_cb,
+                                callback: Option<git_index_matched_path_cb>,
                                 payload: *mut c_void) -> c_int;
     pub fn git_index_write(index: *mut git_index) -> c_int;
     pub fn git_index_write_tree(out: *mut git_oid,

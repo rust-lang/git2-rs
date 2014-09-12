@@ -85,7 +85,7 @@ pub use commit::{Commit, Parents};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use error::Error;
-pub use index::{Index, IndexEntry, IndexEntries};
+pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use object::Object;
 pub use oid::Oid;
 pub use push::{Push, Status};
@@ -225,6 +225,19 @@ Types of credentials that can be requested by a credential callback.
         static SshCustom = raw::GIT_CREDTYPE_SSH_CUSTOM as uint,
         static Default = raw::GIT_CREDTYPE_DEFAULT as uint,
         static SshInteractive = raw::GIT_CREDTYPE_SSH_INTERACTIVE as uint
+    }
+}
+
+bitflags! {
+    #[doc = "
+Flags for APIs that add files matching pathspec
+"]
+    flags IndexAddOption: u32 {
+        static AddDefault = raw::GIT_INDEX_ADD_DEFAULT as u32,
+        static AddForce = raw::GIT_INDEX_ADD_FORCE as u32,
+        static AddDisablePathspecMatch =
+                raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32,
+        static AddCheckPathspec = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32,
     }
 }
 

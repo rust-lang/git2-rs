@@ -57,6 +57,11 @@ mod impls {
         {
             fn convert(&self) -> extern fn($($arg),*) -> R { *self }
         }
+        impl<R $(,$arg)*> Convert<Option<extern fn($($arg),*) -> R>>
+            for Option<extern fn($($arg),*) -> R>
+        {
+            fn convert(&self) -> Option<extern fn($($arg),*) -> R> { *self }
+        }
         peel!(externfn, $($arg)*)
     ) )
     externfn!(A B C D E F G)

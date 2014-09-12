@@ -7,7 +7,7 @@ use std::path::PosixPath;
 use libc;
 use time;
 
-use {raw, Repository, Error, Tree, Oid};
+use {raw, Repository, Error, Tree, Oid, IndexAddOption};
 
 /// A structure to represent a git [index][1]
 ///
@@ -22,6 +22,8 @@ pub struct IndexEntries<'a> {
     range: Range<uint>,
     index: &'a Index,
 }
+
+pub type IndexMatchedPath<'a> = |&[u8], &[u8]|: 'a -> int;
 
 /// A structure to represent an entry or a file inside of an index.
 ///
@@ -118,6 +120,65 @@ impl Index {
             try_call!(raw::git_index_add_bypath(self.raw, posix_path.to_c_str()));
             Ok(())
         }
+    }
+
+    /// Add or update index entries matching files in the working directory.
+    ///
+    /// This method will fail in bare index instances.
+    ///
+    /// The `pathspecs` are a list of file names or shell glob patterns that
+    /// will matched against files in the repository's working directory. Each
+    /// file that matches will be added to the index (either updating an
+    /// existing entry or adding a new entry). You can disable glob expansion
+    /// and force exact matching with the `AddDisablePathspecMatch` flag.
+    ///
+    /// Files that are ignored will be skipped (unlike `add_path`). If a file is
+    /// already tracked in the index, then it will be updated even if it is
+    /// ignored. Pass the `AddForce` flag to skip the checking of ignore rules.
+    ///
+    /// To emulate `git add -A` and generate an error if the pathspec contains
+    /// the exact path of an ignored file (when not using `AddForce`), add the
+    /// `AddCheckPathspec` flag. This checks that each entry in `pathspecs`
+    /// that is an exact match to a filename on disk is either not ignored or
+    /// already in the index. If this check fails, the function will return
+    /// an error.
+    ///
+    /// To emulate `git add -A` with the "dry-run" option, just use a callback
+    /// function that always returns a positive value. See below for details.
+    ///
+    /// If any files are currently the result of a merge conflict, those files
+    /// will no longer be marked as conflicting. The data about the conflicts
+    /// will be moved to the "resolve undo" (REUC) section.
+    ///
+    /// If you provide a callback function, it will be invoked on each matching
+    /// item in the working directory immediately before it is added to /
+    /// updated in the index. Returning zero will add the item to the index,
+    /// greater than zero will skip the item, and less than zero will abort the
+    /// scan an return an error to the caller.
+    pub fn add_all<T: ToCStr>(&mut self,
+                              pathspecs: &[T],
+                              flag: IndexAddOption,
+                              mut cb: Option<IndexMatchedPath>)
+                              -> Result<(), Error> {
+        let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let strarray = arr.iter().map(|c| c.as_ptr())
+                          .collect::<Vec<*const libc::c_char>>();
+        let ptr = cb.as_mut();
+        let raw_strarray = raw::git_strarray {
+            strings: strarray.as_ptr() as *mut _,
+            count: strarray.len() as libc::size_t,
+        };
+        let callback = ptr.as_ref().map(|_| index_matched_path_cb);
+        unsafe {
+            try_call!(raw::git_index_add_all(self.raw,
+                                             &raw_strarray,
+                                             flag.bits() as libc::c_uint,
+                                             callback,
+                                             ptr.map(|p| p as *mut _)
+                                                .unwrap_or(0 as *mut _)
+                                                    as *mut libc::c_void));
+        }
+        return Ok(());
     }
 
     /// Get access to the underlying raw index pointer.
@@ -225,6 +286,72 @@ impl Index {
         Ok(())
     }
 
+    /// Remove all matching index entries.
+    ///
+    /// If you provide a callback function, it will be invoked on each matching
+    /// item in the index immediately before it is removed. Return 0 to remove
+    /// the item, > 0 to skip the item, and < 0 to abort the scan.
+    pub fn remove_all<T: ToCStr>(&mut self,
+                                 pathspecs: &[T],
+                                 mut cb: Option<IndexMatchedPath>)
+                                 -> Result<(), Error> {
+        let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let strarray = arr.iter().map(|c| c.as_ptr())
+                          .collect::<Vec<*const libc::c_char>>();
+        let ptr = cb.as_mut();
+        let raw_strarray = raw::git_strarray {
+            strings: strarray.as_ptr() as *mut _,
+            count: strarray.len() as libc::size_t,
+        };
+        let callback = ptr.as_ref().map(|_| index_matched_path_cb);
+        unsafe {
+            try_call!(raw::git_index_remove_all(self.raw,
+                                                &raw_strarray,
+                                                callback,
+                                                ptr.map(|p| p as *mut _)
+                                                   .unwrap_or(0 as *mut _)
+                                                        as *mut libc::c_void));
+        }
+        return Ok(());
+    }
+
+    /// Update all index entries to match the working directory
+    ///
+    /// This method will fail in bare index instances.
+    ///
+    /// This scans the existing index entries and synchronizes them with the
+    /// working directory, deleting them if the corresponding working directory
+    /// file no longer exists otherwise updating the information (including
+    /// adding the latest version of file to the ODB if needed).
+    ///
+    /// If you provide a callback function, it will be invoked on each matching
+    /// item in the index immediately before it is updated (either refreshed or
+    /// removed depending on working directory state). Return 0 to proceed with
+    /// updating the item, > 0 to skip the item, and < 0 to abort the scan.
+    pub fn update_all<T: ToCStr>(&mut self,
+                                 pathspecs: &[T],
+                                 mut cb: Option<IndexMatchedPath>)
+                                 -> Result<(), Error> {
+        let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let strarray = arr.iter().map(|c| c.as_ptr())
+                          .collect::<Vec<*const libc::c_char>>();
+        let ptr = cb.as_mut();
+        let raw_strarray = raw::git_strarray {
+            strings: strarray.as_ptr() as *mut _,
+            count: strarray.len() as libc::size_t,
+        };
+        let callback = ptr.as_ref().map(|_| index_matched_path_cb);
+        unsafe {
+            try_call!(raw::git_index_update_all(self.raw,
+                                                &raw_strarray,
+                                                callback,
+                                                ptr.map(|p| p as *mut _)
+                                                   .unwrap_or(0 as *mut _)
+                                                        as *mut libc::c_void));
+        }
+        return Ok(());
+    }
+
     /// Write an existing index object from memory back to disk using an atomic
     /// file lock.
     pub fn write(&mut self) -> Result<(), Error> {
@@ -262,6 +389,18 @@ impl Index {
                                                    repo.raw()));
             Ok(Oid::from_raw(&raw))
         }
+    }
+}
+
+extern fn index_matched_path_cb(path: *const libc::c_char,
+                                matched_pathspec: *const libc::c_char,
+                                payload: *mut libc::c_void) -> libc::c_int {
+    unsafe {
+        let path = CString::new(path, false);
+        let matched_pathspec = CString::new(matched_pathspec, false);
+        let payload = payload as *mut IndexMatchedPath;
+        (*payload)(path.as_bytes_no_nul(),
+                   matched_pathspec.as_bytes_no_nul()) as libc::c_int
     }
 }
 
@@ -361,6 +500,35 @@ mod tests {
         index.write().unwrap();
         index.write_tree().unwrap();
         index.write_tree_to(&repo).unwrap();
+    }
+
+    #[test]
+    fn add_all() {
+        let (_td, repo) = ::test::repo_init();
+        let mut index = repo.index().unwrap();
+
+        let root = repo.path().dir_path();
+        fs::mkdir(&root.join("foo"), io::UserDir).unwrap();
+        File::create(&root.join("foo/bar")).unwrap();
+        let mut called = false;
+        index.add_all(&["foo"], ::AddDefault, Some(|a: &[u8], b: &[u8]| {
+            assert!(!called);
+            called = true;
+            assert_eq!(b, b"foo");
+            assert_eq!(a, b"foo/bar");
+            0
+        })).unwrap();
+        assert!(called);
+
+        called = false;
+        index.remove_all(&["."], Some(|a: &[u8], b: &[u8]| {
+            assert!(!called);
+            called = true;
+            assert_eq!(b, b".");
+            assert_eq!(a, b"foo/bar");
+            0
+        })).unwrap();
+        assert!(called);
     }
 
     #[test]
