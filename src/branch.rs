@@ -145,10 +145,11 @@ mod tests {
         let commit = repo.find_commit(target).unwrap();
 
         let sig = repo.signature().unwrap();
-        let mut b1 = repo.branch("foo", &commit, false, None, "bar").unwrap();
+        let mut b1 = repo.branch("foo", &commit, false, None, Some("bar")).unwrap();
         assert!(!b1.is_head());
+        repo.branch("foo2", &commit, false, None, None).unwrap();
 
-        assert_eq!(repo.branches(None).unwrap().count(), 2);
+        assert_eq!(repo.branches(None).unwrap().count(), 3);
         repo.find_branch("foo", ::Local).unwrap();
         let mut b1 = b1.move("bar", false, Some(&sig), "bar2").unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));

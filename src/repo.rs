@@ -441,7 +441,7 @@ impl Repository {
                       target: &Commit<'a>,
                       force: bool,
                       signature: Option<&Signature>,
-                      log_message: &str) -> Result<Branch<'a>, Error> {
+                      log_message: Option<&str>) -> Result<Branch<'a>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_create(&mut raw,
@@ -451,7 +451,7 @@ impl Repository {
                                              force,
                                              &*signature.map(|s| s.raw())
                                                         .unwrap_or(0 as *mut _),
-                                             log_message.to_c_str()));
+                                             log_message.map(|s| s.to_c_str())));
             Ok(Branch::wrap(Reference::from_raw(self, raw)))
         }
     }
