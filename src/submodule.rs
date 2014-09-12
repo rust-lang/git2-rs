@@ -184,6 +184,18 @@ impl<'a> Submodule<'a> {
         unsafe { try_call!(raw::git_submodule_sync(self.raw)); }
         Ok(())
     }
+
+    /// Add current submodule HEAD commit to index of superproject.
+    ///
+    /// If `write_index` is true, then the index file will be immediately
+    /// written. Otherwise you must explicitly call `write()` on an `Index`
+    /// later on.
+    pub fn add_to_index(&mut self, write_index: bool) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_submodule_add_to_index(self.raw, write_index));
+        }
+        Ok(())
+    }
 }
 
 #[unsafe_destructor]
