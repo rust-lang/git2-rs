@@ -1247,5 +1247,15 @@ extern {
     pub fn git_tag_target_id(tag: *const git_tag) -> *const git_oid;
     pub fn git_tag_target_type(tag: *const git_tag) -> git_otype;
 
-
+    // checkout
+    pub fn git_checkout_head(repo: *mut git_repository,
+                             opts: *const git_checkout_options) -> c_int;
+    pub fn git_checkout_index(repo: *mut git_repository,
+                              index: *mut git_index,
+                              opts: *const git_checkout_options) -> c_int;
+    pub fn git_checkout_tree(repo: *mut git_repository,
+                             treeish: *const git_object,
+                             opts: *const git_checkout_options) -> c_int;
+    pub fn git_checkout_init_options(opts: *mut git_checkout_options,
+                                     version: c_uint) -> c_int;
 }

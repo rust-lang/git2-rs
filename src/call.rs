@@ -98,6 +98,12 @@ mod impls {
         }
     }
 
+    impl<'a, T> Convert<*mut T> for Option<&'a mut T> {
+        fn convert(&self) -> *mut T {
+            self.as_ref().map(|s| s.convert()).unwrap_or(0 as *mut _)
+        }
+    }
+
     impl Convert<raw::git_reset_t> for ::ResetType {
         fn convert(&self) -> raw::git_reset_t {
             match *self {

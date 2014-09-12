@@ -8,7 +8,7 @@ use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectKind, Tag};
-use build::RepoBuilder;
+use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -710,6 +710,66 @@ impl Repository {
         }
         Ok(unsafe { StringArray::from_raw(arr) })
     }
+
+    /// Updates files in the index and the working tree to match the content of
+    /// the commit pointed at by HEAD.
+    pub fn checkout_head(&self, opts: Option<&CheckoutBuilder>)
+                         -> Result<(), Error> {
+        unsafe {
+            let mut raw_opts = mem::zeroed();
+            try_call!(raw::git_checkout_init_options(&mut raw_opts,
+                                raw::GIT_CHECKOUT_OPTIONS_VERSION));
+            match opts {
+                Some(c) => c.configure(&mut raw_opts),
+                None => {}
+            }
+
+            try_call!(raw::git_checkout_head(self.raw, &raw_opts));
+        }
+        Ok(())
+    }
+
+    /// Updates files in the working tree to match the content of the index.
+    ///
+    /// If the index is `None`, the repository's index will be used.
+    pub fn checkout_index(&self,
+                          index: Option<&mut Index>,
+                          opts: Option<&CheckoutBuilder>) -> Result<(), Error> {
+        unsafe {
+            let mut raw_opts = mem::zeroed();
+            try_call!(raw::git_checkout_init_options(&mut raw_opts,
+                                raw::GIT_CHECKOUT_OPTIONS_VERSION));
+            match opts {
+                Some(c) => c.configure(&mut raw_opts),
+                None => {}
+            }
+
+            try_call!(raw::git_checkout_index(self.raw,
+                                              index.map(|i| &mut *i.raw()),
+                                              &raw_opts));
+        }
+        Ok(())
+    }
+
+    /// Updates files in the index and working tree to match the content of the
+    /// tree pointed at by the treeish.
+    pub fn checkout_tree(&self,
+                         treeish: &Object,
+                         opts: Option<&CheckoutBuilder>) -> Result<(), Error> {
+        unsafe {
+            let mut raw_opts = mem::zeroed();
+            try_call!(raw::git_checkout_init_options(&mut raw_opts,
+                                raw::GIT_CHECKOUT_OPTIONS_VERSION));
+            match opts {
+                Some(c) => c.configure(&mut raw_opts),
+                None => {}
+            }
+
+            try_call!(raw::git_checkout_tree(self.raw, &*treeish.raw(),
+            &raw_opts));
+        }
+        Ok(())
+    }
 }
 
 #[unsafe_destructor]
@@ -765,6 +825,12 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert!(repo.path() == *td.path());
+    }
+
+    #[test]
+    fn smoke_checkout() {
+        let (_td, repo) = ::test::repo_init();
+        repo.checkout_head(None).unwrap();
     }
 
     #[test]
