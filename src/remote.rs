@@ -310,6 +310,7 @@ impl<'a, 'b> Remote<'a, 'b> {
     /// Create a new push object
     pub fn push<'a>(&'a mut self) -> Result<Push<'a>, Error> {
         let mut ret = 0 as *mut raw::git_push;
+        try!(self.set_raw_callbacks());
         unsafe {
             try_call!(raw::git_push_new(&mut ret, self.raw));
             Ok(Push::from_raw(self, ret))
