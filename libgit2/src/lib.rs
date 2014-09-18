@@ -461,6 +461,37 @@ pub enum git_index_add_option_t {
     GIT_INDEX_ADD_CHECK_PATHSPEC = 1 << 2,
 }
 
+#[repr(C)]
+pub struct git_repository_init_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub mode: u32,
+    pub workdir_path: *const c_char,
+    pub description: *const c_char,
+    pub template_path: *const c_char,
+    pub initial_head: *const c_char,
+    pub origin_url: *const c_char,
+}
+
+pub static GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
+
+#[repr(C)]
+pub enum git_repository_init_flag_t {
+    GIT_REPOSITORY_INIT_BARE              = (1 << 0),
+    GIT_REPOSITORY_INIT_NO_REINIT         = (1 << 1),
+    GIT_REPOSITORY_INIT_NO_DOTGIT_DIR     = (1 << 2),
+    GIT_REPOSITORY_INIT_MKDIR             = (1 << 3),
+    GIT_REPOSITORY_INIT_MKPATH            = (1 << 4),
+    GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = (1 << 5),
+}
+
+#[repr(C)]
+pub enum git_repository_init_mode_t {
+    GIT_REPOSITORY_INIT_SHARED_UMASK = 0,
+    GIT_REPOSITORY_INIT_SHARED_GROUP = 0o002775,
+    GIT_REPOSITORY_INIT_SHARED_ALL   = 0o002777,
+}
+
 // We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
 #[cfg(not(windows))]
 link_config!("libgit2", ["only_static"])
@@ -606,6 +637,12 @@ extern {
     pub fn git_repository_init(repo: *mut *mut git_repository,
                                path: *const c_char,
                                is_bare: c_uint) -> c_int;
+    pub fn git_repository_init_ext(out: *mut *mut git_repository,
+                                   repo_path: *const c_char,
+                                   opts: *mut git_repository_init_options)
+                                   -> c_int;
+    pub fn git_repository_init_init_options(opts: *mut git_repository_init_options,
+                                            version: c_uint) -> c_int;
     pub fn git_repository_get_namespace(repo: *mut git_repository)
                                         -> *const c_char;
     pub fn git_repository_head(out: *mut *mut git_reference,

@@ -94,7 +94,7 @@ pub use refspec::Refspec;
 pub use remote::{Remote, Refspecs};
 pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
 pub use remote_callbacks::{TransportMessage, Progress};
-pub use repo::Repository;
+pub use repo::{Repository, RepositoryInitOptions};
 pub use revspec::Revspec;
 pub use signature::Signature;
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};

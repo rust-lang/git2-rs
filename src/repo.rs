@@ -2,7 +2,7 @@ use std::c_str::CString;
 use std::kinds::marker;
 use std::mem;
 use std::str;
-use libc::{c_int, c_uint, c_char, size_t, c_void};
+use libc::{c_int, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
@@ -24,6 +24,17 @@ pub struct Repository {
     marker: marker::NoSync,
 }
 
+/// Options which can be used to configure how a repository is initialized
+pub struct RepositoryInitOptions {
+    flags: u32,
+    mode: u32,
+    workdir_path: Option<CString>,
+    description: Option<CString>,
+    template_path: Option<CString>,
+    initial_head: Option<CString>,
+    origin_url: Option<CString>,
+}
+
 impl Repository {
     /// Attempt to open an already-existing repository at `path`.
     ///
@@ -37,29 +48,36 @@ impl Repository {
         Ok(unsafe { Repository::from_raw(ret) })
     }
 
-    /// Internal init, so that a boolean arg isn't exposed to userland.
-    fn init_(path: &Path, bare: bool) -> Result<Repository, Error> {
-        init();
-        let mut ret = 0 as *mut raw::git_repository;
-        unsafe {
-            try_call!(raw::git_repository_init(&mut ret, path.to_c_str(),
-                                               bare as c_uint));
-        }
-        Ok(unsafe { Repository::from_raw(ret) })
-    }
-
     /// Creates a new repository in the specified folder.
     ///
-    /// The folder must exist prior to invoking this function.
+    /// This by default will create any necessary directories to create the
+    /// repository, and it will read any user-specified templates when creating
+    /// the repository. This behavior can be configured through `init_opts`.
     pub fn init(path: &Path) -> Result<Repository, Error> {
-        Repository::init_(path, false)
+        Repository::init_opts(path, &RepositoryInitOptions::new())
     }
 
     /// Creates a new `--bare` repository in the specified folder.
     ///
     /// The folder must exist prior to invoking this function.
     pub fn init_bare(path: &Path) -> Result<Repository, Error> {
-        Repository::init_(path, true)
+        Repository::init_opts(path, &RepositoryInitOptions::new().bare(true))
+    }
+
+    /// Creates a new `--bare` repository in the specified folder.
+    ///
+    /// The folder must exist prior to invoking this function.
+    pub fn init_opts(path: &Path, opts: &RepositoryInitOptions)
+                     -> Result<Repository, Error> {
+        init();
+        let mut ret = 0 as *mut raw::git_repository;
+        unsafe {
+            let mut opts = opts.raw();
+            try_call!(raw::git_repository_init_ext(&mut ret,
+                                                   path.to_c_str(),
+                                                   &mut opts));
+        }
+        Ok(unsafe { Repository::from_raw(ret) })
     }
 
     /// Clone a remote repository.
@@ -779,6 +797,153 @@ impl Drop for Repository {
     }
 }
 
+impl RepositoryInitOptions {
+    /// Creates a default set of initialization options.
+    ///
+    /// By default this will set flags for creating all necessary directories
+    /// and initializing a directory from the user-configured templates path.
+    pub fn new() -> RepositoryInitOptions {
+        RepositoryInitOptions {
+            flags: raw::GIT_REPOSITORY_INIT_MKDIR as u32 |
+                   raw::GIT_REPOSITORY_INIT_MKPATH as u32 |
+                   raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE as u32,
+            mode: 0,
+            workdir_path: None,
+            description: None,
+            template_path: None,
+            initial_head: None,
+            origin_url: None,
+        }
+    }
+
+    /// Create a bare repository with no working directory.
+    ///
+    /// Defaults to false.
+    pub fn bare(self, bare: bool) -> RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_BARE, bare)
+    }
+
+    /// Return an error if the repository path appears to already be a git
+    /// repository.
+    ///
+    /// Defaults to false.
+    pub fn no_reinit(self, enabled: bool) -> RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
+    }
+
+    /// Normally a '/.git/' will be appended to the repo apth for non-bare repos
+    /// (if it is not already there), but passing this flag prevents that
+    /// behavior.
+    ///
+    /// Defaults to false.
+    pub fn no_dotgit_dir(self, enabled: bool) -> RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_NO_DOTGIT_DIR, enabled)
+    }
+
+    /// Make the repo path (and workdir path) as needed. The ".git" directory
+    /// will always be created regardless of this flag.
+    ///
+    /// Defaults to true.
+    pub fn mkdir(self, enabled: bool) -> RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_MKDIR, enabled)
+    }
+
+    /// Recursively make all components of the repo and workdir path sas
+    /// necessary.
+    ///
+    /// Defaults to true.
+    pub fn mkpath(self, enabled: bool) -> RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_MKPATH, enabled)
+    }
+
+    /// Enable or disable using external templates.
+    ///
+    /// If enabled, then the `template_path` option will be queried first, then
+    /// `init.templatedir` from the global config, and finally
+    /// `/usr/share/git-core-templates` will be used (if it exists).
+    ///
+    /// Defaults to true.
+    pub fn external_template(self, enabled: bool) -> RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE, enabled)
+    }
+
+    fn flag(mut self, flag: raw::git_repository_init_flag_t, on: bool)
+            -> RepositoryInitOptions {
+        if on {
+            self.flags |= flag as u32;
+        } else {
+            self.flags &= !(flag as u32);
+        }
+        self
+    }
+
+    /// The path do the working directory.
+    ///
+    /// If this is a relative path it will be evaulated relative to the repo
+    /// path. If this is not the "natural" working directory, a .git gitlink
+    /// file will be created here linking to the repo path.
+    pub fn workdir_path(mut self, path: &Path) -> RepositoryInitOptions {
+        self.workdir_path = Some(path.to_c_str());
+        self
+    }
+
+    /// If set, this will be used to initialize the "description" file in the
+    /// repository instead of using the template content.
+    pub fn description(mut self, desc: &str) -> RepositoryInitOptions {
+        self.description = Some(desc.to_c_str());
+        self
+    }
+
+    /// When the `external_template` option is set, this is the first location
+    /// to check for the template directory.
+    ///
+    /// If this is not configured, then the default locations will be searched
+    /// instead.
+    pub fn template_path(mut self, path: &Path) -> RepositoryInitOptions {
+        self.template_path = Some(path.to_c_str());
+        self
+    }
+
+    /// The name of the head to point HEAD at.
+    ///
+    /// If not configured, this will be treated as `master` and the HEAD ref
+    /// will be set to `refs/heads/master`. If this begins with `refs/` it will
+    /// be used verbatim; otherwise `refs/heads/` will be prefixed
+    pub fn initial_head(mut self, head: &str) -> RepositoryInitOptions {
+        self.initial_head = Some(head.to_c_str());
+        self
+    }
+
+    /// If set, then after the rest of the repository initialization is
+    /// completed an `origin` remote will be added pointing to this URL.
+    pub fn origin_url(mut self, url: &str) -> RepositoryInitOptions {
+        self.origin_url = Some(url.to_c_str());
+        self
+    }
+
+    /// Creates a set of raw init options to be used with
+    /// `git_repository_init_ext`.
+    ///
+    /// This method is unsafe as the returned value may have pointers to the
+    /// interior of this structure.
+    pub unsafe fn raw(&self) -> raw::git_repository_init_options {
+        let mut opts = mem::zeroed();
+        assert_eq!(raw::git_repository_init_init_options(&mut opts,
+                                raw::GIT_REPOSITORY_INIT_OPTIONS_VERSION), 0);
+        opts.flags = self.flags;
+        opts.mode = self.mode;
+        let cstr = |a: &Option<CString>| {
+            a.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _)
+        };
+        opts.workdir_path = cstr(&self.workdir_path);
+        opts.description = cstr(&self.description);
+        opts.template_path = cstr(&self.template_path);
+        opts.initial_head = cstr(&self.initial_head);
+        opts.origin_url = cstr(&self.origin_url);
+        return opts;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::TempDir;
@@ -848,5 +1013,11 @@ mod tests {
         let sig = repo.signature().unwrap();
         repo.reset(&obj, ::Hard, None, None).unwrap();
         repo.reset(&obj, ::Soft, Some(&sig), Some("foo")).unwrap();
+    }
+
+    #[test]
+    fn makes_dirs() {
+        let td = TempDir::new("foo").unwrap();
+        Repository::init(&td.path().join("a/b/c/d")).unwrap();
     }
 }
