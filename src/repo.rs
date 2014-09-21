@@ -7,7 +7,7 @@ use libc::{c_int, c_char, size_t, c_void};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectKind, Tag};
+use {ObjectType, Tag};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -531,7 +531,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_object(&self, oid: Oid,
-                       kind: Option<ObjectKind>) -> Result<Object, Error> {
+                       kind: Option<ObjectType>) -> Result<Object, Error> {
         let mut raw = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_object_lookup(&mut raw, self.raw(), oid.raw(),
@@ -1008,7 +1008,7 @@ mod tests {
 
         assert_eq!(repo.revparse_single("HEAD").unwrap().id(), from.id());
         let obj = repo.find_object(from.id(), None).unwrap().clone();
-        obj.peel(::Any).unwrap();
+        obj.peel(::ObjectAny).unwrap();
         obj.short_id().unwrap();
         let sig = repo.signature().unwrap();
         repo.reset(&obj, ::Hard, None, None).unwrap();

@@ -119,8 +119,8 @@ impl<'a> Iterator<(Branch<'a>, BranchType)> for Branches<'a> {
             }
             assert_eq!(rc, 0);
             let typ = match typ {
-                raw::GIT_BRANCH_LOCAL => ::Local,
-                raw::GIT_BRANCH_REMOTE => ::Remote,
+                raw::GIT_BRANCH_LOCAL => ::BranchLocal,
+                raw::GIT_BRANCH_REMOTE => ::BranchRemote,
                 raw::GIT_BRANCH_ALL => fail!("unexected branch type"),
             };
             Some((Branch::wrap(Reference::from_raw(self.repo, ret)), typ))
@@ -150,7 +150,7 @@ mod tests {
         repo.branch("foo2", &commit, false, None, None).unwrap();
 
         assert_eq!(repo.branches(None).unwrap().count(), 3);
-        repo.find_branch("foo", ::Local).unwrap();
+        repo.find_branch("foo", ::BranchLocal).unwrap();
         let mut b1 = b1.move("bar", false, Some(&sig), "bar2").unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));
         assert!(b1.upstream().is_err());

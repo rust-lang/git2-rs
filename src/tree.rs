@@ -3,7 +3,7 @@ use std::str;
 use std::io;
 use libc;
 
-use {raw, Oid, Repository, Error, Object, ObjectKind};
+use {raw, Oid, Repository, Error, Object, ObjectType};
 
 /// A structure to represent a git [tree][1]
 ///
@@ -176,8 +176,8 @@ impl<'a> TreeEntry<'a> {
     }
 
     /// Get the type of the object pointed by the entry
-    pub fn kind(&self) -> Option<ObjectKind> {
-        ObjectKind::from_raw(unsafe { raw::git_tree_entry_type(&*self.raw) })
+    pub fn kind(&self) -> Option<ObjectType> {
+        ObjectType::from_raw(unsafe { raw::git_tree_entry_type(&*self.raw) })
     }
 
     /// Get the UNIX file attributes of a tree entry

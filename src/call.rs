@@ -117,35 +117,35 @@ mod impls {
     impl Convert<raw::git_direction> for ::Direction {
         fn convert(&self) -> raw::git_direction {
             match *self {
-                ::Push => raw::GIT_DIRECTION_PUSH,
-                ::Fetch => raw::GIT_DIRECTION_FETCH,
+                ::DirPush => raw::GIT_DIRECTION_PUSH,
+                ::DirFetch => raw::GIT_DIRECTION_FETCH,
             }
         }
     }
 
-    impl Convert<raw::git_otype> for ::ObjectKind {
+    impl Convert<raw::git_otype> for ::ObjectType {
         fn convert(&self) -> raw::git_otype {
             match *self {
-                ::Any => raw::GIT_OBJ_ANY,
-                ::Commit => raw::GIT_OBJ_COMMIT,
-                ::Tree => raw::GIT_OBJ_TREE,
-                ::Blob => raw::GIT_OBJ_BLOB,
-                ::Tag => raw::GIT_OBJ_TAG,
+                ::ObjectAny => raw::GIT_OBJ_ANY,
+                ::ObjectCommit => raw::GIT_OBJ_COMMIT,
+                ::ObjectTree => raw::GIT_OBJ_TREE,
+                ::ObjectBlob => raw::GIT_OBJ_BLOB,
+                ::ObjectTag => raw::GIT_OBJ_TAG,
             }
         }
     }
 
-    impl Convert<raw::git_otype> for Option<::ObjectKind> {
+    impl Convert<raw::git_otype> for Option<::ObjectType> {
         fn convert(&self) -> raw::git_otype {
-            self.unwrap_or(::Any).convert()
+            self.unwrap_or(::ObjectAny).convert()
         }
     }
 
     impl Convert<raw::git_branch_t> for ::BranchType {
         fn convert(&self) -> raw::git_branch_t {
             match *self {
-                ::Remote => raw::GIT_BRANCH_REMOTE,
-                ::Local => raw::GIT_BRANCH_LOCAL,
+                ::BranchRemote => raw::GIT_BRANCH_REMOTE,
+                ::BranchLocal => raw::GIT_BRANCH_LOCAL,
             }
         }
     }

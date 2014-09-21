@@ -1,7 +1,7 @@
 use std::kinds::marker;
 use std::mem;
 
-use {raw, Oid, Repository, ObjectKind, Error, Buf};
+use {raw, Oid, Repository, ObjectType, Error, Buf};
 
 /// A structure to represent a git [object][1]
 ///
@@ -47,8 +47,8 @@ impl<'a> Object<'a> {
     /// Get the object type of an object.
     ///
     /// If the type is unknown, then `None` is returned.
-    pub fn kind(&self) -> Option<ObjectKind> {
-        ObjectKind::from_raw(unsafe { raw::git_object_type(&*self.raw) })
+    pub fn kind(&self) -> Option<ObjectType> {
+        ObjectType::from_raw(unsafe { raw::git_object_type(&*self.raw) })
     }
 
     /// Recursively peel an object until an object of the specified type is met.
@@ -56,7 +56,7 @@ impl<'a> Object<'a> {
     /// If you pass `Any` as the target type, then the object will be
     /// peeled until the type changes (e.g. a tag will be chased until the
     /// referenced object is no longer a tag).
-    pub fn peel(&self, kind: ObjectKind) -> Result<Object, Error> {
+    pub fn peel(&self, kind: ObjectType) -> Result<Object, Error> {
         let mut raw = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_object_peel(&mut raw, &*self.raw(), kind));

@@ -1,7 +1,7 @@
 use std::kinds::marker;
 use std::str;
 
-use {raw, Error, Oid, Repository, Object, Signature, ObjectKind};
+use {raw, Error, Oid, Repository, Object, Signature, ObjectType};
 
 /// A structure to represent a git [tag][1]
 ///
@@ -100,8 +100,8 @@ impl<'a> Tag<'a> {
     }
 
     /// Get the OID of the tagged object of a tag
-    pub fn target_type(&self) -> Option<ObjectKind> {
-        unsafe { ObjectKind::from_raw(raw::git_tag_target_type(&*self.raw)) }
+    pub fn target_type(&self) -> Option<ObjectType> {
+        unsafe { ObjectType::from_raw(raw::git_tag_target_type(&*self.raw)) }
     }
 
     /// Get access to the underlying raw pointer.
@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(tag.message(), Some("msg"));
         assert_eq!(tag.peel().unwrap().id(), obj.id());
         assert_eq!(tag.target_id(), obj.id());
-        assert_eq!(tag.target_type(), Some(::Commit));
+        assert_eq!(tag.target_type(), Some(::ObjectCommit));
 
         assert_eq!(tag.tagger().unwrap().name(), sig.name());
         tag.target().unwrap();

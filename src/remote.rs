@@ -426,11 +426,11 @@ mod tests {
             assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
         }
 
-        origin.connect(::Push).unwrap();
+        origin.connect(::DirPush).unwrap();
         assert!(origin.connected());
         origin.disconnect();
 
-        origin.connect(::Fetch).unwrap();
+        origin.connect(::DirFetch).unwrap();
         assert!(origin.connected());
         origin.download().unwrap();
         origin.disconnect();

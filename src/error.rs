@@ -39,8 +39,8 @@ impl Error {
     /// Return the error code associated with this error.
     pub fn code(&self) -> ErrorCode {
         match self.raw_code() {
-            raw::GIT_OK => super::Error,
-            raw::GIT_ERROR => super::Error,
+            raw::GIT_OK => super::GenericError,
+            raw::GIT_ERROR => super::GenericError,
             raw::GIT_ENOTFOUND => super::NotFound,
             raw::GIT_EEXISTS => super::Exists,
             raw::GIT_EAMBIGUOUS => super::Ambiguous,
@@ -54,8 +54,8 @@ impl Error {
             raw::GIT_EMERGECONFLICT => super::MergeConflict,
             raw::GIT_ELOCKED => super::Locked,
             raw::GIT_EMODIFIED => super::Modified,
-            raw::GIT_PASSTHROUGH => super::Error,
-            raw::GIT_ITEROVER => super::Error,
+            raw::GIT_PASSTHROUGH => super::GenericError,
+            raw::GIT_ITEROVER => super::GenericError,
         }
     }
 

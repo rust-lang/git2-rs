@@ -1,7 +1,7 @@
 use std::kinds::marker;
 use std::str;
 
-use {raw, Remote, Direction, Push, Fetch};
+use {raw, Remote, Direction, DirPush, DirFetch};
 
 /// A structure to represent a git [refspec][1].
 ///
@@ -34,8 +34,8 @@ impl<'a> Refspec<'a> {
     /// Get the refspec's direction.
     pub fn direction(&self) -> Direction {
         match unsafe { raw::git_refspec_direction(self.raw) } {
-            raw::GIT_DIRECTION_FETCH => Fetch,
-            raw::GIT_DIRECTION_PUSH => Push,
+            raw::GIT_DIRECTION_FETCH => DirFetch,
+            raw::GIT_DIRECTION_PUSH => DirPush,
         }
     }
 

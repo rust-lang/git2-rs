@@ -107,7 +107,7 @@ pub use tree::{Tree, TreeEntry};
 #[deriving(PartialEq, Eq, Clone, Show)]
 pub enum ErrorCode {
     /// Generic error
-    Error,
+    GenericError,
     /// Requested object could not be found
     NotFound,
     /// Object exists preventing operation
@@ -155,9 +155,9 @@ pub enum RepositoryState {
 /// An enumeration of the possible directions for a remote.
 pub enum Direction {
     /// Data will be fetched (read) from this remote.
-    Fetch,
+    DirFetch,
     /// Data will be pushed (written) to this remote.
-    Push,
+    DirPush,
 }
 
 /// An enumeration of the operations that can be performed for the `reset`
@@ -173,26 +173,26 @@ pub enum ResetType {
 
 /// An enumeration all possible kinds objects may have.
 #[deriving(PartialEq, Eq)]
-pub enum ObjectKind {
+pub enum ObjectType {
     /// An object which corresponds to a any git object
-    Any,
+    ObjectAny,
     /// An object which corresponds to a git commit
-    Commit,
+    ObjectCommit,
     /// An object which corresponds to a git tree
-    Tree,
+    ObjectTree,
     /// An object which corresponds to a git blob
-    Blob,
+    ObjectBlob,
     /// An object which corresponds to a git tag
-    Tag,
+    ObjectTag,
 }
 
 /// An enumeration for the possible types of branches
 #[deriving(PartialEq, Eq, Show)]
 pub enum BranchType {
     /// A local branch not on a remote.
-    Local,
+    BranchLocal,
     /// A branch for a remote.
-    Remote,
+    BranchRemote,
 }
 
 /// An enumeration of the possible priority levels of a config file.
@@ -294,7 +294,7 @@ unsafe fn opt_bytes<'a, T>(_: &'a T,
     }
 }
 
-impl ObjectKind {
+impl ObjectType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         unsafe {
@@ -308,16 +308,16 @@ impl ObjectKind {
         unsafe { (call!(raw::git_object_typeisloose(*self)) == 1) }
     }
 
-    /// Convert a raw git_otype to an ObjectKind
-    pub fn from_raw(raw: raw::git_otype) -> Option<ObjectKind> {
+    /// Convert a raw git_otype to an ObjectType
+    pub fn from_raw(raw: raw::git_otype) -> Option<ObjectType> {
         match raw {
-            raw::GIT_OBJ_ANY => Some(::Any),
+            raw::GIT_OBJ_ANY => Some(ObjectAny),
             raw::GIT_OBJ_BAD => None,
             raw::GIT_OBJ__EXT1 => None,
-            raw::GIT_OBJ_COMMIT => Some(::Commit),
-            raw::GIT_OBJ_TREE => Some(::Tree),
-            raw::GIT_OBJ_BLOB => Some(::Blob),
-            raw::GIT_OBJ_TAG => Some(::Tag),
+            raw::GIT_OBJ_COMMIT => Some(ObjectCommit),
+            raw::GIT_OBJ_TREE => Some(ObjectTree),
+            raw::GIT_OBJ_BLOB => Some(ObjectBlob),
+            raw::GIT_OBJ_TAG => Some(ObjectTag),
             raw::GIT_OBJ__EXT2 => None,
             raw::GIT_OBJ_OFS_DELTA => None,
             raw::GIT_OBJ_REF_DELTA => None,
@@ -330,13 +330,13 @@ impl ObjectKind {
     }
 
     /// Convert a string object type representation to its object type.
-    pub fn from_str(s: &str) -> Option<ObjectKind> {
+    pub fn from_str(s: &str) -> Option<ObjectType> {
         let raw = unsafe { call!(raw::git_object_string2type(s.to_c_str())) };
-        ObjectKind::from_raw(raw)
+        ObjectType::from_raw(raw)
     }
 }
 
-impl fmt::Show for ObjectKind {
+impl fmt::Show for ObjectType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.str().fmt(f)
     }
@@ -358,13 +358,13 @@ impl ConfigLevel {
 
 #[cfg(test)]
 mod tests {
-    use super::ObjectKind;
+    use super::ObjectType;
 
     #[test]
     fn convert() {
-        assert_eq!(::Blob.str(), "blob");
-        assert_eq!(ObjectKind::from_str("blob"), Some(::Blob));
-        assert!(::Blob.is_loose());
+        assert_eq!(::ObjectBlob.str(), "blob");
+        assert_eq!(ObjectType::from_str("blob"), Some(::ObjectBlob));
+        assert!(::ObjectBlob.is_loose());
     }
 
 }
