@@ -13,7 +13,7 @@ git = "https://github.com/alexcrichton/git2-rs"
 
 ## Building git2-rs
 
-```
+```sh
 $ git clone --recursive https://github.com/alexcrichton/git2-rs
 $ cd git2-rs
 $ cargo build
