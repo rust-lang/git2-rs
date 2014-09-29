@@ -41,9 +41,9 @@ impl<'a> Branch<'a> {
     }
 
     /// Move/rename an existing local branch reference.
-    pub fn move(&mut self, new_branch_name: &str, force: bool,
-                signature: Option<&Signature>,
-                log_message: &str) -> Result<Branch<'a>, Error> {
+    pub fn rename(&mut self, new_branch_name: &str, force: bool,
+                  signature: Option<&Signature>,
+                  log_message: &str) -> Result<Branch<'a>, Error> {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
@@ -151,7 +151,7 @@ mod tests {
 
         assert_eq!(repo.branches(None).unwrap().count(), 3);
         repo.find_branch("foo", ::BranchLocal).unwrap();
-        let mut b1 = b1.move("bar", false, Some(&sig), "bar2").unwrap();
+        let mut b1 = b1.rename("bar", false, Some(&sig), "bar2").unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));
         assert!(b1.upstream().is_err());
         b1.set_upstream(Some("master")).unwrap();

@@ -7,7 +7,6 @@ extern crate "link-config" as link_config;
 extern crate "openssl-static-sys" as openssl_static_sys;
 extern crate libc;
 
-use std::os;
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
 pub static GIT_OID_RAWSZ: uint = 20;
