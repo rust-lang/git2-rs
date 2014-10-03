@@ -508,7 +508,7 @@ extern {}
 
 /// Initialize openssl for the libgit2 library
 pub fn openssl_init() {
-    if !cfg!(target_os = "linux") { return }
+    if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
 
     // Currently, libgit2 leverages OpenSSL for SSL support when cloning
     // repositories over HTTPS. This means that we're picking up an OpenSSL
