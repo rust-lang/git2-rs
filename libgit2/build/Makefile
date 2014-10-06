@@ -1,6 +1,6 @@
 ifneq ($(findstring i686,$(TARGET)),)
 FLAGS=-m32
-else
+else ifneq ($(findstring x86_64,$(TARGET)),)
 FLAGS=-m64
 endif
 
