@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ `uname` == "FreeBSD" ]; then
+if [ `uname` = "FreeBSD" ]; then
 	gmake $*
 else
 	make $*
