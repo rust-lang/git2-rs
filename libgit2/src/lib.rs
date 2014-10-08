@@ -426,7 +426,7 @@ pub type git_cred_ssh_interactive_callback = extern fn(
     num_prompts: c_int,
     prompts: *const LIBSSH2_USERAUTH_KBDINT_PROMPT,
     responses: *mut LIBSSH2_USERAUTH_KBDINT_RESPONSE,
-    abstract: *mut *mut c_void
+    abstrakt: *mut *mut c_void
 );
 
 pub type git_cred_sign_callback = extern fn(
@@ -435,7 +435,7 @@ pub type git_cred_sign_callback = extern fn(
     sig_len: *mut size_t,
     data: *const c_uchar,
     data_len: size_t,
-    abstract: *mut *mut c_void,
+    abstrakt: *mut *mut c_void,
 );
 
 pub enum LIBSSH2_SESSION {}
