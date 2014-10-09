@@ -3,7 +3,7 @@
 name = "libgit2"
 version = "0.0.1"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
-build = "build/make.sh -C build"
+build = "sh build/make.sh -C build"
 
 [dependencies.link-config]
 git = "https://github.com/alexcrichton/link-config"
