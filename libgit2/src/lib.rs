@@ -9,11 +9,11 @@ extern crate libc;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
-pub static GIT_OID_RAWSZ: uint = 20;
-pub static GIT_OID_HEXSZ: uint = GIT_OID_RAWSZ * 2;
-pub static GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
-pub static GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
-pub static GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
+pub const GIT_OID_RAWSZ: uint = 20;
+pub const GIT_OID_HEXSZ: uint = GIT_OID_RAWSZ * 2;
+pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 
 pub enum git_blob {}
 pub enum git_branch_iterator {}
@@ -76,9 +76,9 @@ pub type git_time_t = i64;
 bitflags!(
     #[repr(C)]
     flags git_revparse_mode_t: c_uint {
-        static GIT_REVPARSE_SINGLE = 1 << 0,
-        static GIT_REVPARSE_RANGE = 1 << 1,
-        static GIT_REVPARSE_MERGE_BASE = 1 << 2
+        const GIT_REVPARSE_SINGLE = 1 << 0,
+        const GIT_REVPARSE_RANGE = 1 << 1,
+        const GIT_REVPARSE_MERGE_BASE = 1 << 2,
     }
 )
 
@@ -472,7 +472,7 @@ pub struct git_repository_init_options {
     pub origin_url: *const c_char,
 }
 
-pub static GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
 
 #[repr(C)]
 pub enum git_repository_init_flag_t {

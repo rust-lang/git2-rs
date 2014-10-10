@@ -220,11 +220,11 @@ bitflags! {
 Types of credentials that can be requested by a credential callback.
 "]
     flags CredentialType: uint {
-        static UserPassPlaintext = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as uint,
-        static SshKey = raw::GIT_CREDTYPE_SSH_KEY as uint,
-        static SshCustom = raw::GIT_CREDTYPE_SSH_CUSTOM as uint,
-        static Default = raw::GIT_CREDTYPE_DEFAULT as uint,
-        static SshInteractive = raw::GIT_CREDTYPE_SSH_INTERACTIVE as uint
+        const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as uint,
+        const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as uint,
+        const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as uint,
+        const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as uint,
+        const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as uint,
     }
 }
 
@@ -233,11 +233,11 @@ bitflags! {
 Flags for APIs that add files matching pathspec
 "]
     flags IndexAddOption: u32 {
-        static AddDefault = raw::GIT_INDEX_ADD_DEFAULT as u32,
-        static AddForce = raw::GIT_INDEX_ADD_FORCE as u32,
-        static AddDisablePathspecMatch =
+        const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32,
+        const ADD_FORCE = raw::GIT_INDEX_ADD_FORCE as u32,
+        const ADD_DISABLE_PATHSPEC_MATCH =
                 raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32,
-        static AddCheckPathspec = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32,
+        const ADD_CHECK_PATHSPEC = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32,
     }
 }
 
