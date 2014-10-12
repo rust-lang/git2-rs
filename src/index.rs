@@ -511,7 +511,7 @@ mod tests {
         fs::mkdir(&root.join("foo"), io::UserDir).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
-        index.add_all(&["foo"], ::AddDefault, Some(|a: &[u8], b: &[u8]| {
+        index.add_all(&["foo"], ::ADD_DEFAULT, Some(|a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b"foo");
