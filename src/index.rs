@@ -508,7 +508,7 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().dir_path();
-        fs::mkdir(&root.join("foo"), io::UserDir).unwrap();
+        fs::mkdir(&root.join("foo"), io::USER_DIR).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
         index.add_all(&["foo"], ::ADD_DEFAULT, Some(|a: &[u8], b: &[u8]| {
@@ -537,7 +537,7 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().dir_path();
-        fs::mkdir(&root.join("foo"), io::UserDir).unwrap();
+        fs::mkdir(&root.join("foo"), io::USER_DIR).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         index.add_path(&Path::new("foo/bar")).unwrap();
         index.write().unwrap();
