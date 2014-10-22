@@ -658,6 +658,10 @@ extern {
                                  repo: *mut git_repository) -> c_int;
     pub fn git_repository_config_snapshot(out: *mut *mut git_config,
                                           repo: *mut git_repository) -> c_int;
+    pub fn git_repository_discover(out: *mut git_buf,
+                                   start_path: *const c_char,
+                                   across_fs: c_int,
+                                   ceiling_dirs: *const c_char) -> c_int;
 
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
