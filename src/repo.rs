@@ -1020,4 +1020,13 @@ mod tests {
         let td = TempDir::new("foo").unwrap();
         Repository::init(&td.path().join("a/b/c/d")).unwrap();
     }
+
+    #[test]
+    fn smoke_discover() {
+        let td = TempDir::new("test").unwrap();
+        let subdir = TempDir::new_in(td.path(), "subdir").unwrap();
+        Repository::init_bare(td.path()).unwrap();
+        let repo = Repository::discover(subdir.path()).unwrap();
+        assert!(repo.path() == *td.path());
+    }
 }
