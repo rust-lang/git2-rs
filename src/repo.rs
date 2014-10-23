@@ -4,7 +4,7 @@ use std::mem;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void};
 
-use {raw, Revspec, Error, init, Object, RepositoryState, Remote};
+use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectType, Tag};
@@ -46,6 +46,22 @@ impl Repository {
             try_call!(raw::git_repository_open(&mut ret, path.to_c_str()));
         }
         Ok(unsafe { Repository::from_raw(ret) })
+    }
+
+    /// Attempt to open an already-existing repository at or above `path`
+    ///
+    /// This starts at `path` and looks up the filesystem hierarchy
+    /// until it finds a repository.
+    pub fn discover(path: &Path) -> Result<Repository, Error> {
+        unsafe {
+            let mut raw: raw::git_buf = mem::zeroed();
+            try_call!(raw::git_repository_discover(&mut raw,
+                                                   path.to_c_str(),
+                                                   1i32,
+                                                   0 as *const c_char));
+            let buf = Buf::from_raw(raw);
+            Repository::open(&Path::new(buf.get()))
+        }
     }
 
     /// Creates a new repository in the specified folder.
@@ -1019,5 +1035,14 @@ mod tests {
     fn makes_dirs() {
         let td = TempDir::new("foo").unwrap();
         Repository::init(&td.path().join("a/b/c/d")).unwrap();
+    }
+
+    #[test]
+    fn smoke_discover() {
+        let td = TempDir::new("test").unwrap();
+        let subdir = TempDir::new_in(td.path(), "subdir").unwrap();
+        Repository::init_bare(td.path()).unwrap();
+        let repo = Repository::discover(subdir.path()).unwrap();
+        assert!(repo.path() == *td.path());
     }
 }
