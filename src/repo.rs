@@ -53,6 +53,7 @@ impl Repository {
     /// This starts at `path` and looks up the filesystem hierarchy
     /// until it finds a repository.
     pub fn discover(path: &Path) -> Result<Repository, Error> {
+        init();
         unsafe {
             let mut raw: raw::git_buf = mem::zeroed();
             try_call!(raw::git_repository_discover(&mut raw,
