@@ -135,7 +135,7 @@ impl Repository {
             let obj = unsafe { Object::from_raw(self, raw.from) };
             Ok(Revspec::from_objects(Some(obj), None))
         } else {
-            fail!()
+            panic!()
         }
     }
 
@@ -184,7 +184,7 @@ impl Repository {
         macro_rules! check( ($($raw:ident => $real:ident),*) => (
             $(if state == raw::$raw as c_int { super::$real }) else *
             else {
-                fail!("unknown repository state: {}", state)
+                panic!("unknown repository state: {}", state)
             }
         ) )
 
