@@ -28,7 +28,7 @@
 //! let path = Path::new("/path/to/a/repo");
 //! let repo = match Repository::init(&path) {
 //!     Ok(repo) => repo,
-//!     Err(e) => fail!("failed to init `{}`: {}", path.display(), e),
+//!     Err(e) => panic!("failed to init `{}`: {}", path.display(), e),
 //! };
 //! ```
 //!
@@ -40,7 +40,7 @@
 //! let path = Path::new("/path/to/a/repo");
 //! let repo = match Repository::open(&path) {
 //!     Ok(repo) => repo,
-//!     Err(e) => fail!("failed to open `{}`: {}", path.display(), e),
+//!     Err(e) => panic!("failed to open `{}`: {}", path.display(), e),
 //! };
 //! ```
 //!
@@ -53,7 +53,7 @@
 //! let path = Path::new("/path/to/a/repo");
 //! let repo = match Repository::clone(url, &path) {
 //!     Ok(repo) => repo,
-//!     Err(e) => fail!("failed to clone `{}`: {}", path.display(), e),
+//!     Err(e) => panic!("failed to clone `{}`: {}", path.display(), e),
 //! };
 //! ```
 //!
