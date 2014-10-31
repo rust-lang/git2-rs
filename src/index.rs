@@ -29,7 +29,7 @@ pub type IndexMatchedPath<'a> = |&[u8], &[u8]|: 'a -> int;
 ///
 /// All fields of an entry are public for modification and inspection. This is
 /// also how a new index entry is created.
-#[allow(missing_doc)]
+#[allow(missing_docs)]
 pub struct IndexEntry {
     pub ctime: time::Timespec,
     pub mtime: time::Timespec,

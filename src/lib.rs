@@ -64,7 +64,7 @@
 //! itself.
 
 #![feature(macro_rules, unsafe_destructor)]
-#![deny(missing_doc)]
+#![deny(missing_docs)]
 
 extern crate libc;
 extern crate time;
@@ -138,7 +138,7 @@ pub enum ErrorCode {
 
 /// A listing of the possible states that a repository can be in.
 #[deriving(PartialEq, Eq, Clone, Show)]
-#[allow(missing_doc)]
+#[allow(missing_docs)]
 pub enum RepositoryState {
     Clean,
     Merge,
