@@ -15,8 +15,8 @@ both threadsafe and memory safe and allows both reading and writing git
 repositories.
 """
 
-[dependencies.libgit2]
-path = "libgit2"
+[dependencies.libgit2-sys]
+path = "libgit2-sys"
 version = "*"
 
 [dependencies.url]

@@ -1,15 +1,31 @@
 [package]
 
-name = "libgit2"
+name = "libgit2-sys"
 version = "0.0.1"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
-build = "sh build/make.sh -C build"
+links = "git2"
+build = "build.rs"
 
-[dependencies.link-config]
-git = "https://github.com/alexcrichton/link-config"
+[lib]
+  name = "libgit2-sys"
+  path = "lib.rs"
 
-[dependencies.openssl-static-sys]
-git = "https://github.com/alexcrichton/openssl-static-sys"
+[dependencies.libssh2-sys]
+  git = "https://github.com/alexcrichton/ssh2-rs"
+  branch = "build-cmd"
 
-[dependencies.libssh2-static-sys]
-git = "https://github.com/alexcrichton/libssh2-static-sys"
+[build-dependencies.pkg-config]
+  git = "https://github.com/alexcrichton/pkg-config-rs"
+
+[target.i686-apple-darwin.dependencies.openssl-sys]
+  git = "https://github.com/alexcrichton/openssl-sys"
+[target.x86_64-apple-darwin.dependencies.openssl-sys]
+  git = "https://github.com/alexcrichton/openssl-sys"
+[target.i686-unknown-linux-gnu.dependencies.openssl-sys]
+  git = "https://github.com/alexcrichton/openssl-sys"
+[target.x86_64-unknown-linux-gnu.dependencies.openssl-sys]
+  git = "https://github.com/alexcrichton/openssl-sys"
+[target.i686-unknown-freebsd.dependencies.openssl-sys]
+  git = "https://github.com/alexcrichton/openssl-sys"
+[target.x86_64-unknown-freebsd.dependencies.openssl-sys]
+  git = "https://github.com/alexcrichton/openssl-sys"

@@ -69,7 +69,7 @@
 extern crate libc;
 extern crate time;
 extern crate url;
-extern crate "libgit2" as raw;
+extern crate "libgit2-sys" as raw;
 
 use std::c_str::CString;
 use std::fmt;

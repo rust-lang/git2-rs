@@ -1,11 +1,10 @@
 #![feature(phase)]
 #![allow(non_camel_case_types)]
 
-#[phase(plugin)]
-extern crate "link-config" as link_config;
-
-extern crate "openssl-static-sys" as openssl_static_sys;
 extern crate libc;
+extern crate "libssh2-sys" as libssh2;
+#[cfg(unix)] extern crate "openssl-sys" as openssl;
+#[cfg(unix)] extern crate "libz-sys" as libz;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -491,22 +490,8 @@ pub enum git_repository_init_mode_t {
     GIT_REPOSITORY_INIT_SHARED_ALL   = 0o002777,
 }
 
-// We cannot rely on pkg-config on Windows, but it isn't like we need it anyway
-#[cfg(not(windows))]
-link_config!("libgit2", ["only_static"])
-
-#[cfg(windows)]
-#[link(name = "winhttp")] // needed by git2
-#[link(name = "rpcrt4")]  // needed by git2
-#[link(name = "ole32")]   // needed by git2
-#[link(name = "ws2_32")]  // needed by ssh2
-#[link(name = "bcrypt")]  // needed by ssh2
-#[link(name = "crypt32")] // needed by ssh2
-#[link(name = "ssh2", kind = "static")]
-#[link(name = "git2", kind = "static")]
-extern {}
-
 /// Initialize openssl for the libgit2 library
+#[cfg(unix)]
 pub fn openssl_init() {
     if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
 
@@ -621,8 +606,11 @@ pub fn openssl_init() {
     // OS X the OpenSSL binaries are stable enough that we can just rely on
     // dynamic linkage (plus they have some weird modifications to OpenSSL which
     // means we wouldn't want to link statically).
-    openssl_static_sys::init_ssl_cert_env_vars();
+    openssl::probe::init_ssl_cert_env_vars();
 }
+
+#[cfg(windows)]
+pub fn openssl_init() {}
 
 extern {
     // threads
@@ -1298,4 +1286,9 @@ extern {
                              opts: *const git_checkout_options) -> c_int;
     pub fn git_checkout_init_options(opts: *mut git_checkout_options,
                                      version: c_uint) -> c_int;
+}
+
+#[test]
+fn smoke() {
+    unsafe { git_threads_init(); }
 }
