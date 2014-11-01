@@ -1,3 +1,6 @@
 [submodule "src/libgit2"]
 	path = libgit2/build/libgit2
 	url = https://github.com/alexcrichton/libgit2
+[submodule "libgit2-sys/libgit2"]
+	path = libgit2-sys/libgit2
+	url = https://github.com/alexcrichton/libgit2
