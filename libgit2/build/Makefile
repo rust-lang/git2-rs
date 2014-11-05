@@ -4,7 +4,7 @@ else ifneq ($(findstring x86_64,$(TARGET)),)
 FLAGS=-m64
 endif
 
-ifeq ($(findstring mingw,$(TARGET)),)
+ifeq ($(findstring windows,$(TARGET)),)
 SEP=:
 else
 SEP=;
