@@ -3,8 +3,8 @@ use libc;
 
 use Error;
 
-macro_rules! call( ($p:path($($e:expr),*)) => (
-    $p($(::call::convert(&$e)),*)
+macro_rules! call( (raw::$p:ident ($($e:expr),*)) => (
+    raw::$p($(::call::convert(&$e)),*)
 ) )
 
 macro_rules! try_call( ($($arg:tt)*) => ({
