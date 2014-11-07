@@ -12,7 +12,6 @@ build = "build.rs"
 
 [dependencies.libssh2-sys]
   git = "https://github.com/alexcrichton/ssh2-rs"
-  branch = "build-cmd"
 
 [build-dependencies.pkg-config]
   git = "https://github.com/alexcrichton/pkg-config-rs"
