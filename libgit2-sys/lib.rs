@@ -1292,3 +1292,7 @@ extern {
 fn smoke() {
     unsafe { git_threads_init(); }
 }
+
+pub fn issue_14344_workaround() {
+    libssh2::issue_14344_workaround();
+}
