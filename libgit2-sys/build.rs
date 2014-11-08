@@ -58,7 +58,7 @@ fn main() {
                 .arg("--target").arg("install")
                 .cwd(&dst.join("build")));
 
-    println!("cargo:rustc-flags=-L {} -lgit2:static",
+    println!("cargo:rustc-flags=-L {} -l git2:static",
              dst.join("lib").display());
     println!("cargo:root={}", dst.display());
     if mingw || target.contains("windows") {
