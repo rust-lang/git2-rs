@@ -58,14 +58,14 @@ fn main() {
                 .arg("--target").arg("install")
                 .cwd(&dst.join("build")));
 
-    println!("cargo:rustc-flags=-L {}", dst.join("lib").display());
+    println!("cargo:rustc-flags=-L {} -lgit2:static",
+             dst.join("lib").display());
     println!("cargo:root={}", dst.display());
     if mingw || target.contains("windows") {
         println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
-                                    -l ws2_32 -l bcrypt -l crypt32 \
-                                    -l git2:static");
-    } else {
-        println!("cargo:rustc-flags=-l git2:static");
+                                    -l ws2_32 -l bcrypt -l crypt32");
+    } else if target.contains("apple") {
+        println!("cargo:rustc-flags=-l iconv");
     }
 }
 
