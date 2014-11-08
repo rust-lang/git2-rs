@@ -12,15 +12,8 @@ fn main() {
         Err(..) => {}
     }
 
-    match os::getenv("DEP_SSH2_ROOT") {
-        Some(s) => {
-            let prefix = os::getenv("CMAKE_PREFIX_PATH").unwrap_or(String::new());
-            let mut v = os::split_paths(prefix.as_slice());
-            v.push(Path::new(s));
-            os::setenv("CMAKE_PREFIX_PATH", os::join_paths(v.as_slice()).unwrap());
-        }
-        None => {}
-    }
+    register_dep("SSH2");
+    register_dep("OPENSSL");
 
     let mut cflags = os::getenv("CFLAGS").unwrap_or(String::new());
     let target = os::getenv("TARGET").unwrap();
@@ -77,4 +70,16 @@ fn run(cmd: &mut Command) {
                .unwrap()
                .success());
 
+}
+
+fn register_dep(dep: &str) {
+    match os::getenv(format!("DEP_{}_ROOT", dep).as_slice()) {
+        Some(s) => {
+            let prefix = os::getenv("CMAKE_PREFIX_PATH").unwrap_or(String::new());
+            let mut v = os::split_paths(prefix.as_slice());
+            v.push(Path::new(s));
+            os::setenv("CMAKE_PREFIX_PATH", os::join_paths(v.as_slice()).unwrap());
+        }
+        None => {}
+    }
 }
