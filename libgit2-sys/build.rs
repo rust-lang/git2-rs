@@ -45,7 +45,8 @@ fn main() {
            .arg("-DCMAKE_BUILD_TYPE=RelWithDebInfo")
            .arg(format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
            .arg("-DBUILD_EXAMPLES=OFF")
-           .arg(format!("-DCMAKE_C_FLAGS={}", cflags)));
+           .arg(format!("-DCMAKE_C_FLAGS={}", cflags))
+           .arg(format!("-DCMAKE_MODULE_PATH={}", src.join("cmake").display())));
     run(Command::new("cmake")
                 .arg("--build").arg(".")
                 .arg("--target").arg("install")
