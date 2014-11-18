@@ -1,10 +1,13 @@
-#![feature(phase)]
+#![feature(globs, phase)]
 #![allow(non_camel_case_types)]
 
 extern crate libc;
 extern crate "libssh2-sys" as libssh2;
 #[cfg(unix)] extern crate "openssl-sys" as openssl;
 #[cfg(unix)] extern crate "libz-sys" as libz;
+
+pub use git_ref_t::*;
+pub use git_branch_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 

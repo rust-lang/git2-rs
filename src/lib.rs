@@ -63,7 +63,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(macro_rules, unsafe_destructor)]
+#![feature(globs, macro_rules, unsafe_destructor)]
 #![deny(missing_docs)]
 
 extern crate libc;
@@ -77,6 +77,14 @@ use std::mem;
 use std::rt;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
+
+pub use BranchType::*;
+pub use ConfigLevel::*;
+pub use Direction::*;
+pub use ErrorCode::*;
+pub use ObjectType::*;
+pub use RepositoryState::*;
+pub use ResetType::*;
 
 pub use blob::Blob;
 pub use branch::{Branch, Branches};
