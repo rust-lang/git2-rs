@@ -37,7 +37,7 @@ mod impls {
     use std::c_str::CString;
     use libc;
 
-    use raw;
+    use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
     use call::Convert;
 
     macro_rules! primitive( ($($p:ident)*) => (
@@ -104,67 +104,67 @@ mod impls {
         }
     }
 
-    impl Convert<raw::git_reset_t> for ::ResetType {
+    impl Convert<raw::git_reset_t> for ResetType {
         fn convert(&self) -> raw::git_reset_t {
             match *self {
-                ::Soft => raw::GIT_RESET_SOFT,
-                ::Hard => raw::GIT_RESET_HARD,
-                ::Mixed => raw::GIT_RESET_MIXED,
+                ResetType::Soft => raw::GIT_RESET_SOFT,
+                ResetType::Hard => raw::GIT_RESET_HARD,
+                ResetType::Mixed => raw::GIT_RESET_MIXED,
             }
         }
     }
 
-    impl Convert<raw::git_direction> for ::Direction {
+    impl Convert<raw::git_direction> for Direction {
         fn convert(&self) -> raw::git_direction {
             match *self {
-                ::DirPush => raw::GIT_DIRECTION_PUSH,
-                ::DirFetch => raw::GIT_DIRECTION_FETCH,
+                Direction::Push => raw::GIT_DIRECTION_PUSH,
+                Direction::Fetch => raw::GIT_DIRECTION_FETCH,
             }
         }
     }
 
-    impl Convert<raw::git_otype> for ::ObjectType {
+    impl Convert<raw::git_otype> for ObjectType {
         fn convert(&self) -> raw::git_otype {
             match *self {
-                ::ObjectAny => raw::GIT_OBJ_ANY,
-                ::ObjectCommit => raw::GIT_OBJ_COMMIT,
-                ::ObjectTree => raw::GIT_OBJ_TREE,
-                ::ObjectBlob => raw::GIT_OBJ_BLOB,
-                ::ObjectTag => raw::GIT_OBJ_TAG,
+                ObjectType::Any => raw::GIT_OBJ_ANY,
+                ObjectType::Commit => raw::GIT_OBJ_COMMIT,
+                ObjectType::Tree => raw::GIT_OBJ_TREE,
+                ObjectType::Blob => raw::GIT_OBJ_BLOB,
+                ObjectType::Tag => raw::GIT_OBJ_TAG,
             }
         }
     }
 
-    impl Convert<raw::git_otype> for Option<::ObjectType> {
+    impl Convert<raw::git_otype> for Option<ObjectType> {
         fn convert(&self) -> raw::git_otype {
-            self.unwrap_or(::ObjectAny).convert()
+            self.unwrap_or(ObjectType::Any).convert()
         }
     }
 
-    impl Convert<raw::git_branch_t> for ::BranchType {
+    impl Convert<raw::git_branch_t> for BranchType {
         fn convert(&self) -> raw::git_branch_t {
             match *self {
-                ::BranchRemote => raw::GIT_BRANCH_REMOTE,
-                ::BranchLocal => raw::GIT_BRANCH_LOCAL,
+                BranchType::Remote => raw::GIT_BRANCH_REMOTE,
+                BranchType::Local => raw::GIT_BRANCH_LOCAL,
             }
         }
     }
 
-    impl Convert<raw::git_branch_t> for Option<::BranchType> {
+    impl Convert<raw::git_branch_t> for Option<BranchType> {
         fn convert(&self) -> raw::git_branch_t {
             self.map(|s| s.convert()).unwrap_or(raw::GIT_BRANCH_ALL)
         }
     }
 
-    impl Convert<raw::git_config_level_t> for ::ConfigLevel {
+    impl Convert<raw::git_config_level_t> for ConfigLevel {
         fn convert(&self) -> raw::git_config_level_t {
             match *self {
-                ::ConfigSystem => raw::GIT_CONFIG_LEVEL_SYSTEM,
-                ::ConfigXDG => raw::GIT_CONFIG_LEVEL_XDG,
-                ::ConfigGlobal => raw::GIT_CONFIG_LEVEL_GLOBAL,
-                ::ConfigLocal => raw::GIT_CONFIG_LEVEL_LOCAL,
-                ::ConfigApp => raw::GIT_CONFIG_LEVEL_APP,
-                ::ConfigHighest => raw::GIT_CONFIG_HIGHEST_LEVEL,
+                ConfigLevel::System => raw::GIT_CONFIG_LEVEL_SYSTEM,
+                ConfigLevel::XDG => raw::GIT_CONFIG_LEVEL_XDG,
+                ConfigLevel::Global => raw::GIT_CONFIG_LEVEL_GLOBAL,
+                ConfigLevel::Local => raw::GIT_CONFIG_LEVEL_LOCAL,
+                ConfigLevel::App => raw::GIT_CONFIG_LEVEL_APP,
+                ConfigLevel::Highest => raw::GIT_CONFIG_HIGHEST_LEVEL,
             }
         }
     }

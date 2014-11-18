@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(tag.message(), Some("msg"));
         assert_eq!(tag.peel().unwrap().id(), obj.id());
         assert_eq!(tag.target_id(), obj.id());
-        assert_eq!(tag.target_type(), Some(::ObjectCommit));
+        assert_eq!(tag.target_type(), Some(::ObjectType::Commit));
 
         assert_eq!(tag.tagger().unwrap().name(), sig.name());
         tag.target().unwrap();

@@ -63,7 +63,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(globs, macro_rules, unsafe_destructor)]
+#![feature(macro_rules, unsafe_destructor)]
 #![deny(missing_docs)]
 
 extern crate libc;
@@ -77,14 +77,6 @@ use std::mem;
 use std::rt;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
-
-pub use BranchType::*;
-pub use ConfigLevel::*;
-pub use Direction::*;
-pub use ErrorCode::*;
-pub use ObjectType::*;
-pub use RepositoryState::*;
-pub use ResetType::*;
 
 pub use blob::Blob;
 pub use branch::{Branch, Branches};
@@ -163,9 +155,9 @@ pub enum RepositoryState {
 /// An enumeration of the possible directions for a remote.
 pub enum Direction {
     /// Data will be fetched (read) from this remote.
-    DirFetch,
+    Fetch,
     /// Data will be pushed (written) to this remote.
-    DirPush,
+    Push,
 }
 
 /// An enumeration of the operations that can be performed for the `reset`
@@ -183,24 +175,24 @@ pub enum ResetType {
 #[deriving(PartialEq, Eq)]
 pub enum ObjectType {
     /// An object which corresponds to a any git object
-    ObjectAny,
+    Any,
     /// An object which corresponds to a git commit
-    ObjectCommit,
+    Commit,
     /// An object which corresponds to a git tree
-    ObjectTree,
+    Tree,
     /// An object which corresponds to a git blob
-    ObjectBlob,
+    Blob,
     /// An object which corresponds to a git tag
-    ObjectTag,
+    Tag,
 }
 
 /// An enumeration for the possible types of branches
 #[deriving(PartialEq, Eq, Show)]
 pub enum BranchType {
     /// A local branch not on a remote.
-    BranchLocal,
+    Local,
     /// A branch for a remote.
-    BranchRemote,
+    Remote,
 }
 
 /// An enumeration of the possible priority levels of a config file.
@@ -210,17 +202,17 @@ pub enum BranchType {
 #[deriving(PartialEq, Eq, Show)]
 pub enum ConfigLevel {
     /// System-wide configuration file, e.g. /etc/gitconfig
-    ConfigSystem,
+    System,
     /// XDG-compatible configuration file, e.g. ~/.config/git/config
-    ConfigXDG,
+    XDG,
     /// User-specific configuration, e.g. ~/.gitconfig
-    ConfigGlobal,
+    Global,
     /// Reopsitory specific config, e.g. $PWD/.git/config
-    ConfigLocal,
+    Local,
     /// Application specific configuration file
-    ConfigApp,
+    App,
     /// Highest level available
-    ConfigHighest,
+    Highest,
 }
 
 bitflags! {
@@ -319,13 +311,13 @@ impl ObjectType {
     /// Convert a raw git_otype to an ObjectType
     pub fn from_raw(raw: raw::git_otype) -> Option<ObjectType> {
         match raw {
-            raw::GIT_OBJ_ANY => Some(ObjectAny),
+            raw::GIT_OBJ_ANY => Some(ObjectType::Any),
             raw::GIT_OBJ_BAD => None,
             raw::GIT_OBJ__EXT1 => None,
-            raw::GIT_OBJ_COMMIT => Some(ObjectCommit),
-            raw::GIT_OBJ_TREE => Some(ObjectTree),
-            raw::GIT_OBJ_BLOB => Some(ObjectBlob),
-            raw::GIT_OBJ_TAG => Some(ObjectTag),
+            raw::GIT_OBJ_COMMIT => Some(ObjectType::Commit),
+            raw::GIT_OBJ_TREE => Some(ObjectType::Tree),
+            raw::GIT_OBJ_BLOB => Some(ObjectType::Blob),
+            raw::GIT_OBJ_TAG => Some(ObjectType::Tag),
             raw::GIT_OBJ__EXT2 => None,
             raw::GIT_OBJ_OFS_DELTA => None,
             raw::GIT_OBJ_REF_DELTA => None,
@@ -354,12 +346,12 @@ impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
     pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
         match raw {
-            raw::GIT_CONFIG_LEVEL_SYSTEM => ::ConfigSystem,
-            raw::GIT_CONFIG_LEVEL_XDG => ::ConfigXDG,
-            raw::GIT_CONFIG_LEVEL_GLOBAL => ::ConfigGlobal,
-            raw::GIT_CONFIG_LEVEL_LOCAL => ::ConfigLocal,
-            raw::GIT_CONFIG_LEVEL_APP => ::ConfigApp,
-            raw::GIT_CONFIG_HIGHEST_LEVEL => ::ConfigHighest,
+            raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
+            raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
+            raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,
+            raw::GIT_CONFIG_LEVEL_LOCAL => ConfigLevel::Local,
+            raw::GIT_CONFIG_LEVEL_APP => ConfigLevel::App,
+            raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
         }
     }
 }
@@ -370,9 +362,9 @@ mod tests {
 
     #[test]
     fn convert() {
-        assert_eq!(::ObjectBlob.str(), "blob");
-        assert_eq!(ObjectType::from_str("blob"), Some(::ObjectBlob));
-        assert!(::ObjectBlob.is_loose());
+        assert_eq!(ObjectType::Blob.str(), "blob");
+        assert_eq!(ObjectType::from_str("blob"), Some(ObjectType::Blob));
+        assert!(ObjectType::Blob.is_loose());
     }
 
 }

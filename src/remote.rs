@@ -377,7 +377,7 @@ mod tests {
     use std::io::TempDir;
     use std::cell::Cell;
     use url::Url;
-    use {Repository, Remote, RemoteCallbacks};
+    use {Repository, Remote, RemoteCallbacks, Direction};
 
     #[test]
     fn smoke() {
@@ -426,11 +426,11 @@ mod tests {
             assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
         }
 
-        origin.connect(::DirPush).unwrap();
+        origin.connect(Direction::Push).unwrap();
         assert!(origin.connected());
         origin.disconnect();
 
-        origin.connect(::DirFetch).unwrap();
+        origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
         origin.download().unwrap();
         origin.disconnect();

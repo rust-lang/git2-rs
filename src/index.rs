@@ -475,7 +475,7 @@ mod tests {
     use std::io::{mod, fs, File, TempDir};
     use url::Url;
 
-    use {Index, Repository};
+    use {Index, Repository, ResetType};
 
     #[test]
     fn smoke() {
@@ -552,14 +552,14 @@ mod tests {
         let commit = repo.commit(Some("HEAD"), &sig, &sig, "commit",
                                  &tree, [&parent]).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
-        repo.reset(&obj, ::Hard, None, None).unwrap();
+        repo.reset(&obj, ResetType::Hard, None, None).unwrap();
 
         let td2 = TempDir::new("git").unwrap();
         let url = Url::from_file_path(&root).unwrap();
         let url = url.to_string();
         let repo = Repository::clone(url.as_slice(), td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
-        repo.reset(&obj, ::Hard, None, None).unwrap();
+        repo.reset(&obj, ResetType::Hard, None, None).unwrap();
     }
 }
 

@@ -337,12 +337,12 @@ mod test {
     use std::io::{mod, TempDir, File, fs};
     use std::os;
 
-    use {Cred, Config, CredentialHelper};
+    use {Cred, Config, CredentialHelper, ConfigLevel};
 
     macro_rules! cfg( ($($k:expr => $v:expr),*) => ({
         let td = TempDir::new("git2-rs").unwrap();
         let mut cfg = Config::new().unwrap();
-        cfg.add_file(&td.path().join("cfg"), ::ConfigHighest, false).unwrap();
+        cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
         $(cfg.set_str($k, $v).unwrap();)*
         cfg
     }) )

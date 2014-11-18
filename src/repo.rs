@@ -182,7 +182,9 @@ impl Repository {
     pub fn state(&self) -> RepositoryState {
         let state = unsafe { raw::git_repository_state(self.raw) };
         macro_rules! check( ($($raw:ident => $real:ident),*) => (
-            $(if state == raw::$raw as c_int { super::$real }) else *
+            $(if state == raw::$raw as c_int {
+                super::RepositoryState::$real
+            }) else *
             else {
                 panic!("unknown repository state: {}", state)
             }
@@ -964,7 +966,7 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use std::io::TempDir;
-    use {Repository};
+    use {Repository, ObjectType, ResetType};
 
     #[test]
     fn smoke_init() {
@@ -995,7 +997,7 @@ mod tests {
         assert!(!repo.is_shallow());
         assert!(repo.is_empty().unwrap());
         assert!(repo.path() == td.path().join(".git"));
-        assert_eq!(repo.state(), ::Clean);
+        assert_eq!(repo.state(), ::RepositoryState::Clean);
     }
 
     #[test]
@@ -1025,11 +1027,11 @@ mod tests {
 
         assert_eq!(repo.revparse_single("HEAD").unwrap().id(), from.id());
         let obj = repo.find_object(from.id(), None).unwrap().clone();
-        obj.peel(::ObjectAny).unwrap();
+        obj.peel(ObjectType::Any).unwrap();
         obj.short_id().unwrap();
         let sig = repo.signature().unwrap();
-        repo.reset(&obj, ::Hard, None, None).unwrap();
-        repo.reset(&obj, ::Soft, Some(&sig), Some("foo")).unwrap();
+        repo.reset(&obj, ResetType::Hard, None, None).unwrap();
+        repo.reset(&obj, ResetType::Soft, Some(&sig), Some("foo")).unwrap();
     }
 
     #[test]
