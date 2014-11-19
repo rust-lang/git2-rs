@@ -14,7 +14,7 @@ pub fn repo_init() -> (TempDir, Repository) {
         let tree = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
         repo.commit(Some("HEAD"), &sig, &sig, "initial",
-                    &tree, []).unwrap();
+                    &tree, &[]).unwrap();
     }
     (td, repo)
 }

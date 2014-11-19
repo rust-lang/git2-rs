@@ -247,7 +247,7 @@ mod tests {
         let sig = repo.signature().unwrap();
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         let id = repo.commit(Some("HEAD"), &sig, &sig, "bar", &tree,
-                             [&commit]).unwrap();
+                             &[&commit]).unwrap();
         let head = repo.find_commit(id).unwrap();
 
         let new_head = head.amend(Some("HEAD"), None, None, None,

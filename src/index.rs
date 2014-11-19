@@ -550,7 +550,7 @@ mod tests {
         let id = repo.refname_to_id("HEAD").unwrap();
         let parent = repo.find_commit(id).unwrap();
         let commit = repo.commit(Some("HEAD"), &sig, &sig, "commit",
-                                 &tree, [&parent]).unwrap();
+                                 &tree, &[&parent]).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None, None).unwrap();
 

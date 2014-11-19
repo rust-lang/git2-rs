@@ -251,7 +251,7 @@ mod tests {
             let parent = repo.find_commit(repo.head().unwrap().target()
                                               .unwrap()).unwrap();
             repo.commit(Some("HEAD"), &sig, &sig, "another commit",
-                        &tree, [&parent]).unwrap();
+                        &tree, &[&parent]).unwrap();
         }
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
