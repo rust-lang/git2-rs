@@ -155,7 +155,7 @@ impl CredentialHelper {
         match parsed_url {
             Ok(url) => {
                 match url.host() {
-                    Some(&url::Domain(ref s)) => ret.host = Some(s.clone()),
+                    Some(&url::Host::Domain(ref s)) => ret.host = Some(s.clone()),
                     _ => {}
                 }
                 ret.protocol = Some(url.scheme)
@@ -166,8 +166,8 @@ impl CredentialHelper {
 
         fn mapper(s: &str) -> url::SchemeType {
             match s {
-                "git" => url::RelativeScheme(9418),
-                "ssh" => url::RelativeScheme(22),
+                "git" => url::SchemeType::Relative(9418),
+                "ssh" => url::SchemeType::Relative(22),
                 s => url::whatwg_scheme_type_mapper(s),
             }
         }
