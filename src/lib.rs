@@ -101,6 +101,7 @@ pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
 pub use tag::Tag;
 pub use tree::{Tree, TreeEntry};
+pub use repo_status::{RepoStatus, RepoStatusFlags, FileState};
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
@@ -267,6 +268,7 @@ mod string_array;
 mod submodule;
 mod tag;
 mod tree;
+mod repo_status;
 
 #[cfg(test)] mod test;
 
