@@ -268,29 +268,30 @@ pub enum git_status_t {
     GIT_STATUS_WT_DELETED = (1 << 9),
     GIT_STATUS_WT_TYPECHANGE = (1 << 10),
     GIT_STATUS_WT_RENAMED = (1 << 11),
+    GIT_STATUS_WT_UNREADABLE = (1 << 12),
 
     GIT_STATUS_IGNORED = (1 << 14),
 }
 
 #[repr(C)]
 pub enum git_status_opt_t {
-	GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
-	GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
-	GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = (1 << 2),
-	GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = (1 << 3),
-	GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = (1 << 4),
-	GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = (1 << 5),
-	GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = (1 << 6),
-	GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = (1 << 7),
-	GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = (1 << 8),
-	GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = (1 << 9),
-	GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = (1 << 10),
+    GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
+    GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
+    GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = (1 << 2),
+    GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = (1 << 3),
+    GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = (1 << 4),
+    GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = (1 << 5),
+    GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = (1 << 6),
+    GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = (1 << 7),
+    GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = (1 << 8),
+    GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = (1 << 9),
+    GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = (1 << 10),
 
-	GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = (1 << 11),
-	GIT_STATUS_OPT_NO_REFRESH                       = (1 << 12),
-	GIT_STATUS_OPT_UPDATE_INDEX                     = (1 << 13),
-	GIT_STATUS_OPT_INCLUDE_UNREADABLE               = (1 << 14),
-	GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = (1 << 15),
+    GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = (1 << 11),
+    GIT_STATUS_OPT_NO_REFRESH                       = (1 << 12),
+    GIT_STATUS_OPT_UPDATE_INDEX                     = (1 << 13),
+    GIT_STATUS_OPT_INCLUDE_UNREADABLE               = (1 << 14),
+    GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = (1 << 15),
 }
 
 #[repr(C)]
@@ -302,42 +303,28 @@ pub enum git_status_show_t {
 
 #[repr(C)]
 pub enum git_delta_t {
-	GIT_DELTA_UNMODIFIED = 0, 
-	GIT_DELTA_ADDED = 1,	 
-	GIT_DELTA_DELETED = 2,	
-	GIT_DELTA_MODIFIED = 3,
-	GIT_DELTA_RENAMED = 4, 
-	GIT_DELTA_COPIED = 5,  
-	GIT_DELTA_IGNORED = 6, 
-	GIT_DELTA_UNTRACKED = 7,
-	GIT_DELTA_TYPECHANGE = 8,
-	GIT_DELTA_UNREADABLE = 9, 
+    GIT_DELTA_UNMODIFIED = 0,
+    GIT_DELTA_ADDED = 1,
+    GIT_DELTA_DELETED = 2,
+    GIT_DELTA_MODIFIED = 3,
+    GIT_DELTA_RENAMED = 4,
+    GIT_DELTA_COPIED = 5,
+    GIT_DELTA_IGNORED = 6,
+    GIT_DELTA_UNTRACKED = 7,
+    GIT_DELTA_TYPECHANGE = 8,
+    GIT_DELTA_UNREADABLE = 9,
 }
 
 #[repr(C)]
 pub struct git_status_options {
-    pub version: u32,
+    pub version: c_uint,
     pub show: git_status_show_t,
-    pub flags: u32,
+    pub flags: c_uint,
     pub pathspec: git_strarray,
 }
 
 #[repr(C)]
-pub struct git_vector {
-    _alloc_size: size_t,
-    _cmp: extern fn(a: *mut c_void, b: *mut c_void),
-    contents: *mut *mut c_void,
-    length: size_t,
-    flag: u32,
-}
-
-#[repr(C)]
-pub struct git_status_list {
-    pub git_status_options: git_status_options,
-    pub head2idx: *mut c_void,
-    pub idx2wd: *mut c_void,
-    pub paired: git_vector
-}
+pub struct git_status_list;
 
 #[repr(C)]
 pub struct git_diff_delta {
@@ -899,17 +886,10 @@ extern {
     pub fn git_status_list_new(out: *mut *mut git_status_list,
                                repo: *mut git_repository,
                                options: *const git_status_options) -> c_int;
-
     pub fn git_status_list_entrycount(list: *mut git_status_list) -> size_t;
-
-    pub fn git_status_byindex(statuslist: *mut git_status_list, idx: size_t) -> *const git_status_entry;
-
-    pub fn git_status_foreach_ext(repo: *mut git_repository,
-                              options: *const git_status_options,
-                              callback: extern fn(*const c_char,
-                                                  *const c_int,
-                                                  *mut c_void) -> c_int,
-                              payload: *mut c_void) -> c_int;
+    pub fn git_status_byindex(statuslist: *mut git_status_list,
+                              idx: size_t) -> *const git_status_entry;
+    pub fn git_status_list_free(list: *mut git_status_list);
 
     // clone
     pub fn git_clone(out: *mut *mut git_repository,

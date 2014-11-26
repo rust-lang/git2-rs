@@ -1,6 +1,7 @@
-extern crate "libgit2-sys" as raw;
-
+use raw;
 use std::fmt;
+use std::c_str::CString;
+use libc::c_char;
 
 bitflags! {
     #[doc = "
@@ -41,10 +42,71 @@ pub enum FileState {
     Untracked,
 }
 
+impl fmt::Show for FileState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match *self {
+            FileState::Clean => " ",
+            FileState::Deleted => "D",
+            FileState::Modified => "M",
+            FileState::New => "A",
+            FileState::Renamed => "R",
+            FileState::TypeChange => "T",
+            FileState::Untracked => "?"
+        })
+    }
+}
+
+pub struct DeltaFiles {
+    pub old: Option<Path>,
+    pub new: Option<Path>
+}
+
+impl DeltaFiles {
+    pub fn new(delta: *mut raw::git_diff_delta) -> Option<DeltaFiles> {
+        fn to_path(buf: *const c_char) -> Option<Path> {
+            unsafe {
+                match CString::new(buf, false).as_str() {
+                    Some(p) => Some(Path::new(p)),
+                    None => None
+                }
+            }
+        }
+
+        if delta != 0 as *mut raw::git_diff_delta {
+            let d = unsafe { *delta };
+            Some(DeltaFiles {
+                old: to_path(d.old_file.path),
+                new: to_path(d.new_file.path),
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl fmt::Show for DeltaFiles {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match (self.old.clone(), self.new.clone()) {
+            (Some(o), Some(n)) => {
+                if o != n {
+                    format!("{} -> {}", o.as_str().unwrap(), n.as_str().unwrap())
+                } else {
+                    o.as_str().unwrap().to_string()
+                }
+            },
+            (Some(o), None) => o.as_str().unwrap().to_string(),
+            (None, Some(n)) => n.as_str().unwrap().to_string(),
+            (None, None) => "".to_string()
+        })
+    }
+}
+
 /// A structure to represent the git status
 pub struct RepoStatus {
-    /// The path of the file
-    pub path: String,
+    /// The filenames from head to index
+    pub head_to_index: Option<DeltaFiles>,
+    /// The filenames from index to workdir
+    pub index_to_wd: Option<DeltaFiles>,
     /// Is the file ignored
     pub is_ignored: bool,
     /// State of the staged changes
@@ -53,11 +115,18 @@ pub struct RepoStatus {
     pub working_state: FileState,
 }
 
+
 impl RepoStatus {
     /// Initializes an instance of RepoStatus
-    pub fn new(flags: RepoStatusFlags) -> RepoStatus {
+    pub fn new(s: raw::git_status_entry) -> RepoStatus {
+        let flags = match RepoStatusFlags::from_bits(s.status as u32) {
+            Some(flags) => flags,
+            None => RepoStatusFlags::empty()
+        };
+
         RepoStatus {
-            path: "".to_string(),
+            head_to_index: DeltaFiles::new(s.head_to_index),
+            index_to_wd: DeltaFiles::new(s.index_to_workdir),
             is_ignored: flags.contains(IGNORED),
             indexed_state:
                      if flags.contains(INDEX_RENAMED) { FileState::Renamed }
@@ -80,28 +149,15 @@ impl RepoStatus {
 
 impl fmt::Show for RepoStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-
         write!(f, "{}{} {}",
-            match self.indexed_state {
-                FileState::Clean => " ",
-                FileState::Deleted => "D",
-                FileState::Modified => "M",
-                FileState::New => "A",
-                FileState::Renamed => "R",
-                FileState::TypeChange => "T",
-                FileState::Untracked => "?"
-            },
-
-            match self.working_state {
-                FileState::Clean => " ",
-                FileState::Deleted => "D",
-                FileState::Modified => "M",
-                FileState::New => "A",
-                FileState::Renamed => "R",
-                FileState::TypeChange => "T",
-                FileState::Untracked => "?"
-            },
-
-            self.path)
+            self.indexed_state,
+            self.working_state,
+            match self.head_to_index {
+                Some(ref files) => Some(files),
+                None => match self.index_to_wd {
+                    Some(ref files) => Some(files),
+                    None => None
+                }
+            }.unwrap())
     }
 }

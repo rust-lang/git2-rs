@@ -2,13 +2,12 @@ use std::c_str::CString;
 use std::kinds::marker;
 use std::mem;
 use std::str;
-use std::os;
 use libc::{c_int, c_char, size_t, c_void};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectType, Tag, RepoStatus, RepoStatusFlags, FileState};
+use {ObjectType, Tag, RepoStatus};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -403,10 +402,6 @@ impl Repository {
             return Err(Error::from_str("Can't get the status of a bare repository"));
         }
 
-        struct Data<'a> {
-            ret: &'a mut Vec<RepoStatus>
-        }
-
         let mut ret = Vec::new();
 
         unsafe {
@@ -422,96 +417,18 @@ impl Repository {
                 }
             };
 
-            let get_path = |buf: *const c_char| -> Option<&str> {
-                let workdir = self.workdir().unwrap();
-                let cwd = os::getcwd().unwrap();
-
-                let path = CString::new(buf, false);
-                match path.as_str() {
-                    Some(p) => {
-                        let path_object = Path::new(p);
-                        let relative_path = workdir.join(&path_object)
-                                                   .path_relative_from(&cwd)
-                                                   .unwrap();
-                        Some(relative_path.as_str().unwrap().clone())
-                    }
-                    None => None
-                }
-            };
-
             let mut status = 0 as *mut raw::git_status_list;
-            let result = raw::git_status_list_new(&mut status, self.raw, &options);
+            try_call!(raw::git_status_list_new(&mut status, self.raw, &options));
 
             let max = raw::git_status_list_entrycount(status);
 
             for i in range(0, max) {
-
-                let s = *raw::git_status_byindex(status, i);
-                let flags = match RepoStatusFlags::from_bits(s.status as u32) {
-                    Some(flags) => flags,
-                    None => RepoStatusFlags::empty()
-                };
-
-                let mut rt = RepoStatus::new(flags);
-
-                match rt.indexed_state {
-                    FileState::Untracked => continue,
-                    _ => {}
-                };
-
-                let delta = if s.head_to_index != 0 as *mut raw::git_diff_delta {
-                    *s.head_to_index
-                } else {
-                    *s.index_to_workdir
-                };
-
-
-                let from = get_path(delta.old_file.path);
-                let to = get_path(delta.new_file.path);
-
-                rt.path = match from {
-                    Some(f) => match to {
-                        Some(t) => {
-                            if f != t {
-                                format!("{} -> {}", f.to_string(), t.to_string())
-                            } else {
-                                f.to_string()
-                            }
-                        },
-                        None => "No path".to_string()
-                    },
-                    None => match to {
-                        Some(t) => t.to_string(),
-                        None => "No path".to_string()
-                    }
-                };
-
-                ret.push(rt);
-            }
-
-            for i in range(0, max) {
                 let s = *raw::git_status_byindex(status, i);
 
-                let flags = match RepoStatusFlags::from_bits(s.status as u32) {
-                    Some(flags) => flags,
-                    None => RepoStatusFlags::empty()
-                };
-
-                let mut rt = RepoStatus::new(flags);
-
-                match rt.indexed_state {
-                    FileState::Untracked => {
-                        let delta = *s.index_to_workdir;
-                        rt.path = match get_path(delta.old_file.path) {
-                            Some(t) => t.to_string(),
-                            None => "No path".to_string()
-                        };
-                        ret.push(rt);
-                    },
-                    _ => { continue; }
-                }
+                ret.push(RepoStatus::new(s));
             }
 
+            raw::git_status_list_free(status);
         }
 
         return Ok(ret);
