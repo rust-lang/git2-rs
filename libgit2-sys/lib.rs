@@ -8,6 +8,24 @@ extern crate "libssh2-sys" as libssh2;
 
 pub use git_ref_t::*;
 pub use git_branch_t::*;
+pub use git_error_code::*;
+pub use git_repository_state_t::*;
+pub use git_direction::*;
+pub use git_clone_local_t::*;
+pub use git_remote_completion_type::*;
+pub use git_checkout_notify_t::*;
+pub use git_checkout_strategy_t::*;
+pub use git_reset_t::*;
+pub use git_otype::*;
+pub use git_filemode_t::*;
+pub use git_treewalk_mode::*;
+pub use git_config_level_t::*;
+pub use git_submodule_update_t::*;
+pub use git_submodule_ignore_t::*;
+pub use git_credtype_t::*;
+pub use git_repository_init_flag_t::*;
+pub use git_repository_init_mode_t::*;
+pub use git_index_add_option_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
