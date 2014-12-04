@@ -7,7 +7,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status};
+use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -989,6 +989,15 @@ impl Repository {
                                            &*committer.raw(),
                                            &*id.raw()));
             Ok(())
+        }
+    }
+
+    /// Create a revwalk that can be used to traverse the commit graph.
+    pub fn revwalk(&self) -> Result<Revwalk, Error> {
+        let mut raw = 0 as *mut raw::git_revwalk;
+        unsafe {
+            try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
+            Ok(Revwalk::from_raw(self, raw))
         }
     }
 }

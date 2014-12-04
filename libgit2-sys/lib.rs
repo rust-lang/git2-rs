@@ -31,6 +31,7 @@ pub use git_status_t::*;
 pub use git_status_opt_t::*;
 pub use git_status_show_t::*;
 pub use git_delta_t::*;
+pub use git_sort::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -53,6 +54,7 @@ pub enum git_reference_iterator {}
 pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
+pub enum git_revwalk {}
 pub enum git_submodule {}
 pub enum git_tag {}
 pub enum git_tree {}
@@ -660,6 +662,15 @@ pub enum git_repository_init_mode_t {
     GIT_REPOSITORY_INIT_SHARED_GROUP = 0o002775,
     GIT_REPOSITORY_INIT_SHARED_ALL   = 0o002777,
 }
+
+#[repr(C)]
+pub enum git_sort {
+    GIT_SORT_NONE        = 0,
+    GIT_SORT_TOPOLOGICAL = (1 << 0),
+    GIT_SORT_TIME        = (1 << 1),
+    GIT_SORT_REVERSE     = (1 << 2),
+}
+
 
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
@@ -1509,6 +1520,29 @@ extern {
                            author: *const git_signature,
                            committer: *const git_signature,
                            oid: *const git_oid) -> c_int;
+
+    // revwalk
+    pub fn git_revwalk_new(out: *mut *mut git_revwalk,
+                           repo: *mut git_repository) -> c_int;
+    pub fn git_revwalk_free(walk: *mut git_revwalk);
+
+    pub fn git_revwalk_reset(walk: *mut git_revwalk);
+
+    pub fn git_revwalk_sorting(walk: *mut git_revwalk, sort_mode: c_uint);
+
+    pub fn git_revwalk_push_head(walk: *mut git_revwalk) -> c_int;
+    pub fn git_revwalk_push(walk: *mut git_revwalk,
+                            oid: *const git_oid) -> c_int;
+    pub fn git_revwalk_push_ref(walk: *mut git_revwalk,
+                                refname: *const c_char) -> c_int;
+
+    pub fn git_revwalk_hide_head(walk: *mut git_revwalk) -> c_int;
+    pub fn git_revwalk_hide(walk: *mut git_revwalk,
+                            oid: *const git_oid) -> c_int;
+    pub fn git_revwalk_hide_ref(walk: *mut git_revwalk,
+                                refname: *const c_char) -> c_int;
+
+    pub fn git_revwalk_next(out: *mut git_oid, walk: *mut git_revwalk) -> c_int;
 }
 
 #[test]

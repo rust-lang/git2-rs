@@ -99,6 +99,7 @@ pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
 pub use remote_callbacks::{TransportMessage, Progress};
 pub use repo::{Repository, RepositoryInitOptions};
 pub use revspec::Revspec;
+pub use revwalk::Revwalk;
 pub use signature::Signature;
 pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
@@ -223,6 +224,18 @@ pub enum ConfigLevel {
 
 bitflags! {
     #[doc = "
+Orderings that may be specified for Revwalk iteration.
+"]
+    flags Sort: uint {
+        const SORT_NONE = raw::GIT_SORT_NONE as uint,
+        const SORT_TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as uint,
+        const SORT_TIME = raw::GIT_SORT_TIME as uint,
+        const SORT_REVERSE = raw::GIT_SORT_REVERSE as uint,
+    }
+}
+
+bitflags! {
+    #[doc = "
 Types of credentials that can be requested by a credential callback.
 "]
     flags CredentialType: uint {
@@ -270,6 +283,7 @@ mod remote;
 mod remote_callbacks;
 mod repo;
 mod revspec;
+mod revwalk;
 mod signature;
 mod status;
 mod string_array;
