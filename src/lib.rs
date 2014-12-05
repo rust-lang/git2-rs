@@ -299,7 +299,7 @@ impl ObjectType {
     pub fn str(&self) -> &'static str {
         unsafe {
             let ptr = call!(raw::git_object_type2string(*self));
-            str::raw::c_str_to_static_slice(ptr)
+            mem::transmute::<&str, &'static str>(str::from_c_str(ptr))
         }
     }
 

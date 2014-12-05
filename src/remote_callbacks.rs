@@ -198,9 +198,9 @@ extern fn sideband_progress_cb(str: *const libc::c_char,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let r = slice::raw::buf_as_slice(str as *const u8, len as uint, |buf| {
-            (*callback)(buf)
-        });
+        let ptr = str as *const u8;
+        let buf = slice::from_raw_buf(&ptr, len as uint);
+        let r = (*callback)(buf);
         if r {0} else {-1}
     }
 }

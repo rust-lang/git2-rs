@@ -30,7 +30,7 @@ impl Error {
         ::init();
         Error {
             raw: raw::git_error {
-                message: unsafe { s.to_c_str().unwrap() as *mut _ },
+                message: unsafe { s.to_c_str().into_inner() as *mut _ },
                 klass: raw::GIT_ERROR as libc::c_int,
             }
         }
