@@ -23,6 +23,7 @@ pub struct IndexEntries<'a> {
     index: &'a Index,
 }
 
+/// Callback invoked when matching paths contained inside the index
 pub type IndexMatchedPath<'a> = |&[u8], &[u8]|: 'a -> int;
 
 /// A structure to represent an entry or a file inside of an index.
