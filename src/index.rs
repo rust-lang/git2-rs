@@ -23,6 +23,11 @@ pub struct IndexEntries<'a> {
     index: &'a Index,
 }
 
+/// A callback function to filter index matches.
+///
+/// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
+/// path, and the second is the patchspec that matched it.  Return 0 to confirm
+/// the operation on the item, > 0 to skip the item, and < 0 to abort the scan.
 pub type IndexMatchedPath<'a> = |&[u8], &[u8]|: 'a -> int;
 
 /// A structure to represent an entry or a file inside of an index.
