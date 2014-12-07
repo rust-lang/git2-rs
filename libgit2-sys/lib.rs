@@ -328,12 +328,12 @@ pub enum git_ref_t {
 
 #[repr(C)]
 pub enum git_filemode_t {
-    GIT_FILEMODE_UNREADABLE          = 0000000,
-    GIT_FILEMODE_TREE                = 0040000,
-    GIT_FILEMODE_BLOB                = 0100644,
-    GIT_FILEMODE_BLOB_EXECUTABLE     = 0100755,
-    GIT_FILEMODE_LINK                = 0120000,
-    GIT_FILEMODE_COMMIT              = 0160000,
+    GIT_FILEMODE_UNREADABLE          = 0o000000,
+    GIT_FILEMODE_TREE                = 0o040000,
+    GIT_FILEMODE_BLOB                = 0o100644,
+    GIT_FILEMODE_BLOB_EXECUTABLE     = 0o100755,
+    GIT_FILEMODE_LINK                = 0o120000,
+    GIT_FILEMODE_COMMIT              = 0o160000,
 }
 
 #[repr(C)]
