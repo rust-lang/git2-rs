@@ -39,10 +39,14 @@ fn main() {
     if mingw {
         cmd.arg("-G").arg("Unix Makefiles");
     }
+    let profile = match os::getenv("PROFILE").unwrap().as_slice() {
+        "bench" | "release" => "Release",
+        _ => "Debug",
+    };
     run(cmd.arg("-DTHREADSAFE=ON")
            .arg("-DBUILD_SHARED_LIBS=OFF")
            .arg("-DBUILD_CLAR=OFF")
-           .arg("-DCMAKE_BUILD_TYPE=Release")
+           .arg(format!("-DCMAKE_BUILD_TYPE={}", profile))
            .arg(format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
            .arg("-DBUILD_EXAMPLES=OFF")
            .arg(format!("-DCMAKE_C_FLAGS={}", cflags)));
