@@ -212,7 +212,8 @@ impl<'a, 'b> Remote<'a, 'b> {
     pub fn download(&mut self) -> Result<(), Error> {
         unsafe {
             try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_download(self.raw));
+            // FIXME expose refspec array at the API level
+            try_call!(raw::git_remote_download(self.raw, 0 as *const _));
         }
         Ok(())
     }

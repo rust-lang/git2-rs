@@ -769,7 +769,9 @@ extern {
     pub fn git_remote_add_push(remote: *mut git_remote,
                                refspec: *const c_char) -> c_int;
     pub fn git_remote_clear_refspecs(remote: *mut git_remote);
-    pub fn git_remote_download(remote: *mut git_remote) -> c_int;
+    pub fn git_remote_download(remote: *mut git_remote,
+                               refspecs: *const git_strarray) -> c_int;
+    pub fn git_remote_stop(remote: *mut git_remote);
     pub fn git_remote_dup(dest: *mut *mut git_remote,
                           source: *mut git_remote) -> c_int;
     pub fn git_remote_get_fetch_refspecs(array: *mut git_strarray,
