@@ -273,17 +273,6 @@ impl Config {
         }
     }
 
-    /// Reload changed config files
-    ///
-    /// A config file may be changed on disk out from under the in-memory
-    /// config object. This function causes us to look for files that have been
-    /// modified since we last loaded them and refresh the config with the
-    /// latest information.
-    pub fn refresh(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_config_refresh(self.raw)); }
-        Ok(())
-    }
-
     /// Set the value of a boolean config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_bool(&mut self, name: &str, value: bool) -> Result<(), Error> {
@@ -450,7 +439,6 @@ mod tests {
         cfg.set_i64("foo.k3", 2).unwrap();
         cfg.set_str("foo.k4", "bar").unwrap();
         cfg.snapshot().unwrap();
-        cfg.refresh().unwrap();
         drop(cfg);
 
         let cfg = Config::open(&path).unwrap();

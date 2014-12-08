@@ -249,7 +249,8 @@ impl Repository {
     pub fn find_remote(&self, name: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
         unsafe {
-            try_call!(raw::git_remote_load(&mut ret, self.raw, name.to_c_str()));
+            try_call!(raw::git_remote_lookup(&mut ret, self.raw,
+                                             name.to_c_str()));
             Ok(Remote::from_raw(self, ret))
         }
     }
@@ -281,6 +282,37 @@ impl Repository {
         }
     }
 
+    /// Give a remote a new name
+    ///
+    /// All remote-tracking branches and configuration settings for the remote
+    /// are updated.
+    ///
+    /// A temporary in-memory remote cannot be given a name with this method.
+    pub fn remote_rename(&self, name: &str,
+                         new_name: &str) -> Result<(), Error> {
+        let mut problems = raw::git_strarray {
+            count: 0,
+            strings: 0 as *mut *mut c_char,
+        };
+        unsafe {
+            try_call!(raw::git_remote_rename(&mut problems,
+                                             self.raw,
+                                             name.to_c_str(),
+                                             new_name.to_c_str()));
+            let _s = StringArray::from_raw(problems);
+        }
+        Ok(())
+    }
+
+    /// Delete an existing persisted remote.
+    ///
+    /// All remote-tracking branches and configuration settings for the remote
+    /// will be removed.
+    pub fn remote_delete(&self, name: &str) -> Result<(), Error> {
+        unsafe { try_call!(raw::git_remote_delete(self.raw, name.to_c_str())); }
+        Ok(())
+    }
+
     /// Get the underlying raw repository
     pub fn raw(&self) -> *mut raw::git_repository { self.raw }
 
@@ -300,6 +332,8 @@ impl Repository {
                      -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_reset(self.raw, target.raw(), kind,
+                                     // FIXME: expose git_checkout_options_t
+                                     0 as *mut _,
                                      sig.map(|s| s.raw()).unwrap_or(0 as *mut _),
                                      msg.map(|s| s.to_c_str())));
         }

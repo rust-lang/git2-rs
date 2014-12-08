@@ -271,17 +271,16 @@ mod tree;
 #[cfg(test)] mod test;
 
 fn init() {
-    static mut INIT: Once = ONCE_INIT;
-    unsafe {
-        INIT.doit(|| {
-            raw::openssl_init();
-            assert!(raw::git_threads_init() == 0,
-                    "couldn't initialize the libgit2 library!");
-            rt::at_exit(proc() {
-                raw::git_threads_shutdown();
-            });
-        })
-    }
+    static INIT: Once = ONCE_INIT;
+    INIT.doit(|| unsafe {
+        raw::openssl_init();
+        let r = raw::git_libgit2_init();
+        assert!(r >= 0,
+                "couldn't initialize the libgit2 library: {}", r);
+        rt::at_exit(proc() {
+            raw::git_libgit2_shutdown();
+        });
+    });
 }
 
 unsafe fn opt_bytes<'a, T>(_: &'a T,

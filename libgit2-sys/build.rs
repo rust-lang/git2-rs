@@ -42,7 +42,7 @@ fn main() {
     run(cmd.arg("-DTHREADSAFE=ON")
            .arg("-DBUILD_SHARED_LIBS=OFF")
            .arg("-DBUILD_CLAR=OFF")
-           .arg("-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+           .arg("-DCMAKE_BUILD_TYPE=Release")
            .arg(format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
            .arg("-DBUILD_EXAMPLES=OFF")
            .arg(format!("-DCMAKE_C_FLAGS={}", cflags)));

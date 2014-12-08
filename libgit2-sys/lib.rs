@@ -26,6 +26,7 @@ pub use git_credtype_t::*;
 pub use git_repository_init_flag_t::*;
 pub use git_repository_init_mode_t::*;
 pub use git_index_add_option_t::*;
+pub use git_cert_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -207,11 +208,17 @@ pub struct git_remote_callbacks {
     pub completion: Option<extern fn(git_remote_completion_type,
                                      *mut c_void) -> c_int>,
     pub credentials: Option<git_cred_acquire_cb>,
+    pub certificate_check: Option<git_transport_certificate_check_cb>,
     pub transfer_progress: Option<git_transfer_progress_cb>,
     pub update_tips: Option<extern fn(*const c_char,
                                       *const git_oid,
                                       *const git_oid,
                                       *mut c_void) -> c_int>,
+    pub pack_progress: Option<git_packbuilder_progress>,
+    pub push_transfer_progress: Option<git_push_transfer_progress>,
+    pub push_update_reference: Option<extern fn(*const c_char,
+                                                *const c_char,
+                                                *mut c_void) -> c_int>,
     pub payload: *mut c_void,
 }
 
@@ -229,6 +236,25 @@ pub type git_cred_acquire_cb = extern fn(*mut *mut git_cred,
                                          c_uint, *mut c_void) -> c_int;
 pub type git_transfer_progress_cb = extern fn(*const git_transfer_progress,
                                               *mut c_void) -> c_int;
+pub type git_packbuilder_progress = extern fn(c_int, c_uint, c_uint,
+                                              *mut c_void) -> c_int;
+pub type git_push_transfer_progress = extern fn(c_uint, c_uint, size_t,
+                                                *mut c_void) -> c_int;
+pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
+                                                        c_int,
+                                                        *const c_char,
+                                                        *mut c_void) -> c_int;
+
+#[repr(C)]
+pub enum git_cert_t {
+    GIT_CERT_X509,
+    GIT_CERT_HOSTKEY_LIBSSH2,
+}
+
+#[repr(C)]
+pub struct git_cert {
+    pub cert_type: git_cert_t,
+}
 
 #[repr(C)]
 pub struct git_transfer_progress {
@@ -635,8 +661,8 @@ pub fn openssl_init() {}
 
 extern {
     // threads
-    pub fn git_threads_init() -> c_int;
-    pub fn git_threads_shutdown();
+    pub fn git_libgit2_init() -> c_int;
+    pub fn git_libgit2_shutdown();
 
     // repository
     pub fn git_repository_free(repo: *mut git_repository);
@@ -719,14 +745,15 @@ extern {
                              repo: *mut git_repository,
                              name: *const c_char,
                              url: *const c_char) -> c_int;
-    pub fn git_remote_load(out: *mut *mut git_remote,
-                           repo: *mut git_repository,
-                           name: *const c_char) -> c_int;
+    pub fn git_remote_lookup(out: *mut *mut git_remote,
+                             repo: *mut git_repository,
+                             name: *const c_char) -> c_int;
     pub fn git_remote_create_anonymous(out: *mut *mut git_remote,
                                        repo: *mut git_repository,
                                        url: *const c_char,
                                        fetch: *const c_char) -> c_int;
-    pub fn git_remote_delete(remote: *mut git_remote) -> c_int;
+    pub fn git_remote_delete(repo: *mut git_repository,
+                             name: *const c_char) -> c_int;
     pub fn git_remote_free(remote: *mut git_remote);
     pub fn git_remote_name(remote: *const git_remote) -> *const c_char;
     pub fn git_remote_pushurl(remote: *const git_remote) -> *const c_char;
@@ -741,7 +768,6 @@ extern {
                                 refspec: *const c_char) -> c_int;
     pub fn git_remote_add_push(remote: *mut git_remote,
                                refspec: *const c_char) -> c_int;
-    pub fn git_remote_check_cert(remote: *mut git_remote, check: c_int);
     pub fn git_remote_clear_refspecs(remote: *mut git_remote);
     pub fn git_remote_download(remote: *mut git_remote) -> c_int;
     pub fn git_remote_dup(dest: *mut *mut git_remote,
@@ -751,14 +777,14 @@ extern {
     pub fn git_remote_get_refspec(remote: *const git_remote,
                                   n: size_t) -> *const git_refspec;
     pub fn git_remote_is_valid_name(remote_name: *const c_char) -> c_int;
-    pub fn git_remote_valid_url(url: *const c_char) -> c_int;
-    pub fn git_remote_supported_url(url: *const c_char) -> c_int;
     pub fn git_remote_list(out: *mut git_strarray,
                            repo: *mut git_repository) -> c_int;
     pub fn git_remote_rename(problems: *mut git_strarray,
-                             remote: *mut git_remote,
+                             repo: *mut git_repository,
+                             name: *const c_char,
                              new_name: *const c_char) -> c_int;
     pub fn git_remote_fetch(remote: *mut git_remote,
+                            refspecs: *const git_strarray,
                             signature: *const git_signature,
                             reflog_message: *const c_char) -> c_int;
     pub fn git_remote_update_tips(remote: *mut git_remote,
@@ -822,6 +848,7 @@ extern {
     pub fn git_reset(repo: *mut git_repository,
                      target: *mut git_object,
                      reset_type: git_reset_t,
+                     checkout_opts: *mut git_checkout_options,
                      signature: *mut git_signature,
                      log_message: *const c_char) -> c_int;
     pub fn git_reset_default(repo: *mut git_repository,
@@ -1178,7 +1205,6 @@ extern {
                                   value: *const c_char) -> c_int;
     pub fn git_config_parse_int64(out: *mut i64,
                                   value: *const c_char) -> c_int;
-    pub fn git_config_refresh(cfg: *mut git_config) -> c_int;
     pub fn git_config_set_bool(cfg: *mut git_config,
                                name: *const c_char,
                                value: c_int) -> c_int;

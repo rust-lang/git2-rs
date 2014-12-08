@@ -3,7 +3,7 @@ use std::kinds::marker;
 use std::str;
 use libc;
 
-use {raw, Repository, Direction, Error, Refspec, StringArray};
+use {raw, Repository, Direction, Error, Refspec};
 use {Signature, Push, RemoteCallbacks};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -48,21 +48,6 @@ impl<'a, 'b> Remote<'a, 'b> {
         ::init();
         let remote_name = remote_name.to_c_str();
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
-    }
-
-    /// Return whether a string is a valid remote URL
-    pub fn is_valid_url(url: &str) -> bool {
-        ::init();
-        let url = url.to_c_str();
-        unsafe { raw::git_remote_valid_url(url.as_ptr()) == 1 }
-    }
-
-    /// Return whether the passed URL is supported by this version of the
-    /// library.
-    pub fn is_supported_url(url: &str) -> bool {
-        ::init();
-        let url = url.to_c_str();
-        unsafe { raw::git_remote_supported_url(url.as_ptr()) == 1 }
     }
 
     /// Get the remote's name.
@@ -147,13 +132,6 @@ impl<'a, 'b> Remote<'a, 'b> {
         Ok(())
     }
 
-    /// Choose whether to check the server's certificate (applies to HTTPS only)
-    ///
-    /// The default is yes.
-    pub fn set_check_cert(&mut self, check: bool) {
-        unsafe { raw::git_remote_check_cert(self.raw, check as libc::c_int) }
-    }
-
     /// Set the remote's url
     ///
     /// Existing connections will not be updated.
@@ -224,15 +202,6 @@ impl<'a, 'b> Remote<'a, 'b> {
         unsafe { raw::git_remote_clear_refspecs(self.raw) }
     }
 
-    /// Delete an existing persisted remote.
-    ///
-    /// All remote-tracking branches and configuration settings for the remote
-    /// will be removed.
-    pub fn delete(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_remote_delete(self.raw)); }
-        Ok(())
-    }
-
     /// Download and index the packfile
     ///
     /// Connect to the remote if it hasn't been done yet, negotiate with the
@@ -254,34 +223,24 @@ impl<'a, 'b> Remote<'a, 'b> {
         Refspecs { cur: 0, cnt: cnt, remote: self }
     }
 
-    /// Give the remote a new name
-    ///
-    /// All remote-tracking branches and configuration settings for the remote
-    /// are updated.
-    ///
-    /// A temporary in-memory remote cannot be given a name with this method.
-    pub fn rename(&mut self, new_name: &str) -> Result<(), Error> {
-        let mut problems = raw::git_strarray {
-            count: 0,
-            strings: 0 as *mut *mut libc::c_char,
-        };
-        unsafe {
-            try_call!(raw::git_remote_rename(&mut problems, self.raw,
-                                             new_name.to_c_str()));
-            let _s = StringArray::from_raw(problems);
-        }
-        Ok(())
-    }
-
     /// Download new data and update tips
     ///
     /// Convenience function to connect to a remote, download the data,
     /// disconnect and update the remote-tracking branches.
-    pub fn fetch(&mut self, signature: Option<&Signature>,
+    pub fn fetch(&mut self,
+                 refspecs: &[&str],
+                 signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
+        let refspecs = refspecs.iter().map(|s| s.to_c_str()).collect::<Vec<_>>();
+        let ptrs = refspecs.iter().map(|s| s.as_ptr()).collect::<Vec<_>>();
+        let arr = raw::git_strarray {
+            strings: ptrs.as_ptr() as *mut _,
+            count: ptrs.len() as libc::size_t,
+        };
         unsafe {
             try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_fetch(self.raw,
+                                            &arr,
                                             &*signature.map(|s| s.raw())
                                                        .unwrap_or(0 as *mut _),
                                             msg.map(|s| s.to_c_str())));
@@ -439,19 +398,24 @@ mod tests {
 
         origin.add_fetch("foo").unwrap();
         origin.add_fetch("bar").unwrap();
-        origin.set_check_cert(true);
         origin.clear_refspecs();
 
         origin.set_fetch_refspecs(["foo"].iter().map(|a| *a)).unwrap();
         origin.set_push_refspecs(["foo"].iter().map(|a| *a)).unwrap();
 
-        origin.rename("origin2").unwrap();
         let sig = repo.signature().unwrap();
-        origin.fetch(Some(&sig), None).unwrap();
-        origin.fetch(None, Some("foo")).unwrap();
+        origin.fetch(&[], Some(&sig), None).unwrap();
+        origin.fetch(&[], None, Some("foo")).unwrap();
         origin.update_tips(Some(&sig), None).unwrap();
         origin.update_tips(None, Some("foo")).unwrap();
-        origin.delete().unwrap();
+    }
+
+    #[test]
+    fn rename_remote() {
+        let (_td, repo) = ::test::repo_init();
+        repo.remote("origin", "foo").unwrap();
+        repo.remote_rename("origin", "foo").unwrap();
+        repo.remote_delete("foo").unwrap();
     }
 
     #[test]
@@ -469,8 +433,6 @@ mod tests {
     fn is_valid() {
         assert!(Remote::is_valid_name("foobar"));
         assert!(!Remote::is_valid_name("\x01"));
-        assert!(Remote::is_valid_url("http://example.com/foo/bar"));
-        assert!(!Remote::is_valid_url("test"));
     }
 
     #[test]
@@ -489,7 +451,7 @@ mod tests {
             true
         });
         origin.set_callbacks(&mut callbacks);
-        origin.fetch(None, None).unwrap();
+        origin.fetch(&[], None, None).unwrap();
         assert!(progress_hit.get());
     }
 }
