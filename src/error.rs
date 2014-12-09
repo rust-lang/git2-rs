@@ -101,6 +101,8 @@ impl error::Error for Error {
     fn description(&self) -> &str {
         unsafe { str::from_c_str(self.raw.message as *const _) }
     }
+
+    fn detail(&self) -> Option<String> { Some(self.message()) }
 }
 
 impl fmt::Show for Error {
