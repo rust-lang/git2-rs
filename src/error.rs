@@ -1,5 +1,7 @@
-use std::fmt;
 use std::c_str::CString;
+use std::error;
+use std::fmt;
+use std::str;
 use libc;
 use libc::c_int;
 
@@ -92,6 +94,12 @@ impl Error {
     pub fn message(&self) -> String {
         let cstr = unsafe { CString::new(self.raw.message as *const _, false) };
         String::from_utf8_lossy(cstr.as_bytes_no_nul()).to_string()
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        unsafe { str::from_c_str(self.raw.message as *const _) }
     }
 }
 
