@@ -5,6 +5,7 @@ use libc;
 use {raw, Error};
 
 /// Unique identity of any object (commit, tree, blob, tag).
+#[deriving(Copy)]
 pub struct Oid {
     raw: raw::git_oid,
 }

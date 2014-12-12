@@ -17,6 +17,7 @@ pub struct RemoteCallbacks<'a> {
 }
 
 /// Struct representing the progress by an in-flight transfer.
+#[deriving(Copy)]
 pub struct Progress {
     /// Number of objects in the packfile being downloaded
     pub total_objects: uint,
