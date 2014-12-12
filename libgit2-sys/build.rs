@@ -5,15 +5,15 @@ use std::io::{mod, fs, Command};
 use std::io::process::InheritFd;
 
 fn main() {
+    register_dep("SSH2");
+    register_dep("OPENSSL");
+
     let mut opts = pkg_config::default_options("libgit2");
     opts.atleast_version = Some("0.21.0".to_string());
     match pkg_config::find_library_opts("libgit2", &opts) {
         Ok(()) => return,
         Err(..) => {}
     }
-
-    register_dep("SSH2");
-    register_dep("OPENSSL");
 
     let mut cflags = os::getenv("CFLAGS").unwrap_or(String::new());
     let target = os::getenv("TARGET").unwrap();
@@ -55,14 +55,15 @@ fn main() {
                 .arg("--target").arg("install")
                 .cwd(&dst.join("build")));
 
-    println!("cargo:rustc-flags=-L {} -l git2:static",
-             dst.join("lib").display());
     println!("cargo:root={}", dst.display());
     if mingw || target.contains("windows") {
         println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
                                     -l ws2_32 -l bcrypt -l crypt32");
-    } else if target.contains("apple") {
-        println!("cargo:rustc-flags=-l iconv");
+    } else {
+        opts.statik = true;
+        opts.atleast_version = None;
+        append("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
+        pkg_config::find_library_opts("libgit2", &opts).unwrap();
     }
 }
 
@@ -79,11 +80,16 @@ fn run(cmd: &mut Command) {
 fn register_dep(dep: &str) {
     match os::getenv(format!("DEP_{}_ROOT", dep).as_slice()) {
         Some(s) => {
-            let prefix = os::getenv("CMAKE_PREFIX_PATH").unwrap_or(String::new());
-            let mut v = os::split_paths(prefix.as_slice());
-            v.push(Path::new(s));
-            os::setenv("CMAKE_PREFIX_PATH", os::join_paths(v.as_slice()).unwrap());
+            append("CMAKE_PREFIX_PATH", Path::new(s.as_slice()));
+            append("PKG_CONFIG_PATH", Path::new(s.as_slice()).join("lib/pkgconfig"));
         }
         None => {}
     }
+}
+
+fn append(var: &str, val: Path) {
+    let prefix = os::getenv(var).unwrap_or(String::new());
+    let mut v = os::split_paths(prefix.as_slice());
+    v.push(val);
+    os::setenv(var, os::join_paths(v.as_slice()).unwrap());
 }
