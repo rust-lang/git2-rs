@@ -59,11 +59,17 @@ fn main() {
     if mingw || target.contains("windows") {
         println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
                                     -l ws2_32 -l bcrypt -l crypt32");
-    } else {
+    } else if os::getenv("HOST") == os::getenv("TARGET") {
         opts.statik = true;
         opts.atleast_version = None;
         append("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
         pkg_config::find_library_opts("libgit2", &opts).unwrap();
+    } else {
+        println!("cargo:rustc-flags=-l git2:static");
+        println!("cargo:rustc-flags=-L {}", dst.join("lib").display());
+        if target.contains("apple") {
+            println!("cargo:rustc-flags:-l iconv");
+        }
     }
 }
 
