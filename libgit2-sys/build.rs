@@ -58,7 +58,9 @@ fn main() {
     println!("cargo:root={}", dst.display());
     if mingw || target.contains("windows") {
         println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
-                                    -l ws2_32 -l bcrypt -l crypt32");
+                                    -l ws2_32 -l bcrypt -l crypt32 \
+                                    -l git2:static -L {}",
+                 dst.join("lib").display());
     } else if os::getenv("HOST") == os::getenv("TARGET") {
         opts.statik = true;
         opts.atleast_version = None;
