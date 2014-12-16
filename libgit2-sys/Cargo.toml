@@ -1,30 +1,33 @@
 [package]
 
 name = "libgit2-sys"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
+repository = "https://github.com/alexcrichton/git2-rs"
+license = "MIT/Apache-2.0"
+description = "Native bindings to the libgit2 library"
 
 [lib]
   name = "libgit2-sys"
   path = "lib.rs"
 
-[dependencies.libssh2-sys]
-  git = "https://github.com/alexcrichton/ssh2-rs"
+[dependencies]
+libssh2-sys = "0.1.0"
 
-[build-dependencies.pkg-config]
-  git = "https://github.com/alexcrichton/pkg-config-rs"
+[build-dependencies]
+pkg-config = "0.1.0"
 
-[target.i686-apple-darwin.dependencies.openssl-sys]
-  git = "https://github.com/sfackler/rust-openssl"
-[target.x86_64-apple-darwin.dependencies.openssl-sys]
-  git = "https://github.com/sfackler/rust-openssl"
-[target.i686-unknown-linux-gnu.dependencies.openssl-sys]
-  git = "https://github.com/sfackler/rust-openssl"
-[target.x86_64-unknown-linux-gnu.dependencies.openssl-sys]
-  git = "https://github.com/sfackler/rust-openssl"
-[target.i686-unknown-freebsd.dependencies.openssl-sys]
-  git = "https://github.com/sfackler/rust-openssl"
-[target.x86_64-unknown-freebsd.dependencies.openssl-sys]
-  git = "https://github.com/sfackler/rust-openssl"
+[target.i686-apple-darwin.dependencies]
+openssl-sys = "0.2.0"
+[target.x86_64-apple-darwin.dependencies]
+openssl-sys = "0.2.0"
+[target.i686-unknown-linux-gnu.dependencies]
+openssl-sys = "0.2.0"
+[target.x86_64-unknown-linux-gnu.dependencies]
+openssl-sys = "0.2.0"
+[target.i686-unknown-freebsd.dependencies]
+openssl-sys = "0.2.0"
+[target.x86_64-unknown-freebsd.dependencies]
+openssl-sys = "0.2.0"
