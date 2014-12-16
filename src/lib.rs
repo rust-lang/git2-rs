@@ -279,7 +279,7 @@ fn init() {
         let r = raw::git_libgit2_init();
         assert!(r >= 0,
                 "couldn't initialize the libgit2 library: {}", r);
-        rt::at_exit(proc() {
+        rt::at_exit(|| {
             raw::git_libgit2_shutdown();
         });
     });
