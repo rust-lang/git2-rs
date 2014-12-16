@@ -221,7 +221,6 @@ bitflags! {
     #[doc = "
 Types of credentials that can be requested by a credential callback.
 "]
-    #[deriving(Copy)]
     flags CredentialType: uint {
         const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as uint,
         const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as uint,
@@ -235,7 +234,6 @@ bitflags! {
     #[doc = "
 Flags for APIs that add files matching pathspec
 "]
-    #[deriving(Copy)]
     flags IndexAddOption: u32 {
         const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32,
         const ADD_FORCE = raw::GIT_INDEX_ADD_FORCE as u32,
@@ -281,7 +279,7 @@ fn init() {
         let r = raw::git_libgit2_init();
         assert!(r >= 0,
                 "couldn't initialize the libgit2 library: {}", r);
-        rt::at_exit(proc() {
+        rt::at_exit(|| {
             raw::git_libgit2_shutdown();
         });
     });
