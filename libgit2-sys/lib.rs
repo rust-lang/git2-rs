@@ -98,7 +98,6 @@ pub type git_time_t = i64;
 
 bitflags!(
     #[repr(C)]
-    #[deriving(Copy)]
     flags git_revparse_mode_t: c_uint {
         const GIT_REVPARSE_SINGLE = 1 << 0,
         const GIT_REVPARSE_RANGE = 1 << 1,
