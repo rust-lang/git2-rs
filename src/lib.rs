@@ -65,6 +65,7 @@
 
 #![feature(macro_rules, unsafe_destructor)]
 #![deny(missing_docs)]
+#![cfg_attr(test, deny(warnings))]
 
 extern crate libc;
 extern crate time;
@@ -84,12 +85,13 @@ pub use buf::Buf;
 pub use commit::{Commit, Parents};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
+pub use diff::{DiffDelta, DiffFile};
 pub use error::Error;
 pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use note::{Note, Notes};
 pub use object::Object;
 pub use oid::Oid;
-pub use push::{Push, Status};
+pub use push::{Push, PushStatus};
 pub use reference::{Reference, References, ReferenceNames};
 pub use refspec::Refspec;
 pub use remote::{Remote, Refspecs};
@@ -98,11 +100,11 @@ pub use remote_callbacks::{TransportMessage, Progress};
 pub use repo::{Repository, RepositoryInitOptions};
 pub use revspec::Revspec;
 pub use signature::Signature;
+pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
 pub use tag::Tag;
 pub use tree::{Tree, TreeEntry};
-pub use repo_status::{RepoStatus, RepoStatusFlags, FileState};
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
@@ -255,6 +257,7 @@ mod buf;
 mod commit;
 mod config;
 mod cred;
+mod diff;
 mod error;
 mod index;
 mod note;
@@ -268,11 +271,11 @@ mod remote_callbacks;
 mod repo;
 mod revspec;
 mod signature;
+mod status;
 mod string_array;
 mod submodule;
 mod tag;
 mod tree;
-mod repo_status;
 
 #[cfg(test)] mod test;
 
@@ -359,6 +362,52 @@ impl ConfigLevel {
             raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
         }
     }
+}
+
+bitflags! {
+    #[doc = "
+Flags for repository status
+"]
+    flags Status: u32 {
+        const STATUS_INDEX_NEW = raw::GIT_STATUS_INDEX_NEW as u32,
+        const STATUS_INDEX_MODIFIED = raw::GIT_STATUS_INDEX_MODIFIED as u32,
+        const STATUS_INDEX_DELETED = raw::GIT_STATUS_INDEX_DELETED as u32,
+        const STATUS_INDEX_RENAMED = raw::GIT_STATUS_INDEX_RENAMED as u32,
+        const STATUS_INDEX_TYPECHANGE = raw::GIT_STATUS_INDEX_TYPECHANGE as u32,
+
+        const STATUS_WT_NEW = raw::GIT_STATUS_WT_NEW as u32,
+        const STATUS_WT_MODIFIED = raw::GIT_STATUS_WT_MODIFIED as u32,
+        const STATUS_WT_DELETED = raw::GIT_STATUS_WT_DELETED as u32,
+        const STATUS_WT_TYPECHANGE = raw::GIT_STATUS_WT_TYPECHANGE as u32,
+        const STATUS_WT_RENAMED = raw::GIT_STATUS_WT_RENAMED as u32,
+
+        const STATUS_IGNORED = raw::GIT_STATUS_IGNORED as u32,
+    }
+}
+
+/// What type of change is described by a `DiffDelta`?
+#[deriving(Copy)]
+pub enum Delta {
+    /// No changes
+    Unmodified,
+    /// Entry does not exist in old version
+    Added,
+    /// Entry does not exist in new version
+    Deleted,
+    /// Entry content changed between old and new
+    Modified,
+    /// Entry was renamed wbetween old and new
+    Renamed,
+    /// Entry was copied from another old entry
+    Copied,
+    /// Entry is ignored item in workdir
+    Ignored,
+    /// Entry is untracked item in workdir
+    Untracked,
+    /// Type of entry changed between old and new
+    Typechange,
+    /// Entry is unreadable
+    Unreadable,
 }
 
 #[cfg(test)]

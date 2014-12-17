@@ -2,12 +2,12 @@ use std::c_str::CString;
 use std::kinds::marker;
 use std::mem;
 use std::str;
-use libc::{c_int, c_char, size_t, c_void};
+use libc::{c_int, c_char, size_t, c_void, c_uint};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectType, Tag, Note, Notes, RepoStatus};
+use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -430,46 +430,68 @@ impl Repository {
         }
     }
 
-    /// Load the status of the current repo
-    pub fn statuses(&self) -> Result<Vec<RepoStatus>, Error> {
-        if self.is_bare() {
-            return Err(Error::from_str("Can't get the status of a bare repository"));
-        }
-
-        let mut ret = Vec::new();
-
+    /// Gather file status information and populate the returned structure.
+    ///
+    /// Note that if a pathspec is given in the options to filter the
+    /// status, then the results from rename detection (if you enable it) may
+    /// not be accurate. To do rename detection properly, this must be called
+    /// with no pathspec so that all files can be considered.
+    pub fn statuses(&self, options: Option<&mut StatusOptions>)
+                    -> Result<Statuses, Error> {
+        let mut ret = 0 as *mut raw::git_status_list;
         unsafe {
-            let options = raw::git_status_options {
-                version: 1,
-                show: raw::GIT_STATUS_SHOW_INDEX_AND_WORKDIR,
-                flags: raw::GIT_STATUS_OPT_INCLUDE_UNTRACKED as u32 |
-                       raw::GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX as u32 |
-                       raw::GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY as u32,
-                pathspec: raw::git_strarray {
-                    strings: 0 as *mut *mut c_char,
-                    count: 0
-                }
-            };
-
-            let mut status = 0 as *mut raw::git_status_list;
-            try_call!(raw::git_status_list_new(&mut status, self.raw, &options));
-
-            let max = raw::git_status_list_entrycount(status);
-
-            for i in range(0, max) {
-                let s = *raw::git_status_byindex(status, i);
-
-                ret.push(RepoStatus::new(s));
-            }
-
-            raw::git_status_list_free(status);
+            try_call!(raw::git_status_list_new(&mut ret, self.raw,
+                                               options.map(|s| s.raw())
+                                                      .unwrap_or(0 as *const _)));
+            Ok(Statuses::from_raw(self, ret))
         }
+    }
 
-        return Ok(ret);
+    /// Test if the ignore rules apply to a given file.
+    ///
+    /// This function checks the ignore rules to see if they would apply to the
+    /// given file. This indicates if the file would be ignored regardless of
+    /// whether the file is already in the index or committed to the repository.
+    ///
+    /// One way to think of this is if you were to do "git add ." on the
+    /// directory containing the file, would it be added or not?
+    pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
+        let mut ret = 0 as c_int;
+        unsafe {
+            try_call!(raw::git_status_should_ignore(&mut ret, self.raw,
+                                                    path.to_c_str()));
+        }
+        Ok(ret != 0)
+    }
+
+    /// Get file status for a single file.
+    ///
+    /// This tries to get status for the filename that you give. If no files
+    /// match that name (in either the HEAD, index, or working directory), this
+    /// returns NotFound.
+    ///
+    /// If the name matches multiple files (for example, if the path names a
+    /// directory or if running on a case- insensitive filesystem and yet the
+    /// HEAD has two entries that both match the path), then this returns
+    /// Ambiguous because it cannot give correct results.
+    ///
+    /// This does not do any sort of rename detection. Renames require a set of
+    /// targets and because of the path filtering, there is not enough
+    /// information to check renames correctly. To check file status with rename
+    /// detection, there is no choice but to do a full `statuses` and scan
+    /// through looking for the path that you are interested in.
+    pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
+        let mut ret = 0 as c_uint;
+        unsafe {
+            try_call!(raw::git_status_file(&mut ret, self.raw,
+                                           path.to_c_str()));
+        }
+        Ok(Status::from_bits_truncate(ret as u32))
     }
 
     /// Create an iterator which loops over the requested branches.
-    pub fn branches(&self, filter: Option<BranchType>) -> Result<Branches, Error> {
+    pub fn branches(&self, filter: Option<BranchType>)
+                    -> Result<Branches, Error> {
         let mut raw = 0 as *mut raw::git_branch_iterator;
         unsafe {
             try_call!(raw::git_branch_iterator_new(&mut raw, self.raw(), filter));

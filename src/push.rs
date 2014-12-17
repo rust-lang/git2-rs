@@ -16,7 +16,7 @@ pub struct Push<'a> {
 }
 
 /// A status representing the result of updating a remote reference.
-pub struct Status {
+pub struct PushStatus {
     /// The reference that was updated as part of a push.
     pub reference: String,
     /// If `None`, the reference was updated successfully, otherwise a message
@@ -80,8 +80,8 @@ impl<'a> Push<'a> {
     }
 
     /// Return each status entry
-    pub fn statuses(&mut self) -> Result<Vec<Status>, Error> {
-        let mut ret: Vec<Status> = Vec::new();
+    pub fn statuses(&mut self) -> Result<Vec<PushStatus>, Error> {
+        let mut ret: Vec<PushStatus> = Vec::new();
         unsafe {
             try_call!(raw::git_push_status_foreach(self.raw, cb,
                                                    &mut ret as *mut _
@@ -106,8 +106,8 @@ impl<'a> Push<'a> {
                     None
                 };
 
-                let data = &mut *(data as *mut Vec<Status>);
-                data.push(Status { reference: git_ref, message: msg });
+                let data = &mut *(data as *mut Vec<PushStatus>);
+                data.push(PushStatus { reference: git_ref, message: msg });
                 return 0;
             }
         }

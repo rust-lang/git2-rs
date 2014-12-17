@@ -27,6 +27,10 @@ pub use git_repository_init_flag_t::*;
 pub use git_repository_init_mode_t::*;
 pub use git_index_add_option_t::*;
 pub use git_cert_t::*;
+pub use git_status_t::*;
+pub use git_status_opt_t::*;
+pub use git_status_show_t::*;
+pub use git_delta_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -35,6 +39,7 @@ pub const GIT_OID_HEXSZ: uint = GIT_OID_RAWSZ * 2;
 pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
+pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 
 pub enum git_blob {}
 pub enum git_branch_iterator {}
@@ -55,6 +60,7 @@ pub enum git_tree_entry {}
 pub enum git_push {}
 pub enum git_note {}
 pub enum git_note_iterator {}
+pub enum git_status_list {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -381,9 +387,6 @@ pub struct git_status_options {
     pub flags: c_uint,
     pub pathspec: git_strarray,
 }
-
-#[repr(C)]
-pub struct git_status_list;
 
 #[repr(C)]
 pub struct git_diff_delta {
@@ -967,6 +970,14 @@ extern {
     pub fn git_status_byindex(statuslist: *mut git_status_list,
                               idx: size_t) -> *const git_status_entry;
     pub fn git_status_list_free(list: *mut git_status_list);
+    pub fn git_status_init_options(opts: *mut git_status_options,
+                                   version: c_uint) -> c_int;
+    pub fn git_status_file(status_flags: *mut c_uint,
+                           repo: *mut git_repository,
+                           path: *const c_char) -> c_int;
+    pub fn git_status_should_ignore(ignored: *mut c_int,
+                                    repo: *mut git_repository,
+                                    path: *const c_char) -> c_int;
 
     // clone
     pub fn git_clone(out: *mut *mut git_repository,
