@@ -310,6 +310,100 @@ pub enum git_checkout_notify_t {
 
 #[repr(C)]
 #[deriving(Copy)]
+pub enum git_status_t {
+    GIT_STATUS_CURRENT = 0,
+
+    GIT_STATUS_INDEX_NEW = (1 << 0),
+    GIT_STATUS_INDEX_MODIFIED = (1 << 1),
+    GIT_STATUS_INDEX_DELETED = (1 << 2),
+    GIT_STATUS_INDEX_RENAMED = (1 << 3),
+    GIT_STATUS_INDEX_TYPECHANGE = (1 << 4),
+
+    GIT_STATUS_WT_NEW = (1 << 7),
+    GIT_STATUS_WT_MODIFIED = (1 << 8),
+    GIT_STATUS_WT_DELETED = (1 << 9),
+    GIT_STATUS_WT_TYPECHANGE = (1 << 10),
+    GIT_STATUS_WT_RENAMED = (1 << 11),
+    GIT_STATUS_WT_UNREADABLE = (1 << 12),
+
+    GIT_STATUS_IGNORED = (1 << 14),
+}
+
+#[repr(C)]
+#[deriving(Copy)]
+pub enum git_status_opt_t {
+    GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
+    GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
+    GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = (1 << 2),
+    GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = (1 << 3),
+    GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = (1 << 4),
+    GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = (1 << 5),
+    GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = (1 << 6),
+    GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = (1 << 7),
+    GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = (1 << 8),
+    GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = (1 << 9),
+    GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = (1 << 10),
+
+    GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = (1 << 11),
+    GIT_STATUS_OPT_NO_REFRESH                       = (1 << 12),
+    GIT_STATUS_OPT_UPDATE_INDEX                     = (1 << 13),
+    GIT_STATUS_OPT_INCLUDE_UNREADABLE               = (1 << 14),
+    GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = (1 << 15),
+}
+
+#[repr(C)]
+#[deriving(Copy)]
+pub enum git_status_show_t {
+    GIT_STATUS_SHOW_INDEX_AND_WORKDIR = 0,
+    GIT_STATUS_SHOW_INDEX_ONLY = 1,
+    GIT_STATUS_SHOW_WORKDIR_ONLY = 2
+}
+
+#[repr(C)]
+#[deriving(Copy)]
+pub enum git_delta_t {
+    GIT_DELTA_UNMODIFIED = 0,
+    GIT_DELTA_ADDED = 1,
+    GIT_DELTA_DELETED = 2,
+    GIT_DELTA_MODIFIED = 3,
+    GIT_DELTA_RENAMED = 4,
+    GIT_DELTA_COPIED = 5,
+    GIT_DELTA_IGNORED = 6,
+    GIT_DELTA_UNTRACKED = 7,
+    GIT_DELTA_TYPECHANGE = 8,
+    GIT_DELTA_UNREADABLE = 9,
+}
+
+#[repr(C)]
+pub struct git_status_options {
+    pub version: c_uint,
+    pub show: git_status_show_t,
+    pub flags: c_uint,
+    pub pathspec: git_strarray,
+}
+
+#[repr(C)]
+pub struct git_status_list;
+
+#[repr(C)]
+pub struct git_diff_delta {
+    pub status: git_delta_t,
+    pub flags: u32,
+    pub similarity: u16,
+    pub nfiles: u16,
+    pub old_file: git_diff_file,
+    pub new_file: git_diff_file,
+}
+
+#[repr(C)]
+pub struct git_status_entry {
+    pub status: git_status_t,
+    pub head_to_index: *mut git_diff_delta,
+    pub index_to_workdir: *mut git_diff_delta
+}
+
+#[repr(C)]
+#[deriving(Copy)]
 pub enum git_checkout_strategy_t {
     GIT_CHECKOUT_NONE = 0,
     GIT_CHECKOUT_SAFE = (1 << 0),
@@ -864,6 +958,15 @@ extern {
                              email: *const c_char) -> c_int;
     pub fn git_signature_dup(dest: *mut *mut git_signature,
                              sig: *const git_signature) -> c_int;
+
+    // status
+    pub fn git_status_list_new(out: *mut *mut git_status_list,
+                               repo: *mut git_repository,
+                               options: *const git_status_options) -> c_int;
+    pub fn git_status_list_entrycount(list: *mut git_status_list) -> size_t;
+    pub fn git_status_byindex(statuslist: *mut git_status_list,
+                              idx: size_t) -> *const git_status_entry;
+    pub fn git_status_list_free(list: *mut git_status_list);
 
     // clone
     pub fn git_clone(out: *mut *mut git_repository,

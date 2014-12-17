@@ -7,7 +7,7 @@ use libc::{c_int, c_char, size_t, c_void};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectType, Tag, Note, Notes};
+use {ObjectType, Tag, Note, Notes, RepoStatus};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -428,6 +428,44 @@ impl Repository {
             }
             0
         }
+    }
+
+    /// Load the status of the current repo
+    pub fn statuses(&self) -> Result<Vec<RepoStatus>, Error> {
+        if self.is_bare() {
+            return Err(Error::from_str("Can't get the status of a bare repository"));
+        }
+
+        let mut ret = Vec::new();
+
+        unsafe {
+            let options = raw::git_status_options {
+                version: 1,
+                show: raw::GIT_STATUS_SHOW_INDEX_AND_WORKDIR,
+                flags: raw::GIT_STATUS_OPT_INCLUDE_UNTRACKED as u32 |
+                       raw::GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX as u32 |
+                       raw::GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY as u32,
+                pathspec: raw::git_strarray {
+                    strings: 0 as *mut *mut c_char,
+                    count: 0
+                }
+            };
+
+            let mut status = 0 as *mut raw::git_status_list;
+            try_call!(raw::git_status_list_new(&mut status, self.raw, &options));
+
+            let max = raw::git_status_list_entrycount(status);
+
+            for i in range(0, max) {
+                let s = *raw::git_status_byindex(status, i);
+
+                ret.push(RepoStatus::new(s));
+            }
+
+            raw::git_status_list_free(status);
+        }
+
+        return Ok(ret);
     }
 
     /// Create an iterator which loops over the requested branches.
