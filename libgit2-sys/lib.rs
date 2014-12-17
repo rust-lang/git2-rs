@@ -53,6 +53,8 @@ pub enum git_tag {}
 pub enum git_tree {}
 pub enum git_tree_entry {}
 pub enum git_push {}
+pub enum git_note {}
+pub enum git_note_iterator {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1360,6 +1362,39 @@ extern {
                              opts: *const git_checkout_options) -> c_int;
     pub fn git_checkout_init_options(opts: *mut git_checkout_options,
                                      version: c_uint) -> c_int;
+
+    // notes
+    pub fn git_note_author(note: *const git_note) -> *const git_signature;
+    pub fn git_note_committer(note: *const git_note) -> *const git_signature;
+    pub fn git_note_create(out: *mut git_oid,
+                           repo: *mut git_repository,
+                           notes_ref: *const c_char,
+                           author: *const git_signature,
+                           committer: *const git_signature,
+                           oid: *const git_oid,
+                           note: *const c_char,
+                           force: c_int) -> c_int;
+    pub fn git_note_default_ref(out: *mut *const c_char,
+                                repo: *mut git_repository) -> c_int;
+    pub fn git_note_free(note: *mut git_note);
+    pub fn git_note_id(note: *const git_note) -> *const git_oid;
+    pub fn git_note_iterator_free(it: *mut git_note_iterator);
+    pub fn git_note_iterator_new(out: *mut *mut git_note_iterator,
+                                 repo: *mut git_repository,
+                                 notes_ref: *const c_char) -> c_int;
+    pub fn git_note_message(note: *const git_note) -> *const c_char;
+    pub fn git_note_next(note_id: *mut git_oid,
+                         annotated_id: *mut git_oid,
+                         it: *mut git_note_iterator) -> c_int;
+    pub fn git_note_read(out: *mut *mut git_note,
+                         repo: *mut git_repository,
+                         notes_ref: *const c_char,
+                         oid: *const git_oid) -> c_int;
+    pub fn git_note_remove(repo: *mut git_repository,
+                           notes_ref: *const c_char,
+                           author: *const git_signature,
+                           committer: *const git_signature,
+                           oid: *const git_oid) -> c_int;
 }
 
 #[test]

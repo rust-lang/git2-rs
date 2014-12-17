@@ -7,7 +7,7 @@ use libc::{c_int, c_char, size_t, c_void};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {ObjectType, Tag};
+use {ObjectType, Tag, Note, Notes};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -837,9 +837,99 @@ impl Repository {
             }
 
             try_call!(raw::git_checkout_tree(self.raw, &*treeish.raw(),
-            &raw_opts));
+                                             &raw_opts));
         }
         Ok(())
+    }
+
+    /// Add a note for an object
+    ///
+    /// The `notes_ref` argument is the canonical name of the reference to use,
+    /// defaulting to "refs/notes/commits". If `force` is specified then
+    /// previous notes are overwritten.
+    pub fn note(&self,
+                author: &Signature,
+                committer: &Signature,
+                notes_ref: Option<&str>,
+                oid: Oid,
+                note: &str,
+                force: bool) -> Result<Oid, Error> {
+        let mut ret = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_note_create(&mut ret,
+                                           self.raw,
+                                           notes_ref.map(|s| s.to_c_str()),
+                                           &*author.raw(),
+                                           &*committer.raw(),
+                                           &*oid.raw(),
+                                           note.to_c_str(),
+                                           force));
+            Ok(Oid::from_raw(&ret))
+        }
+    }
+
+    /// Get the default notes reference for this repository
+    pub fn note_default_ref(&self) -> Result<&str, Error> {
+        let mut ret = 0 as *const c_char;
+        unsafe {
+            try_call!(raw::git_note_default_ref(&mut ret, self.raw));
+            Ok(str::from_utf8(::opt_bytes(self, ret).unwrap()).unwrap())
+        }
+    }
+
+    /// Creates a new iterator for notes in this repository.
+    ///
+    /// The `notes_ref` argument is the canonical name of the reference to use,
+    /// defaulting to "refs/notes/commits".
+    ///
+    /// The iterator returned yields pairs of (Oid, Oid) where the first element
+    /// is the id of the note and the second id is the id the note is
+    /// annotating.
+    pub fn notes(&self, notes_ref: Option<&str>) -> Result<Notes, Error> {
+        let mut ret = 0 as *mut raw::git_note_iterator;
+        unsafe {
+            try_call!(raw::git_note_iterator_new(&mut ret, self.raw,
+                                                 notes_ref.map(|s| s.to_c_str())));
+            Ok(Notes::from_raw(self, ret))
+        }
+    }
+
+    /// Read the note for an object.
+    ///
+    /// The `notes_ref` argument is the canonical name of the reference to use,
+    /// defaulting to "refs/notes/commits".
+    ///
+    /// The id specified is the Oid of the git object to read the note from.
+    pub fn find_note(&self, notes_ref: Option<&str>, id: Oid)
+                     -> Result<Note, Error> {
+        let mut ret = 0 as *mut raw::git_note;
+        unsafe {
+            try_call!(raw::git_note_read(&mut ret, self.raw,
+                                         notes_ref.map(|s| s.to_c_str()),
+                                         &*id.raw()));
+            Ok(Note::from_raw(self, ret))
+        }
+    }
+
+    /// Remove the note for an object.
+    ///
+    /// The `notes_ref` argument is the canonical name of the reference to use,
+    /// defaulting to "refs/notes/commits".
+    ///
+    /// The id specified is the Oid of the git object to remove the note from.
+    pub fn note_delete(&self,
+                       id: Oid,
+                       notes_ref: Option<&str>,
+                       author: &Signature,
+                       committer: &Signature) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_note_remove(self.raw,
+                                           notes_ref.map(|s| s.to_c_str()),
+                                           &*author.raw(),
+                                           &*committer.raw(),
+                                           &*id.raw()));
+            Ok(())
+        }
     }
 }
 
