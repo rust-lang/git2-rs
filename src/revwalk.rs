@@ -41,18 +41,117 @@ impl<'a> Revwalk<'a> {
         unsafe { raw::git_revwalk_sorting(self.raw(), sort_mode.bits() as libc::c_uint) }
     }
 
-    /// Mark a commit as of interest to this revwalk.
-    pub fn push(&mut self, oid: &Oid) -> Result<(), Error> {
+    /// Simplify the history by first-parent
+    ///
+    /// No parents other than the first for each commit will be enqueued.
+    pub fn simplify_first_parent(&mut self) {
+        unsafe { raw::git_revwalk_simplify_first_parent(self.raw) }
+    }
+
+    /// Mark a commit to start traversal from.
+    ///
+    /// The given OID must belong to a committish on the walked repository.
+    ///
+    /// The given commit will be used as one of the roots when starting the
+    /// revision walk. At least one commit must be pushed onto the walker before
+    /// a walk can be started.
+    pub fn push(&mut self, oid: Oid) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_revwalk_push(self.raw(), oid.raw()));
         }
         Ok(())
     }
 
+    /// Push the repository's HEAD
+    ///
+    /// For more information, see `push`.
+    pub fn push_head(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_push_head(self.raw()));
+        }
+        Ok(())
+    }
+
+    /// Push matching references
+    ///
+    /// The OIDs pointed to by the references that match the given glob pattern
+    /// will be pushed to the revision walker.
+    ///
+    /// A leading 'refs/' is implied if not present as well as a trailing `/ \
+    /// *` if the glob lacks '?', ' \ *' or '['.
+    ///
+    /// Any references matching this glob which do not point to a committish
+    /// will be ignored.
+    pub fn push_glob(&mut self, glob: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_push_glob(self.raw, glob.to_c_str()));
+        }
+        Ok(())
+    }
+
+    /// Push and hide the respective endpoints of the given range.
+    ///
+    /// The range should be of the form `<commit>..<commit>` where each
+    /// `<commit>` is in the form accepted by `revparse_single`. The left-hand
+    /// commit will be hidden and the right-hand commit pushed.
+    pub fn push_range(&mut self, range: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_push_range(self.raw, range.to_c_str()));
+        }
+        Ok(())
+    }
+
+    /// Push the OID pointed to by a reference
+    ///
+    /// The reference must point to a committish.
+    pub fn push_ref(&mut self, reference: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_push_ref(self.raw, reference.to_c_str()));
+        }
+        Ok(())
+    }
+
     /// Mark a commit as not of interest to this revwalk.
-    pub fn hide(&mut self, oid: &Oid) -> Result<(), Error> {
+    pub fn hide(&mut self, oid: Oid) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_revwalk_hide(self.raw(), oid.raw()));
+        }
+        Ok(())
+    }
+
+    /// Hide the repository's HEAD
+    ///
+    /// For more information, see `hide`.
+    pub fn hide_head(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_hide_head(self.raw()));
+        }
+        Ok(())
+    }
+
+    /// Hide matching references.
+    ///
+    /// The OIDs pointed to by the references that match the given glob pattern
+    /// and their ancestors will be hidden from the output on the revision walk.
+    ///
+    /// A leading 'refs/' is implied if not present as well as a trailing `/ \
+    /// *` if the glob lacks '?', ' \ *' or '['.
+    ///
+    /// Any references matching this glob which do not point to a committish
+    /// will be ignored.
+    pub fn hide_glob(&mut self, glob: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_hide_glob(self.raw, glob.to_c_str()));
+        }
+        Ok(())
+    }
+
+    /// Hide the OID pointed to by a reference.
+    ///
+    /// The reference must point to a committish.
+    pub fn hide_ref(&mut self, reference: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_hide_ref(self.raw, reference.to_c_str()));
         }
         Ok(())
     }
@@ -91,11 +190,20 @@ mod tests {
         let target = head.target().unwrap();
 
         let mut walk = repo.revwalk().unwrap();
-        walk.push(&target).unwrap();
+        walk.push(target).unwrap();
 
-        let oids: Vec<::Oid> = walk.collect();
+        let oids: Vec<::Oid> = walk.by_ref().collect();
 
         assert_eq!(oids.len(), 1);
         assert_eq!(oids[0], target);
+
+        walk.reset();
+        walk.push_head().unwrap();
+        assert_eq!(walk.by_ref().count(), 1);
+
+        walk.reset();
+        walk.push_head().unwrap();
+        walk.hide_head().unwrap();
+        assert_eq!(walk.by_ref().count(), 0);
     }
 }

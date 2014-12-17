@@ -1535,12 +1535,19 @@ extern {
                             oid: *const git_oid) -> c_int;
     pub fn git_revwalk_push_ref(walk: *mut git_revwalk,
                                 refname: *const c_char) -> c_int;
+    pub fn git_revwalk_push_glob(walk: *mut git_revwalk,
+                                 glob: *const c_char) -> c_int;
+    pub fn git_revwalk_push_range(walk: *mut git_revwalk,
+                                  range: *const c_char) -> c_int;
+    pub fn git_revwalk_simplify_first_parent(walk: *mut git_revwalk);
 
     pub fn git_revwalk_hide_head(walk: *mut git_revwalk) -> c_int;
     pub fn git_revwalk_hide(walk: *mut git_revwalk,
                             oid: *const git_oid) -> c_int;
     pub fn git_revwalk_hide_ref(walk: *mut git_revwalk,
                                 refname: *const c_char) -> c_int;
+    pub fn git_revwalk_hide_glob(walk: *mut git_revwalk,
+                                 refname: *const c_char) -> c_int;
 
     pub fn git_revwalk_next(out: *mut git_oid, walk: *mut git_revwalk) -> c_int;
 }
