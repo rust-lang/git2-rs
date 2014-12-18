@@ -8,15 +8,15 @@ use {raw, Remote, Direction} ;
 /// Refspecs are currently mainly accessed/created through a `Remote`.
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-The-Refspec
-pub struct Refspec<'a> {
+pub struct Refspec<'remote> {
     raw: *const raw::git_refspec,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'remote>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
     marker4: marker::NoCopy,
 }
 
-impl<'a> Refspec<'a> {
+impl<'remote> Refspec<'remote> {
     /// Creates a new refspec from the raw components.
     ///
     /// This is unsafe as the `raw` pointer is not guaranteed to be valid.

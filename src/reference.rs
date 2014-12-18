@@ -7,25 +7,25 @@ use {raw, Repository, Error, Oid, Signature};
 /// A structure to represent a git [reference][1].
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-References
-pub struct Reference<'a> {
+pub struct Reference<'repo> {
     raw: *mut raw::git_reference,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
 /// An iterator over the references in a repository.
-pub struct References<'a> {
-    repo: &'a Repository,
+pub struct References<'repo> {
+    repo: &'repo Repository,
     raw: *mut raw::git_reference_iterator,
 }
 
 /// An iterator over the names of references in a repository.
-pub struct ReferenceNames<'a> {
-    inner: References<'a>,
+pub struct ReferenceNames<'repo> {
+    inner: References<'repo>,
 }
 
-impl<'a> Reference<'a> {
+impl<'repo> Reference<'repo> {
     /// Creates a new reference from a raw pointer.
     ///
     /// This methods is unsafe as there is no guarantee that `raw` is a valid
@@ -155,7 +155,7 @@ impl<'a> Reference<'a> {
     ///
     /// If a direct reference is passed as an argument, a copy of that
     /// reference is returned.
-    pub fn resolve(&self) -> Result<Reference<'a>, Error> {
+    pub fn resolve(&self) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe { try_call!(raw::git_reference_resolve(&mut raw, &*self.raw)); }
         Ok(Reference {
@@ -174,7 +174,7 @@ impl<'a> Reference<'a> {
     /// the given name, the renaming will fail.
     pub fn rename(&mut self, new_name: &str, force: bool,
                   sig: Option<&Signature>,
-                  msg: &str) -> Result<Reference<'a>, Error> {
+                  msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_rename(&mut raw, self.raw,

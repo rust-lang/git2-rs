@@ -8,9 +8,9 @@ use {raw, Remote, Error, Signature};
 ///
 /// Remotes can create a `Push` which is then used to push data to the upstream
 /// repository.
-pub struct Push<'a> {
+pub struct Push<'remote> {
     raw: *mut raw::git_push,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'remote>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
@@ -24,7 +24,7 @@ pub struct PushStatus {
     pub message: Option<String>,
 }
 
-impl<'a> Push<'a> {
+impl<'remote> Push<'remote> {
     /// Create a new push from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid

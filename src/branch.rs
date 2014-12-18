@@ -9,25 +9,25 @@ use {raw, Repository, Error, Reference, Signature, BranchType};
 /// reference can be accessed through the `get` and `unwrap` methods.
 ///
 /// [1]: http://git-scm.com/book/en/Git-Branching-What-a-Branch-Is
-pub struct Branch<'a> {
-    inner: Reference<'a>,
+pub struct Branch<'repo> {
+    inner: Reference<'repo>,
 }
 
 /// An iterator over the branches inside of a repository.
-pub struct Branches<'a> {
-    repo: &'a Repository,
+pub struct Branches<'repo> {
+    repo: &'repo Repository,
     raw: *mut raw::git_branch_iterator,
 }
 
-impl<'a> Branch<'a> {
+impl<'repo> Branch<'repo> {
     /// Creates a new branch from a reference
     pub fn wrap(reference: Reference) -> Branch { Branch { inner: reference } }
 
     /// Gain access to the reference that is this branch
-    pub fn get(&self) -> &Reference<'a> { &self.inner }
+    pub fn get(&self) -> &Reference<'repo> { &self.inner }
 
     /// Take ownership of the underlying reference.
-    pub fn unwrap(self) -> Reference<'a> { self.inner }
+    pub fn into_reference(self) -> Reference<'repo> { self.inner }
 
     /// Delete an existing branch reference.
     pub fn delete(&mut self) -> Result<(), Error> {
@@ -43,7 +43,7 @@ impl<'a> Branch<'a> {
     /// Move/rename an existing local branch reference.
     pub fn rename(&mut self, new_branch_name: &str, force: bool,
                   signature: Option<&Signature>,
-                  log_message: &str) -> Result<Branch<'a>, Error> {
+                  log_message: &str) -> Result<Branch<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),

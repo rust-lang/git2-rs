@@ -9,14 +9,14 @@ use {raw, Signature, Error, Repository, RemoteCallbacks};
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
-pub struct RepoBuilder<'a> {
+pub struct RepoBuilder<'cb> {
     bare: bool,
     branch: Option<CString>,
     sig: Option<Signature<'static>>,
     local: bool,
     hardlinks: bool,
     checkout: Option<CheckoutBuilder>,
-    callbacks: Option<RemoteCallbacks<'a>>,
+    callbacks: Option<RemoteCallbacks<'cb>>,
 }
 
 /// A builder struct for configuring checkouts of a repository.
@@ -35,12 +35,12 @@ pub struct CheckoutBuilder {
     checkout_opts: uint,
 }
 
-impl<'a> RepoBuilder<'a> {
+impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
     ///
     /// When ready, the `clone()` method can be used to clone a new repository
     /// using this configuration.
-    pub fn new<'a>() -> RepoBuilder<'a> {
+    pub fn new() -> RepoBuilder<'cb> {
         ::init();
         RepoBuilder {
             bare: false,
@@ -55,7 +55,7 @@ impl<'a> RepoBuilder<'a> {
 
     /// Indicate whether the repository will be cloned as a bare repository or
     /// not.
-    pub fn bare(&mut self, bare: bool) -> &mut RepoBuilder<'a> {
+    pub fn bare(&mut self, bare: bool) -> &mut RepoBuilder<'cb> {
         self.bare = bare;
         self
     }
@@ -63,7 +63,7 @@ impl<'a> RepoBuilder<'a> {
     /// Specify the name of the branch to check out after the clone.
     ///
     /// If not specified, the remote's default branch will be used.
-    pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder<'a> {
+    pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder<'cb> {
         self.branch = Some(branch.to_c_str());
         self
     }
@@ -71,7 +71,7 @@ impl<'a> RepoBuilder<'a> {
     /// Specify the identity that will be used when updating the reflog.
     ///
     /// If not specified, the default signature will be used.
-    pub fn signature(&mut self, sig: Signature<'static>) -> &mut RepoBuilder<'a> {
+    pub fn signature(&mut self, sig: Signature<'static>) -> &mut RepoBuilder<'cb> {
         self.sig = Some(sig);
         self
     }
@@ -81,14 +81,14 @@ impl<'a> RepoBuilder<'a> {
     ///
     /// If `true`, the git-aware transport will be bypassed for local paths. If
     /// `false`, the git-aware transport will not be bypassed.
-    pub fn local(&mut self, local: bool) -> &mut RepoBuilder<'a> {
+    pub fn local(&mut self, local: bool) -> &mut RepoBuilder<'cb> {
         self.local = local;
         self
     }
 
     /// Set the flag for whether hardlinks are used when using a local git-aware
     /// transport mechanism.
-    pub fn hardlinks(&mut self, links: bool) -> &mut RepoBuilder<'a> {
+    pub fn hardlinks(&mut self, links: bool) -> &mut RepoBuilder<'cb> {
         self.hardlinks = links;
         self
     }
@@ -96,14 +96,14 @@ impl<'a> RepoBuilder<'a> {
     /// Configure the checkout which will be performed by consuming a checkout
     /// builder.
     pub fn with_checkout(&mut self,
-                         checkout: CheckoutBuilder) -> &mut RepoBuilder<'a> {
+                         checkout: CheckoutBuilder) -> &mut RepoBuilder<'cb> {
         self.checkout = Some(checkout);
         self
     }
 
     /// Set the callbacks which will be used to monitor the download progress.
-    pub fn remote_callbacks(&mut self, callbacks: RemoteCallbacks<'a>)
-                            -> &mut RepoBuilder<'a> {
+    pub fn remote_callbacks(&mut self, callbacks: RemoteCallbacks<'cb>)
+                            -> &mut RepoBuilder<'cb> {
         self.callbacks = Some(callbacks);
         self
     }

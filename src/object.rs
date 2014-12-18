@@ -6,14 +6,14 @@ use {raw, Oid, Repository, ObjectType, Error, Buf};
 /// A structure to represent a git [object][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
-pub struct Object<'a> {
+pub struct Object<'repo> {
     raw: *mut raw::git_object,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Object<'a> {
+impl<'repo> Object<'repo> {
     /// Create a new object from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid

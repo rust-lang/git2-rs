@@ -8,24 +8,24 @@ use {raw, Oid, Repository, Error, Object, ObjectType};
 /// A structure to represent a git [tree][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
-pub struct Tree<'a> {
+pub struct Tree<'repo> {
     raw: *mut raw::git_tree,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
 /// A structure representing an entry inside of a tree. An entry is borrowed
 /// from a tree.
-pub struct TreeEntry<'a> {
+pub struct TreeEntry<'tree> {
     raw: *mut raw::git_tree_entry,
     owned: bool,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'tree>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Tree<'a> {
+impl<'repo> Tree<'repo> {
     /// Create a new object from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
@@ -105,13 +105,13 @@ impl<'a> Tree<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Tree<'a> {
+impl<'repo> Drop for Tree<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_tree_free(self.raw) }
     }
 }
 
-impl<'a> TreeEntry<'a> {
+impl<'tree> TreeEntry<'tree> {
     /// Create a new tree entry from the raw pointer provided.
     ///
     /// The lifetime of the entry is tied to the tree provided and the function

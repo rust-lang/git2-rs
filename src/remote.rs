@@ -12,12 +12,12 @@ use {Signature, Push, RemoteCallbacks};
 ///
 /// The lifetime is the lifetime of the repository that it is attached to. The
 /// remote is used to manage fetches and pushes as well as refspecs.
-pub struct Remote<'a, 'b> {
+pub struct Remote<'repo, 'cb> {
     raw: *mut raw::git_remote,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
-    callbacks: Option<&'b mut RemoteCallbacks<'b>>,
+    callbacks: Option<&'cb mut RemoteCallbacks<'cb>>,
 }
 
 /// An iterator over the refspecs that a remote contains.
@@ -27,7 +27,7 @@ pub struct Refspecs<'a, 'b: 'a> {
     remote: &'a Remote<'a, 'b>,
 }
 
-impl<'a, 'b> Remote<'a, 'b> {
+impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Creates a new remote from its raw pointer.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is valid or
@@ -219,7 +219,7 @@ impl<'a, 'b> Remote<'a, 'b> {
     }
 
     /// Get the number of refspecs for a remote
-    pub fn refspecs<'a>(&'a self) -> Refspecs<'a, 'b> {
+    pub fn refspecs<'a>(&'a self) -> Refspecs<'a, 'cb> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as uint };
         Refspecs { cur: 0, cnt: cnt, remote: self }
     }
@@ -268,7 +268,7 @@ impl<'a, 'b> Remote<'a, 'b> {
     }
 
     /// Create a new push object
-    pub fn push<'a>(&'a mut self) -> Result<Push<'a>, Error> {
+    pub fn push(&mut self) -> Result<Push, Error> {
         let mut ret = 0 as *mut raw::git_push;
         try!(self.set_raw_callbacks());
         unsafe {
@@ -280,7 +280,7 @@ impl<'a, 'b> Remote<'a, 'b> {
     /// Set the callbacks to be invoked when the transfer is in-progress.
     ///
     /// This will overwrite the previously set callbacks.
-    pub fn set_callbacks(&mut self, callbacks: &'b mut RemoteCallbacks<'b>) {
+    pub fn set_callbacks(&mut self, callbacks: &'cb mut RemoteCallbacks<'cb>) {
         self.callbacks = Some(callbacks);
     }
 
