@@ -68,7 +68,7 @@ impl Error {
             else {
                 raw::GIT_ERROR
             }
-        ) )
+        ) );
         check!(
             GIT_OK,
             GIT_ERROR,

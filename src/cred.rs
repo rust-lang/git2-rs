@@ -282,7 +282,7 @@ impl CredentialHelper {
                    -> (Option<String>, Option<String>) {
         macro_rules! my_try( ($e:expr) => (
             match $e { Ok(e) => e, Err(..) => return (None, None) }
-        ) )
+        ) );
 
         let mut p = my_try!(Command::new("sh").arg("-c")
                                               .arg(format!("{} get", cmd))
@@ -345,7 +345,7 @@ mod test {
         cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
         $(cfg.set_str($k, $v).unwrap();)*
         cfg
-    }) )
+    }) );
 
     #[test]
     fn smoke() {

@@ -188,7 +188,7 @@ impl Repository {
             else {
                 panic!("unknown repository state: {}", state)
             }
-        ) )
+        ) );
 
         check!(
             GIT_REPOSITORY_STATE_NONE => Clean,

@@ -5,11 +5,11 @@ use Error;
 
 macro_rules! call( (raw::$p:ident ($($e:expr),*)) => (
     raw::$p($(::call::convert(&$e)),*)
-) )
+) );
 
 macro_rules! try_call( ($($arg:tt)*) => ({
     try!(::call::try(call!($($arg)*)))
-}) )
+}) );
 
 #[doc(hidden)]
 pub trait Convert<T> {
@@ -42,14 +42,14 @@ mod impls {
 
     macro_rules! primitive( ($($p:ident)*) => (
         $(impl Convert<$p> for $p { fn convert(&self) -> $p { *self } })*
-    ) )
+    ) );
 
-    primitive!(i8 i16 i32 i64 int u8 u16 u32 u64 uint)
+    primitive!(i8 i16 i32 i64 int u8 u16 u32 u64 uint);
 
     macro_rules! peel(
         ($macro:ident, ) => ();
-        ($macro:ident, $_a:ident $($arg:ident)*) => ($macro!($($arg)*))
-    )
+        ($macro:ident, $_a:ident $($arg:ident)*) => ($macro!($($arg)*);)
+    );
 
     macro_rules! externfn( ($($arg:ident)*) => (
         impl<R $(,$arg)*> Convert<extern fn($($arg),*) -> R>
@@ -62,9 +62,9 @@ mod impls {
         {
             fn convert(&self) -> Option<extern fn($($arg),*) -> R> { *self }
         }
-        peel!(externfn, $($arg)*)
-    ) )
-    externfn!(A B C D E F G)
+        peel!(externfn, $($arg)*);
+    ) );
+    externfn!(A B C D E F G);
 
     impl Convert<libc::c_int> for bool {
         fn convert(&self) -> libc::c_int { *self as libc::c_int }

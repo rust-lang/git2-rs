@@ -113,7 +113,7 @@ bitflags!(
         const GIT_REVPARSE_RANGE = 1 << 1,
         const GIT_REVPARSE_MERGE_BASE = 1 << 2,
     }
-)
+);
 
 #[repr(C)]
 #[deriving(PartialEq, Eq, Clone, Show, Copy)]
