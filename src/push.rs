@@ -53,7 +53,7 @@ impl<'remote> Push<'remote> {
     /// Actually push all given refspecs
     ///
     /// To check if the push was successful (i.e. all remote references have
-    /// been updated as requested), you need to call both `unpack_ok` and
+    /// been updated as requested), you need to call
     /// `statuses`. The remote repository might have refused to
     /// update some or all of the references.
     pub fn finish(&mut self) -> Result<(), Error> {
@@ -61,11 +61,6 @@ impl<'remote> Push<'remote> {
             try_call!(raw::git_push_finish(self.raw));
             Ok(())
         }
-    }
-
-    /// Check if remote side successfully unpacked
-    pub fn unpack_ok(&self) -> bool {
-        unsafe { raw::git_push_unpack_ok(&*self.raw) != 0 }
     }
 
     /// Update remote tips after a push
@@ -141,7 +136,6 @@ mod tests {
         let mut push = remote.push().unwrap();
         push.add_refspec("refs/heads/master").unwrap();
         push.finish().unwrap();
-        assert!(push.unpack_ok());
         push.update_tips(None, None).unwrap();
         let v = push.statuses().unwrap();
         assert!(v.len() > 0);

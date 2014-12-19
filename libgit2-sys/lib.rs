@@ -1414,7 +1414,6 @@ extern {
                         remote: *mut git_remote) -> c_int;
     pub fn git_push_set_options(push: *mut git_push,
                                 opts: *const git_push_options) -> c_int;
-    pub fn git_push_unpack_ok(push: *const git_push) -> c_int;
     pub fn git_push_update_tips(push: *mut git_push,
                                 signature: *const git_signature,
                                 reflog_message: *const c_char) -> c_int;
