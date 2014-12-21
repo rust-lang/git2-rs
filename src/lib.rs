@@ -321,7 +321,7 @@ impl ObjectType {
     pub fn str(&self) -> &'static str {
         unsafe {
             let ptr = call!(raw::git_object_type2string(*self));
-            mem::transmute::<&str, &'static str>(str::from_c_str(ptr))
+            mem::transmute::<&str, &'static str>(str::from_c_str(ptr as *const _))
         }
     }
 
