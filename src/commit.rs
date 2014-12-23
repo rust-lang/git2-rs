@@ -58,7 +58,7 @@ impl<'a> Commit<'a> {
     ///
     /// `None` will be returned if the message is not valid utf-8
     pub fn message(&self) -> Option<&str> {
-        str::from_utf8(self.message_bytes())
+        str::from_utf8(self.message_bytes()).ok()
     }
 
     /// Get the full message of a commit as a byte slice.
@@ -86,7 +86,7 @@ impl<'a> Commit<'a> {
     ///
     /// `None` will be returned if the message is not valid utf-8
     pub fn message_raw(&self) -> Option<&str> {
-        str::from_utf8(self.message_raw_bytes())
+        str::from_utf8(self.message_raw_bytes()).ok()
     }
 
     /// Get the full raw message of a commit.
@@ -100,7 +100,7 @@ impl<'a> Commit<'a> {
     ///
     /// `None` will be returned if the message is not valid utf-8
     pub fn raw_header(&self) -> Option<&str> {
-        str::from_utf8(self.raw_header_bytes())
+        str::from_utf8(self.raw_header_bytes()).ok()
     }
 
     /// Get the full raw text of the commit header.
@@ -118,7 +118,7 @@ impl<'a> Commit<'a> {
     /// `None` may be returned if an error occurs or if the summary is not valid
     /// utf-8.
     pub fn summary(&mut self) -> Option<&str> {
-        self.summary_bytes().and_then(str::from_utf8)
+        self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the short "summary" of the git commit message.

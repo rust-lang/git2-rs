@@ -55,7 +55,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Returns `None` if this remote has not yet been named or if the name is
     /// not valid utf-8
     pub fn name(&self) -> Option<&str> {
-        self.name_bytes().and_then(str::from_utf8)
+        self.name_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the remote's name, in bytes.
@@ -69,7 +69,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// Returns `None` if the url is not valid utf-8
     pub fn url(&self) -> Option<&str> {
-        str::from_utf8(self.url_bytes())
+        str::from_utf8(self.url_bytes()).ok()
     }
 
     /// Get the remote's url as a byte array.
@@ -81,7 +81,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// Returns `None` if the pushurl is not valid utf-8
     pub fn pushurl(&self) -> Option<&str> {
-        self.pushurl_bytes().and_then(str::from_utf8)
+        self.pushurl_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the remote's pushurl as a byte array.

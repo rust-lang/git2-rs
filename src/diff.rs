@@ -117,7 +117,7 @@ impl<'a> DiffFile<'a> {
     ///
     /// Returns `None` if the path is not valid UTF-8
     pub fn path(&self) -> Option<&str> {
-        str::from_utf8(self.path_bytes())
+        str::from_utf8(self.path_bytes()).ok()
     }
 
     /// Returns the size of this entry, in bytes

@@ -36,7 +36,7 @@ impl Buf {
     /// Attempt to view this buffer as a string slice.
     ///
     /// Returns `None` if the buffer is not valid utf-8.
-    pub fn as_str(&self) -> Option<&str> { str::from_utf8(self.get()) }
+    pub fn as_str(&self) -> Option<&str> { str::from_utf8(self.get()).ok() }
 
     /// Gain access to the contents of this buffer as a byte slice
     pub fn get(&self) -> &[u8] {

@@ -328,7 +328,7 @@ impl<'a> StatusEntry<'a> {
     /// Access this entry's path name as a string.
     ///
     /// Returns `None` if the path is not valid utf-8.
-    pub fn path(&self) -> Option<&str> { str::from_utf8(self.path_bytes()) }
+    pub fn path(&self) -> Option<&str> { str::from_utf8(self.path_bytes()).ok() }
 
     /// Access the status flags for this file
     pub fn status(&self) -> Status {

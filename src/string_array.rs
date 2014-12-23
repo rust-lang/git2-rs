@@ -35,7 +35,7 @@ impl StringArray {
 
     /// Returns None if the i'th string is not utf8 or if i is out of bounds.
     pub fn get(&self, i: uint) -> Option<&str> {
-        self.get_bytes(i).and_then(str::from_utf8)
+        self.get_bytes(i).and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Returns None if `i` is out of bounds.

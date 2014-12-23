@@ -223,7 +223,7 @@ impl Repository {
     /// If there is no namespace, or the namespace is not a valid utf8 string,
     /// `None` is returned.
     pub fn namespace(&self) -> Option<&str> {
-        self.namespace_bytes().and_then(str::from_utf8)
+        self.namespace_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the currently active namespace for this repository as a byte array.

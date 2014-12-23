@@ -57,7 +57,7 @@ impl<'a> Note<'a> {
 
     /// Get the note message as a string, returning `None` if it is not UTF-8.
     pub fn message(&self) -> Option<&str> {
-        str::from_utf8(self.message_bytes())
+        str::from_utf8(self.message_bytes()).ok()
     }
 
     /// Get the note object's id

@@ -173,7 +173,9 @@ impl Index {
             strings: strarray.as_ptr() as *mut _,
             count: strarray.len() as libc::size_t,
         };
-        let callback = ptr.as_ref().map(|_| index_matched_path_cb);
+        let callback = ptr.as_ref().map(|_| {
+            index_matched_path_cb as raw::git_index_matched_path_cb
+        });
         unsafe {
             try_call!(raw::git_index_add_all(self.raw,
                                              &raw_strarray,
@@ -308,7 +310,9 @@ impl Index {
             strings: strarray.as_ptr() as *mut _,
             count: strarray.len() as libc::size_t,
         };
-        let callback = ptr.as_ref().map(|_| index_matched_path_cb);
+        let callback = ptr.as_ref().map(|_| {
+            index_matched_path_cb as raw::git_index_matched_path_cb
+        });
         unsafe {
             try_call!(raw::git_index_remove_all(self.raw,
                                                 &raw_strarray,
@@ -345,7 +349,9 @@ impl Index {
             strings: strarray.as_ptr() as *mut _,
             count: strarray.len() as libc::size_t,
         };
-        let callback = ptr.as_ref().map(|_| index_matched_path_cb);
+        let callback = ptr.as_ref().map(|_| {
+            index_matched_path_cb as raw::git_index_matched_path_cb
+        });
         unsafe {
             try_call!(raw::git_index_update_all(self.raw,
                                                 &raw_strarray,

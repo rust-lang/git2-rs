@@ -109,13 +109,16 @@ impl<'a> RemoteCallbacks<'a> {
         assert_eq!(raw::git_remote_init_callbacks(&mut callbacks,
                                     raw::GIT_REMOTE_CALLBACKS_VERSION), 0);
         if self.progress.is_some() {
-            callbacks.transfer_progress = Some(transfer_progress_cb);
+            let f: raw::git_transfer_progress_cb = transfer_progress_cb;
+            callbacks.transfer_progress = Some(f);
         }
         if self.credentials.is_some() {
-            callbacks.credentials = Some(credentials_cb);
+            let f: raw::git_cred_acquire_cb = credentials_cb;
+            callbacks.credentials = Some(f);
         }
         if self.sideband_progress.is_some() {
-            callbacks.sideband_progress = Some(sideband_progress_cb);
+            let f: raw::git_transport_message_cb = sideband_progress_cb;
+            callbacks.sideband_progress = Some(f);
         }
         callbacks.payload = self as *mut _ as *mut _;
         return callbacks;

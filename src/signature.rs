@@ -79,7 +79,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `None` if the name is not valid utf-8
     pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes())
+        str::from_utf8(self.name_bytes()).ok()
     }
 
     /// Gets the name on the signature as a byte slice.
@@ -91,7 +91,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `None` if the email is not valid utf-8
     pub fn email(&self) -> Option<&str> {
-        str::from_utf8(self.email_bytes())
+        str::from_utf8(self.email_bytes()).ok()
     }
 
     /// Gets the email on the signature as a byte slice.

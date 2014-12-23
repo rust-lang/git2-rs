@@ -33,7 +33,7 @@ impl<'a> Submodule<'a> {
     /// Returns `None` if the branch is not valid utf-8 or if the branch is not
     /// yet available.
     pub fn branch(&self) -> Option<&str> {
-        self.branch_bytes().and_then(str::from_utf8)
+        self.branch_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the branch for the submodule.
@@ -48,7 +48,7 @@ impl<'a> Submodule<'a> {
     /// Get the submodule's url.
     ///
     /// Returns `None` if the url is not valid utf-8
-    pub fn url(&self) -> Option<&str> { str::from_utf8(self.url_bytes()) }
+    pub fn url(&self) -> Option<&str> { str::from_utf8(self.url_bytes()).ok() }
 
     /// Get the url for the submodule.
     pub fn url_bytes(&self) -> &[u8] {
@@ -60,7 +60,7 @@ impl<'a> Submodule<'a> {
     /// Get the submodule's name.
     ///
     /// Returns `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()) }
+    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()).ok() }
 
     /// Get the name for the submodule.
     pub fn name_bytes(&self) -> &[u8] {

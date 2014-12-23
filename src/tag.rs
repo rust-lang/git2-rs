@@ -37,7 +37,7 @@ impl<'a> Tag<'a> {
     ///
     /// Returns None if there is no message or if it is not valid utf8
     pub fn message(&self) -> Option<&str> {
-        self.message_bytes().and_then(str::from_utf8)
+        self.message_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the message of a tag
@@ -51,7 +51,7 @@ impl<'a> Tag<'a> {
     ///
     /// Returns None if it is not valid utf8
     pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes())
+        str::from_utf8(self.name_bytes()).ok()
     }
 
     /// Get the name of a tag

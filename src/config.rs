@@ -188,10 +188,9 @@ impl Config {
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
     pub fn get_str<'a>(&self, name: &str) -> Result<&str, Error> {
-        match str::from_utf8(try!(self.get_bytes(name))) {
-            Some(s) => Ok(s),
-            None => Err(Error::from_str("configuration value is not valid utf8")),
-        }
+        str::from_utf8(try!(self.get_bytes(name))).map_err(|_| {
+            Error::from_str("configuration value is not valid utf8")
+        })
     }
 
     /// Get the value of a string config variable as a byte slice.
@@ -350,7 +349,7 @@ impl<'a> ConfigEntry<'a> {
     /// Gets the name of this entry.
     ///
     /// May return `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()) }
+    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()).ok() }
 
     /// Gets the name of this entry as a byte slice.
     pub fn name_bytes(&self) -> &[u8] {
@@ -360,7 +359,7 @@ impl<'a> ConfigEntry<'a> {
     /// Gets the value of this entry.
     ///
     /// May return `None` if the value is not valid utf-8
-    pub fn value(&self) -> Option<&str> { str::from_utf8(self.value_bytes()) }
+    pub fn value(&self) -> Option<&str> { str::from_utf8(self.value_bytes()).ok() }
 
     /// Gets the value of this entry as a byte slice.
     pub fn value_bytes(&self) -> &[u8] {

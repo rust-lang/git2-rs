@@ -154,7 +154,7 @@ impl<'tree> TreeEntry<'tree> {
     ///
     /// Returns `None` if the name is not valid utf-8
     pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes())
+        str::from_utf8(self.name_bytes()).ok()
     }
 
     /// Get the filename of a tree entry

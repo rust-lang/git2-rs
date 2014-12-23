@@ -91,7 +91,7 @@ impl<'repo> Reference<'repo> {
     /// Get the full name of a reference.
     ///
     /// Returns `None` if the name is not valid utf-8.
-    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()) }
+    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()).ok() }
 
     /// Get the full name of a reference.
     pub fn name_bytes(&self) -> &[u8] {
@@ -105,7 +105,7 @@ impl<'repo> Reference<'repo> {
     ///
     /// Returns `None` if the shorthand is not valid utf-8.
     pub fn shorthand(&self) -> Option<&str> {
-        str::from_utf8(self.shorthand_bytes())
+        str::from_utf8(self.shorthand_bytes()).ok()
     }
 
     /// Get the full shorthand of a reference.
@@ -138,7 +138,7 @@ impl<'repo> Reference<'repo> {
     /// May return `None` if the reference is either not symbolic or not a
     /// valid utf-8 string.
     pub fn symbolic_target(&self) -> Option<&str> {
-        self.symbolic_target_bytes().and_then(str::from_utf8)
+        self.symbolic_target_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get full name to the reference pointed to by a symbolic reference.

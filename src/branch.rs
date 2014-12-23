@@ -60,7 +60,7 @@ impl<'repo> Branch<'repo> {
     ///
     /// May return `Ok(None)` if the name is not valid utf-8.
     pub fn name(&self) -> Result<Option<&str>, Error> {
-        self.name_bytes().map(str::from_utf8)
+        self.name_bytes().map(|s| str::from_utf8(s).ok())
     }
 
     /// Return the name of the given local or remote branch.

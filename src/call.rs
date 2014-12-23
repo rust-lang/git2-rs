@@ -40,40 +40,12 @@ mod impls {
     use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
     use call::Convert;
 
-    macro_rules! primitive( ($($p:ident)*) => (
-        $(impl Convert<$p> for $p { fn convert(&self) -> $p { *self } })*
-    ) );
-
-    primitive!(i8 i16 i32 i64 int u8 u16 u32 u64 uint);
-
-    macro_rules! peel(
-        ($macro:ident, ) => ();
-        ($macro:ident, $_a:ident $($arg:ident)*) => ($macro!($($arg)*);)
-    );
-
-    macro_rules! externfn( ($($arg:ident)*) => (
-        impl<R $(,$arg)*> Convert<extern fn($($arg),*) -> R>
-            for extern fn($($arg),*) -> R
-        {
-            fn convert(&self) -> extern fn($($arg),*) -> R { *self }
-        }
-        impl<R $(,$arg)*> Convert<Option<extern fn($($arg),*) -> R>>
-            for Option<extern fn($($arg),*) -> R>
-        {
-            fn convert(&self) -> Option<extern fn($($arg),*) -> R> { *self }
-        }
-        peel!(externfn, $($arg)*);
-    ) );
-    externfn!(A B C D E F G);
+    impl<T: Copy> Convert<T> for T {
+        fn convert(&self) -> T { *self }
+    }
 
     impl Convert<libc::c_int> for bool {
         fn convert(&self) -> libc::c_int { *self as libc::c_int }
-    }
-    impl<T> Convert<*const T> for *const T {
-        fn convert(&self) -> *const T { *self }
-    }
-    impl<T> Convert<*mut T> for *mut T {
-        fn convert(&self) -> *mut T { *self }
     }
     impl<'a, T> Convert<*const T> for &'a T {
         fn convert(&self) -> *const T { *self as *const T }
