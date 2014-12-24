@@ -1,16 +1,18 @@
-use Object;
+use {Object, RevparseMode};
 
 /// A revspec represents a range of revisions within a repository.
 pub struct Revspec<'repo> {
     from: Option<Object<'repo>>,
     to: Option<Object<'repo>>,
+    mode: RevparseMode,
 }
 
 impl<'repo> Revspec<'repo> {
     /// Assembles a new revspec from the from/to components.
     pub fn from_objects(from: Option<Object<'repo>>,
-                        to: Option<Object<'repo>>) -> Revspec<'repo> {
-        Revspec { from: from, to: to }
+                        to: Option<Object<'repo>>,
+                        mode: RevparseMode) -> Revspec<'repo> {
+        Revspec { from: from, to: to, mode: mode }
     }
 
     /// Access the `from` range of this revspec.
@@ -18,4 +20,7 @@ impl<'repo> Revspec<'repo> {
 
     /// Access the `to` range of this revspec.
     pub fn to(&self) -> Option<&Object<'repo>> { self.to.as_ref() }
+
+    /// Returns the intent of the revspec.
+    pub fn mode(&self) -> RevparseMode { self.mode }
 }

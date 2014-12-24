@@ -1,0 +1,80 @@
+/*
+ * libgit2 "add" example - shows how to modify the index
+ *
+ * Written by the libgit2 contributors
+ *
+ * To the extent possible under law, the author(s) have dedicated all copyright
+ * and related and neighboring rights to this software to the public domain
+ * worldwide. This software is distributed without any warranty.
+ *
+ * You should have received a copy of the CC0 Public Domain Dedication along
+ * with this software. If not, see
+ * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ */
+
+extern crate git2;
+extern crate docopt;
+extern crate "rustc-serialize" as rustc_serialize;
+
+use docopt::Docopt;
+use git2::Repository;
+
+#[deriving(RustcDecodable)]
+struct Args {
+    arg_spec: Vec<String>,
+    flag_dry_run: bool,
+    flag_verbose: bool,
+    flag_update: bool,
+}
+
+fn run(args: &Args) -> Result<(), git2::Error> {
+    let repo = try!(Repository::open(&Path::new(".")));
+    let mut index = try!(repo.index());
+
+    let cb = if args.flag_verbose || args.flag_update {
+        Some(|path: &[u8], _matched_spec: &[u8]| -> int {
+            let path = Path::new(path);
+            let status = repo.status_file(&path).unwrap();
+
+            let ret = if status.contains(git2::STATUS_WT_MODIFIED) ||
+                         status.contains(git2::STATUS_WT_NEW) {
+                println!("add '{}'", path.display());
+                0
+            } else {
+                1
+            };
+
+            if args.flag_dry_run {1} else {ret}
+        })
+    } else {
+        None
+    };
+
+    if args.flag_update {
+        try!(index.update_all(args.arg_spec.as_slice(), cb));
+    } else {
+        try!(index.add_all(args.arg_spec.as_slice(), git2::ADD_DEFAULT, cb));
+    }
+
+    try!(index.write());
+    Ok(())
+}
+
+fn main() {
+    const USAGE: &'static str = "
+usage: add [options] [--] [<spec>..]
+
+Options:
+    -n, --dry-run       dry run
+    -v, --verbose       be verbose
+    -u, --update        update tracked files
+    -h, --help          show this message
+";
+
+    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+                                 .unwrap_or_else(|e| e.exit());
+    match run(&args) {
+        Ok(()) => {}
+        Err(e) => println!("error: {}", e),
+    }
+}

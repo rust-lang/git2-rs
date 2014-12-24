@@ -106,14 +106,10 @@ pub struct git_time {
 pub type git_off_t = i64;
 pub type git_time_t = i64;
 
-bitflags!(
-    #[repr(C)]
-    flags git_revparse_mode_t: c_uint {
-        const GIT_REVPARSE_SINGLE = 1 << 0,
-        const GIT_REVPARSE_RANGE = 1 << 1,
-        const GIT_REVPARSE_MERGE_BASE = 1 << 2,
-    }
-);
+pub type git_revparse_mode_t = c_int;
+pub const GIT_REVPARSE_SINGLE: c_int = 1 << 0;
+pub const GIT_REVPARSE_RANGE: c_int = 1 << 1;
+pub const GIT_REVPARSE_MERGE_BASE: c_int = 1 << 2;
 
 #[repr(C)]
 #[deriving(PartialEq, Eq, Clone, Show, Copy)]
@@ -1549,6 +1545,12 @@ extern {
                                  refname: *const c_char) -> c_int;
 
     pub fn git_revwalk_next(out: *mut git_oid, walk: *mut git_revwalk) -> c_int;
+
+    // merge
+    pub fn git_merge_base(out: *mut git_oid,
+                          repo: *mut git_repository,
+                          one: *const git_oid,
+                          two: *const git_oid) -> c_int;
 }
 
 #[test]

@@ -260,6 +260,17 @@ Flags for APIs that add files matching pathspec
     }
 }
 
+bitflags! {
+    #[doc = "
+Flags for the return value of `Repository::revparse`
+"]
+    flags RevparseMode: u32 {
+        const REVPARSE_SINGLE = raw::GIT_REVPARSE_SINGLE as u32,
+        const REVPARSE_RANGE = raw::GIT_REVPARSE_RANGE as u32,
+        const REVPARSE_MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32,
+    }
+}
+
 mod call;
 
 pub mod build;

@@ -8,6 +8,7 @@ use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
+use {RevparseMode};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -124,19 +125,24 @@ impl Repository {
         let mut raw = raw::git_revspec {
             from: 0 as *mut _,
             to: 0 as *mut _,
-            flags: raw::git_revparse_mode_t::empty(),
+            flags: 0,
         };
         unsafe {
             try_call!(raw::git_revparse(&mut raw, self.raw, spec.to_c_str()));
         }
 
-        if raw.flags.contains(raw::GIT_REVPARSE_SINGLE) {
-            assert!(raw.to.is_null());
-            let obj = unsafe { Object::from_raw(self, raw.from) };
-            Ok(Revspec::from_objects(Some(obj), None))
+        let to = if raw.to.is_null() {
+            None
         } else {
-            panic!()
-        }
+            Some(unsafe { Object::from_raw(self, raw.to) })
+        };
+        let from = if raw.from.is_null() {
+            None
+        } else {
+            Some(unsafe { Object::from_raw(self, raw.from) })
+        };
+        let mode = RevparseMode::from_bits_truncate(raw.flags as u32);
+        Ok(Revspec::from_objects(from, to, mode))
     }
 
     /// Find a single object, as specified by a revision string.
@@ -998,6 +1004,16 @@ impl Repository {
         unsafe {
             try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
             Ok(Revwalk::from_raw(self, raw))
+        }
+    }
+
+    /// Find a merge base between two commits
+    pub fn merge_base(&self, one: Oid, two: Oid) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_merge_base(&mut raw, self.raw,
+                                          one.raw(), two.raw()));
+            Ok(Oid::from_raw(&raw))
         }
     }
 }
