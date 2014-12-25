@@ -7,6 +7,9 @@ thread_local!(static LAST_ERROR: RefCell<Option<Box<Any + Send>>> = {
 });
 
 pub fn wrap<T, F: FnOnce() -> T>(f: F) -> Option<T> {
+    if LAST_ERROR.with(|slot| slot.borrow().is_some()) {
+        return None
+    }
     let mut ret = None;
     let err = {
         let ret = &mut ret;

@@ -3,9 +3,9 @@
 use std::c_str::CString;
 use std::io;
 use std::mem;
-use libc;
+use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, Signature, Error, Repository, RemoteCallbacks};
+use {raw, Signature, Error, Repository, RemoteCallbacks, panic};
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
@@ -15,25 +15,31 @@ pub struct RepoBuilder<'cb> {
     sig: Option<Signature<'static>>,
     local: bool,
     hardlinks: bool,
-    checkout: Option<CheckoutBuilder>,
+    checkout: Option<CheckoutBuilder<'cb>>,
     callbacks: Option<RemoteCallbacks<'cb>>,
 }
 
 /// A builder struct for configuring checkouts of a repository.
-#[deriving(Clone)]
 #[allow(raw_pointer_deriving)]
-pub struct CheckoutBuilder {
+pub struct CheckoutBuilder<'cb> {
     their_label: Option<CString>,
     our_label: Option<CString>,
     ancestor_label: Option<CString>,
     target_dir: Option<CString>,
     paths: Vec<CString>,
-    path_ptrs: Vec<*const libc::c_char>,
+    path_ptrs: Vec<*const c_char>,
     file_perm: Option<io::FilePermission>,
     dir_perm: Option<io::FilePermission>,
     disable_filters: bool,
     checkout_opts: uint,
+    progress: Option<Box<Progress<'cb>>>,
 }
+
+/// Checkout progress notification callback.
+///
+/// The first argument is the path for the notification, the next is the numver
+/// of completed steps so far, and the final is the total number of steps.
+pub type Progress<'a> = FnMut(Option<&[u8]>, uint, uint) + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -95,8 +101,8 @@ impl<'cb> RepoBuilder<'cb> {
 
     /// Configure the checkout which will be performed by consuming a checkout
     /// builder.
-    pub fn with_checkout(&mut self,
-                         checkout: CheckoutBuilder) -> &mut RepoBuilder<'cb> {
+    pub fn with_checkout(&mut self, checkout: CheckoutBuilder<'cb>)
+                         -> &mut RepoBuilder<'cb> {
         self.checkout = Some(checkout);
         self
     }
@@ -118,7 +124,7 @@ impl<'cb> RepoBuilder<'cb> {
             try_call!(raw::git_clone_init_options(&mut opts,
                                                   raw::GIT_CLONE_OPTIONS_VERSION));
         }
-        opts.bare = self.bare as libc::c_int;
+        opts.bare = self.bare as c_int;
         opts.checkout_branch = self.branch.as_ref().map(|s| {
             s.as_ptr()
         }).unwrap_or(0 as *const _);
@@ -132,7 +138,7 @@ impl<'cb> RepoBuilder<'cb> {
             (true, _) => raw::GIT_CLONE_LOCAL_AUTO,
         };
         opts.checkout_opts.checkout_strategy =
-            raw::GIT_CHECKOUT_SAFE_CREATE as libc::c_uint;
+            raw::GIT_CHECKOUT_SAFE_CREATE as c_uint;
 
         match self.callbacks {
             Some(ref mut cbs) => unsafe {
@@ -142,7 +148,7 @@ impl<'cb> RepoBuilder<'cb> {
         }
 
         match self.checkout {
-            Some(ref c) => unsafe { c.configure(&mut opts.checkout_opts) },
+            Some(ref mut c) => unsafe { c.configure(&mut opts.checkout_opts) },
             None => {}
         }
 
@@ -155,10 +161,10 @@ impl<'cb> RepoBuilder<'cb> {
     }
 }
 
-impl CheckoutBuilder {
+impl<'cb> CheckoutBuilder<'cb> {
     /// Creates a new builder for checkouts with all of its default
     /// configuration.
-    pub fn new() -> CheckoutBuilder {
+    pub fn new() -> CheckoutBuilder<'cb> {
         ::init();
         CheckoutBuilder {
             disable_filters: false,
@@ -170,13 +176,14 @@ impl CheckoutBuilder {
             ancestor_label: None,
             our_label: None,
             their_label: None,
-            checkout_opts: raw::GIT_CHECKOUT_SAFE as uint,
+            checkout_opts: raw::GIT_CHECKOUT_SAFE_CREATE as uint,
+            progress: None,
         }
     }
 
     /// Indicate that this checkout should perform a dry run by checking for
     /// conflicts but not make any actual changes.
-    pub fn dry_run(&mut self) -> &mut CheckoutBuilder {
+    pub fn dry_run(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
         self.checkout_opts |= raw::GIT_CHECKOUT_NONE as uint;
         self
@@ -184,7 +191,7 @@ impl CheckoutBuilder {
 
     /// Take any action necessary to get the working directory to match the
     /// target including potentially discarding modified files.
-    pub fn force(&mut self) -> &mut CheckoutBuilder {
+    pub fn force(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
         self.checkout_opts |= raw::GIT_CHECKOUT_FORCE as uint;
         self
@@ -194,14 +201,14 @@ impl CheckoutBuilder {
     /// files to be created but not overwriting extisting files or changes.
     ///
     /// This is the default.
-    pub fn safe(&mut self) -> &mut CheckoutBuilder {
+    pub fn safe(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
         self.checkout_opts |= raw::GIT_CHECKOUT_SAFE_CREATE as uint;
         self
     }
 
     fn flag(&mut self, bit: raw::git_checkout_strategy_t,
-            on: bool) -> &mut CheckoutBuilder {
+            on: bool) -> &mut CheckoutBuilder<'cb> {
         if on {
             self.checkout_opts |= bit as uint;
         } else {
@@ -214,21 +221,22 @@ impl CheckoutBuilder {
     /// instead of canceling the checkout.
     ///
     /// Defaults to false.
-    pub fn allow_conflicts(&mut self, allow: bool) -> &mut CheckoutBuilder {
+    pub fn allow_conflicts(&mut self, allow: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_ALLOW_CONFLICTS, allow)
     }
 
     /// Remove untracked files from the working dir.
     ///
     /// Defaults to false.
-    pub fn remove_untracked(&mut self, remove: bool) -> &mut CheckoutBuilder {
+    pub fn remove_untracked(&mut self, remove: bool)
+                            -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_REMOVE_UNTRACKED, remove)
     }
 
     /// Remove ignored files from the working dir.
     ///
     /// Defaults to false.
-    pub fn remove_ignored(&mut self, remove: bool) -> &mut CheckoutBuilder {
+    pub fn remove_ignored(&mut self, remove: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_REMOVE_IGNORED, remove)
     }
 
@@ -237,7 +245,7 @@ impl CheckoutBuilder {
     /// If set, files will not be created or deleted.
     ///
     /// Defaults to false.
-    pub fn update_only(&mut self, update: bool) -> &mut CheckoutBuilder {
+    pub fn update_only(&mut self, update: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_UPDATE_ONLY, update)
     }
 
@@ -245,7 +253,7 @@ impl CheckoutBuilder {
     /// index.
     ///
     /// Defaults to true.
-    pub fn update_index(&mut self, update: bool) -> &mut CheckoutBuilder {
+    pub fn update_index(&mut self, update: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_DONT_UPDATE_INDEX, !update)
     }
 
@@ -253,14 +261,14 @@ impl CheckoutBuilder {
     /// disk before any operations.
     ///
     /// Defaults to true,
-    pub fn refresh(&mut self, refresh: bool) -> &mut CheckoutBuilder {
+    pub fn refresh(&mut self, refresh: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_NO_REFRESH, !refresh)
     }
 
     /// Skip files with unmerged index entries.
     ///
     /// Defaults to false.
-    pub fn skip_unmerged(&mut self, skip: bool) -> &mut CheckoutBuilder {
+    pub fn skip_unmerged(&mut self, skip: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_SKIP_UNMERGED, skip)
     }
 
@@ -268,7 +276,7 @@ impl CheckoutBuilder {
     /// stage 2 version of the file ("ours").
     ///
     /// Defaults to false.
-    pub fn use_ours(&mut self, ours: bool) -> &mut CheckoutBuilder {
+    pub fn use_ours(&mut self, ours: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_USE_OURS, ours)
     }
 
@@ -276,21 +284,23 @@ impl CheckoutBuilder {
     /// stage 3 version of the file ("theirs").
     ///
     /// Defaults to false.
-    pub fn use_theirs(&mut self, theirs: bool) -> &mut CheckoutBuilder {
+    pub fn use_theirs(&mut self, theirs: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_USE_THEIRS, theirs)
     }
 
     /// Indicate whether ignored files should be overwritten during the checkout.
     ///
     /// Defaults to true.
-    pub fn overwrite_ignored(&mut self, overwrite: bool) -> &mut CheckoutBuilder {
+    pub fn overwrite_ignored(&mut self, overwrite: bool)
+                             -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_DONT_OVERWRITE_IGNORED, !overwrite)
     }
 
     /// Indicate whether a normal merge file should be written for conflicts.
     ///
     /// Defaults to false.
-    pub fn conflict_style_merge(&mut self, on: bool) -> &mut CheckoutBuilder {
+    pub fn conflict_style_merge(&mut self, on: bool)
+                                -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_MERGE, on)
     }
 
@@ -298,12 +308,14 @@ impl CheckoutBuilder {
     /// for conflicts.
     ///
     /// Defaults to false.
-    pub fn conflict_style_diff3(&mut self, on: bool) -> &mut CheckoutBuilder {
+    pub fn conflict_style_diff3(&mut self, on: bool)
+                                -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_DIFF3, on)
     }
 
     /// Indicate whether to apply filters like CRLF conversion.
-    pub fn disable_filters(&mut self, disable: bool) -> &mut CheckoutBuilder {
+    pub fn disable_filters(&mut self, disable: bool)
+                           -> &mut CheckoutBuilder<'cb> {
         self.disable_filters = disable;
         self
     }
@@ -311,7 +323,8 @@ impl CheckoutBuilder {
     /// Set the mode with which new directories are created.
     ///
     /// Default is 0755
-    pub fn dir_perm(&mut self, perm: io::FilePermission) -> &mut CheckoutBuilder {
+    pub fn dir_perm(&mut self, perm: io::FilePermission)
+                    -> &mut CheckoutBuilder<'cb> {
         self.dir_perm = Some(perm);
         self
     }
@@ -319,7 +332,8 @@ impl CheckoutBuilder {
     /// Set the mode with which new files are created.
     ///
     /// The default is 0644 or 0755 as dictated by the blob.
-    pub fn file_perm(&mut self, perm: io::FilePermission) -> &mut CheckoutBuilder {
+    pub fn file_perm(&mut self, perm: io::FilePermission)
+                     -> &mut CheckoutBuilder<'cb> {
         self.file_perm = Some(perm);
         self
     }
@@ -328,7 +342,7 @@ impl CheckoutBuilder {
     ///
     /// If no paths are specified, then all files are checked out. Otherwise
     /// only these specified paths are checked out.
-    pub fn path<T: ToCStr>(&mut self, path: T) -> &mut CheckoutBuilder {
+    pub fn path<T: ToCStr>(&mut self, path: T) -> &mut CheckoutBuilder<'cb> {
         let path = path.to_c_str();
         self.path_ptrs.push(path.as_ptr());
         self.paths.push(path);
@@ -336,26 +350,33 @@ impl CheckoutBuilder {
     }
 
     /// Set the directory to check out to
-    pub fn target_dir(&mut self, dst: Path) -> &mut CheckoutBuilder {
+    pub fn target_dir(&mut self, dst: Path) -> &mut CheckoutBuilder<'cb> {
         self.target_dir = Some(dst.to_c_str());
         self
     }
 
     /// The name of the common ancestor side of conflicts
-    pub fn ancestor_label(&mut self, label: &str) -> &mut CheckoutBuilder {
+    pub fn ancestor_label(&mut self, label: &str) -> &mut CheckoutBuilder<'cb> {
         self.ancestor_label = Some(label.to_c_str());
         self
     }
 
     /// The name of the common our side of conflicts
-    pub fn our_label(&mut self, label: &str) -> &mut CheckoutBuilder {
+    pub fn our_label(&mut self, label: &str) -> &mut CheckoutBuilder<'cb> {
         self.our_label = Some(label.to_c_str());
         self
     }
 
     /// The name of the common their side of conflicts
-    pub fn their_label(&mut self, label: &str) -> &mut CheckoutBuilder {
+    pub fn their_label(&mut self, label: &str) -> &mut CheckoutBuilder<'cb> {
         self.their_label = Some(label.to_c_str());
+        self
+    }
+
+    /// Set a callback to receive notifications of checkout progress.
+    pub fn progress<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
+                       where F: FnMut(Option<&[u8]>, uint, uint) + 'cb {
+        self.progress = Some(box cb as Box<Progress<'cb>>);
         self
     }
 
@@ -363,15 +384,15 @@ impl CheckoutBuilder {
     ///
     /// This method is unsafe as there is no guarantee that this structure will
     /// outlive the provided checkout options.
-    pub unsafe fn configure(&self, opts: &mut raw::git_checkout_options) {
+    pub unsafe fn configure(&mut self, opts: &mut raw::git_checkout_options) {
         opts.version = raw::GIT_CHECKOUT_OPTIONS_VERSION;
-        opts.disable_filters = self.disable_filters as libc::c_int;
-        opts.dir_mode = self.dir_perm.map(|p| p.bits()).unwrap_or(0) as libc::c_uint;
-        opts.file_mode = self.file_perm.map(|p| p.bits()).unwrap_or(0) as libc::c_uint;
+        opts.disable_filters = self.disable_filters as c_int;
+        opts.dir_mode = self.dir_perm.map(|p| p.bits()).unwrap_or(0) as c_uint;
+        opts.file_mode = self.file_perm.map(|p| p.bits()).unwrap_or(0) as c_uint;
 
         if self.path_ptrs.len() > 0 {
             opts.paths.strings = self.path_ptrs.as_ptr() as *mut _;
-            opts.paths.count = self.path_ptrs.len() as libc::size_t;
+            opts.paths.count = self.path_ptrs.len() as size_t;
         }
 
         match self.target_dir {
@@ -390,7 +411,34 @@ impl CheckoutBuilder {
             Some(ref c) => opts.their_label = c.as_ptr(),
             None => {}
         }
-        opts.checkout_strategy = self.checkout_opts as libc::c_uint;
+        if self.progress.is_some() {
+            let f: raw::git_checkout_progress_cb = progress_cb;
+            opts.progress_cb = Some(f);
+            opts.progress_payload = self as *mut _ as *mut _;
+        }
+        opts.checkout_strategy = self.checkout_opts as c_uint;
+    }
+}
+
+extern fn progress_cb(path: *const c_char,
+                      completed: size_t,
+                      total: size_t,
+                      data: *mut c_void) {
+    unsafe {
+        let payload: &mut CheckoutBuilder = &mut *(data as *mut CheckoutBuilder);
+        let callback = match payload.progress {
+            Some(ref mut c) => c,
+            None => return,
+        };
+        let path = if path.is_null() {
+            None
+        } else {
+            Some(CString::new(path, false))
+        };
+        panic::wrap(|| {
+            callback.call_mut((path.as_ref().map(|p| p.as_bytes_no_nul()),
+                               completed as uint, total as uint));
+        });
     }
 }
 

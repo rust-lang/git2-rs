@@ -852,7 +852,7 @@ impl Repository {
 
     /// Updates files in the index and the working tree to match the content of
     /// the commit pointed at by HEAD.
-    pub fn checkout_head(&self, opts: Option<&CheckoutBuilder>)
+    pub fn checkout_head(&self, opts: Option<&mut CheckoutBuilder>)
                          -> Result<(), Error> {
         unsafe {
             let mut raw_opts = mem::zeroed();
@@ -873,7 +873,7 @@ impl Repository {
     /// If the index is `None`, the repository's index will be used.
     pub fn checkout_index(&self,
                           index: Option<&mut Index>,
-                          opts: Option<&CheckoutBuilder>) -> Result<(), Error> {
+                          opts: Option<&mut CheckoutBuilder>) -> Result<(), Error> {
         unsafe {
             let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(&mut raw_opts,
@@ -894,7 +894,7 @@ impl Repository {
     /// tree pointed at by the treeish.
     pub fn checkout_tree(&self,
                          treeish: &Object,
-                         opts: Option<&CheckoutBuilder>) -> Result<(), Error> {
+                         opts: Option<&mut CheckoutBuilder>) -> Result<(), Error> {
         unsafe {
             let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(&mut raw_opts,

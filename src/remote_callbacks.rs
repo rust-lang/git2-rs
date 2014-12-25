@@ -20,10 +20,15 @@ pub struct RemoteCallbacks<'a> {
 
 /// Struct representing the progress by an in-flight transfer.
 pub struct Progress<'a> {
-    raw: *const raw::git_transfer_progress,
+    raw: ProgressState,
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
+}
+
+enum ProgressState {
+    Borrowed(*const raw::git_transfer_progress),
+    Owned(raw::git_transfer_progress),
 }
 
 /// Callback used to acquire credentials for when a remote is fetched.
@@ -136,7 +141,7 @@ impl<'a> Progress<'a> {
     pub unsafe fn from_raw(raw: *const raw::git_transfer_progress)
                            -> Progress<'a> {
         Progress {
-            raw: raw,
+            raw: ProgressState::Borrowed(raw),
             marker1: marker::ContravariantLifetime,
             marker2: marker::NoSend,
             marker3: marker::NoSync,
@@ -145,32 +150,49 @@ impl<'a> Progress<'a> {
 
     /// Number of objects in the packfile being downloaded
     pub fn total_objects(&self) -> uint {
-        unsafe { (*self.raw).total_objects as uint }
+        unsafe { (*self.raw()).total_objects as uint }
     }
     /// Received objects that have been hashed
     pub fn indexed_objects(&self) -> uint {
-        unsafe { (*self.raw).indexed_objects as uint }
+        unsafe { (*self.raw()).indexed_objects as uint }
     }
     /// Objects which have been downloaded
     pub fn received_objects(&self) -> uint {
-        unsafe { (*self.raw).received_objects as uint }
+        unsafe { (*self.raw()).received_objects as uint }
     }
     /// Locally-available objects that have been injected in order to fix a thin
     /// pack.
     pub fn local_objects(&self) -> uint {
-        unsafe { (*self.raw).local_objects as uint }
+        unsafe { (*self.raw()).local_objects as uint }
     }
     /// Number of deltas in the packfile being downloaded
     pub fn total_deltas(&self) -> uint {
-        unsafe { (*self.raw).total_deltas as uint }
+        unsafe { (*self.raw()).total_deltas as uint }
     }
     /// Received deltas that have been hashed.
     pub fn indexed_deltas(&self) -> uint {
-        unsafe { (*self.raw).indexed_deltas as uint }
+        unsafe { (*self.raw()).indexed_deltas as uint }
     }
     /// Size of the packfile received up to now
     pub fn received_bytes(&self) -> uint {
-        unsafe { (*self.raw).received_bytes as uint }
+        unsafe { (*self.raw()).received_bytes as uint }
+    }
+
+    /// Convert this to an owned version of `Progress`.
+    pub fn to_owned(&self) -> Progress<'static> {
+        Progress {
+            raw: ProgressState::Owned(unsafe { *self.raw() }),
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
+        }
+    }
+
+    fn raw(&self) -> *const raw::git_transfer_progress {
+        match self.raw {
+            ProgressState::Borrowed(raw) => raw,
+            ProgressState::Owned(ref raw) => raw as *const _,
+        }
     }
 }
 
