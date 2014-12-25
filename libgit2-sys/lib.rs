@@ -683,6 +683,15 @@ pub const GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED: c_uint = 1 << 11;
 pub const GIT_SUBMODULE_STATUS_WD_WD_MODIFIED: c_uint = 1 << 12;
 pub const GIT_SUBMODULE_STATUS_WD_UNTRACKED: c_uint = 1 << 13;
 
+#[repr(C)]
+pub struct git_remote_head {
+    pub local: c_int,
+    pub oid: git_oid,
+    pub loid: git_oid,
+    pub name: *mut c_char,
+    pub symref_target: *mut c_char,
+}
+
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
 pub fn openssl_init() {
@@ -957,6 +966,9 @@ extern {
                                      version: c_uint) -> c_int;
     pub fn git_remote_stats(remote: *mut git_remote)
                             -> *const git_transfer_progress;
+    pub fn git_remote_ls(out: *mut *mut *const git_remote_head,
+                         size: *mut size_t,
+                         remote: *mut git_remote) -> c_int;
 
     // refspec
     pub fn git_refspec_direction(spec: *const git_refspec) -> git_direction;

@@ -1,9 +1,11 @@
 use std::c_str::CString;
 use std::kinds::marker;
+use std::mem;
+use std::slice;
 use std::str;
 use libc;
 
-use {raw, Repository, Direction, Error, Refspec};
+use {raw, Repository, Direction, Error, Refspec, Oid};
 use {Signature, Push, RemoteCallbacks, Progress};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -21,10 +23,19 @@ pub struct Remote<'repo, 'cb> {
 }
 
 /// An iterator over the refspecs that a remote contains.
-pub struct Refspecs<'a, 'b: 'a> {
+pub struct Refspecs<'remote, 'cb: 'remote> {
     cur: uint,
     cnt: uint,
-    remote: &'a Remote<'a, 'b>,
+    remote: &'remote Remote<'remote, 'cb>,
+}
+
+/// Description of a reference advertised bya remote server, given out on calls
+/// to `list`.
+pub struct RemoteHead<'remote> {
+    raw: *const raw::git_remote_head,
+    marker1: marker::ContravariantLifetime<'remote>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
 }
 
 impl<'repo, 'cb> Remote<'repo, 'cb> {
@@ -301,6 +312,28 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
             Progress::from_raw(raw::git_remote_stats(self.raw))
         }
     }
+
+    /// Get the remote repository's reference advertisement list.
+    ///
+    /// Get the list of references with which the server responds to a new
+    /// connection.
+    ///
+    /// The remote (or more exactly its transport) must have connected to the
+    /// remote repository. This list is available as soon as the connection to
+    /// the remote is initiated and it remains available after disconnecting.
+    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+        let mut size = 0;
+        let mut base = 0 as *mut _;
+        unsafe {
+            try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
+            assert_eq!(mem::size_of::<RemoteHead>(),
+                       mem::size_of::<*const raw::git_remote_head>());
+            let base = base as *const _;
+            let slice = slice::from_raw_buf(&base, size as uint);
+            Ok(mem::transmute::<&[*const raw::git_remote_head],
+                                &[RemoteHead]>(slice))
+        }
+    }
 }
 
 impl<'a, 'b> Iterator<Refspec<'a>> for Refspecs<'a, 'b> {
@@ -336,6 +369,28 @@ impl<'a, 'b> Clone for Remote<'a, 'b> {
 impl<'a, 'b> Drop for Remote<'a, 'b> {
     fn drop(&mut self) {
         unsafe { raw::git_remote_free(self.raw) }
+    }
+}
+
+#[allow(missing_docs)] // not documented in libgit2 :(
+impl<'remote> RemoteHead<'remote> {
+    /// Flag if this is available locally.
+    pub fn is_local(&self) -> bool {
+        unsafe { (*self.raw).local != 0 }
+    }
+
+
+    pub fn oid(&self) -> Oid { unsafe { Oid::from_raw(&(*self.raw).oid) } }
+    pub fn loid(&self) -> Oid { unsafe { Oid::from_raw(&(*self.raw).loid) } }
+
+    pub fn name(&self) -> &str {
+        let b = unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() };
+        str::from_utf8(b).unwrap()
+    }
+
+    pub fn symref_target(&self) -> Option<&str> {
+        let b = unsafe { ::opt_bytes(self, (*self.raw).symref_target) };
+        b.map(|b| str::from_utf8(b).unwrap())
     }
 }
 

@@ -12,6 +12,8 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![deny(warnings)]
+
 extern crate git2;
 extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;

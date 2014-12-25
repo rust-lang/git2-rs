@@ -94,7 +94,7 @@ pub use oid::Oid;
 pub use push::{Push, PushStatus};
 pub use reference::{Reference, References, ReferenceNames};
 pub use refspec::Refspec;
-pub use remote::{Remote, Refspecs};
+pub use remote::{Remote, Refspecs, RemoteHead};
 pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
 pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
 pub use repo::{Repository, RepositoryInitOptions};
