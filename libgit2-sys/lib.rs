@@ -880,6 +880,7 @@ extern {
     pub fn git_oid_cmp(a: *const git_oid, b: *const git_oid) -> c_int;
     pub fn git_oid_equal(a: *const git_oid, b: *const git_oid) -> c_int;
     pub fn git_oid_streq(id: *const git_oid, str: *const c_char) -> c_int;
+    pub fn git_oid_iszero(id: *const git_oid) -> c_int;
 
     // giterr
     pub fn giterr_last() -> *const git_error;
@@ -954,6 +955,8 @@ extern {
                                     -> c_int;
     pub fn git_remote_init_callbacks(opts: *mut git_remote_callbacks,
                                      version: c_uint) -> c_int;
+    pub fn git_remote_stats(remote: *mut git_remote)
+                            -> *const git_transfer_progress;
 
     // refspec
     pub fn git_refspec_direction(spec: *const git_refspec) -> git_direction;

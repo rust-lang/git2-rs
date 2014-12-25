@@ -96,7 +96,7 @@ pub use reference::{Reference, References, ReferenceNames};
 pub use refspec::Refspec;
 pub use remote::{Remote, Refspecs};
 pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
-pub use remote_callbacks::{TransportMessage, Progress};
+pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
 pub use repo::{Repository, RepositoryInitOptions};
 pub use revspec::Revspec;
 pub use revwalk::Revwalk;

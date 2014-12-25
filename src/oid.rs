@@ -1,5 +1,6 @@
 use std::fmt;
 use std::hash::{sip, Hash};
+use std::str;
 use libc;
 
 use {raw, Error};
@@ -54,6 +55,11 @@ impl Oid {
 
     /// View this OID as a byte-slice 20 bytes in length.
     pub fn as_bytes(&self) -> &[u8] { self.raw.id.as_slice() }
+
+    /// Test if this OID is all zeros.
+    pub fn is_zero(&self) -> bool {
+        unsafe { raw::git_oid_iszero(&self.raw) == 1 }
+    }
 }
 
 impl fmt::Show for Oid {
@@ -64,7 +70,8 @@ impl fmt::Show for Oid {
             raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
                                dst.len() as libc::size_t, &self.raw);
         }
-        f.write(dst.slice_to(dst.iter().position(|&a| a == 0).unwrap()))
+        let s = dst.slice_to(dst.iter().position(|&a| a == 0).unwrap());
+        str::from_utf8(s).unwrap().fmt(f)
     }
 }
 

@@ -2,9 +2,9 @@ use std::c_str::CString;
 use std::kinds::marker;
 use std::mem;
 use std::slice;
-use libc;
+use libc::{c_void, c_int, c_char, c_uint};
 
-use {raw, panic, Error, Cred, CredentialType};
+use {raw, panic, Error, Cred, CredentialType, Oid};
 
 /// A structure to contain the callbacks which are invoked when a repository is
 /// being updated or downloaded.
@@ -15,6 +15,7 @@ pub struct RemoteCallbacks<'a> {
     progress: Option<Box<TransferProgress<'a>>>,
     credentials: Option<Box<Credentials<'a>>>,
     sideband_progress: Option<Box<TransportMessage<'a>>>,
+    update_tips: Option<Box<UpdateTips<'a>>>,
 }
 
 /// Struct representing the progress by an in-flight transfer.
@@ -48,6 +49,9 @@ pub type TransferProgress<'a> = FnMut(Progress) -> bool + 'a;
 /// The return value indicates whether the network operation should continue.
 pub type TransportMessage<'a> = FnMut(&[u8]) -> bool + 'a;
 
+/// Callback for whenever a reference is updated locally.
+pub type UpdateTips<'a> = FnMut(&str, Oid, Oid) -> bool + 'a;
+
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
     pub fn new() -> RemoteCallbacks<'a> {
@@ -55,6 +59,7 @@ impl<'a> RemoteCallbacks<'a> {
             credentials: None,
             progress: None,
             sideband_progress: None,
+            update_tips: None,
         }
     }
 
@@ -84,6 +89,14 @@ impl<'a> RemoteCallbacks<'a> {
         self
     }
 
+    /// Each time a reference is updated locally, the callback will be called
+    /// with information about it.
+    pub fn update_tips<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+                          where F: FnMut(&str, Oid, Oid) -> bool + 'a {
+        self.update_tips = Some(box cb as Box<UpdateTips<'a>>);
+        self
+    }
+
     /// Convert this set of callbacks to a raw callbacks structure.
     ///
     /// This function is unsafe as the callbacks returned have a reference to
@@ -103,6 +116,12 @@ impl<'a> RemoteCallbacks<'a> {
         if self.sideband_progress.is_some() {
             let f: raw::git_transport_message_cb = sideband_progress_cb;
             callbacks.sideband_progress = Some(f);
+        }
+        if self.update_tips.is_some() {
+            let f: extern fn(*const c_char, *const raw::git_oid,
+                             *const raw::git_oid, *mut c_void) -> c_int
+                            = update_tips_cb;
+            callbacks.update_tips = Some(f);
         }
         callbacks.payload = self as *mut _ as *mut _;
         return callbacks;
@@ -125,15 +144,15 @@ impl<'a> Progress<'a> {
     }
 
     /// Number of objects in the packfile being downloaded
-    pub fn total_object(&self) -> uint {
+    pub fn total_objects(&self) -> uint {
         unsafe { (*self.raw).total_objects as uint }
     }
     /// Received objects that have been hashed
-    pub fn indexed_object(&self) -> uint {
+    pub fn indexed_objects(&self) -> uint {
         unsafe { (*self.raw).indexed_objects as uint }
     }
     /// Objects which have been downloaded
-    pub fn received_object(&self) -> uint {
+    pub fn received_objects(&self) -> uint {
         unsafe { (*self.raw).received_objects as uint }
     }
     /// Locally-available objects that have been injected in order to fix a thin
@@ -156,21 +175,21 @@ impl<'a> Progress<'a> {
 }
 
 extern fn credentials_cb(ret: *mut *mut raw::git_cred,
-                         url: *const libc::c_char,
-                         username_from_url: *const libc::c_char,
-                         allowed_types: libc::c_uint,
-                         payload: *mut libc::c_void) -> libc::c_int {
+                         url: *const c_char,
+                         username_from_url: *const c_char,
+                         allowed_types: c_uint,
+                         payload: *mut c_void) -> c_int {
     unsafe {
         let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
         let callback = match payload.credentials {
             Some(ref mut c) => c,
-            None => return raw::GIT_PASSTHROUGH as libc::c_int,
+            None => return raw::GIT_PASSTHROUGH as c_int,
         };
         *ret = 0 as *mut raw::git_cred;
         let url = CString::new(url, false);
         let url = match url.as_str()  {
             Some(url) => url,
-            None => return raw::GIT_PASSTHROUGH as libc::c_int,
+            None => return raw::GIT_PASSTHROUGH as c_int,
         };
         let username_from_url = if username_from_url.is_null() {
             None
@@ -180,7 +199,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
         let username_from_url = match username_from_url {
             Some(ref username) => match username.as_str() {
                 Some(s) => Some(s),
-                None => return raw::GIT_PASSTHROUGH as libc::c_int,
+                None => return raw::GIT_PASSTHROUGH as c_int,
             },
             None => None,
         };
@@ -192,21 +211,21 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             Some(Ok(cred)) => {
                 // Turns out it's a memory safety issue if we pass through any
                 // and all credentials into libgit2
-                if allowed_types & (cred.credtype() as libc::c_uint) != 0 {
+                if allowed_types & (cred.credtype() as c_uint) != 0 {
                     *ret = cred.unwrap();
                     0
                 } else {
-                    raw::GIT_PASSTHROUGH as libc::c_int
+                    raw::GIT_PASSTHROUGH as c_int
                 }
             }
-            Some(Err(e)) => e.raw_code() as libc::c_int,
+            Some(Err(e)) => e.raw_code() as c_int,
             None => -1,
         }
     }
 }
 
 extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
-                               payload: *mut libc::c_void) -> libc::c_int {
+                               payload: *mut c_void) -> c_int {
     unsafe {
         let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
         let callback = match payload.progress {
@@ -221,9 +240,9 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
     }
 }
 
-extern fn sideband_progress_cb(str: *const libc::c_char,
-                               len: libc::c_int,
-                               payload: *mut libc::c_void) -> libc::c_int {
+extern fn sideband_progress_cb(str: *const c_char,
+                               len: c_int,
+                               payload: *mut c_void) -> c_int {
     unsafe {
         let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
         let callback = match payload.sideband_progress {
@@ -234,6 +253,27 @@ extern fn sideband_progress_cb(str: *const libc::c_char,
         let buf = slice::from_raw_buf(&ptr, len as uint);
         let ok = panic::wrap(|| {
             callback.call_mut((buf,))
+        }).unwrap_or(false);
+        if ok {0} else {-1}
+    }
+}
+
+extern fn update_tips_cb(refname: *const c_char,
+                         a: *const raw::git_oid,
+                         b: *const raw::git_oid,
+                         data: *mut c_void) -> c_int {
+    unsafe {
+        let payload: &mut RemoteCallbacks = &mut *(data as *mut RemoteCallbacks);
+        let callback = match payload.update_tips {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+        let refname = CString::new(refname, false);
+        let refname = refname.as_str().unwrap();
+        let a = Oid::from_raw(a);
+        let b = Oid::from_raw(b);
+        let ok = panic::wrap(|| {
+            callback.call_mut((refname, a, b))
         }).unwrap_or(false);
         if ok {0} else {-1}
     }

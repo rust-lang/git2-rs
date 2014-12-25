@@ -4,7 +4,7 @@ use std::str;
 use libc;
 
 use {raw, Repository, Direction, Error, Refspec};
-use {Signature, Push, RemoteCallbacks};
+use {Signature, Push, RemoteCallbacks, Progress};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -293,6 +293,13 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
             None => {}
         }
         Ok(())
+    }
+
+    /// Get the statistics structure that is filled in by the fetch operation.
+    pub fn stats(&self) -> Progress {
+        unsafe {
+            Progress::from_raw(raw::git_remote_stats(self.raw))
+        }
     }
 }
 
