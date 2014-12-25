@@ -1,4 +1,5 @@
 use std::c_str::CString;
+use std::kinds::marker;
 use std::mem;
 use std::slice;
 use libc;
@@ -17,23 +18,11 @@ pub struct RemoteCallbacks<'a> {
 }
 
 /// Struct representing the progress by an in-flight transfer.
-#[deriving(Copy)]
-pub struct Progress {
-    /// Number of objects in the packfile being downloaded
-    pub total_objects: uint,
-    /// Received objects that have been hashed
-    pub indexed_objects: uint,
-    /// Objects which have been downloaded
-    pub received_objects: uint,
-    /// Locally-available objects that have been injected in order to fix a thin
-    /// pack.
-    pub local_objects: uint,
-    /// Number of deltas in the packfile being downloaded
-    pub total_deltas: uint,
-    /// Received deltas that have been hashed.
-    pub indexed_deltas: uint,
-    /// Size of the packfile received up to now
-    pub received_bytes: uint,
+pub struct Progress<'a> {
+    raw: *const raw::git_transfer_progress,
+    marker1: marker::ContravariantLifetime<'a>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
 }
 
 /// Callback used to acquire credentials for when a remote is fetched.
@@ -125,6 +114,52 @@ impl<'a> RemoteCallbacks<'a> {
     }
 }
 
+impl<'a> Progress<'a> {
+    /// Creates a new progress structure from its raw counterpart.
+    ///
+    /// This function is unsafe as there is no anchor for the returned lifetime
+    /// and the validity of the pointer cannot be guaranteed.
+    pub unsafe fn from_raw(raw: *const raw::git_transfer_progress)
+                           -> Progress<'a> {
+        Progress {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
+        }
+    }
+
+    /// Number of objects in the packfile being downloaded
+    pub fn total_object(&self) -> uint {
+        unsafe { (*self.raw).total_objects as uint }
+    }
+    /// Received objects that have been hashed
+    pub fn indexed_object(&self) -> uint {
+        unsafe { (*self.raw).indexed_objects as uint }
+    }
+    /// Objects which have been downloaded
+    pub fn received_object(&self) -> uint {
+        unsafe { (*self.raw).received_objects as uint }
+    }
+    /// Locally-available objects that have been injected in order to fix a thin
+    /// pack.
+    pub fn local_objects(&self) -> uint {
+        unsafe { (*self.raw).local_objects as uint }
+    }
+    /// Number of deltas in the packfile being downloaded
+    pub fn total_deltas(&self) -> uint {
+        unsafe { (*self.raw).total_deltas as uint }
+    }
+    /// Received deltas that have been hashed.
+    pub fn indexed_deltas(&self) -> uint {
+        unsafe { (*self.raw).indexed_deltas as uint }
+    }
+    /// Size of the packfile received up to now
+    pub fn received_bytes(&self) -> uint {
+        unsafe { (*self.raw).received_bytes as uint }
+    }
+}
+
 extern fn credentials_cb(ret: *mut *mut raw::git_cred,
                          url: *const libc::c_char,
                          username_from_url: *const libc::c_char,
@@ -180,15 +215,7 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let progress = Progress {
-            total_objects: (*stats).total_objects as uint,
-            indexed_objects: (*stats).indexed_objects as uint,
-            received_objects: (*stats).received_objects as uint,
-            local_objects: (*stats).local_objects as uint,
-            total_deltas: (*stats).total_deltas as uint,
-            indexed_deltas: (*stats).indexed_deltas as uint,
-            received_bytes: (*stats).received_bytes as uint,
-        };
+        let progress = Progress::from_raw(stats);
         if (*callback)(progress) {0} else {-1}
     }
 }

@@ -277,13 +277,15 @@ impl Repository {
     /// Create a remote with the given url and refspec in memory. You can use
     /// this when you have a URL instead of a remote's name. Note that anonymous
     /// remotes cannot be converted to persisted remotes.
-    pub fn remote_anonymous(&self, url: &str,
-                            fetch: &str) -> Result<Remote, Error> {
+    pub fn remote_anonymous(&self,
+                            url: &str,
+                            fetch: Option<&str>) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
+        let fetch = fetch.map(|t| t.to_c_str());
         unsafe {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw,
                                                        url.to_c_str(),
-                                                       fetch.to_c_str()));
+                                                       fetch));
             Ok(Remote::from_raw(self, ret))
         }
     }

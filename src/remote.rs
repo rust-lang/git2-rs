@@ -425,7 +425,7 @@ mod tests {
         let repo = Repository::init(td.path()).unwrap();
 
         let origin = repo.remote_anonymous("/path/to/nowhere",
-                                           "master").unwrap();
+                                           Some("master")).unwrap();
         assert_eq!(origin.name(), None);
         drop(origin.clone());
     }
