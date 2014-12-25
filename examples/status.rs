@@ -88,7 +88,7 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if args.flag_repeat {
-            std::io::timer::sleep(std::time::Duration::milliseconds(10));
+            std::io::timer::sleep(std::time::Duration::milliseconds(10000));
         } else {
             return Ok(())
         }
