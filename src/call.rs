@@ -3,13 +3,33 @@ use libc;
 
 use Error;
 
-macro_rules! call( (raw::$p:ident ($($e:expr),*)) => (
-    raw::$p($(::call::convert(&$e)),*)
-) );
+macro_rules! call {
+    (raw::$p:ident ($($e:expr),*)) => (
+        raw::$p($(::call::convert(&$e)),*)
+    )
+}
 
-macro_rules! try_call( ($($arg:tt)*) => ({
-    try!(::call::try(call!($($arg)*)))
-}) );
+
+macro_rules! try_call {
+    ($($arg:tt)*) => ({
+        try!(::call::try(call!($($arg)*)))
+    })
+}
+
+macro_rules! try_call_panic {
+    ($($arg:tt)*) => ({
+        match ::call::try(call!($($arg)*)) {
+            Ok(o) => o,
+            Err(e) => { ::panic::check(); return Err(e) }
+        }
+    })
+}
+
+macro_rules! try_call {
+    ($($arg:tt)*) => ({
+        try!(::call::try(call!($($arg)*)))
+    })
+}
 
 #[doc(hidden)]
 pub trait Convert<T> {

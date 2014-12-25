@@ -148,8 +148,8 @@ impl<'cb> RepoBuilder<'cb> {
 
         let mut raw = 0 as *mut raw::git_repository;
         unsafe {
-            try_call!(raw::git_clone(&mut raw, url.to_c_str(), into.to_c_str(),
-                                     &opts));
+            try_call_panic!(raw::git_clone(&mut raw, url.to_c_str(),
+                                           into.to_c_str(), &opts));
             Ok(Repository::from_raw(raw))
         }
     }

@@ -93,7 +93,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
         unsafe {
             try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_connect(self.raw, dir));
+            try_call_panic!(raw::git_remote_connect(self.raw, dir));
         }
         Ok(())
     }
@@ -213,7 +213,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         unsafe {
             try!(self.set_raw_callbacks());
             // FIXME expose refspec array at the API level
-            try_call!(raw::git_remote_download(self.raw, 0 as *const _));
+            try_call_panic!(raw::git_remote_download(self.raw, 0 as *const _));
         }
         Ok(())
     }
@@ -240,7 +240,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         };
         unsafe {
             try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_fetch(self.raw,
+            try_call_panic!(raw::git_remote_fetch(self.raw,
                                             &arr,
                                             &*signature.map(|s| s.raw())
                                                        .unwrap_or(0 as *mut _),
@@ -272,7 +272,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         let mut ret = 0 as *mut raw::git_push;
         try!(self.set_raw_callbacks());
         unsafe {
-            try_call!(raw::git_push_new(&mut ret, self.raw));
+            try_call_panic!(raw::git_push_new(&mut ret, self.raw));
             Ok(Push::from_raw(self, ret))
         }
     }
@@ -447,7 +447,8 @@ mod tests {
         let mut origin = repo.remote("origin", url.as_slice()).unwrap();
 
         let progress_hit = Cell::new(false);
-        let mut callbacks = RemoteCallbacks::new().transfer_progress(|_progress| {
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.transfer_progress(|_progress| {
             progress_hit.set(true);
             true
         });

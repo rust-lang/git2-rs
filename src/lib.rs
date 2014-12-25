@@ -63,7 +63,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(macro_rules, unsafe_destructor)]
+#![feature(macro_rules, unsafe_destructor, unboxed_closures)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
 
@@ -272,6 +272,7 @@ Flags for the return value of `Repository::revparse`
 }
 
 mod call;
+mod panic;
 
 pub mod build;
 

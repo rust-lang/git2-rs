@@ -4,7 +4,7 @@ use std::mem;
 use std::slice;
 use libc;
 
-use {raw, Error, Cred, CredentialType};
+use {raw, panic, Error, Cred, CredentialType};
 
 /// A structure to contain the callbacks which are invoked when a repository is
 /// being updated or downloaded.
@@ -12,9 +12,9 @@ use {raw, Error, Cred, CredentialType};
 /// These callbacks are used to manage facilities such as authentication,
 /// transfer progress, etc.
 pub struct RemoteCallbacks<'a> {
-    progress: Option<TransferProgress<'a>>,
-    credentials: Option<Credentials<'a>>,
-    sideband_progress: Option<TransportMessage<'a>>,
+    progress: Option<Box<TransferProgress<'a>>>,
+    credentials: Option<Box<Credentials<'a>>>,
+    sideband_progress: Option<Box<TransportMessage<'a>>>,
 }
 
 /// Struct representing the progress by an in-flight transfer.
@@ -31,10 +31,8 @@ pub struct Progress<'a> {
 /// * `username_from_url` - the username that was embedded in the url, or `None`
 ///                         if it was not included.
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
-pub type Credentials<'a> = |url: &str,
-                            username_from_url: Option<&str>,
-                            allowed_types: CredentialType|: 'a
-                           -> Result<Cred, Error>;
+pub type Credentials<'a> = FnMut(&str, Option<&str>, CredentialType)
+                                 -> Result<Cred, Error> + 'a;
 
 /// Callback to be invoked while a transfer is in progress.
 ///
@@ -43,12 +41,12 @@ pub type Credentials<'a> = |url: &str,
 /// continue. A return value of `false` will cancel the transfer.
 ///
 /// * `progress` - the progress being made so far.
-pub type TransferProgress<'a> = |progress: Progress|: 'a -> bool;
+pub type TransferProgress<'a> = FnMut(Progress) -> bool + 'a;
 
 /// Callback for receiving messages delivered by the transport.
 ///
 /// The return value indicates whether the network operation should continue.
-pub type TransportMessage<'a> = |message: &[u8]|: 'a -> bool;
+pub type TransportMessage<'a> = FnMut(&[u8]) -> bool + 'a;
 
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
@@ -61,21 +59,18 @@ impl<'a> RemoteCallbacks<'a> {
     }
 
     /// The callback through which to fetch credentials if required.
-    ///
-    /// It is strongly recommended to audit the `credentials` callback for
-    /// failure as it will likely leak resources if it fails.
-    pub fn credentials(mut self, cb: Credentials<'a>) -> RemoteCallbacks<'a> {
-        self.credentials = Some(cb);
+    pub fn credentials<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+                          where F: FnMut(&str, Option<&str>, CredentialType)
+                                         -> Result<Cred, Error> + 'a
+    {
+        self.credentials = Some(box cb as Box<Credentials<'a>>);
         self
     }
 
     /// The callback through which progress is monitored.
-    ///
-    /// It is strongly recommended to audit the `progress` callback for
-    /// failure as it will likely leak resources if it fails.
-    pub fn transfer_progress(mut self, cb: TransferProgress<'a>)
-                             -> RemoteCallbacks<'a> {
-        self.progress = Some(cb);
+    pub fn transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+                                where F: FnMut(Progress) -> bool + 'a {
+        self.progress = Some(box cb as Box<TransferProgress<'a>>);
         self
     }
 
@@ -83,9 +78,9 @@ impl<'a> RemoteCallbacks<'a> {
     ///
     /// Text sent over the progress side-band will be passed to this function
     /// (this is the 'counting objects' output.
-    pub fn sideband_progress(mut self, cb: TransportMessage<'a>)
-                             -> RemoteCallbacks<'a> {
-        self.sideband_progress = Some(cb);
+    pub fn sideband_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+                                where F: FnMut(&[u8]) -> bool + 'a {
+        self.sideband_progress = Some(box cb as Box<TransportMessage<'a>>);
         self
     }
 
@@ -191,8 +186,10 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
         };
 
         let cred_type = CredentialType::from_bits_truncate(allowed_types as uint);
-        match (*callback)(url, username_from_url, cred_type) {
-            Ok(cred) => {
+        match panic::wrap(|| {
+            callback.call_mut((url, username_from_url, cred_type))
+        }) {
+            Some(Ok(cred)) => {
                 // Turns out it's a memory safety issue if we pass through any
                 // and all credentials into libgit2
                 if allowed_types & (cred.credtype() as libc::c_uint) != 0 {
@@ -202,7 +199,8 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
                     raw::GIT_PASSTHROUGH as libc::c_int
                 }
             }
-            Err(e) => e.raw_code() as libc::c_int,
+            Some(Err(e)) => e.raw_code() as libc::c_int,
+            None => -1,
         }
     }
 }
@@ -216,7 +214,10 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
             None => return 0,
         };
         let progress = Progress::from_raw(stats);
-        if (*callback)(progress) {0} else {-1}
+        let ok = panic::wrap(move || {
+            callback.call_mut((progress,))
+        }).unwrap_or(false);
+        if ok {0} else {-1}
     }
 }
 
@@ -231,7 +232,9 @@ extern fn sideband_progress_cb(str: *const libc::c_char,
         };
         let ptr = str as *const u8;
         let buf = slice::from_raw_buf(&ptr, len as uint);
-        let r = (*callback)(buf);
-        if r {0} else {-1}
+        let ok = panic::wrap(|| {
+            callback.call_mut((buf,))
+        }).unwrap_or(false);
+        if ok {0} else {-1}
     }
 }
