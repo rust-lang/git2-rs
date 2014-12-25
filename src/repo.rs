@@ -8,7 +8,7 @@ use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {StringArray, ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
-use {RevparseMode};
+use {RevparseMode, RepositoryInitMode};
 use build::{RepoBuilder, CheckoutBuilder};
 
 /// An owned git repository, representing all state associated with the
@@ -79,7 +79,7 @@ impl Repository {
     ///
     /// The folder must exist prior to invoking this function.
     pub fn init_bare(path: &Path) -> Result<Repository, Error> {
-        Repository::init_opts(path, &RepositoryInitOptions::new().bare(true))
+        Repository::init_opts(path, RepositoryInitOptions::new().bare(true))
     }
 
     /// Creates a new `--bare` repository in the specified folder.
@@ -1047,7 +1047,7 @@ impl RepositoryInitOptions {
     /// Create a bare repository with no working directory.
     ///
     /// Defaults to false.
-    pub fn bare(self, bare: bool) -> RepositoryInitOptions {
+    pub fn bare(&mut self, bare: bool) -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_BARE, bare)
     }
 
@@ -1055,7 +1055,7 @@ impl RepositoryInitOptions {
     /// repository.
     ///
     /// Defaults to false.
-    pub fn no_reinit(self, enabled: bool) -> RepositoryInitOptions {
+    pub fn no_reinit(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
@@ -1064,7 +1064,7 @@ impl RepositoryInitOptions {
     /// behavior.
     ///
     /// Defaults to false.
-    pub fn no_dotgit_dir(self, enabled: bool) -> RepositoryInitOptions {
+    pub fn no_dotgit_dir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_DOTGIT_DIR, enabled)
     }
 
@@ -1072,7 +1072,7 @@ impl RepositoryInitOptions {
     /// will always be created regardless of this flag.
     ///
     /// Defaults to true.
-    pub fn mkdir(self, enabled: bool) -> RepositoryInitOptions {
+    pub fn mkdir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_MKDIR, enabled)
     }
 
@@ -1080,8 +1080,15 @@ impl RepositoryInitOptions {
     /// necessary.
     ///
     /// Defaults to true.
-    pub fn mkpath(self, enabled: bool) -> RepositoryInitOptions {
+    pub fn mkpath(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_MKPATH, enabled)
+    }
+
+    /// Set to one of the `RepositoryInit` constants, or a custom value.
+    pub fn mode(&mut self, mode: RepositoryInitMode)
+                -> &mut RepositoryInitOptions {
+        self.mode = mode.bits();
+        self
     }
 
     /// Enable or disable using external templates.
@@ -1091,12 +1098,13 @@ impl RepositoryInitOptions {
     /// `/usr/share/git-core-templates` will be used (if it exists).
     ///
     /// Defaults to true.
-    pub fn external_template(self, enabled: bool) -> RepositoryInitOptions {
+    pub fn external_template(&mut self, enabled: bool)
+                             -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE, enabled)
     }
 
-    fn flag(mut self, flag: raw::git_repository_init_flag_t, on: bool)
-            -> RepositoryInitOptions {
+    fn flag(&mut self, flag: raw::git_repository_init_flag_t, on: bool)
+            -> &mut RepositoryInitOptions {
         if on {
             self.flags |= flag as u32;
         } else {
@@ -1110,14 +1118,14 @@ impl RepositoryInitOptions {
     /// If this is a relative path it will be evaulated relative to the repo
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
-    pub fn workdir_path(mut self, path: &Path) -> RepositoryInitOptions {
+    pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
         self.workdir_path = Some(path.to_c_str());
         self
     }
 
     /// If set, this will be used to initialize the "description" file in the
     /// repository instead of using the template content.
-    pub fn description(mut self, desc: &str) -> RepositoryInitOptions {
+    pub fn description(&mut self, desc: &str) -> &mut RepositoryInitOptions {
         self.description = Some(desc.to_c_str());
         self
     }
@@ -1127,7 +1135,7 @@ impl RepositoryInitOptions {
     ///
     /// If this is not configured, then the default locations will be searched
     /// instead.
-    pub fn template_path(mut self, path: &Path) -> RepositoryInitOptions {
+    pub fn template_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
         self.template_path = Some(path.to_c_str());
         self
     }
@@ -1137,14 +1145,14 @@ impl RepositoryInitOptions {
     /// If not configured, this will be treated as `master` and the HEAD ref
     /// will be set to `refs/heads/master`. If this begins with `refs/` it will
     /// be used verbatim; otherwise `refs/heads/` will be prefixed
-    pub fn initial_head(mut self, head: &str) -> RepositoryInitOptions {
+    pub fn initial_head(&mut self, head: &str) -> &mut RepositoryInitOptions {
         self.initial_head = Some(head.to_c_str());
         self
     }
 
     /// If set, then after the rest of the repository initialization is
     /// completed an `origin` remote will be added pointing to this URL.
-    pub fn origin_url(mut self, url: &str) -> RepositoryInitOptions {
+    pub fn origin_url(&mut self, url: &str) -> &mut RepositoryInitOptions {
         self.origin_url = Some(url.to_c_str());
         self
     }

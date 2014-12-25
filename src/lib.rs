@@ -410,6 +410,24 @@ Flags for repository status
     }
 }
 
+bitflags! {
+    #[doc = "
+Mode options for RepositoryInitOptions
+"]
+    flags RepositoryInitMode: u32 {
+        #[doc = "Use permissions configured by umask - the default"]
+        const REPOSITORY_INIT_SHARED_UMASK =
+                    raw::GIT_REPOSITORY_INIT_SHARED_UMASK as u32,
+        #[doc = "Use `--shared=group` behavior, chmod'ing the new repo to be \
+                 group writable and \"g+sx\" for sticky group assignment"]
+        const REPOSITORY_INIT_SHARED_GROUP =
+                    raw::GIT_REPOSITORY_INIT_SHARED_GROUP as u32,
+        #[doc = "Use `--shared=all` behavior, adding world readability."]
+        const REPOSITORY_INIT_SHARED_ALL =
+                    raw::GIT_REPOSITORY_INIT_SHARED_ALL as u32,
+    }
+}
+
 /// What type of change is described by a `DiffDelta`?
 #[deriving(Copy)]
 pub enum Delta {
