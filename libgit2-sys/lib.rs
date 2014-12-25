@@ -667,6 +667,21 @@ pub enum git_sort {
     GIT_SORT_REVERSE     = (1 << 2),
 }
 
+pub type git_submodule_status_t = c_uint;
+pub const GIT_SUBMODULE_STATUS_IN_HEAD: c_uint = 1 << 0;
+pub const GIT_SUBMODULE_STATUS_IN_INDEX: c_uint = 1 << 1;
+pub const GIT_SUBMODULE_STATUS_IN_CONFIG: c_uint = 1 << 2;
+pub const GIT_SUBMODULE_STATUS_IN_WD: c_uint = 1 << 3;
+pub const GIT_SUBMODULE_STATUS_INDEX_ADDED: c_uint = 1 << 4;
+pub const GIT_SUBMODULE_STATUS_INDEX_DELETED: c_uint = 1 << 5;
+pub const GIT_SUBMODULE_STATUS_INDEX_MODIFIED: c_uint = 1 << 6;
+pub const GIT_SUBMODULE_STATUS_WD_UNINITIALIZED: c_uint = 1 << 7;
+pub const GIT_SUBMODULE_STATUS_WD_ADDED: c_uint = 1 << 8;
+pub const GIT_SUBMODULE_STATUS_WD_DELETED: c_uint = 1 << 9;
+pub const GIT_SUBMODULE_STATUS_WD_MODIFIED: c_uint = 1 << 10;
+pub const GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED: c_uint = 1 << 11;
+pub const GIT_SUBMODULE_STATUS_WD_WD_MODIFIED: c_uint = 1 << 12;
+pub const GIT_SUBMODULE_STATUS_WD_UNTRACKED: c_uint = 1 << 13;
 
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
@@ -1107,6 +1122,8 @@ extern {
                                 -> git_submodule_update_t;
     pub fn git_submodule_url(submodule: *mut git_submodule) -> *const c_char;
     pub fn git_submodule_wd_id(submodule: *mut git_submodule) -> *const git_oid;
+    pub fn git_submodule_status(status: *mut c_uint,
+                                submodule: *mut git_submodule) -> c_int;
 
     // blob
     pub fn git_blob_free(blob: *mut git_blob);

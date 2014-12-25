@@ -1,5 +1,4 @@
 use std::kinds::marker;
-use std::str;
 
 use {raw, StatusEntry, Delta, Oid};
 
@@ -28,7 +27,7 @@ impl<'a> DiffDelta<'a> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_entry: &'a StatusEntry,
+    pub unsafe fn from_raw(_entry: &StatusEntry<'a>,
                            raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
         DiffDelta {
             raw: raw,
@@ -70,7 +69,7 @@ impl<'a> DiffDelta<'a> {
     ///
     /// What side this means depends on the function that was used to generate
     /// the diff and will be documented on the function itself.
-    pub fn old_file(&self) -> DiffFile {
+    pub fn old_file(&self) -> DiffFile<'a> {
         unsafe { DiffFile::from_raw(self, &(*self.raw).old_file) }
     }
 
@@ -78,7 +77,7 @@ impl<'a> DiffDelta<'a> {
     ///
     /// What side this means depends on the function that was used to generate
     /// the diff and will be documented on the function itself.
-    pub fn new_file(&self) -> DiffFile {
+    pub fn new_file(&self) -> DiffFile<'a> {
         unsafe { DiffFile::from_raw(self, &(*self.raw).new_file) }
     }
 }
@@ -88,7 +87,7 @@ impl<'a> DiffFile<'a> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_entry: &'a DiffDelta,
+    pub unsafe fn from_raw(_entry: &DiffDelta<'a>,
                            raw: *const raw::git_diff_file) -> DiffFile<'a> {
         DiffFile {
             raw: raw,
@@ -108,16 +107,14 @@ impl<'a> DiffFile<'a> {
 
     /// Returns the path, in bytes, of the entry relative to the working
     /// directory of the repository.
-    pub fn path_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).path).unwrap() }
+    pub fn path_bytes(&self) -> Option<&[u8]> {
+        unsafe { ::opt_bytes(self, (*self.raw).path) }
     }
 
-    /// Returns the path, as a string, of the entry relative to the working
-    /// directory of the repository.
-    ///
-    /// Returns `None` if the path is not valid UTF-8
-    pub fn path(&self) -> Option<&str> {
-        str::from_utf8(self.path_bytes()).ok()
+    /// Returns the path of the entry relative to the working directory of the
+    /// repository.
+    pub fn path(&self) -> Option<Path> {
+        self.path_bytes().map(Path::new)
     }
 
     /// Returns the size of this entry, in bytes

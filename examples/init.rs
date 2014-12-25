@@ -132,12 +132,12 @@ fn main() {
 usage: init [options] <directory>
 
 Options:
-    -q, --quiet                 dox
-    --bare                      dox
-    --template <dir>            dox
-    --separate-git-dir <dir>    dox
-    --initial-commit            dox
-    --shared <perms>            dox
+    -q, --quiet                 don't print information to stdout
+    --bare                      initialize a new bare repository
+    --template <dir>            use <dir> as an initialization template
+    --separate-git-dir <dir>    use <dir> as the .git directory
+    --initial-commit            create an initial empty commit
+    --shared <perms>            permissions to create the repository with
 ";
 
     let args = Docopt::new(USAGE).and_then(|d| d.decode())

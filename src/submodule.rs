@@ -1,7 +1,7 @@
 use std::str;
 use std::kinds::marker;
 
-use {raw, Oid, Repository, Error};
+use {raw, Oid, Repository, Error, SubmoduleStatus};
 
 /// A structure to represent a git [submodule][1]
 ///
@@ -206,6 +206,16 @@ impl<'a> Submodule<'a> {
     pub fn add_finalize(&mut self) -> Result<(), Error> {
         unsafe { try_call!(raw::git_submodule_add_finalize(self.raw)); }
         Ok(())
+    }
+
+    /// Get the status for a submodule.
+    ///
+    /// This looks at a submodule and tries to determine the status.  It
+    /// will return a combination of the `SubmoduleStatus` values.
+    pub fn status(&self) -> Result<SubmoduleStatus, Error> {
+        let mut ret = 0;
+        unsafe { try_call!(raw::git_submodule_status(&mut ret, self.raw)); }
+        Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
     }
 }
 

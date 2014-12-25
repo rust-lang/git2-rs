@@ -36,25 +36,25 @@ pub enum StatusShow {
 ///
 /// Each instances appears as a if it were a collection, having a length and
 /// allowing indexing as well as provding an iterator.
-pub struct Statuses<'a> {
+pub struct Statuses<'repo> {
     raw: *mut raw::git_status_list,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
 /// An iterator over the statuses in a `Statuses` instance.
-pub struct StatusIter<'a> {
-    statuses: &'a Statuses<'a>,
+pub struct StatusIter<'statuses> {
+    statuses: &'statuses Statuses<'statuses>,
     range: Range<uint>,
 }
 
 /// A structure representing an entry in the `Statuses` structure.
 ///
 /// Instances are created through the `.iter()` method or the `.get()` method.
-pub struct StatusEntry<'a> {
+pub struct StatusEntry<'statuses> {
     raw: *const raw::git_status_entry,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'statuses>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
@@ -133,8 +133,8 @@ impl StatusOptions {
     ///
     /// This only applies if there are no pending typechanges to the submodule
     /// (either from or to another type).
-    pub fn include_submodules(&mut self, include: bool) -> &mut StatusOptions {
-        self.flag(raw::GIT_STATUS_OPT_EXCLUDE_SUBMODULES, include)
+    pub fn exclude_submodules(&mut self, exclude: bool) -> &mut StatusOptions {
+        self.flag(raw::GIT_STATUS_OPT_EXCLUDE_SUBMODULES, exclude)
     }
 
     /// Flag that all files in untracked directories should be included.
@@ -231,7 +231,7 @@ impl StatusOptions {
     }
 }
 
-impl<'a> Statuses<'a> {
+impl<'repo> Statuses<'repo> {
     /// Create a new statuses iterator from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
@@ -278,7 +278,7 @@ impl<'a> Statuses<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Statuses<'a> {
+impl<'repo> Drop for Statuses<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_status_list_free(self.raw); }
     }
@@ -299,13 +299,14 @@ impl<'a> DoubleEndedIterator<StatusEntry<'a>> for StatusIter<'a> {
 
 impl<'a> ExactSizeIterator<StatusEntry<'a>> for StatusIter<'a> {}
 
-impl<'a> StatusEntry<'a> {
+impl<'statuses> StatusEntry<'statuses> {
     /// Create a new status entry from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_statuses: &'a Statuses,
-                           raw: *const raw::git_status_entry) -> StatusEntry<'a> {
+    pub unsafe fn from_raw(_statuses: &'statuses Statuses,
+                           raw: *const raw::git_status_entry)
+                           -> StatusEntry<'statuses> {
         StatusEntry {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -337,7 +338,7 @@ impl<'a> StatusEntry<'a> {
 
     /// Access detailed information about the differences between the file in
     /// HEAD and the file in the index.
-    pub fn head_to_index(&self) -> Option<DiffDelta> {
+    pub fn head_to_index(&self) -> Option<DiffDelta<'statuses>> {
         unsafe {
             let p = (*self.raw).head_to_index;
             if p.is_null() {
@@ -350,7 +351,7 @@ impl<'a> StatusEntry<'a> {
 
     /// Access detailed information about the differences between the file in
     /// the index and the file in the working directory.
-    pub fn index_to_workdir(&self) -> Option<DiffDelta> {
+    pub fn index_to_workdir(&self) -> Option<DiffDelta<'statuses>> {
         unsafe {
             let p = (*self.raw).index_to_workdir;
             if p.is_null() {
@@ -379,7 +380,7 @@ mod tests {
         assert!(!status.status().contains(::STATUS_INDEX_NEW));
         assert!(status.head_to_index().is_none());
         let diff = status.index_to_workdir().unwrap();
-        assert_eq!(diff.old_file().path().unwrap(), "foo");
-        assert_eq!(diff.new_file().path().unwrap(), "foo");
+        assert_eq!(diff.old_file().path_bytes().unwrap(), b"foo");
+        assert_eq!(diff.new_file().path_bytes().unwrap(), b"foo");
     }
 }
