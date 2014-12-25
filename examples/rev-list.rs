@@ -13,6 +13,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(slicing_syntax)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -35,40 +36,37 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open(&Path::new(".")));
     let mut revwalk = try!(repo.revwalk());
 
-    let mut sort = if args.flag_topo_order {
+    let base = if args.flag_reverse {git2::SORT_REVERSE} else {git2::SORT_NONE};
+    revwalk.set_sorting(base | if args.flag_topo_order {
         git2::SORT_TOPOLOGICAL
     } else if args.flag_date_order {
         git2::SORT_TIME
     } else {
         git2::SORT_NONE
-    };
-    if args.flag_reverse {
-        sort = sort | git2::SORT_REVERSE
-    }
-    revwalk.set_sorting(sort);
-    let specs = args.flag_not.iter().map(|s| (s, true));
-    let specs = specs.chain(args.arg_spec.iter().map(|s| (s, false)));
-    for (spec, hide) in specs.map(|(a, b)| (a.as_slice(), b)) {
-        let not = spec.starts_with("^");
-        let id = if not {
-            try!(repo.revparse_single(spec.slice_from(1))).id()
-        } else if spec.contains("..") {
+    });
+
+    let mut specs = args.flag_not.iter().map(|s| (s, true))
+                        .chain(args.arg_spec.iter().map(|s| (s, false)))
+                        .map(|(spec, hide)| {
+        if spec.starts_with("^") {(spec[1..], !hide)} else {(spec[], hide)}
+    });
+    for (spec, hide) in specs {
+        let id = if spec.contains("..") {
             let revspec = try!(repo.revparse(spec));
             if revspec.mode().contains(git2::REVPARSE_MERGE_BASE) {
                 return Err(Error::from_str("merge bases not implemented"))
             }
-            try!(push(&mut revwalk, revspec.from().unwrap().id(), !(hide ^ not)));
+            try!(push(&mut revwalk, revspec.from().unwrap().id(), !hide));
             revspec.to().unwrap().id()
         } else {
             try!(repo.revparse_single(spec)).id()
         };
-        try!(push(&mut revwalk, id, hide ^ not));
+        try!(push(&mut revwalk, id, hide));
     }
 
     for id in revwalk {
         println!("{}", id);
     }
-
     Ok(())
 }
 
