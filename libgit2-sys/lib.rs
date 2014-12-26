@@ -63,6 +63,9 @@ pub enum git_push {}
 pub enum git_note {}
 pub enum git_note_iterator {}
 pub enum git_status_list {}
+pub enum git_pathspec {}
+pub enum git_pathspec_match_list {}
+pub enum git_diff {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -691,6 +694,15 @@ pub struct git_remote_head {
     pub name: *mut c_char,
     pub symref_target: *mut c_char,
 }
+
+pub type git_pathspec_flag_t = u32;
+pub const GIT_PATHSPEC_DEFAULT: u32 = 0;
+pub const GIT_PATHSPEC_IGNORE_CASE: u32 = 1 << 0;
+pub const GIT_PATHSPEC_USE_CASE: u32 = 1 << 1;
+pub const GIT_PATHSPEC_NO_GLOB: u32 = 1 << 2;
+pub const GIT_PATHSPEC_NO_MATCH_ERROR: u32 = 1 << 3;
+pub const GIT_PATHSPEC_FIND_FAILURES: u32 = 1 << 4;
+pub const GIT_PATHSPEC_FAILURES_ONLY: u32 = 1 << 5;
 
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
@@ -1583,6 +1595,41 @@ extern {
                           repo: *mut git_repository,
                           one: *const git_oid,
                           two: *const git_oid) -> c_int;
+
+    // pathspec
+    pub fn git_pathspec_free(ps: *mut git_pathspec);
+    pub fn git_pathspec_match_diff(out: *mut *mut git_pathspec_match_list,
+                                   diff: *mut git_diff,
+                                   flags: u32,
+                                   ps: *mut git_pathspec) -> c_int;
+    pub fn git_pathspec_match_index(out: *mut *mut git_pathspec_match_list,
+                                    index: *mut git_index,
+                                    flags: u32,
+                                    ps: *mut git_pathspec) -> c_int;
+    pub fn git_pathspec_match_list_diff_entry(m: *const git_pathspec_match_list,
+                                              pos: size_t) -> *const git_diff_delta;
+    pub fn git_pathspec_match_list_entry(m: *const git_pathspec_match_list,
+                                         pos: size_t) -> *const c_char;
+    pub fn git_pathspec_match_list_entrycount(m: *const git_pathspec_match_list)
+                                              -> size_t;
+    pub fn git_pathspec_match_list_failed_entry(m: *const git_pathspec_match_list,
+                                                pos: size_t) -> *const c_char;
+    pub fn git_pathspec_match_list_failed_entrycount(
+                    m: *const git_pathspec_match_list) -> size_t;
+    pub fn git_pathspec_match_list_free(m: *const git_pathspec_match_list);
+    pub fn git_pathspec_match_tree(out: *mut *mut git_pathspec_match_list,
+                                   tree: *mut git_tree,
+                                   flags: u32,
+                                   ps: *mut git_pathspec) -> c_int;
+    pub fn git_pathspec_match_workdir(out: *mut *mut git_pathspec_match_list,
+                                      repo: *mut git_repository,
+                                      flags: u32,
+                                      ps: *mut git_pathspec) -> c_int;
+    pub fn git_pathspec_matches_path(ps: *const git_pathspec,
+                                     flags: u32,
+                                     path: *const c_char) -> c_int;
+    pub fn git_pathspec_new(out: *mut *mut git_pathspec,
+                            pathspec: *const git_strarray) -> c_int;
 }
 
 #[test]

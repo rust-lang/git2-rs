@@ -344,7 +344,7 @@ impl<'statuses> StatusEntry<'statuses> {
             if p.is_null() {
                 None
             } else {
-                Some(DiffDelta::from_raw(self, p))
+                Some(DiffDelta::from_raw(p))
             }
         }
     }
@@ -357,7 +357,7 @@ impl<'statuses> StatusEntry<'statuses> {
             if p.is_null() {
                 None
             } else {
-                Some(DiffDelta::from_raw(self, p))
+                Some(DiffDelta::from_raw(p))
             }
         }
     }

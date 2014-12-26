@@ -1,6 +1,6 @@
 use std::kinds::marker;
 
-use {raw, StatusEntry, Delta, Oid};
+use {raw, Delta, Oid};
 
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
@@ -27,8 +27,7 @@ impl<'a> DiffDelta<'a> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_entry: &StatusEntry<'a>,
-                           raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
+    pub unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
         DiffDelta {
             raw: raw,
             marker1: marker::ContravariantLifetime,

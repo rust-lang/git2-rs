@@ -90,6 +90,8 @@ pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use note::{Note, Notes};
 pub use object::Object;
 pub use oid::Oid;
+pub use pathspec::{Pathspec, PathspecMatchList, PathspecFailedEntries};
+pub use pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use push::{Push, PushStatus};
 pub use reference::{Reference, References, ReferenceNames};
 pub use refspec::Refspec;
@@ -288,6 +290,7 @@ mod index;
 mod note;
 mod object;
 mod oid;
+mod pathspec;
 mod push;
 mod reference;
 mod refspec;
@@ -531,6 +534,20 @@ Lastly, the following will only be returned for ignore "NONE".
                 raw::GIT_SUBMODULE_STATUS_WD_UNTRACKED as u32,
     }
 
+}
+
+bitflags! {
+    #[doc = r#"
+"#]
+    flags PathspecFlags: u32 {
+        const PATHSPEC_DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32,
+        const PATHSPEC_IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32,
+        const PATHSPEC_USE_CASE = raw::GIT_PATHSPEC_USE_CASE as u32,
+        const PATHSPEC_NO_GLOB = raw::GIT_PATHSPEC_NO_GLOB as u32,
+        const PATHSPEC_NO_MATCH_ERROR = raw::GIT_PATHSPEC_NO_MATCH_ERROR as u32,
+        const PATHSPEC_FIND_FAILURES = raw::GIT_PATHSPEC_FIND_FAILURES as u32,
+        const PATHSPEC_FAILURES_ONLY = raw::GIT_PATHSPEC_FAILURES_ONLY as u32,
+    }
 }
 
 #[cfg(test)]
