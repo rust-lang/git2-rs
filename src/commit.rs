@@ -1,4 +1,5 @@
 use std::kinds::marker;
+use std::iter::Range;
 use std::str;
 use libc;
 
@@ -16,9 +17,14 @@ pub struct Commit<'a> {
 
 /// An iterator over the parent commits of a commit.
 pub struct Parents<'a, 'b:'a> {
-    cur: uint,
-    max: uint,
+    range: Range<uint>,
     commit: &'a Commit<'b>,
+}
+
+/// An iterator over the parent commits' ids of a commit.
+pub struct ParentIds<'a> {
+    range: Range<uint>,
+    commit: &'a Commit<'a>,
 }
 
 impl<'a> Commit<'a> {
@@ -145,9 +151,18 @@ impl<'a> Commit<'a> {
 
     /// Creates a new iterator over the parents of this commit.
     pub fn parents<'b>(&'b self) -> Parents<'b, 'a> {
+        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as uint };
         Parents {
-            cur: 0,
-            max: unsafe { raw::git_commit_parentcount(&*self.raw) as uint },
+            range: range(0, max),
+            commit: self,
+        }
+    }
+
+    /// Creates a new iterator over the parents of this commit.
+    pub fn parent_ids(&self) -> ParentIds {
+        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as uint };
+        ParentIds {
+            range: range(0, max),
             commit: self,
         }
     }
@@ -195,25 +210,71 @@ impl<'a> Commit<'a> {
             Ok(Oid::from_raw(&raw))
         }
     }
+
+    /// Get the specified parent of the commit.
+    ///
+    /// Use the `parents` iterator to return an iterator over all parents.
+    pub fn parent(&self, i: uint) -> Result<Commit<'a>, Error> {
+        unsafe {
+            let mut raw = 0 as *mut raw::git_commit;
+            try_call!(raw::git_commit_parent(&mut raw, &*self.raw,
+                                             i as libc::c_uint));
+            Ok(Commit {
+                raw: raw,
+                marker1: marker::ContravariantLifetime,
+                marker2: marker::NoSend,
+                marker3: marker::NoSync,
+            })
+        }
+    }
+
+    /// Get the specified parent id of the commit.
+    ///
+    /// This is different from `parent`, which will attemptstempt to load the
+    /// parent commit from the ODB.
+    ///
+    /// Use the `parent_ids` iterator to return an iterator over all parents.
+    pub fn parent_id(&self, i: uint) -> Result<Oid, Error> {
+        unsafe {
+            let id = raw::git_commit_parent_id(self.raw, i as libc::c_uint);
+            if id.is_null() {
+                Err(Error::from_str("parent index out of bounds"))
+            } else {
+                Ok(Oid::from_raw(id))
+            }
+        }
+    }
 }
 
 impl<'a, 'b> Iterator<Commit<'a>> for Parents<'b, 'a> {
     fn next(&mut self) -> Option<Commit<'a>> {
-        if self.cur == self.max { return None }
-        self.cur += 1;
-        let mut raw = 0 as *mut raw::git_commit;
-        assert_eq!(unsafe {
-            raw::git_commit_parent(&mut raw, &*self.commit.raw,
-                                   (self.cur - 1) as libc::c_uint)
-        }, 0);
-        Some(Commit {
-            raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
-        })
+        self.range.next().map(|i| self.commit.parent(i).unwrap())
+    }
+    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+}
+
+impl<'a, 'b> DoubleEndedIterator<Commit<'a>> for Parents<'b, 'a> {
+    fn next_back(&mut self) -> Option<Commit<'a>> {
+        self.range.next_back().map(|i| self.commit.parent(i).unwrap())
     }
 }
+
+impl<'a, 'b> ExactSizeIterator<Commit<'a>> for Parents<'b, 'a> {}
+
+impl<'a> Iterator<Oid> for ParentIds<'a> {
+    fn next(&mut self) -> Option<Oid> {
+        self.range.next().map(|i| self.commit.parent_id(i).unwrap())
+    }
+    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+}
+
+impl<'a> DoubleEndedIterator<Oid> for ParentIds<'a> {
+    fn next_back(&mut self) -> Option<Oid> {
+        self.range.next_back().map(|i| self.commit.parent_id(i).unwrap())
+    }
+}
+
+impl<'a> ExactSizeIterator<Oid> for ParentIds<'a> {}
 
 #[unsafe_destructor]
 impl<'a> Drop for Commit<'a> {
