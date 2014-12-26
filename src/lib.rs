@@ -68,7 +68,6 @@
 #![cfg_attr(test, deny(warnings))]
 
 extern crate libc;
-extern crate time;
 extern crate url;
 extern crate "libgit2-sys" as raw;
 
@@ -105,6 +104,7 @@ pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
 pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
 pub use tag::Tag;
+pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry};
 
 /// An enumeration of possible errors that can happen when working with a git
@@ -301,6 +301,7 @@ mod status;
 mod string_array;
 mod submodule;
 mod tag;
+mod time;
 mod tree;
 
 #[cfg(test)] mod test;

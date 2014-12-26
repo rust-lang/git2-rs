@@ -2,7 +2,7 @@ use std::str;
 use std::kinds::marker;
 use libc;
 
-use {raw, Error};
+use {raw, Error, Time};
 
 /// A Signature is used to indicate authorship of various actions throughout the
 /// library.
@@ -99,15 +99,9 @@ impl<'a> Signature<'a> {
         unsafe { ::opt_bytes(self, (*self.raw).email as *const _).unwrap() }
     }
 
-    /// Get the `when` of this signature in seconds since the epoch.
-    pub fn when(&self) -> u64 {
-        unsafe { (*self.raw).when.time as u64 }
-    }
-
-    /// Get the offset of `when`, in minutes, of the signature's time zone from
-    /// UTC.
-    pub fn when_offset(&self) -> int {
-        unsafe { (*self.raw).when.offset as int }
+    /// Get the `when` of this signature.
+    pub fn when(&self) -> Time {
+        unsafe { Time::from_raw(&(*self.raw).when) }
     }
 
     /// Get access to the underlying raw signature

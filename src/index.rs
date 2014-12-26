@@ -5,9 +5,8 @@ use std::mem;
 use std::path::PosixPath;
 
 use libc;
-use time;
 
-use {raw, Repository, Error, Tree, Oid, IndexAddOption};
+use {raw, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
 
 /// A structure to represent a git [index][1]
 ///
@@ -36,8 +35,8 @@ pub type IndexMatchedPath<'a> = |&[u8], &[u8]|: 'a -> int;
 /// also how a new index entry is created.
 #[allow(missing_docs)]
 pub struct IndexEntry {
-    pub ctime: time::Timespec,
-    pub mtime: time::Timespec,
+    pub ctime: IndexTime,
+    pub mtime: IndexTime,
     pub dev: uint,
     pub ino: uint,
     pub mode: uint,
@@ -445,14 +444,8 @@ impl IndexEntry {
             flags: flags as u16,
             flags_extended: flags_extended as u16,
             path: CString::new(path, false).clone(),
-            mtime: time::Timespec {
-                sec: mtime.seconds as i64,
-                nsec: mtime.nanoseconds as i32,
-            },
-            ctime: time::Timespec {
-                sec: ctime.seconds as i64,
-                nsec: ctime.nanoseconds as i32,
-            },
+            mtime: IndexTime::from_raw(&mtime),
+            ctime: IndexTime::from_raw(&ctime),
         }
     }
 
@@ -470,12 +463,12 @@ impl IndexEntry {
             flags_extended: self.flags_extended as libc::c_ushort,
             path: self.path.as_ptr(),
             mtime: raw::git_index_time {
-                seconds: self.mtime.sec as raw::git_time_t,
-                nanoseconds: self.mtime.nsec as libc::c_uint,
+                seconds: self.mtime.seconds() as raw::git_time_t,
+                nanoseconds: self.mtime.nanoseconds() as libc::c_uint,
             },
             ctime: raw::git_index_time {
-                seconds: self.ctime.sec as raw::git_time_t,
-                nanoseconds: self.ctime.nsec as libc::c_uint,
+                seconds: self.ctime.seconds() as raw::git_time_t,
+                nanoseconds: self.ctime.nanoseconds() as libc::c_uint,
             },
         };
     }

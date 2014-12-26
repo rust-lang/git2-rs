@@ -3,7 +3,7 @@ use std::iter::Range;
 use std::str;
 use libc;
 
-use {raw, Oid, Repository, Error, Signature, Tree};
+use {raw, Oid, Repository, Error, Signature, Tree, Time};
 
 /// A structure to represent a git [commit][1]
 ///
@@ -142,10 +142,10 @@ impl<'a> Commit<'a> {
     /// The first element of the tuple is the time, in seconds, since the epoch.
     /// The second element is the offset, in minutes, of the time zone of the
     /// committer's preferred time zone.
-    pub fn time(&self) -> (u64, int) {
+    pub fn time(&self) -> Time {
         unsafe {
-            (raw::git_commit_time(&*self.raw) as u64,
-             raw::git_commit_time_offset(&*self.raw) as int)
+            Time::new(raw::git_commit_time(&*self.raw) as i64,
+                      raw::git_commit_time_offset(&*self.raw) as int)
         }
     }
 

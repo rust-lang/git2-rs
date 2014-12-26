@@ -79,10 +79,10 @@ fn main() {
 usage: rev-list [options] [--] <spec>...
 
 Options:
-    --topo-order        dox
-    --date-order        dox
-    --reverse           dox
-    --not <spec>        dox
+    --topo-order        sort commits in topological order
+    --date-order        sort commits in date order
+    --reverse           sort commits in reverse
+    --not <spec>        don't show <spec>
     -h, --help          show this message
 ";
 
