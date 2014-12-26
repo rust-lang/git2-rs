@@ -1240,7 +1240,7 @@ extern {
     pub fn git_commit_time(commit: *const git_commit) -> git_time_t;
     pub fn git_commit_time_offset(commit: *const git_commit) -> c_int;
     pub fn git_commit_tree(tree_out: *mut *mut git_tree,
-                           commit: *const git_commit) -> c_uint;
+                           commit: *const git_commit) -> c_int;
     pub fn git_commit_tree_id(commit: *const git_commit) -> *const git_oid;
     pub fn git_commit_amend(id: *mut git_oid,
                             commit_to_amend: *const git_commit,

@@ -30,8 +30,7 @@ impl<'repo> Tree<'repo> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_tree) -> Tree {
+    pub unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
         Tree {
             raw: raw,
             marker1: marker::ContravariantLifetime,

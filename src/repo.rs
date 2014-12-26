@@ -783,7 +783,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_tree;
         unsafe {
             try_call!(raw::git_tree_lookup(&mut raw, self.raw(), oid.raw()));
-            Ok(Tree::from_raw(self, raw))
+            Ok(Tree::from_raw(raw))
         }
     }
 

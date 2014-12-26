@@ -49,9 +49,18 @@ impl<'a> Commit<'a> {
 
     /// Get the id of the tree pointed to by this commit.
     ///
-    /// No attempts are made to fetch an object from the
+    /// No attempts are made to fetch an object from the ODB.
     pub fn tree_id(&self) -> Oid {
         unsafe { Oid::from_raw(raw::git_commit_tree_id(&*self.raw)) }
+    }
+
+    /// Get the tree pointed to by a commit.
+    pub fn tree(&self) -> Result<Tree, Error> {
+        let mut ret = 0 as *mut raw::git_tree;
+        unsafe {
+            try_call!(raw::git_commit_tree(&mut ret, &*self.raw));
+            Ok(Tree::from_raw(ret))
+        }
     }
 
     /// Get access to the underlying raw pointer.
@@ -298,6 +307,7 @@ mod tests {
         commit.message_encoding();
         commit.summary().unwrap();
         commit.tree_id();
+        commit.tree().unwrap();
         assert_eq!(commit.parents().count(), 0);
 
         assert_eq!(commit.author().name(), Some("name"));
