@@ -5,7 +5,7 @@ use std::mem;
 use std::str;
 use libc::{c_char, size_t, c_uint};
 
-use {raw, Repository, Status, DiffDelta};
+use {raw, Status, DiffDelta};
 
 /// Options that can be provided to `repo.statuses()` to control how the status
 /// information is gathered.
@@ -236,8 +236,7 @@ impl<'repo> Statuses<'repo> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository, raw: *mut raw::git_status_list)
-                           -> Statuses {
+    pub unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
         Statuses {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -255,7 +254,7 @@ impl<'repo> Statuses<'repo> {
             if p.is_null() {
                 None
             } else {
-                Some(StatusEntry::from_raw(self, p))
+                Some(StatusEntry::from_raw(p))
             }
         }
     }
@@ -304,8 +303,7 @@ impl<'statuses> StatusEntry<'statuses> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_statuses: &'statuses Statuses,
-                           raw: *const raw::git_status_entry)
+    pub unsafe fn from_raw(raw: *const raw::git_status_entry)
                            -> StatusEntry<'statuses> {
         StatusEntry {
             raw: raw,

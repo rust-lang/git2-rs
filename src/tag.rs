@@ -1,25 +1,24 @@
 use std::kinds::marker;
 use std::str;
 
-use {raw, Error, Oid, Repository, Object, Signature, ObjectType};
+use {raw, Error, Oid, Object, Signature, ObjectType};
 
 /// A structure to represent a git [tag][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Basics-Tagging
-pub struct Tag<'a> {
+pub struct Tag<'repo> {
     raw: *mut raw::git_tag,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Tag<'a> {
+impl<'repo> Tag<'repo> {
     /// Create a new tag from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_tag) -> Tag {
+    pub unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
         Tag {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -60,11 +59,11 @@ impl<'a> Tag<'a> {
     }
 
     /// Recursively peel a tag until a non tag git_object is found
-    pub fn peel(&self) -> Result<Object<'a>, Error> {
+    pub fn peel(&self) -> Result<Object<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_tag_peel(&mut ret, &*self.raw));
-            Ok(Object::from_raw_ptr(ret))
+            Ok(Object::from_raw(ret))
         }
     }
 
@@ -86,11 +85,11 @@ impl<'a> Tag<'a> {
     ///
     /// This method performs a repository lookup for the given object and
     /// returns it
-    pub fn target(&self) -> Result<Object<'a>, Error> {
+    pub fn target(&self) -> Result<Object<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_tag_target(&mut ret, &*self.raw));
-            Ok(Object::from_raw_ptr(ret))
+            Ok(Object::from_raw(ret))
         }
     }
 
@@ -109,7 +108,7 @@ impl<'a> Tag<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Tag<'a> {
+impl<'repo> Drop for Tag<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_tag_free(self.raw) }
     }

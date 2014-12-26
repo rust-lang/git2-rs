@@ -1,7 +1,7 @@
 use std::kinds::marker;
 use std::str;
 
-use {raw, Remote, Direction} ;
+use {raw, Direction};
 
 /// A structure to represent a git [refspec][1].
 ///
@@ -20,8 +20,7 @@ impl<'remote> Refspec<'remote> {
     /// Creates a new refspec from the raw components.
     ///
     /// This is unsafe as the `raw` pointer is not guaranteed to be valid.
-    pub unsafe fn from_raw<'a>(_repo: &'a Remote,
-                               raw: *const raw::git_refspec) -> Refspec<'a> {
+    pub unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
         Refspec {
             raw: raw,
             marker1: marker::ContravariantLifetime,

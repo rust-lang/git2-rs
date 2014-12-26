@@ -1,8 +1,9 @@
 use std::kinds::marker;
+use std::mem;
 use std::str;
 use libc;
 
-use {raw, Repository, Error, Oid, Signature};
+use {raw, Error, Oid, Signature};
 
 /// A structure to represent a git [reference][1].
 ///
@@ -16,8 +17,10 @@ pub struct Reference<'repo> {
 
 /// An iterator over the references in a repository.
 pub struct References<'repo> {
-    repo: &'repo Repository,
     raw: *mut raw::git_reference_iterator,
+    marker1: marker::ContravariantLifetime<'repo>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
 }
 
 /// An iterator over the names of references in a repository.
@@ -30,14 +33,7 @@ impl<'repo> Reference<'repo> {
     ///
     /// This methods is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_reference) -> Reference {
-        Reference::from_raw_ptr(raw)
-    }
-
-    /// Even more unsafe than `from_raw`, the output lifetime is not attached to
-    /// any input.
-    pub unsafe fn from_raw_ptr<'a>(raw: *mut raw::git_reference) -> Reference<'a> {
+    pub unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
         Reference {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -194,14 +190,14 @@ impl<'repo> Reference<'repo> {
 
 }
 
-impl<'a> PartialOrd for Reference<'a> {
-    fn partial_cmp(&self, other: &Reference<'a>) -> Option<Ordering> {
+impl<'repo> PartialOrd for Reference<'repo> {
+    fn partial_cmp(&self, other: &Reference<'repo>) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a> Ord for Reference<'a> {
-    fn cmp(&self, other: &Reference<'a>) -> Ordering {
+impl<'repo> Ord for Reference<'repo> {
+    fn cmp(&self, other: &Reference<'repo>) -> Ordering {
         match unsafe { raw::git_reference_cmp(&*self.raw, &*other.raw) } {
             0 => Equal,
             n if n < 0 => Less,
@@ -210,38 +206,39 @@ impl<'a> Ord for Reference<'a> {
     }
 }
 
-impl<'a> PartialEq for Reference<'a> {
-    fn eq(&self, other: &Reference<'a>) -> bool { self.cmp(other) == Equal }
+impl<'repo> PartialEq for Reference<'repo> {
+    fn eq(&self, other: &Reference<'repo>) -> bool { self.cmp(other) == Equal }
 }
 
-impl<'a> Eq for Reference<'a> {}
+impl<'repo> Eq for Reference<'repo> {}
 
 #[unsafe_destructor]
-impl<'a> Drop for Reference<'a> {
+impl<'repo> Drop for Reference<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_reference_free(self.raw) }
     }
 }
 
-impl<'a> References<'a> {
+impl<'repo> References<'repo> {
     /// Creates a new iterator from its raw underlying pointer.
     ///
     /// This function is unsafe as there is no guarantee that `raw` is valid.
-    pub unsafe fn from_raw(repo: &Repository,
-                           raw: *mut raw::git_reference_iterator)
-                           -> References {
+    pub unsafe fn from_raw(raw: *mut raw::git_reference_iterator)
+                           -> References<'repo> {
         References {
             raw: raw,
-            repo: repo,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
         }
     }
 }
 
-impl<'a> Iterator<Reference<'a>> for References<'a> {
-    fn next(&mut self) -> Option<Reference<'a>> {
+impl<'repo> Iterator<Reference<'repo>> for References<'repo> {
+    fn next(&mut self) -> Option<Reference<'repo>> {
         let mut out = 0 as *mut raw::git_reference;
         if unsafe { raw::git_reference_next(&mut out, self.raw) == 0 } {
-            Some(unsafe { Reference::from_raw(self.repo, out) })
+            Some(unsafe { Reference::from_raw(out) })
         } else {
             None
         }
@@ -249,13 +246,13 @@ impl<'a> Iterator<Reference<'a>> for References<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for References<'a> {
+impl<'repo> Drop for References<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_reference_iterator_free(self.raw) }
     }
 }
 
-impl<'a> ReferenceNames<'a> {
+impl<'repo> ReferenceNames<'repo> {
     /// Consumes a `References` iterator to create an iterator over just the
     /// name of some references.
     ///
@@ -268,13 +265,14 @@ impl<'a> ReferenceNames<'a> {
     }
 }
 
-impl<'a> Iterator<&'a str> for ReferenceNames<'a> {
-    fn next(&mut self) -> Option<&'a str> {
+impl<'repo> Iterator<&'repo str> for ReferenceNames<'repo> {
+    fn next(&mut self) -> Option<&'repo str> {
         let mut out = 0 as *const libc::c_char;
         if unsafe { raw::git_reference_next_name(&mut out, self.inner.raw) == 0 } {
             Some(unsafe {
-                let bytes = ::opt_bytes(self.inner.repo, out).unwrap();
-                str::from_utf8(bytes).unwrap()
+                let bytes = ::opt_bytes(self, out).unwrap();
+                let s = str::from_utf8(bytes).unwrap();
+                mem::transmute::<&str, &'repo str>(s)
             })
         } else {
             None

@@ -2,7 +2,7 @@ use std::kinds::marker;
 use std::c_str::CString;
 use libc;
 
-use {raw, Remote, Error, Signature};
+use {raw, Error, Signature};
 
 /// A structure to represent a pending push operation to a remote.
 ///
@@ -29,8 +29,7 @@ impl<'remote> Push<'remote> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw<'a>(_remote: &'a Remote,
-                               raw: *mut raw::git_push) -> Push<'a> {
+    pub unsafe fn from_raw(raw: *mut raw::git_push) -> Push<'remote> {
         Push {
             raw: raw,
             marker1: marker::ContravariantLifetime,

@@ -17,9 +17,9 @@ pub struct Index {
 }
 
 /// An iterator over the entries in an index
-pub struct IndexEntries<'a> {
+pub struct IndexEntries<'index> {
     range: Range<uint>,
-    index: &'a Index,
+    index: &'index Index,
 }
 
 /// A callback function to filter index matches.
@@ -420,7 +420,7 @@ impl Drop for Index {
     }
 }
 
-impl<'a> Iterator<IndexEntry> for IndexEntries<'a> {
+impl<'index> Iterator<IndexEntry> for IndexEntries<'index> {
     fn next(&mut self) -> Option<IndexEntry> {
         self.range.next().map(|i| self.index.get(i).unwrap())
     }

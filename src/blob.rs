@@ -2,25 +2,24 @@ use std::kinds::marker;
 use std::mem;
 use std::raw as stdraw;
 
-use {raw, Oid, Repository};
+use {raw, Oid};
 
 /// A structure to represent a git [blob][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
-pub struct Blob<'a> {
+pub struct Blob<'repo> {
     raw: *mut raw::git_blob,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Blob<'a> {
+impl<'repo> Blob<'repo> {
     /// Create a new object from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_blob) -> Blob {
+    pub unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
         Blob {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -54,7 +53,7 @@ impl<'a> Blob<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Blob<'a> {
+impl<'repo> Drop for Blob<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_blob_free(self.raw) }
     }

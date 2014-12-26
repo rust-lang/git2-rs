@@ -6,20 +6,19 @@ use {raw, Oid, Repository, Error, SubmoduleStatus};
 /// A structure to represent a git [submodule][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Tools-Submodules
-pub struct Submodule<'a> {
+pub struct Submodule<'repo> {
     raw: *mut raw::git_submodule,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Submodule<'a> {
+impl<'repo> Submodule<'repo> {
     /// Create a new object from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_submodule) -> Submodule {
+    pub unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
         Submodule {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -220,7 +219,7 @@ impl<'a> Submodule<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Submodule<'a> {
+impl<'repo> Drop for Submodule<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_submodule_free(self.raw) }
     }

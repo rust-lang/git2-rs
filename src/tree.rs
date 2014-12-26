@@ -59,7 +59,7 @@ impl<'repo> Tree<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(TreeEntry::from_raw_const(self, ptr))
+                Some(TreeEntry::from_raw_const(ptr))
             }
         }
     }
@@ -72,7 +72,7 @@ impl<'repo> Tree<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(TreeEntry::from_raw_const(self, ptr))
+                Some(TreeEntry::from_raw_const(ptr))
             }
         }
     }
@@ -85,7 +85,7 @@ impl<'repo> Tree<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(TreeEntry::from_raw_const(self, ptr))
+                Some(TreeEntry::from_raw_const(ptr))
             }
         }
     }
@@ -115,9 +115,8 @@ impl<'tree> TreeEntry<'tree> {
     ///
     /// The lifetime of the entry is tied to the tree provided and the function
     /// is unsafe because the validity of the pointer cannot be guaranteed.
-    pub unsafe fn from_raw_const<'a>(_tree: &'a Tree,
-                                     raw: *const raw::git_tree_entry)
-                                     -> TreeEntry<'a> {
+    pub unsafe fn from_raw_const(raw: *const raw::git_tree_entry)
+                                 -> TreeEntry<'tree> {
         TreeEntry {
             raw: raw as *mut raw::git_tree_entry,
             owned: false,
@@ -170,7 +169,7 @@ impl<'tree> TreeEntry<'tree> {
         unsafe {
             try_call!(raw::git_tree_entry_to_object(&mut ret, repo.raw(),
                                                     &*self.raw()));
-            Ok(Object::from_raw(repo, ret))
+            Ok(Object::from_raw(ret))
         }
     }
 

@@ -1,7 +1,8 @@
+use std::kinds::marker;
 use std::str;
 use libc;
 
-use {raw, Repository, Error, Reference, Signature, BranchType};
+use {raw, Error, Reference, Signature, BranchType};
 
 /// A structure to represent a git [branch][1]
 ///
@@ -15,8 +16,10 @@ pub struct Branch<'repo> {
 
 /// An iterator over the branches inside of a repository.
 pub struct Branches<'repo> {
-    repo: &'repo Repository,
     raw: *mut raw::git_branch_iterator,
+    marker1: marker::ContravariantLifetime<'repo>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
 }
 
 impl<'repo> Branch<'repo> {
@@ -52,7 +55,7 @@ impl<'repo> Branch<'repo> {
                                            &*signature.map(|s| s.raw())
                                                       .unwrap_or(0 as *mut _),
                                            log_message.to_c_str()));
-            Ok(Branch::wrap(Reference::from_raw_ptr(ret)))
+            Ok(Branch::wrap(Reference::from_raw(ret)))
         }
     }
 
@@ -78,7 +81,7 @@ impl<'repo> Branch<'repo> {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_upstream(&mut ret, &*self.get().raw()));
-            Ok(Branch::wrap(Reference::from_raw_ptr(ret)))
+            Ok(Branch::wrap(Reference::from_raw(ret)))
         }
     }
 
@@ -97,19 +100,24 @@ impl<'repo> Branch<'repo> {
     }
 }
 
-impl<'a> Branches<'a> {
+impl<'repo> Branches<'repo> {
     /// Creates a new iterator from the raw pointer given.
     ///
     /// This function is unsafe as it is not guaranteed that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(repo: &Repository,
-                           raw: *mut raw::git_branch_iterator) -> Branches {
-        Branches { repo: repo, raw: raw }
+    pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator)
+                           -> Branches<'repo> {
+        Branches {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
+        }
     }
 }
 
-impl<'a> Iterator<(Branch<'a>, BranchType)> for Branches<'a> {
-    fn next(&mut self) -> Option<(Branch<'a>, BranchType)> {
+impl<'repo> Iterator<(Branch<'repo>, BranchType)> for Branches<'repo> {
+    fn next(&mut self) -> Option<(Branch<'repo>, BranchType)> {
         let mut ret = 0 as *mut raw::git_reference;
         let mut typ = raw::GIT_BRANCH_LOCAL;
         unsafe {
@@ -123,13 +131,13 @@ impl<'a> Iterator<(Branch<'a>, BranchType)> for Branches<'a> {
                 raw::GIT_BRANCH_REMOTE => BranchType::Remote,
                 raw::GIT_BRANCH_ALL => panic!("unexected branch type"),
             };
-            Some((Branch::wrap(Reference::from_raw(self.repo, ret)), typ))
+            Some((Branch::wrap(Reference::from_raw(ret)), typ))
         }
     }
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Branches<'a> {
+impl<'repo> Drop for Branches<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_branch_iterator_free(self.raw) }
     }

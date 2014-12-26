@@ -5,7 +5,7 @@ use std::slice;
 use std::str;
 use libc;
 
-use {raw, Repository, Direction, Error, Refspec, Oid};
+use {raw, Direction, Error, Refspec, Oid};
 use {Signature, Push, RemoteCallbacks, Progress};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -43,8 +43,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is valid or
     /// that no other remote is using it.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_remote) -> Remote {
+    pub unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo, 'cb> {
         Remote {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -284,7 +283,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         try!(self.set_raw_callbacks());
         unsafe {
             try_call_panic!(raw::git_push_new(&mut ret, self.raw));
-            Ok(Push::from_raw(self, ret))
+            Ok(Push::from_raw(ret))
         }
     }
 
@@ -343,7 +342,7 @@ impl<'a, 'b> Iterator<Refspec<'a>> for Refspecs<'a, 'b> {
             let ptr = raw::git_remote_get_refspec(&*self.remote.raw,
                                                   self.cur as libc::size_t);
             assert!(!ptr.is_null());
-            Refspec::from_raw(self.remote, ptr)
+            Refspec::from_raw(ptr)
         };
         self.cur += 1;
         Some(ret)

@@ -80,7 +80,7 @@ impl Pathspec {
         unsafe {
             try_call!(raw::git_pathspec_match_tree(&mut ret, tree.raw(),
                                                    flags.bits(), self.raw));
-            Ok(PathspecMatchList::from_raw(self, ret))
+            Ok(PathspecMatchList::from_raw(ret))
         }
     }
 
@@ -96,7 +96,7 @@ impl Pathspec {
         unsafe {
             try_call!(raw::git_pathspec_match_index(&mut ret, index.raw(),
                                                     flags.bits(), self.raw));
-            Ok(PathspecMatchList::from_raw(self, ret))
+            Ok(PathspecMatchList::from_raw(ret))
         }
     }
 
@@ -118,7 +118,7 @@ impl Pathspec {
         unsafe {
             try_call!(raw::git_pathspec_match_workdir(&mut ret, repo.raw(),
                                                       flags.bits(), self.raw));
-            Ok(PathspecMatchList::from_raw(self, ret))
+            Ok(PathspecMatchList::from_raw(ret))
         }
     }
 
@@ -148,8 +148,7 @@ impl<'ps> PathspecMatchList<'ps> {
     /// Consumes ownership of a raw pointer
     ///
     /// This function is unsafe as the pointer is not guranteed to be valid.
-    pub unsafe fn from_raw(_spec: &'ps Pathspec,
-                           raw: *mut raw::git_pathspec_match_list)
+    pub unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list)
                            -> PathspecMatchList<'ps> {
         PathspecMatchList {
             raw: raw,

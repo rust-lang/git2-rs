@@ -134,12 +134,12 @@ impl Repository {
         let to = if raw.to.is_null() {
             None
         } else {
-            Some(unsafe { Object::from_raw(self, raw.to) })
+            Some(unsafe { Object::from_raw(raw.to) })
         };
         let from = if raw.from.is_null() {
             None
         } else {
-            Some(unsafe { Object::from_raw(self, raw.from) })
+            Some(unsafe { Object::from_raw(raw.from) })
         };
         let mode = RevparseMode::from_bits_truncate(raw.flags as u32);
         Ok(Revspec::from_objects(from, to, mode))
@@ -153,7 +153,7 @@ impl Repository {
                                                spec.to_c_str()));
         }
         assert!(!obj.is_null());
-        Ok(unsafe { Object::from_raw(self, obj) })
+        Ok(unsafe { Object::from_raw(obj) })
     }
 
     /// Tests whether this repository is a bare repository or not.
@@ -257,7 +257,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_remote_lookup(&mut ret, self.raw,
                                              name.to_c_str()));
-            Ok(Remote::from_raw(self, ret))
+            Ok(Remote::from_raw(ret))
         }
     }
 
@@ -268,7 +268,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_remote_create(&mut ret, self.raw,
                                              name.to_c_str(), url.to_c_str()));
-            Ok(Remote::from_raw(self, ret))
+            Ok(Remote::from_raw(ret))
         }
     }
 
@@ -286,7 +286,7 @@ impl Repository {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw,
                                                        url.to_c_str(),
                                                        fetch));
-            Ok(Remote::from_raw(self, ret))
+            Ok(Remote::from_raw(ret))
         }
     }
 
@@ -379,7 +379,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_repository_head(&mut ret, self.raw));
-            Ok(Reference::from_raw(self, ret))
+            Ok(Reference::from_raw(ret))
         }
     }
 
@@ -388,7 +388,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_reference_iterator;
         unsafe {
             try_call!(raw::git_reference_iterator_new(&mut ret, self.raw));
-            Ok(References::from_raw(self, ret))
+            Ok(References::from_raw(ret))
         }
     }
 
@@ -399,7 +399,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_reference_iterator_glob_new(&mut ret, self.raw,
                                                            glob.to_c_str()));
-            Ok(References::from_raw(self, ret))
+            Ok(References::from_raw(ret))
         }
     }
 
@@ -432,7 +432,7 @@ impl Repository {
                 let rc = raw::git_submodule_lookup(&mut raw, data.repo.raw(),
                                                    name);
                 assert_eq!(rc, 0);
-                data.ret.push(Submodule::from_raw(data.repo, raw));
+                data.ret.push(Submodule::from_raw(raw));
             }
             0
         }
@@ -451,7 +451,7 @@ impl Repository {
             try_call!(raw::git_status_list_new(&mut ret, self.raw,
                                                options.map(|s| s.raw())
                                                       .unwrap_or(0 as *const _)));
-            Ok(Statuses::from_raw(self, ret))
+            Ok(Statuses::from_raw(ret))
         }
     }
 
@@ -503,7 +503,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_branch_iterator;
         unsafe {
             try_call!(raw::git_branch_iterator_new(&mut raw, self.raw(), filter));
-            Ok(Branches::from_raw(self, raw))
+            Ok(Branches::from_raw(raw))
         }
     }
 
@@ -566,7 +566,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_blob;
         unsafe {
             try_call!(raw::git_blob_lookup(&mut raw, self.raw(), oid.raw()));
-            Ok(Blob::from_raw(self, raw))
+            Ok(Blob::from_raw(raw))
         }
     }
 
@@ -591,7 +591,7 @@ impl Repository {
                                              &*signature.map(|s| s.raw())
                                                         .unwrap_or(0 as *mut _),
                                              log_message.map(|s| s.to_c_str())));
-            Ok(Branch::wrap(Reference::from_raw(self, raw)))
+            Ok(Branch::wrap(Reference::from_raw(raw)))
         }
     }
 
@@ -602,7 +602,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_branch_lookup(&mut ret, self.raw(),
                                              name.to_c_str(), branch_type));
-            Ok(Branch::wrap(Reference::from_raw(self, ret)))
+            Ok(Branch::wrap(Reference::from_raw(ret)))
         }
     }
 
@@ -646,7 +646,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_commit;
         unsafe {
             try_call!(raw::git_commit_lookup(&mut raw, self.raw(), oid.raw()));
-            Ok(Commit::from_raw(self, raw))
+            Ok(Commit::from_raw(raw))
         }
     }
 
@@ -657,7 +657,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_object_lookup(&mut raw, self.raw(), oid.raw(),
                                              kind));
-            Ok(Object::from_raw(self, raw))
+            Ok(Object::from_raw(raw))
         }
     }
 
@@ -677,7 +677,7 @@ impl Repository {
                                                 &*sig.map(|s| s.raw())
                                                      .unwrap_or(0 as *mut _),
                                                 log_message.to_c_str()));
-            Ok(Reference::from_raw(self, raw))
+            Ok(Reference::from_raw(raw))
         }
     }
 
@@ -699,7 +699,7 @@ impl Repository {
                                                          &*sig.map(|s| s.raw())
                                                               .unwrap_or(0 as *mut _),
                                                          log_message.to_c_str()));
-            Ok(Reference::from_raw(self, raw))
+            Ok(Reference::from_raw(raw))
         }
     }
 
@@ -709,7 +709,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_reference_lookup(&mut raw, self.raw(),
                                                 name.to_c_str()));
-            Ok(Reference::from_raw(self, raw))
+            Ok(Reference::from_raw(raw))
         }
     }
 
@@ -761,7 +761,7 @@ impl Repository {
                                                    url.to_c_str(),
                                                    path.to_c_str(),
                                                    use_gitlink));
-            Ok(Submodule::from_raw(self, raw))
+            Ok(Submodule::from_raw(raw))
         }
     }
 
@@ -774,7 +774,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_submodule_lookup(&mut raw, self.raw(),
                                                 name.to_c_str()));
-            Ok(Submodule::from_raw(self, raw))
+            Ok(Submodule::from_raw(raw))
         }
     }
 
@@ -815,7 +815,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_tag;
         unsafe {
             try_call!(raw::git_tag_lookup(&mut raw, self.raw, id.raw()));
-            Ok(Tag::from_raw(self, raw))
+            Ok(Tag::from_raw(raw))
         }
     }
 
@@ -958,7 +958,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_note_iterator_new(&mut ret, self.raw,
                                                  notes_ref.map(|s| s.to_c_str())));
-            Ok(Notes::from_raw(self, ret))
+            Ok(Notes::from_raw(ret))
         }
     }
 
@@ -975,7 +975,7 @@ impl Repository {
             try_call!(raw::git_note_read(&mut ret, self.raw,
                                          notes_ref.map(|s| s.to_c_str()),
                                          &*id.raw()));
-            Ok(Note::from_raw(self, ret))
+            Ok(Note::from_raw(ret))
         }
     }
 
@@ -1005,7 +1005,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_revwalk;
         unsafe {
             try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
-            Ok(Revwalk::from_raw(self, raw))
+            Ok(Revwalk::from_raw(raw))
         }
     }
 

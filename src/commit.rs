@@ -3,37 +3,36 @@ use std::iter::Range;
 use std::str;
 use libc;
 
-use {raw, Oid, Repository, Error, Signature, Tree, Time};
+use {raw, Oid, Error, Signature, Tree, Time};
 
 /// A structure to represent a git [commit][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
-pub struct Commit<'a> {
+pub struct Commit<'repo> {
     raw: *mut raw::git_commit,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
 /// An iterator over the parent commits of a commit.
-pub struct Parents<'a, 'b:'a> {
+pub struct Parents<'commit, 'repo: 'commit> {
     range: Range<uint>,
-    commit: &'a Commit<'b>,
+    commit: &'commit Commit<'repo>,
 }
 
 /// An iterator over the parent commits' ids of a commit.
-pub struct ParentIds<'a> {
+pub struct ParentIds<'commit> {
     range: Range<uint>,
-    commit: &'a Commit<'a>,
+    commit: &'commit Commit<'commit>,
 }
 
-impl<'a> Commit<'a> {
+impl<'repo> Commit<'repo> {
     /// Create a new object from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_commit) -> Commit {
+    pub unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
         Commit {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -159,7 +158,7 @@ impl<'a> Commit<'a> {
     }
 
     /// Creates a new iterator over the parents of this commit.
-    pub fn parents<'b>(&'b self) -> Parents<'b, 'a> {
+    pub fn parents<'a>(&'a self) -> Parents<'a, 'repo> {
         let max = unsafe { raw::git_commit_parentcount(&*self.raw) as uint };
         Parents {
             range: range(0, max),
@@ -205,7 +204,7 @@ impl<'a> Commit<'a> {
                  committer: Option<&Signature>,
                  message_encoding: Option<&str>,
                  message: Option<&str>,
-                 tree: Option<&Tree<'a>>) -> Result<Oid, Error> {
+                 tree: Option<&Tree<'repo>>) -> Result<Oid, Error> {
         let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_commit_amend(&mut raw,
@@ -223,17 +222,12 @@ impl<'a> Commit<'a> {
     /// Get the specified parent of the commit.
     ///
     /// Use the `parents` iterator to return an iterator over all parents.
-    pub fn parent(&self, i: uint) -> Result<Commit<'a>, Error> {
+    pub fn parent(&self, i: uint) -> Result<Commit<'repo>, Error> {
         unsafe {
             let mut raw = 0 as *mut raw::git_commit;
             try_call!(raw::git_commit_parent(&mut raw, &*self.raw,
                                              i as libc::c_uint));
-            Ok(Commit {
-                raw: raw,
-                marker1: marker::ContravariantLifetime,
-                marker2: marker::NoSend,
-                marker3: marker::NoSync,
-            })
+            Ok(Commit::from_raw(raw))
         }
     }
 
@@ -255,38 +249,38 @@ impl<'a> Commit<'a> {
     }
 }
 
-impl<'a, 'b> Iterator<Commit<'a>> for Parents<'b, 'a> {
-    fn next(&mut self) -> Option<Commit<'a>> {
+impl<'repo, 'commit> Iterator<Commit<'repo>> for Parents<'commit, 'repo> {
+    fn next(&mut self) -> Option<Commit<'repo>> {
         self.range.next().map(|i| self.commit.parent(i).unwrap())
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
 
-impl<'a, 'b> DoubleEndedIterator<Commit<'a>> for Parents<'b, 'a> {
-    fn next_back(&mut self) -> Option<Commit<'a>> {
+impl<'repo, 'commit> DoubleEndedIterator<Commit<'repo>> for Parents<'commit, 'repo> {
+    fn next_back(&mut self) -> Option<Commit<'repo>> {
         self.range.next_back().map(|i| self.commit.parent(i).unwrap())
     }
 }
 
-impl<'a, 'b> ExactSizeIterator<Commit<'a>> for Parents<'b, 'a> {}
+impl<'repo, 'commit> ExactSizeIterator<Commit<'repo>> for Parents<'commit, 'repo> {}
 
-impl<'a> Iterator<Oid> for ParentIds<'a> {
+impl<'commit> Iterator<Oid> for ParentIds<'commit> {
     fn next(&mut self) -> Option<Oid> {
         self.range.next().map(|i| self.commit.parent_id(i).unwrap())
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
 
-impl<'a> DoubleEndedIterator<Oid> for ParentIds<'a> {
+impl<'commit> DoubleEndedIterator<Oid> for ParentIds<'commit> {
     fn next_back(&mut self) -> Option<Oid> {
         self.range.next_back().map(|i| self.commit.parent_id(i).unwrap())
     }
 }
 
-impl<'a> ExactSizeIterator<Oid> for ParentIds<'a> {}
+impl<'commit> ExactSizeIterator<Oid> for ParentIds<'commit> {}
 
 #[unsafe_destructor]
-impl<'a> Drop for Commit<'a> {
+impl<'repo> Drop for Commit<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_commit_free(self.raw) }
     }

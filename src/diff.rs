@@ -69,7 +69,7 @@ impl<'a> DiffDelta<'a> {
     /// What side this means depends on the function that was used to generate
     /// the diff and will be documented on the function itself.
     pub fn old_file(&self) -> DiffFile<'a> {
-        unsafe { DiffFile::from_raw(self, &(*self.raw).old_file) }
+        unsafe { DiffFile::from_raw(&(*self.raw).old_file) }
     }
 
     /// Return the file which represents the "to" side of the diff.
@@ -77,7 +77,7 @@ impl<'a> DiffDelta<'a> {
     /// What side this means depends on the function that was used to generate
     /// the diff and will be documented on the function itself.
     pub fn new_file(&self) -> DiffFile<'a> {
-        unsafe { DiffFile::from_raw(self, &(*self.raw).new_file) }
+        unsafe { DiffFile::from_raw(&(*self.raw).new_file) }
     }
 }
 
@@ -86,8 +86,7 @@ impl<'a> DiffFile<'a> {
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_entry: &DiffDelta<'a>,
-                           raw: *const raw::git_diff_file) -> DiffFile<'a> {
+    pub unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
         DiffFile {
             raw: raw,
             marker1: marker::ContravariantLifetime,

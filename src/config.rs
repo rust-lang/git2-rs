@@ -13,18 +13,19 @@ pub struct Config {
 /// A struct representing a certain entry owned by a `Config` instance.
 ///
 /// An entry has a name, a value, and a level it applies to.
-pub struct ConfigEntry<'a> {
+pub struct ConfigEntry<'cfg> {
     raw: *const raw::git_config_entry,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'cfg>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
 /// An iterator over the `ConfigEntry` values of a `Config` structure.
-pub struct ConfigEntries<'a> {
+pub struct ConfigEntries<'cfg> {
     raw: *mut raw::git_config_iterator,
-    _config: &'a Config,
-    marker: marker::NoSync,
+    marker1: marker::ContravariantLifetime<'cfg>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
 }
 
 impl Config {
@@ -187,7 +188,7 @@ impl Config {
     ///
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
-    pub fn get_str<'a>(&self, name: &str) -> Result<&str, Error> {
+    pub fn get_str(&self, name: &str) -> Result<&str, Error> {
         str::from_utf8(try!(self.get_bytes(name))).map_err(|_| {
             Error::from_str("configuration value is not valid utf8")
         })
@@ -209,7 +210,7 @@ impl Config {
         unsafe {
             try_call!(raw::git_config_get_entry(&mut ret, &*self.raw,
                                                 name.to_c_str()));
-            Ok(ConfigEntry::from_raw(self, ret))
+            Ok(ConfigEntry::from_raw(ret))
         }
     }
 
@@ -242,7 +243,7 @@ impl Config {
                     try_call!(raw::git_config_iterator_new(&mut ret, &*self.raw));
                 }
             }
-            Ok(ConfigEntries::from_raw(self, ret))
+            Ok(ConfigEntries::from_raw(ret))
         }
     }
 
@@ -332,12 +333,12 @@ impl Drop for Config {
     }
 }
 
-impl<'a> ConfigEntry<'a> {
+impl<'cfg> ConfigEntry<'cfg> {
     /// Creates a new config entry from the raw components.
     ///
     /// This method is unsafe as the validity of `raw` is not guaranteed.
-    pub unsafe fn from_raw(_config: &Config, raw: *const raw::git_config_entry)
-                           -> ConfigEntry {
+    pub unsafe fn from_raw(raw: *const raw::git_config_entry)
+                           -> ConfigEntry<'cfg> {
         ConfigEntry {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -372,13 +373,18 @@ impl<'a> ConfigEntry<'a> {
     }
 }
 
-impl<'a> ConfigEntries<'a> {
+impl<'cfg> ConfigEntries<'cfg> {
     /// Creates a new iterator from its raw component.
     ///
     /// This function is unsafe as the validity of `raw` is not guaranteed.
-    pub unsafe fn from_raw(config: &Config, raw: *mut raw::git_config_iterator)
-                           -> ConfigEntries {
-        ConfigEntries { raw: raw, _config: config, marker: marker::NoSync }
+    pub unsafe fn from_raw(raw: *mut raw::git_config_iterator)
+                           -> ConfigEntries<'cfg> {
+        ConfigEntries {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
+        }
     }
 }
 
@@ -387,17 +393,12 @@ impl<'a> ConfigEntries<'a> {
 //
 // It's also not implemented for `&'b mut T` so we can have multiple entries
 // (ok).
-impl<'a, 'b> Iterator<ConfigEntry<'b>> for &'b ConfigEntries<'a> {
+impl<'cfg, 'b> Iterator<ConfigEntry<'b>> for &'b ConfigEntries<'cfg> {
     fn next(&mut self) -> Option<ConfigEntry<'b>> {
         let mut raw = 0 as *mut raw::git_config_entry;
         unsafe {
             if raw::git_config_next(&mut raw, self.raw) == 0 {
-                Some(ConfigEntry {
-                    raw: raw as *const raw::git_config_entry,
-                    marker1: marker::ContravariantLifetime,
-                    marker2: marker::NoSend,
-                    marker3: marker::NoSync,
-                })
+                Some(ConfigEntry::from_raw(raw))
             } else {
                 None
             }
@@ -406,7 +407,7 @@ impl<'a, 'b> Iterator<ConfigEntry<'b>> for &'b ConfigEntries<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for ConfigEntries<'a> {
+impl<'cfg> Drop for ConfigEntries<'cfg> {
     fn drop(&mut self) {
         unsafe { raw::git_config_iterator_free(self.raw) }
     }

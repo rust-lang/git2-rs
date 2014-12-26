@@ -1,33 +1,32 @@
 use std::kinds::marker;
 use std::str;
 
-use {raw, Repository, Signature, Oid};
+use {raw, Signature, Oid};
 
 /// A structure representing a [note][note] in git.
 ///
 /// [note]: http://git-scm.com/blog/2010/08/25/notes.html
-pub struct Note<'a> {
+pub struct Note<'repo> {
     raw: *mut raw::git_note,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
 /// An iterator over all of the notes within a repository.
-pub struct Notes<'a> {
+pub struct Notes<'repo> {
     raw: *mut raw::git_note_iterator,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Note<'a> {
+impl<'repo> Note<'repo> {
     /// Create a new note from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_note) -> Note {
+    pub unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
         Note {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -67,19 +66,18 @@ impl<'a> Note<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Note<'a> {
+impl<'repo> Drop for Note<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_note_free(self.raw); }
     }
 }
 
-impl<'a> Notes<'a> {
+impl<'repo> Notes<'repo> {
     /// Create a new note iterator from its raw component.
     ///
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_note_iterator) -> Notes {
+    pub unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
         Notes {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -89,7 +87,7 @@ impl<'a> Notes<'a> {
     }
 }
 
-impl<'a> Iterator<(Oid, Oid)> for Notes<'a> {
+impl<'repo> Iterator<(Oid, Oid)> for Notes<'repo> {
     fn next(&mut self) -> Option<(Oid, Oid)> {
         let mut note_id = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
         let mut annotated_id = note_id;
@@ -103,7 +101,7 @@ impl<'a> Iterator<(Oid, Oid)> for Notes<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Notes<'a> {
+impl<'repo> Drop for Notes<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_note_iterator_free(self.raw); }
     }

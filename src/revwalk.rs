@@ -2,21 +2,20 @@ extern crate libc;
 
 use std::kinds::marker;
 
-use {raw, Error, Repository, Sort, Oid};
+use {raw, Error, Sort, Oid};
 
 /// A revwalk allows traversal of the commit graph defined by including one or
 /// more leaves and excluding one or more roots.
-pub struct Revwalk<'a> {
+pub struct Revwalk<'repo> {
     raw: *mut raw::git_revwalk,
-    marker1: marker::ContravariantLifetime<'a>,
+    marker1: marker::ContravariantLifetime<'repo>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
 }
 
-impl<'a> Revwalk<'a> {
+impl<'repo> Revwalk<'repo> {
     /// Creates a new revwalk from its raw pointer.
-    pub unsafe fn from_raw(_repo: &Repository,
-                           raw: *mut raw::git_revwalk) -> Revwalk {
+    pub unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
         Revwalk {
             raw: raw,
             marker1: marker::ContravariantLifetime,
@@ -158,13 +157,13 @@ impl<'a> Revwalk<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for Revwalk<'a> {
+impl<'repo> Drop for Revwalk<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_revwalk_free(self.raw) }
     }
 }
 
-impl<'a> Iterator<Oid> for Revwalk<'a> {
+impl<'repo> Iterator<Oid> for Revwalk<'repo> {
     fn next(&mut self) -> Option<Oid> {
         let mut out: raw::git_oid = raw::git_oid{ id: [0, ..raw::GIT_OID_RAWSZ] };
         unsafe {
