@@ -74,7 +74,6 @@ extern crate "libgit2-sys" as raw;
 use std::c_str::CString;
 use std::fmt;
 use std::mem;
-use std::rt;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
 
@@ -84,7 +83,8 @@ pub use buf::Buf;
 pub use commit::{Commit, Parents};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
-pub use diff::{DiffDelta, DiffFile};
+pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
+pub use diff::{DiffLine, DiffHunk, DiffStats};
 pub use error::Error;
 pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use note::{Note, Notes};
@@ -316,10 +316,9 @@ fn init() {
         let r = raw::git_libgit2_init();
         assert!(r >= 0,
                 "couldn't initialize the libgit2 library: {}", r);
-        rt::at_exit(|| {
-            raw::git_libgit2_shutdown();
-        });
+        assert_eq!(libc::atexit(shutdown), 0);
     });
+    extern fn shutdown() { unsafe { raw::git_libgit2_shutdown() } }
 }
 
 unsafe fn opt_bytes<'a, T>(_: &'a T,
@@ -548,6 +547,21 @@ bitflags! {
         const PATHSPEC_FIND_FAILURES = raw::GIT_PATHSPEC_FIND_FAILURES as u32,
         const PATHSPEC_FAILURES_ONLY = raw::GIT_PATHSPEC_FAILURES_ONLY as u32,
     }
+}
+
+/// Possible output formats for diff data
+#[deriving(Copy)]
+pub enum DiffFormat {
+    /// full git diff
+    Patch,
+    /// just the headers of the patch
+    PatchHeader,
+    /// like git diff --raw
+    Raw,
+    /// like git diff --name-only
+    NameOnly,
+    /// like git diff --name-status
+    NameStatus,
 }
 
 #[cfg(test)]

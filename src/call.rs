@@ -58,6 +58,7 @@ mod impls {
     use libc;
 
     use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
+    use {DiffFormat};
     use call::Convert;
 
     impl<T: Copy> Convert<T> for T {
@@ -78,19 +79,13 @@ mod impls {
         fn convert(&self) -> *const libc::c_char { self.as_ptr() }
     }
 
-    impl Convert<*const libc::c_char> for Option<CString> {
-        fn convert(&self) -> *const libc::c_char {
-            self.as_ref().map(|s| s.convert()).unwrap_or(0 as *const _)
-        }
-    }
-
-    impl<'a, T> Convert<*const T> for Option<&'a T> {
+    impl<T, U: Convert<*const T>> Convert<*const T> for Option<U> {
         fn convert(&self) -> *const T {
             self.as_ref().map(|s| s.convert()).unwrap_or(0 as *const _)
         }
     }
 
-    impl<'a, T> Convert<*mut T> for Option<&'a mut T> {
+    impl<T, U: Convert<*mut T>> Convert<*mut T> for Option<U> {
         fn convert(&self) -> *mut T {
             self.as_ref().map(|s| s.convert()).unwrap_or(0 as *mut _)
         }
@@ -157,6 +152,18 @@ mod impls {
                 ConfigLevel::Local => raw::GIT_CONFIG_LEVEL_LOCAL,
                 ConfigLevel::App => raw::GIT_CONFIG_LEVEL_APP,
                 ConfigLevel::Highest => raw::GIT_CONFIG_HIGHEST_LEVEL,
+            }
+        }
+    }
+
+    impl Convert<raw::git_diff_format_t> for DiffFormat {
+        fn convert(&self) -> raw::git_diff_format_t {
+            match *self {
+                DiffFormat::Patch => raw::GIT_DIFF_FORMAT_PATCH,
+                DiffFormat::PatchHeader => raw::GIT_DIFF_FORMAT_PATCH_HEADER,
+                DiffFormat::Raw => raw::GIT_DIFF_FORMAT_RAW,
+                DiffFormat::NameOnly => raw::GIT_DIFF_FORMAT_NAME_ONLY,
+                DiffFormat::NameStatus => raw::GIT_DIFF_FORMAT_NAME_STATUS,
             }
         }
     }

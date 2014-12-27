@@ -32,6 +32,8 @@ pub use git_status_opt_t::*;
 pub use git_status_show_t::*;
 pub use git_delta_t::*;
 pub use git_sort::*;
+pub use git_diff_format_t::*;
+pub use git_diff_stats_format_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -66,6 +68,7 @@ pub enum git_status_list {}
 pub enum git_pathspec {}
 pub enum git_pathspec_match_list {}
 pub enum git_diff {}
+pub enum git_diff_stats {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -703,6 +706,117 @@ pub const GIT_PATHSPEC_NO_GLOB: u32 = 1 << 2;
 pub const GIT_PATHSPEC_NO_MATCH_ERROR: u32 = 1 << 3;
 pub const GIT_PATHSPEC_FIND_FAILURES: u32 = 1 << 4;
 pub const GIT_PATHSPEC_FAILURES_ONLY: u32 = 1 << 5;
+
+pub type git_diff_file_cb = extern fn(*const git_diff_delta, f32, *mut c_void)
+                                      -> c_int;
+pub type git_diff_hunk_cb = extern fn(*const git_diff_delta,
+                                      *const git_diff_hunk,
+                                      *mut c_void) -> c_int;
+pub type git_diff_line_cb = extern fn(*const git_diff_delta,
+                                      *const git_diff_hunk,
+                                      *const git_diff_line,
+                                      *mut c_void) -> c_int;
+
+#[repr(C)]
+pub struct git_diff_hunk {
+    pub old_start: c_int,
+    pub old_lines: c_int,
+    pub new_start: c_int,
+    pub new_lines: c_int,
+    pub header_len: size_t,
+    pub header: [u8, ..128],
+}
+
+pub type git_diff_line_t = u8;
+pub const GIT_DIFF_LINE_CONTEXT: u8 = ' ' as u8;
+pub const GIT_DIFF_LINE_ADDITION: u8 = '+' as u8;
+pub const GIT_DIFF_LINE_DELETION: u8 = '-' as u8;
+pub const GIT_DIFF_LINE_CONTEXT_EOFNL: u8 = '=' as u8;
+pub const GIT_DIFF_LINE_ADD_EOFNL: u8 = '>' as u8;
+pub const GIT_DIFF_LINE_DEL_EOFNL: u8 = '<' as u8;
+pub const GIT_DIFF_LINE_FILE_HDR: u8 = 'F' as u8;
+pub const GIT_DIFF_LINE_HUNK_HDR: u8 = 'H' as u8;
+pub const GIT_DIFF_LINE_LINE_BINARY: u8 = 'B' as u8;
+
+#[repr(C)]
+pub struct git_diff_line {
+    pub origin: u8,
+    pub old_lineno: c_int,
+    pub new_lineno: c_int,
+    pub num_lines: c_int,
+    pub content_len: size_t,
+    pub content_offset: git_off_t,
+    pub content: *const u8,
+}
+
+#[repr(C)]
+pub struct git_diff_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub ignore_submodules: git_submodule_ignore_t,
+    pub pathspec: git_strarray,
+    pub notify_cb: git_diff_notify_cb,
+    pub notify_payload: *mut c_void,
+    pub context_lines: u32,
+    pub interhunk_lines: u32,
+    pub id_abbrev: u16,
+    pub max_size: git_off_t,
+    pub old_prefix: *const c_char,
+    pub new_prefix: *const c_char,
+}
+
+#[repr(C)]
+pub enum git_diff_format_t {
+    GIT_DIFF_FORMAT_PATCH = 1,
+    GIT_DIFF_FORMAT_PATCH_HEADER = 2,
+    GIT_DIFF_FORMAT_RAW = 3,
+    GIT_DIFF_FORMAT_NAME_ONLY = 4,
+    GIT_DIFF_FORMAT_NAME_STATUS = 5,
+}
+
+#[repr(C)]
+pub enum git_diff_stats_format_t {
+    GIT_DIFF_STATS_NONE = 0,
+    GIT_DIFF_STATS_FULL = 1 << 0,
+    GIT_DIFF_STATS_SHORT = 1 << 1,
+    GIT_DIFF_STATS_NUMBER = 1 << 2,
+    GIT_DIFF_STATS_INCLUDE_SUMMARY = 1 << 3,
+}
+
+pub type git_diff_notify_cb = extern fn(*const git_diff,
+                                        *const git_diff_delta,
+                                        *const c_char,
+                                        *mut c_void) -> c_int;
+
+pub type git_diff_options_t = u32;
+pub const GIT_DIFF_NORMAL: u32 = 0;
+pub const GIT_DIFF_REVERSE: u32 = 1 << 0;
+pub const GIT_DIFF_INCLUDE_IGNORED: u32 = 1 << 1;
+pub const GIT_DIFF_RECURSE_IGNORED_DIRS: u32 = 1 << 2;
+pub const GIT_DIFF_INCLUDE_UNTRACKED: u32 = 1 << 3;
+pub const GIT_DIFF_RECURSE_UNTRACKED_DIRS: u32 = 1 << 4;
+pub const GIT_DIFF_INCLUDE_UNMODIFIED: u32 = 1 << 5;
+pub const GIT_DIFF_INCLUDE_TYPECHANGE: u32 = 1 << 6;
+pub const GIT_DIFF_INCLUDE_TYPECHANGE_TREES: u32 = 1 << 7;
+pub const GIT_DIFF_IGNORE_FILEMODE: u32 = 1 << 8;
+pub const GIT_DIFF_IGNORE_SUBMODULES: u32 = 1 << 9;
+pub const GIT_DIFF_IGNORE_CASE: u32 = 1 << 10;
+pub const GIT_DIFF_DISABLE_PATHSPEC_MATCH: u32 = 1 << 12;
+pub const GIT_DIFF_SKIP_BINARY_CHECK: u32 = 1 << 13;
+pub const GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS: u32 = 1 << 14;
+pub const GIT_DIFF_UPDATE_INDEX: u32 = 1 << 15;
+pub const GIT_DIFF_INCLUDE_UNREADABLE: u32 = 1 << 16;
+pub const GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED: u32 = 1 << 17;
+pub const GIT_DIFF_FORCE_TEXT: u32 = 1 << 20;
+pub const GIT_DIFF_FORCE_BINARY: u32 = 1 << 21;
+pub const GIT_DIFF_IGNORE_WHITESPACE: u32 = 1 << 22;
+pub const GIT_DIFF_IGNORE_WHITESPACE_CHANGE: u32 = 1 << 23;
+pub const GIT_DIFF_IGNORE_WHITESPACE_EOL: u32 = 1 << 24;
+pub const GIT_DIFF_SHOW_UNTRACKED_CONTENT: u32 = 1 << 25;
+pub const GIT_DIFF_SHOW_UNMODIFIED: u32 = 1 << 26;
+pub const GIT_DIFF_PATIENCE: u32 = 1 << 28;
+pub const GIT_DIFF_MINIMAL: u32 = 1 << 29;
+pub const GIT_DIFF_SHOW_BINARY: u32 = 1 << 30;
 
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
@@ -1630,6 +1744,92 @@ extern {
                                      path: *const c_char) -> c_int;
     pub fn git_pathspec_new(out: *mut *mut git_pathspec,
                             pathspec: *const git_strarray) -> c_int;
+
+    // diff
+    pub fn git_diff_blob_to_buffer(old_blob: *const git_blob,
+                                   old_as_path: *const c_char,
+                                   buffer: *const c_char,
+                                   buffer_len: size_t,
+                                   buffer_as_path: *const c_char,
+                                   options: *const git_diff_options,
+                                   file_cb: git_diff_file_cb,
+                                   hunk_cb: git_diff_hunk_cb,
+                                   line_cb: git_diff_line_cb,
+                                   payload: *mut c_void) -> c_int;
+    pub fn git_diff_blobs(old_blob: *const git_blob,
+                          old_as_path: *const c_char,
+                          new_blob: *const git_blob,
+                          new_as_path: *const c_char,
+                          options: *const git_diff_options,
+                          file_cb: git_diff_file_cb,
+                          hunk_cb: git_diff_hunk_cb,
+                          line_cb: git_diff_line_cb,
+                          payload: *mut c_void) -> c_int;
+    pub fn git_diff_buffers(old_buffer: *const c_void,
+                            old_len: size_t,
+                            old_as_path: *const c_char,
+                            new_buffer: *const c_void,
+                            new_len: size_t,
+                            new_as_path: *const c_char,
+                            options: *const git_diff_options,
+                            file_cb: git_diff_file_cb,
+                            hunk_cb: git_diff_hunk_cb,
+                            line_cb: git_diff_line_cb,
+                            payload: *mut c_void) -> c_int;
+    pub fn git_diff_foreach(diff: *mut git_diff,
+                            file_cb: git_diff_file_cb,
+                            hunk_cb: git_diff_hunk_cb,
+                            line_cb: git_diff_line_cb,
+                            payload: *mut c_void) -> c_int;
+    pub fn git_diff_free(diff: *mut git_diff);
+    pub fn git_diff_get_delta(diff: *const git_diff,
+                              idx: size_t) -> *const git_diff_delta;
+    pub fn git_diff_get_stats(out: *mut *mut git_diff_stats,
+                              diff: *mut git_diff) -> c_int;
+    pub fn git_diff_index_to_workdir(diff: *mut *mut git_diff,
+                                     repo: *mut git_repository,
+                                     index: *mut git_index,
+                                     opts: *const git_diff_options) -> c_int;
+    pub fn git_diff_init_options(opts: *mut git_diff_options,
+                                 version: c_uint) -> c_int;
+    pub fn git_diff_is_sorted_icase(diff: *const git_diff) -> c_int;
+    pub fn git_diff_merge(onto: *mut git_diff,
+                          from: *const git_diff) -> c_int;
+    pub fn git_diff_num_deltas(diff: *const git_diff) -> size_t;
+    pub fn git_diff_num_deltas_of_type(diff: *const git_diff,
+                                       delta: git_delta_t) -> size_t;
+    pub fn git_diff_print(diff: *mut git_diff,
+                          format: git_diff_format_t,
+                          print_cb: git_diff_line_cb,
+                          payload: *mut c_void) -> c_int;
+    pub fn git_diff_stats_deletions(stats: *const git_diff_stats) -> size_t;
+    pub fn git_diff_stats_files_changed(stats: *const git_diff_stats) -> size_t;
+    pub fn git_diff_stats_free(stats: *mut git_diff_stats);
+    pub fn git_diff_stats_insertions(stats: *const git_diff_stats) -> size_t;
+    pub fn git_diff_stats_to_buf(out: *mut git_buf,
+                                 stats: *const git_diff_stats,
+                                 format: git_diff_stats_format_t,
+                                 width: size_t) -> c_int;
+    pub fn git_diff_status_char(status: git_delta_t) -> c_char;
+    pub fn git_diff_tree_to_index(diff: *mut *mut git_diff,
+                                  repo: *mut git_repository,
+                                  old_tree: *mut git_tree,
+                                  index: *mut git_index,
+                                  opts: *const git_diff_options) -> c_int;
+    pub fn git_diff_tree_to_tree(diff: *mut *mut git_diff,
+                                 repo: *mut git_repository,
+                                 old_tree: *mut git_tree,
+                                 new_tree: *mut git_tree,
+                                 opts: *const git_diff_options) -> c_int;
+    pub fn git_diff_tree_to_workdir(diff: *mut *mut git_diff,
+                                    repo: *mut git_repository,
+                                    old_tree: *mut git_tree,
+                                    opts: *const git_diff_options) -> c_int;
+    pub fn git_diff_tree_to_workdir_with_index(diff: *mut *mut git_diff,
+                                               repo: *mut git_repository,
+                                               old_tree: *mut git_tree,
+                                               opts: *const git_diff_options)
+                                               -> c_int;
 }
 
 #[test]

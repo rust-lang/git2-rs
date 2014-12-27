@@ -94,7 +94,9 @@ impl StatusOptions {
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
     pub fn pathspec<T: ToCStr>(&mut self, pathspec: T) -> &mut StatusOptions {
-        self.pathspec.push(pathspec.to_c_str());
+        let s = pathspec.to_c_str();
+        self.ptrs.push(s.as_ptr());
+        self.pathspec.push(s);
         self
     }
 

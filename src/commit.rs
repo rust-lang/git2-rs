@@ -54,7 +54,7 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the tree pointed to by a commit.
-    pub fn tree(&self) -> Result<Tree, Error> {
+    pub fn tree(&self) -> Result<Tree<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_tree;
         unsafe {
             try_call!(raw::git_commit_tree(&mut ret, &*self.raw));

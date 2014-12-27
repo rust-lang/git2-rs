@@ -12,6 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(macro_rules)]
 #![deny(warnings)]
 
 extern crate "rustc-serialize" as rustc_serialize;
@@ -19,8 +20,10 @@ extern crate docopt;
 extern crate git2;
 extern crate time;
 
+use std::str;
 use docopt::Docopt;
-use git2::{Repository, Signature, Commit, ObjectType, Time};
+use git2::{Repository, Signature, Commit, ObjectType, Time, DiffOptions};
+use git2::{Pathspec, Diff, Error, DiffFormat};
 
 #[deriving(RustcDecodable)]
 struct Args {
@@ -44,10 +47,7 @@ struct Args {
     flag_patch: bool,
 }
 
-fn run(args: &Args) -> Result<(), git2::Error> {
-    assert!(args.arg_spec.len() == 0, "unimplemented diff specs");
-    assert!(!args.flag_patch, "unimplemented patch show");
-
+fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.as_ref().map(|s| s.as_slice()).unwrap_or(".");
     let repo = try!(Repository::open(&Path::new(path)));
     let mut revwalk = try!(repo.revwalk());
@@ -82,29 +82,73 @@ fn run(args: &Args) -> Result<(), git2::Error> {
             try!(revwalk.hide(from));
         }
     }
-
     if args.arg_commit.len() == 0 {
         try!(revwalk.push_head());
     }
 
+    // Prepare our diff options and pathspec matcher
+    let (mut diffopts, mut diffopts2) = (DiffOptions::new(), DiffOptions::new());
+    for spec in args.arg_spec.iter() {
+        diffopts.pathspec(spec);
+        diffopts2.pathspec(spec);
+    }
+    let ps = try!(Pathspec::new(args.arg_spec.iter()));
+
     // Filter our revwalk based on the CLI parameters
-    let mut revwalk = revwalk.map(|id| {
-        repo.find_commit(id).unwrap()
-    }).filter(|commit| {
-        let len = commit.parents().len();
-        len >= args.min_parents() && match args.max_parents() {
-            Some(n) => len < n, None => true
+    macro_rules! filter_try {
+        ($e:expr) => (match $e { Ok(t) => t, Err(e) => return Some(Err(e)) })
+    }
+    let mut revwalk = revwalk.filter_map(|id| {
+        let commit = filter_try!(repo.find_commit(id));
+        let parents = commit.parents().len();
+        if parents < args.min_parents() { return None }
+        if let Some(n) = args.max_parents() {
+            if parents >= n { return None }
         }
-    }).filter(|commit| {
-        sig_matches(commit.author(), &args.flag_author) &&
-            sig_matches(commit.committer(), &args.flag_committer)
-    }).filter(|commit| {
-        log_message_matches(commit.message(), &args.flag_grep)
+        if args.arg_spec.len() > 0 {
+            match commit.parents().len() {
+                0 => {
+                    let tree = filter_try!(commit.tree());
+                    let flags = git2::PATHSPEC_NO_MATCH_ERROR;
+                    if ps.match_tree(&tree, flags).is_err() { return None }
+                }
+                _ => {
+                    let m = commit.parents().all(|parent| {
+                        match_with_parent(&repo, &commit, &parent, &mut diffopts)
+                                        .unwrap_or(false)
+                    });
+                    if !m { return None }
+                }
+            }
+        }
+        if !sig_matches(commit.author(), &args.flag_author) { return None }
+        if !sig_matches(commit.committer(), &args.flag_committer) { return None }
+        if !log_message_matches(commit.message(), &args.flag_grep) { return None }
+        Some(Ok(commit))
     }).skip(args.flag_skip.unwrap_or(0)).take(args.flag_max_count.unwrap_or(-1));
 
     // print!
     for commit in revwalk {
+        let commit = try!(commit);
         print_commit(&commit);
+        if !args.flag_patch || commit.parents().len() > 1 { continue }
+        let a = if commit.parents().len() == 1 {
+            let parent = try!(commit.parent(0));
+            Some(try!(parent.tree()))
+        } else {
+            None
+        };
+        let b = try!(commit.tree());
+        let diff = try!(Diff::tree_to_tree(&repo, a.as_ref(), Some(&b),
+                                           Some(&mut diffopts2)));
+        try!(diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
+            match line.origin() {
+                ' ' | '+' | '-' => print!("{}", line.origin()),
+                _ => {}
+            }
+            print!("{}", str::from_utf8(line.content()).unwrap());
+            true
+        }));
     }
 
     Ok(())
@@ -165,6 +209,14 @@ fn print_time(time: &Time, prefix: &str) {
     println!("{}{} {}{:02}{:02}", prefix,
              time.strftime("%a %b %e %T %Y").unwrap(), sign, hours, minutes);
 
+}
+
+fn match_with_parent(repo: &Repository, commit: &Commit, parent: &Commit,
+                     opts: &mut DiffOptions) -> Result<bool, Error> {
+    let a = try!(parent.tree());
+    let b = try!(commit.tree());
+    let diff = try!(Diff::tree_to_tree(repo, Some(&a), Some(&b), Some(opts)));
+    Ok(diff.deltas().len() > 0)
 }
 
 impl Args {

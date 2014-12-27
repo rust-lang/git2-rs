@@ -1,6 +1,21 @@
+use std::c_str::CString;
+use std::iter::Range;
 use std::kinds::marker;
+use std::mem;
+use std::slice;
+use libc::{c_char, size_t, c_void, c_int};
 
-use {raw, Delta, Oid};
+use {raw, panic, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+
+/// The diff object that contains all individual file deltas.
+///
+/// This is an opaque structure which will be allocated by one of the diff
+/// generator functions below (such as `Diff::tree_to_tree`).
+pub struct Diff {
+    raw: *mut raw::git_diff,
+    marker1: marker::NoSend,
+    marker2: marker::NoSync,
+}
 
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
@@ -20,6 +35,270 @@ pub struct DiffFile<'a> {
     marker1: marker::ContravariantLifetime<'a>,
     marker2: marker::NoSend,
     marker3: marker::NoSync,
+}
+
+/// Structure describing options about how the diff should be executed.
+pub struct DiffOptions {
+    pathspec: Vec<CString>,
+    pathspec_ptrs: Vec<*const c_char>,
+    old_prefix: Option<CString>,
+    new_prefix: Option<CString>,
+    raw: raw::git_diff_options,
+}
+
+/// An iterator over the diffs in a delta
+pub struct Deltas<'diff> {
+    range: Range<uint>,
+    diff: &'diff Diff,
+}
+
+/// Structure describing a line (or data span) of a diff.
+pub struct DiffLine<'a> {
+    raw: *const raw::git_diff_line,
+    marker1: marker::ContravariantLifetime<'a>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
+}
+
+/// Structure describing a hunk of a diff.
+pub struct DiffHunk<'a> {
+    raw: *const raw::git_diff_hunk,
+    marker1: marker::ContravariantLifetime<'a>,
+    marker2: marker::NoSend,
+    marker3: marker::NoSync,
+}
+
+/// Structure describing a hunk of a diff.
+pub struct DiffStats {
+    raw: *mut raw::git_diff_stats,
+    marker1: marker::NoSend,
+    marker2: marker::NoSync,
+}
+
+impl Diff {
+    /// Create a diff with the difference between two tree objects.
+    ///
+    /// This is equivalent to `git diff <old-tree> <new-tree>`
+    ///
+    /// The first tree will be used for the "old_file" side of the delta and the
+    /// second tree will be used for the "new_file" side of the delta.  You can
+    /// pass `None` to indicate an empty tree, although it is an error to pass
+    /// `None` for both the `old_tree` and `new_tree`.
+    pub fn tree_to_tree(repo: &Repository,
+                        old_tree: Option<&Tree>,
+                        new_tree: Option<&Tree>,
+                        opts: Option<&mut DiffOptions>) -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_tree(&mut ret,
+                                                 repo.raw(),
+                                                 old_tree.map(|s| s.raw()),
+                                                 new_tree.map(|s| s.raw()),
+                                                 opts.map(|s| s.raw())));
+            Ok(Diff::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between a tree and repository index.
+    ///
+    /// This is equivalent to `git diff --cached <treeish>` or if you pass
+    /// the HEAD tree, then like `git diff --cached`.
+    ///
+    /// The tree you pass will be used for the "old_file" side of the delta, and
+    /// the index will be used for the "new_file" side of the delta.
+    ///
+    /// If you pass `None` for the index, then the existing index of the `repo`
+    /// will be used.  In this case, the index will be refreshed from disk
+    /// (if it has changed) before the diff is generated.
+    ///
+    /// If the tree is `None`, then it is considered an empty tree.
+    pub fn tree_to_index(repo: &Repository,
+                         old_tree: Option<&Tree>,
+                         index: Option<&Index>,
+                         opts: Option<&mut DiffOptions>) -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_index(&mut ret,
+                                                  repo.raw(),
+                                                  old_tree.map(|s| s.raw()),
+                                                  index.map(|s| s.raw()),
+                                                  opts.map(|s| s.raw())));
+            Ok(Diff::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between the repository index and the workdir directory.
+    ///
+    /// This matches the `git diff` command.  See the note below on
+    /// `tree_to_workdir` for a discussion of the difference between
+    /// `git diff` and `git diff HEAD` and how to emulate a `git diff <treeish>`
+    /// using libgit2.
+    ///
+    /// The index will be used for the "old_file" side of the delta, and the
+    /// working directory will be used for the "new_file" side of the delta.
+    ///
+    /// If you pass `None` for the index, then the existing index of the `repo`
+    /// will be used.  In this case, the index will be refreshed from disk
+    /// (if it has changed) before the diff is generated.
+    pub fn index_to_workdir(repo: &Repository,
+                            index: Option<&Index>,
+                            opts: Option<&mut DiffOptions>)
+                            -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_index_to_workdir(&mut ret,
+                                                     repo.raw(),
+                                                     index.map(|s| s.raw()),
+                                                     opts.map(|s| s.raw())));
+            Ok(Diff::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between a tree and the working directory.
+    ///
+    /// The tree you provide will be used for the "old_file" side of the delta,
+    /// and the working directory will be used for the "new_file" side.
+    ///
+    /// This is not the same as `git diff <treeish>` or `git diff-index
+    /// <treeish>`.  Those commands use information from the index, whereas this
+    /// function strictly returns the differences between the tree and the files
+    /// in the working directory, regardless of the state of the index.  Use
+    /// `tree_to_workdir_with_index` to emulate those commands.
+    ///
+    /// To see difference between this and `tree_to_workdir_with_index`,
+    /// consider the example of a staged file deletion where the file has then
+    /// been put back into the working dir and further modified.  The
+    /// tree-to-workdir diff for that file is 'modified', but `git diff` would
+    /// show status 'deleted' since there is a staged delete.
+    ///
+    /// If `None` is passed for `tree`, then an empty tree is used.
+    pub fn tree_to_workdir(repo: &Repository,
+                           old_tree: Option<&Tree>,
+                           opts: Option<&mut DiffOptions>)
+                           -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_workdir(&mut ret,
+                                                    repo.raw(),
+                                                    old_tree.map(|s| s.raw()),
+                                                    opts.map(|s| s.raw())));
+            Ok(Diff::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between a tree and the working directory using index data
+    /// to account for staged deletes, tracked files, etc.
+    ///
+    /// This emulates `git diff <tree>` by diffing the tree to the index and
+    /// the index to the working directory and blending the results into a
+    /// single diff that includes staged deleted, etc.
+    pub fn tree_to_workdir_with_index(repo: &Repository,
+                                      old_tree: Option<&Tree>,
+                                      opts: Option<&mut DiffOptions>)
+                                      -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_workdir_with_index(&mut ret,
+                    repo.raw(), old_tree.map(|s| s.raw()), opts.map(|s| s.raw())));
+            Ok(Diff::from_raw(ret))
+        }
+    }
+
+    /// Create a new diff from its raw component.
+    ///
+    /// This method is unsafe as there is no guarantee that `raw` is a valid
+    /// pointer.
+    pub unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff {
+        Diff {
+            raw: raw,
+            marker1: marker::NoSend,
+            marker2: marker::NoSync,
+        }
+    }
+
+    /// Merge one diff into another.
+    ///
+    /// This merges items from the "from" list into the "self" list.  The
+    /// resulting diff will have all items that appear in either list.
+    /// If an item appears in both lists, then it will be "merged" to appear
+    /// as if the old version was from the "onto" list and the new version
+    /// is from the "from" list (with the exception that if the item has a
+    /// pending DELETE in the middle, then it will show as deleted).
+    pub fn merge(&mut self, from: &Diff) -> Result<(), Error> {
+        unsafe { try_call!(raw::git_diff_merge(self.raw, &*from.raw)); }
+        Ok(())
+    }
+
+    /// Returns an iterator over the deltas in this diff.
+    pub fn deltas(&self) -> Deltas {
+        let num_deltas = unsafe { raw::git_diff_num_deltas(&*self.raw) };
+        Deltas { range: range(0, num_deltas as uint), diff: self }
+    }
+
+    /// Return the diff delta for an entry in the diff list.
+    pub fn get_delta(&self, i: uint) -> Option<DiffDelta> {
+        unsafe {
+            let ptr = raw::git_diff_get_delta(&*self.raw, i as size_t);
+            if ptr.is_null() {
+                None
+            } else {
+                Some(DiffDelta::from_raw(ptr as *mut _))
+            }
+        }
+    }
+
+    /// Check if deltas are sorted case sensitively or insensitively.
+    pub fn is_sorted_icase(&self) -> bool {
+        unsafe { raw::git_diff_is_sorted_icase(&*self.raw) == 1 }
+    }
+
+    /// Iterate over a diff generating formatted text output.
+    ///
+    /// Returning `false` from the callback will terminate the iteration and
+    /// return an error from this function.
+    pub fn print<F>(&self, format: DiffFormat, mut cb: F) -> Result<(), Error>
+                    where F: FnMut(DiffDelta, DiffHunk, DiffLine) -> bool {
+        unsafe {
+            try_call_panic!(raw::git_diff_print(self.raw, format, print::<F>,
+                                                &mut cb as *mut _ as *mut _));
+            return Ok(())
+        }
+        extern fn print<F>(delta: *const raw::git_diff_delta,
+                           hunk: *const raw::git_diff_hunk,
+                           line: *const raw::git_diff_line,
+                           data: *mut c_void) -> c_int
+                           where F: FnMut(DiffDelta, DiffHunk, DiffLine) -> bool
+        {
+            unsafe {
+                let delta = DiffDelta::from_raw(delta as *mut _);
+                let hunk = DiffHunk::from_raw(hunk);
+                let line = DiffLine::from_raw(line);
+                let data = data as *mut F;
+                let ok = panic::wrap(move || {
+                    (*data)(delta, hunk, line)
+                }).unwrap_or(false);
+                if ok {0} else {-1}
+            }
+        }
+    }
+
+    /// Accumulate diff statistics for all patches.
+    pub fn stats(&self) -> Result<DiffStats, Error> {
+        let mut ret = 0 as *mut raw::git_diff_stats;
+        unsafe {
+            try_call!(raw::git_diff_get_stats(&mut ret, self.raw));
+            Ok(DiffStats::from_raw(ret))
+        }
+    }
+
+    // TODO: num_deltas_of_type, foreach, format_email
+}
+
+#[unsafe_destructor]
+impl Drop for Diff {
+    fn drop(&mut self) {
+        unsafe { raw::git_diff_free(self.raw) }
+    }
 }
 
 impl<'a> DiffDelta<'a> {
@@ -119,4 +398,444 @@ impl<'a> DiffFile<'a> {
     pub fn size(&self) -> u64 { unsafe { (*self.raw).size as u64 } }
 
     // TODO: expose flags/mode
+}
+
+impl DiffOptions {
+    /// Creates a new set of empty diff options.
+    ///
+    /// All flags and other options are defaulted to false or their otherwise
+    /// zero equivalents.
+    pub fn new() -> DiffOptions {
+        let mut opts = DiffOptions {
+            pathspec: Vec::new(),
+            pathspec_ptrs: Vec::new(),
+            raw: unsafe { mem::zeroed() },
+            old_prefix: None,
+            new_prefix: None,
+        };
+        assert_eq!(unsafe {
+            raw::git_diff_init_options(&mut opts.raw, 1)
+        }, 0);
+        opts
+    }
+
+    fn flag(&mut self, opt: u32, val: bool) -> &mut DiffOptions {
+        if val {
+            self.raw.flags |= opt;
+        } else {
+            self.raw.flags &= !opt;
+        }
+        self
+    }
+
+    /// Flag indicating whether the sides of the diff will be reversed.
+    pub fn reverse(&mut self, reverse: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_REVERSE, reverse)
+    }
+
+    /// Flag indicating whether ignored files are included.
+    pub fn include_ignored(&mut self, include: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_IGNORED, include)
+    }
+
+    /// Flag indicating whether ignored directories are traversed deeply or not.
+    pub fn recurse_ignored_dirs(&mut self, recurse: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_RECURSE_IGNORED_DIRS, recurse)
+    }
+
+    /// Flag indicating whether untracked files are in the diff
+    pub fn include_untracked(&mut self, include: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_UNTRACKED, include)
+    }
+
+    /// Flag indicating whether untracked directories are deeply traversed or
+    /// not.
+    pub fn recurse_untracked_dirs(&mut self, recurse: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_RECURSE_UNTRACKED_DIRS, recurse)
+    }
+
+    /// Flag indicating whether unmodified files are in the diff.
+    pub fn include_unmodified(&mut self, include: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_UNMODIFIED, include)
+    }
+
+    /// If entrabled, then Typechange delta records are generated.
+    pub fn include_typechange(&mut self, include: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_TYPECHANGE, include)
+    }
+
+    /// Event with `include_typechange`, the tree treturned generally shows a
+    /// deleted blow. This flag correctly labels the tree transitions as a
+    /// typechange record with the `new_file`'s mode set to tree.
+    ///
+    /// Note that the tree SHA will not be available.
+    pub fn include_typechange_trees(&mut self, include: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_TYPECHANGE_TREES, include)
+    }
+
+    /// Flag indicating whether file mode changes are ignored.
+    pub fn ignore_filemode(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_FILEMODE, ignore)
+    }
+
+    /// Flag indicating whether all submodules should be treated as unmodified.
+    pub fn ignore_submodules(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_SUBMODULES, ignore)
+    }
+
+    /// Flag indicating whether case insensitive filenames should be used.
+    pub fn ignore_case(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_CASE, ignore)
+    }
+
+    /// If pathspecs are specified, this flag means that they should be applied
+    /// as an exact match instead of a fnmatch pattern.
+    pub fn disable_pathspec_match(&mut self, disable: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_DISABLE_PATHSPEC_MATCH, disable)
+    }
+
+    /// Disable updating the `binary` flag in delta records. This is useful when
+    /// iterating over a diff if you don't need hunk and data callbacks and want
+    /// to avoid having to load a file completely.
+    pub fn skip_binary_check(&mut self, skip: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_SKIP_BINARY_CHECK, skip)
+    }
+
+    /// When diff finds an untracked directory, to match the behavior of core
+    /// Git, it scans the contents for ignored and untracked files. If all
+    /// contents are ignored, then the directory is ignored; if any contents are
+    /// not ignored, then the directory is untracked. This is extra work that
+    /// may not matter in many cases.
+    ///
+    /// This flag turns off that scan and immediately labels an untracked
+    /// directory as untracked (changing the behavior to not match core git).
+    pub fn enable_fast_untracked_dirs(&mut self, enable: bool)
+                                      -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS, enable)
+    }
+
+    /// When diff finds a file in the working directory with stat information
+    /// different from the index, but the OID ends up being the same, write the
+    /// correct stat information into the index. Note: without this flag, diff
+    /// will always leave the index untouched.
+    pub fn update_index(&mut self, update: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_UPDATE_INDEX, update)
+    }
+
+    /// Include unreadable files in the diff
+    pub fn include_unreadable(&mut self, include: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE, include)
+    }
+
+    /// Include unreadable files in the diff
+    pub fn include_unreadable_as_untracked(&mut self, include: bool)
+                                           -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
+    }
+
+    /// Treat all files as text, disabling binary attributes and detection.
+    pub fn force_text(&mut self, force: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_FORCE_TEXT, force)
+    }
+
+    /// Treat all files as binary, disabling text diffs
+    pub fn force_binary(&mut self, force: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_FORCE_TEXT, force)
+    }
+
+    /// Ignore all whitespace
+    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE, ignore)
+    }
+
+    /// Ignore changes in the amount of whitespace
+    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_CHANGE, ignore)
+    }
+
+    /// Ignore whitespace at tend of line
+    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_EOL, ignore)
+    }
+
+    /// When generating patch text, include the content of untracked files.
+    ///
+    /// This automatically turns on `include_untracked` but it does not turn on
+    /// `recurse_untracked_dirs`. Add that flag if you want the content of every
+    /// single untracked file.
+    pub fn show_untracked_content(&mut self, show: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_SHOW_UNTRACKED_CONTENT, show)
+    }
+
+    /// When generating output, include the names of unmodified files if they
+    /// are included in the `Diff`. Normally these are skipped in the formats
+    /// that list files (e.g. name-only, name-status, raw). Even with this these
+    /// will not be included in the patch format.
+    pub fn show_unmodified(&mut self, show: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_SHOW_UNMODIFIED, show)
+    }
+
+    /// Use the "patience diff" algorithm
+    pub fn patience(&mut self, patience: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_PATIENCE, patience)
+    }
+
+    /// Take extra time to find the minimal diff
+    pub fn minimal(&mut self, minimal: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_MINIMAL, minimal)
+    }
+
+    /// Include the necessary deflate/delta information so that `git-apply` can
+    /// apply given diff information to binary files.
+    pub fn show_binary(&mut self, show: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_SHOW_BINARY, show)
+    }
+
+    /// Set the number of unchanged lines that define the boundary of a hunk
+    /// (and to display before and after).
+    ///
+    /// The default value for this is 3.
+    pub fn context_lines(&mut self, lines: u32) -> &mut DiffOptions {
+        self.raw.context_lines = lines;
+        self
+    }
+
+    /// Set the maximum number of unchanged lines between hunk boundaries before
+    /// the hunks will be merged into one.
+    ///
+    /// The default value for this is 0.
+    pub fn interhunk_lines(&mut self, lines: u32) -> &mut DiffOptions {
+        self.raw.interhunk_lines = lines;
+        self
+    }
+
+    /// The default value for this is `core.abbrev` or 7 if unset.
+    pub fn id_abbrev(&mut self, abbrev: u16) -> &mut DiffOptions {
+        self.raw.id_abbrev = abbrev;
+        self
+    }
+
+    /// Maximum size (in bytes) above which a blob will be marked as binary
+    /// automatically.
+    ///
+    /// A negative value will disable this entirely.
+    ///
+    /// The default value for this is 512MB.
+    pub fn max_size(&mut self, size: i64) -> &mut DiffOptions {
+        self.raw.max_size = size as raw::git_off_t;
+        self
+    }
+
+    /// The virtual "directory" to prefix old file names with in hunk headers.
+    ///
+    /// The default value for this is "a".
+    pub fn old_prefix<T: ToCStr>(&mut self, t: T) -> &mut DiffOptions {
+        self.old_prefix = Some(t.to_c_str());
+        self
+    }
+
+    /// The virtual "directory" to prefix new file names with in hunk headers.
+    ///
+    /// The default value for this is "b".
+    pub fn new_prefix<T: ToCStr>(&mut self, t: T) -> &mut DiffOptions {
+        self.new_prefix = Some(t.to_c_str());
+        self
+    }
+
+    /// Add to the array of paths/fnmatch patterns to constrain the diff.
+    pub fn pathspec<T: ToCStr>(&mut self, pathspec: T) -> &mut DiffOptions {
+        let s = pathspec.to_c_str();
+        self.pathspec_ptrs.push(s.as_ptr());
+        self.pathspec.push(s);
+        self
+    }
+
+    /// Acquire a pointer to the underlying raw options.
+    ///
+    /// This function is unsafe as the pointer is only valid so long as this
+    /// structure is not moved, modified, or used elsewhere.
+    pub unsafe fn raw(&mut self) -> *const raw::git_diff_options {
+        self.raw.old_prefix = self.old_prefix.as_ref().map(|s| s.as_ptr())
+                                  .unwrap_or(0 as *const _);
+        self.raw.new_prefix = self.new_prefix.as_ref().map(|s| s.as_ptr())
+                                  .unwrap_or(0 as *const _);
+        self.raw.pathspec.count = self.pathspec_ptrs.len() as size_t;
+        self.raw.pathspec.strings = self.pathspec_ptrs.as_ptr() as *mut _;
+        &self.raw as *const _
+    }
+
+    // TODO: expose ignore_submodules, notify_cb/notify_payload
+}
+
+impl<'diff> Iterator<DiffDelta<'diff>> for Deltas<'diff> {
+    fn next(&mut self) -> Option<DiffDelta<'diff>> {
+        self.range.next().and_then(|i| self.diff.get_delta(i))
+    }
+    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+}
+impl<'diff> DoubleEndedIterator<DiffDelta<'diff>> for Deltas<'diff> {
+    fn next_back(&mut self) -> Option<DiffDelta<'diff>> {
+        self.range.next_back().and_then(|i| self.diff.get_delta(i))
+    }
+}
+impl<'diff> ExactSizeIterator<DiffDelta<'diff>> for Deltas<'diff> {}
+
+impl<'a> DiffLine<'a> {
+    /// Create a new diff line from its raw component.
+    ///
+    /// This method is unsafe as there is no guarantee that `raw` is a valid
+    /// pointer.
+    pub unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
+        DiffLine {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
+        }
+    }
+
+    /// Line number in old file or `None` for added line
+    pub fn old_lineno(&self) -> Option<u32> {
+        match unsafe { (*self.raw).old_lineno } {
+            n if n < 0 => None,
+            n => Some(n as u32),
+        }
+    }
+
+    /// Line number in new file or `None` for deleted line
+    pub fn new_lineno(&self) -> Option<u32> {
+        match unsafe { (*self.raw).new_lineno } {
+            n if n < 0 => None,
+            n => Some(n as u32),
+        }
+    }
+
+    /// Number of newline characters in content
+    pub fn num_lines(&self) -> u32 {
+        unsafe { (*self.raw).num_lines as u32 }
+    }
+
+    /// Offset in the original file to the content
+    pub fn content_offset(&self) -> i64 {
+        unsafe { (*self.raw).content_offset as i64 }
+    }
+
+    /// Content of this line as bytes.
+    pub fn content(&self) -> &[u8] {
+        unsafe {
+            slice::from_raw_buf(&(*self.raw).content,
+                                (*self.raw).content_len as uint)
+        }
+    }
+
+    // ?
+    #[allow(missing_docs)]
+    pub fn origin(&self) -> char {
+        match unsafe { (*self.raw).origin } {
+            raw::GIT_DIFF_LINE_CONTEXT => ' ',
+            raw::GIT_DIFF_LINE_ADDITION => '+',
+            raw::GIT_DIFF_LINE_DELETION => '-',
+            raw::GIT_DIFF_LINE_CONTEXT_EOFNL => '=',
+            raw::GIT_DIFF_LINE_ADD_EOFNL => '>',
+            raw::GIT_DIFF_LINE_DEL_EOFNL => '<',
+            raw::GIT_DIFF_LINE_FILE_HDR => 'F',
+            raw::GIT_DIFF_LINE_HUNK_HDR => 'H',
+            raw::GIT_DIFF_LINE_LINE_BINARY => 'B',
+            _ => ' ',
+        }
+    }
+}
+
+impl<'a> DiffHunk<'a> {
+    /// Create a new diff line from its raw component.
+    ///
+    /// This method is unsafe as there is no guarantee that `raw` is a valid
+    /// pointer.
+    pub unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
+        DiffHunk {
+            raw: raw,
+            marker1: marker::ContravariantLifetime,
+            marker2: marker::NoSend,
+            marker3: marker::NoSync,
+        }
+    }
+
+    /// Starting line number in old_file
+    pub fn old_start(&self) -> u32 {
+        unsafe { (*self.raw).old_start as u32 }
+    }
+
+    /// Number of lines in old_file
+    pub fn old_lines(&self) -> u32 {
+        unsafe { (*self.raw).old_lines as u32 }
+    }
+
+    /// Starting line number in new_file
+    pub fn new_start(&self) -> u32 {
+        unsafe { (*self.raw).new_start as u32 }
+    }
+
+    /// Number of lines in new_file
+    pub fn new_lines(&self) -> u32 {
+        unsafe { (*self.raw).new_lines as u32 }
+    }
+
+    /// Header text
+    pub fn header(&self) -> &[u8] {
+        unsafe { (*self.raw).header.slice_to((*self.raw).header_len as uint) }
+    }
+}
+
+impl DiffStats {
+    /// Create diff stats from its raw component.
+    ///
+    /// This function is unsafe as the validity of the pointer cannot be
+    /// guaranteed.
+    pub unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
+        DiffStats {
+            raw: raw,
+            marker1: marker::NoSend,
+            marker2: marker::NoSync,
+        }
+    }
+
+    /// Get the total number of files chaned in a diff.
+    pub fn files_changed(&self) -> uint {
+        unsafe { raw::git_diff_stats_files_changed(&*self.raw) as uint }
+    }
+
+    /// Get the total number of insertions in a diff
+    pub fn insertions(&self) -> uint {
+        unsafe { raw::git_diff_stats_insertions(&*self.raw) as uint }
+    }
+
+    /// Get the total number of deletions in a diff
+    pub fn deletions(&self) -> uint {
+        unsafe { raw::git_diff_stats_deletions(&*self.raw) as uint }
+    }
+
+    // TODO: expose to_buf
+}
+
+#[unsafe_destructor]
+impl Drop for DiffStats {
+    fn drop(&mut self) {
+        unsafe { raw::git_diff_stats_free(self.raw) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Diff;
+
+    #[test]
+    fn smoke() {
+        let (_td, repo) = ::test::repo_init();
+        let diff = Diff::tree_to_workdir(&repo, None, None).unwrap();
+        assert_eq!(diff.deltas().len(), 0);
+        let stats = diff.stats().unwrap();
+        assert_eq!(stats.insertions(), 0);
+        assert_eq!(stats.deletions(), 0);
+        assert_eq!(stats.files_changed(), 0);
+    }
 }
