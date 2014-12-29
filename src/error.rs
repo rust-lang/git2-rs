@@ -97,6 +97,8 @@ impl Error {
     }
 }
 
+unsafe impl Send for Error { }
+
 impl error::Error for Error {
     fn description(&self) -> &str {
         unsafe { str::from_c_str(self.raw.message as *const _) }
