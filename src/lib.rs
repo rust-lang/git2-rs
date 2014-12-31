@@ -284,6 +284,7 @@ mod util;
 
 pub mod build;
 pub mod string_array;
+pub mod transport;
 
 mod blob;
 mod branch;

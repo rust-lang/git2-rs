@@ -35,6 +35,7 @@ pub use git_delta_t::*;
 pub use git_sort::*;
 pub use git_diff_format_t::*;
 pub use git_diff_stats_format_t::*;
+pub use git_smart_service_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -872,6 +873,83 @@ pub const GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE: u32 = 1 << 13;
 pub const GIT_DIFF_FIND_EXACT_MATCH_ONLY: u32 = 1 << 14;
 pub const GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY : u32 = 1 << 15;
 pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
+
+pub type git_transport_cb = extern fn(out: *mut *mut git_transport,
+                                      owner: *mut git_remote,
+                                      param: *mut c_void) -> c_int;
+
+#[repr(C)]
+pub struct git_transport {
+    pub version: c_uint,
+    pub set_callbacks: extern fn(*mut git_transport,
+                                 git_transport_message_cb,
+                                 git_transport_message_cb,
+                                 git_transport_certificate_check_cb,
+                                 *mut c_void) -> c_int,
+    pub connect: extern fn(*mut git_transport,
+                           *const c_char,
+                           git_cred_acquire_cb,
+                           *mut c_void,
+                           c_int, c_int) -> c_int,
+    pub ls: extern fn(*mut *mut *const git_remote_head,
+                      *mut size_t,
+                      *mut git_transport) -> c_int,
+    pub push: extern fn(*mut git_transport, *mut git_push) -> c_int,
+    pub negotiate_fetch: extern fn(*mut git_transport,
+                                   *mut git_repository,
+                                   *const *const git_remote_head,
+                                   size_t) -> c_int,
+    pub download_pack: extern fn(*mut git_transport,
+                                 *mut git_repository,
+                                 *mut git_transfer_progress,
+                                 git_transfer_progress_cb,
+                                 *mut c_void) -> c_int,
+    pub is_connected: extern fn(*mut git_transport) -> c_int,
+    pub read_flags: extern fn(*mut git_transport, *mut c_int) -> c_int,
+    pub cancel: extern fn(*mut git_transport) -> c_int,
+    pub close: extern fn(*mut git_transport) -> c_int,
+    pub free: extern fn(*mut git_transport),
+}
+
+#[repr(C)]
+pub enum git_smart_service_t {
+    GIT_SERVICE_UPLOADPACK_LS = 1,
+    GIT_SERVICE_UPLOADPACK = 2,
+    GIT_SERVICE_RECEIVEPACK_LS = 3,
+    GIT_SERVICE_RECEIVEPACK = 4,
+}
+
+#[repr(C)]
+pub struct git_smart_subtransport_stream {
+    pub subtransport: *mut git_smart_subtransport,
+    pub read: extern fn(*mut git_smart_subtransport_stream,
+                        *mut c_char,
+                        size_t,
+                        *mut size_t) -> c_int,
+    pub write: extern fn(*mut git_smart_subtransport_stream,
+                         *const c_char,
+                         size_t) -> c_int,
+    pub free: extern fn(*mut git_smart_subtransport_stream),
+}
+
+#[repr(C)]
+pub struct git_smart_subtransport {
+    pub action: extern fn(*mut *mut git_smart_subtransport_stream,
+                          *mut git_smart_subtransport,
+                          *const c_char,
+                          git_smart_service_t) -> c_int,
+    pub close: extern fn(*mut git_smart_subtransport) -> c_int,
+    pub free: extern fn(*mut git_smart_subtransport),
+}
+
+pub type git_smart_subtransport_cb = extern fn(*mut *mut git_smart_subtransport,
+                                               *mut git_transport) -> c_int;
+
+#[repr(C)]
+pub struct git_smart_subtransport_definition {
+    pub callback: git_smart_subtransport_cb,
+    pub rpc: c_uint,
+}
 
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
@@ -1928,6 +2006,15 @@ extern {
                              old_name: *const c_char,
                              name: *const c_char) -> c_int;
     pub fn git_reflog_write(reflog: *mut git_reflog) -> c_int;
+
+    // transport
+    pub fn git_transport_register(prefix: *const c_char,
+                                  cb: git_transport_cb,
+                                  param: *mut c_void) -> c_int;
+    pub fn git_transport_unregister(prefix: *const c_char) -> c_int;
+    pub fn git_transport_smart(out: *mut *mut git_transport,
+                               owner: *mut git_remote,
+                               payload: *mut c_void) -> c_int;
 }
 
 #[test]
