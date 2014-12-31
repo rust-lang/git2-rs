@@ -10,9 +10,7 @@ use {raw, Oid, Error, Signature, Tree, Time};
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Commit<'repo> {
     raw: *mut raw::git_commit,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 /// An iterator over the parent commits of a commit.
@@ -35,9 +33,7 @@ impl<'repo> Commit<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
         Commit {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

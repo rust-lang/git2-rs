@@ -13,16 +13,12 @@ use {raw, panic, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
 /// generator functions below (such as `Diff::tree_to_tree`).
 pub struct Diff {
     raw: *mut raw::git_diff,
-    marker1: marker::NoSend,
-    marker2: marker::NoSync,
 }
 
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
     raw: *mut raw::git_diff_delta,
-    marker1: marker::ContravariantLifetime<'a>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'a>,
 }
 
 /// Description of one side of a delta.
@@ -32,9 +28,7 @@ pub struct DiffDelta<'a> {
 /// you are tracking type changes or ignored/untracked directories).
 pub struct DiffFile<'a> {
     raw: *const raw::git_diff_file,
-    marker1: marker::ContravariantLifetime<'a>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'a>,
 }
 
 /// Structure describing options about how the diff should be executed.
@@ -55,24 +49,18 @@ pub struct Deltas<'diff> {
 /// Structure describing a line (or data span) of a diff.
 pub struct DiffLine<'a> {
     raw: *const raw::git_diff_line,
-    marker1: marker::ContravariantLifetime<'a>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'a>,
 }
 
 /// Structure describing a hunk of a diff.
 pub struct DiffHunk<'a> {
     raw: *const raw::git_diff_hunk,
-    marker1: marker::ContravariantLifetime<'a>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'a>,
 }
 
 /// Structure describing a hunk of a diff.
 pub struct DiffStats {
     raw: *mut raw::git_diff_stats,
-    marker1: marker::NoSend,
-    marker2: marker::NoSync,
 }
 
 impl Diff {
@@ -209,11 +197,7 @@ impl Diff {
     /// This method is unsafe as there is no guarantee that `raw` is a valid
     /// pointer.
     pub unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff {
-        Diff {
-            raw: raw,
-            marker1: marker::NoSend,
-            marker2: marker::NoSync,
-        }
+        Diff { raw: raw }
     }
 
     /// Merge one diff into another.
@@ -309,9 +293,7 @@ impl<'a> DiffDelta<'a> {
     pub unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
         DiffDelta {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -368,9 +350,7 @@ impl<'a> DiffFile<'a> {
     pub unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
         DiffFile {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -688,9 +668,7 @@ impl<'a> DiffLine<'a> {
     pub unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
         DiffLine {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -754,9 +732,7 @@ impl<'a> DiffHunk<'a> {
     pub unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
         DiffHunk {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -792,11 +768,7 @@ impl DiffStats {
     /// This function is unsafe as the validity of the pointer cannot be
     /// guaranteed.
     pub unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
-        DiffStats {
-            raw: raw,
-            marker1: marker::NoSend,
-            marker2: marker::NoSync,
-        }
+        DiffStats { raw: raw }
     }
 
     /// Get the total number of files chaned in a diff.

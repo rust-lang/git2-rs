@@ -15,17 +15,13 @@ pub struct Config {
 /// An entry has a name, a value, and a level it applies to.
 pub struct ConfigEntry<'cfg> {
     raw: *const raw::git_config_entry,
-    marker1: marker::ContravariantLifetime<'cfg>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'cfg>,
 }
 
 /// An iterator over the `ConfigEntry` values of a `Config` structure.
 pub struct ConfigEntries<'cfg> {
     raw: *mut raw::git_config_iterator,
-    marker1: marker::ContravariantLifetime<'cfg>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'cfg>,
 }
 
 impl Config {
@@ -341,9 +337,7 @@ impl<'cfg> ConfigEntry<'cfg> {
                            -> ConfigEntry<'cfg> {
         ConfigEntry {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -381,9 +375,7 @@ impl<'cfg> ConfigEntries<'cfg> {
                            -> ConfigEntries<'cfg> {
         ConfigEntries {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 }

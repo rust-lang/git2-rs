@@ -17,9 +17,7 @@ pub struct Branch<'repo> {
 /// An iterator over the branches inside of a repository.
 pub struct Branches<'repo> {
     raw: *mut raw::git_branch_iterator,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Branch<'repo> {
@@ -109,9 +107,7 @@ impl<'repo> Branches<'repo> {
                            -> Branches<'repo> {
         Branches {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 }

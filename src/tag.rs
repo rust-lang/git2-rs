@@ -8,9 +8,7 @@ use {raw, Error, Oid, Object, Signature, ObjectType};
 /// [1]: http://git-scm.com/book/en/Git-Basics-Tagging
 pub struct Tag<'repo> {
     raw: *mut raw::git_tag,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Tag<'repo> {
@@ -21,9 +19,7 @@ impl<'repo> Tag<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
         Tag {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

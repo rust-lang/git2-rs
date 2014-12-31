@@ -10,10 +10,7 @@ use {raw, Direction};
 /// [1]: http://git-scm.com/book/en/Git-Internals-The-Refspec
 pub struct Refspec<'remote> {
     raw: *const raw::git_refspec,
-    marker1: marker::ContravariantLifetime<'remote>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
-    marker4: marker::NoCopy,
+    marker: marker::ContravariantLifetime<'remote>,
 }
 
 impl<'remote> Refspec<'remote> {
@@ -23,10 +20,7 @@ impl<'remote> Refspec<'remote> {
     pub unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
         Refspec {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
-            marker4: marker::NoCopy,
+            marker: marker::ContravariantLifetime,
         }
     }
 

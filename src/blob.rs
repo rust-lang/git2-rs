@@ -9,9 +9,7 @@ use {raw, Oid};
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Blob<'repo> {
     raw: *mut raw::git_blob,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Blob<'repo> {
@@ -22,9 +20,7 @@ impl<'repo> Blob<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
         Blob {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

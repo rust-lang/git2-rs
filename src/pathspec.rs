@@ -8,16 +8,12 @@ use {raw, Error, Tree, PathspecFlags, Index, Repository, DiffDelta};
 /// structures.
 pub struct Pathspec {
     raw: *mut raw::git_pathspec,
-    marker1: marker::NoSend,
-    marker2: marker::NoSync,
 }
 
 /// List of filenames matching a pathspec.
 pub struct PathspecMatchList<'ps> {
     raw: *mut raw::git_pathspec_match_list,
-    marker1: marker::ContravariantLifetime<'ps>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'ps>,
 }
 
 /// Iterator over the matched paths in a pathspec.
@@ -61,11 +57,7 @@ impl Pathspec {
     /// This function is unsafe as the validity of the pointer is not
     /// guaranteed.
     pub unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Pathspec {
-        Pathspec {
-            raw: raw,
-            marker1: marker::NoSend,
-            marker2: marker::NoSync,
-        }
+        Pathspec { raw: raw }
     }
 
     /// Match a pathspec against files in a tree.
@@ -152,9 +144,7 @@ impl<'ps> PathspecMatchList<'ps> {
                            -> PathspecMatchList<'ps> {
         PathspecMatchList {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

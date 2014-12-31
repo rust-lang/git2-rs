@@ -10,17 +10,13 @@ use {raw, Error, Oid, Signature};
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-References
 pub struct Reference<'repo> {
     raw: *mut raw::git_reference,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 /// An iterator over the references in a repository.
 pub struct References<'repo> {
     raw: *mut raw::git_reference_iterator,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 /// An iterator over the names of references in a repository.
@@ -36,9 +32,7 @@ impl<'repo> Reference<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
         Reference {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -156,9 +150,7 @@ impl<'repo> Reference<'repo> {
         unsafe { try_call!(raw::git_reference_resolve(&mut raw, &*self.raw)); }
         Ok(Reference {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         })
     }
 
@@ -182,9 +174,7 @@ impl<'repo> Reference<'repo> {
         }
         Ok(Reference {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         })
     }
 
@@ -227,9 +217,7 @@ impl<'repo> References<'repo> {
                            -> References<'repo> {
         References {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 }

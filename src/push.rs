@@ -10,9 +10,7 @@ use {raw, Error, Signature};
 /// repository.
 pub struct Push<'remote> {
     raw: *mut raw::git_push,
-    marker1: marker::ContravariantLifetime<'remote>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'remote>,
 }
 
 /// A status representing the result of updating a remote reference.
@@ -32,9 +30,7 @@ impl<'remote> Push<'remote> {
     pub unsafe fn from_raw(raw: *mut raw::git_push) -> Push<'remote> {
         Push {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

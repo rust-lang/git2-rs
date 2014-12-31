@@ -38,9 +38,7 @@ pub enum StatusShow {
 /// allowing indexing as well as provding an iterator.
 pub struct Statuses<'repo> {
     raw: *mut raw::git_status_list,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 /// An iterator over the statuses in a `Statuses` instance.
@@ -54,9 +52,7 @@ pub struct StatusIter<'statuses> {
 /// Instances are created through the `.iter()` method or the `.get()` method.
 pub struct StatusEntry<'statuses> {
     raw: *const raw::git_status_entry,
-    marker1: marker::ContravariantLifetime<'statuses>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'statuses>,
 }
 
 impl StatusOptions {
@@ -241,9 +237,7 @@ impl<'repo> Statuses<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
         Statuses {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -309,9 +303,7 @@ impl<'statuses> StatusEntry<'statuses> {
                            -> StatusEntry<'statuses> {
         StatusEntry {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

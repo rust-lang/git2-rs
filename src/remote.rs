@@ -16,9 +16,7 @@ use {Signature, Push, RemoteCallbacks, Progress};
 /// remote is used to manage fetches and pushes as well as refspecs.
 pub struct Remote<'repo, 'cb> {
     raw: *mut raw::git_remote,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
     callbacks: Option<&'cb mut RemoteCallbacks<'cb>>,
 }
 
@@ -33,9 +31,7 @@ pub struct Refspecs<'remote, 'cb: 'remote> {
 /// to `list`.
 pub struct RemoteHead<'remote> {
     raw: *const raw::git_remote_head,
-    marker1: marker::ContravariantLifetime<'remote>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'remote>,
 }
 
 impl<'repo, 'cb> Remote<'repo, 'cb> {
@@ -46,9 +42,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     pub unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo, 'cb> {
         Remote {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
             callbacks: None,
         }
     }
@@ -356,9 +350,7 @@ impl<'a, 'b> Clone for Remote<'a, 'b> {
         assert_eq!(rc, 0);
         Remote {
             raw: ret,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
             callbacks: None,
         }
     }

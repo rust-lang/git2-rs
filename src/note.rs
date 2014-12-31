@@ -8,17 +8,13 @@ use {raw, Signature, Oid};
 /// [note]: http://git-scm.com/blog/2010/08/25/notes.html
 pub struct Note<'repo> {
     raw: *mut raw::git_note,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 /// An iterator over all of the notes within a repository.
 pub struct Notes<'repo> {
     raw: *mut raw::git_note_iterator,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Note<'repo> {
@@ -29,9 +25,7 @@ impl<'repo> Note<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
         Note {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -80,9 +74,7 @@ impl<'repo> Notes<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
         Notes {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 }

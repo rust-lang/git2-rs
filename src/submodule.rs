@@ -8,9 +8,7 @@ use {raw, Oid, Repository, Error, SubmoduleStatus};
 /// [1]: http://git-scm.com/book/en/Git-Tools-Submodules
 pub struct Submodule<'repo> {
     raw: *mut raw::git_submodule,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Submodule<'repo> {
@@ -21,9 +19,7 @@ impl<'repo> Submodule<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
         Submodule {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

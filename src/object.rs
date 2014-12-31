@@ -8,9 +8,7 @@ use {raw, Oid, ObjectType, Error, Buf};
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Object<'repo> {
     raw: *mut raw::git_object,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Object<'repo> {
@@ -21,9 +19,7 @@ impl<'repo> Object<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
         Object {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -56,9 +52,7 @@ impl<'repo> Object<'repo> {
         }
         Ok(Object {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         })
     }
 
@@ -84,9 +78,7 @@ impl<'a> Clone for Object<'a> {
         assert_eq!(rc, 0);
         Object {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 }

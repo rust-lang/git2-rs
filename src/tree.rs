@@ -10,9 +10,7 @@ use {raw, Oid, Repository, Error, Object, ObjectType};
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Tree<'repo> {
     raw: *mut raw::git_tree,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 /// A structure representing an entry inside of a tree. An entry is borrowed
@@ -20,9 +18,7 @@ pub struct Tree<'repo> {
 pub struct TreeEntry<'tree> {
     raw: *mut raw::git_tree_entry,
     owned: bool,
-    marker1: marker::ContravariantLifetime<'tree>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'tree>,
 }
 
 impl<'repo> Tree<'repo> {
@@ -33,9 +29,7 @@ impl<'repo> Tree<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
         Tree {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -120,9 +114,7 @@ impl<'tree> TreeEntry<'tree> {
         TreeEntry {
             raw: raw as *mut raw::git_tree_entry,
             owned: false,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
@@ -134,9 +126,7 @@ impl<'tree> TreeEntry<'tree> {
         TreeEntry {
             raw: raw,
             owned: true,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 

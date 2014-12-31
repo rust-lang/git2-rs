@@ -8,9 +8,7 @@ use {raw, Error, Sort, Oid};
 /// more leaves and excluding one or more roots.
 pub struct Revwalk<'repo> {
     raw: *mut raw::git_revwalk,
-    marker1: marker::ContravariantLifetime<'repo>,
-    marker2: marker::NoSend,
-    marker3: marker::NoSync,
+    marker: marker::ContravariantLifetime<'repo>,
 }
 
 impl<'repo> Revwalk<'repo> {
@@ -18,9 +16,7 @@ impl<'repo> Revwalk<'repo> {
     pub unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
         Revwalk {
             raw: raw,
-            marker1: marker::ContravariantLifetime,
-            marker2: marker::NoSend,
-            marker3: marker::NoSync,
+            marker: marker::ContravariantLifetime,
         }
     }
 
