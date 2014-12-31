@@ -25,6 +25,8 @@ pub struct Repository {
     marker: marker::NoSync,
 }
 
+unsafe impl Send for Repository {}
+
 /// Options which can be used to configure how a repository is initialized
 pub struct RepositoryInitOptions {
     flags: u32,
