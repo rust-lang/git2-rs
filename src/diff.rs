@@ -243,8 +243,8 @@ impl Diff {
     pub fn print<F>(&self, format: DiffFormat, mut cb: F) -> Result<(), Error>
                     where F: FnMut(DiffDelta, DiffHunk, DiffLine) -> bool {
         unsafe {
-            try_call_panic!(raw::git_diff_print(self.raw, format, print::<F>,
-                                                &mut cb as *mut _ as *mut _));
+            try_call!(raw::git_diff_print(self.raw, format, print::<F>,
+                                          &mut cb as *mut _ as *mut _));
             return Ok(())
         }
         extern fn print<F>(delta: *const raw::git_diff_delta,

@@ -97,7 +97,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
         unsafe {
             try!(self.set_raw_callbacks());
-            try_call_panic!(raw::git_remote_connect(self.raw, dir));
+            try_call!(raw::git_remote_connect(self.raw, dir));
         }
         Ok(())
     }
@@ -217,7 +217,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         unsafe {
             try!(self.set_raw_callbacks());
             // FIXME expose refspec array at the API level
-            try_call_panic!(raw::git_remote_download(self.raw, 0 as *const _));
+            try_call!(raw::git_remote_download(self.raw, 0 as *const _));
         }
         Ok(())
     }
@@ -244,7 +244,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         };
         unsafe {
             try!(self.set_raw_callbacks());
-            try_call_panic!(raw::git_remote_fetch(self.raw,
+            try_call!(raw::git_remote_fetch(self.raw,
                                             &arr,
                                             &*signature.map(|s| s.raw())
                                                        .unwrap_or(0 as *mut _),
@@ -276,7 +276,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         let mut ret = 0 as *mut raw::git_push;
         try!(self.set_raw_callbacks());
         unsafe {
-            try_call_panic!(raw::git_push_new(&mut ret, self.raw));
+            try_call!(raw::git_push_new(&mut ret, self.raw));
             Ok(Push::from_raw(ret))
         }
     }
