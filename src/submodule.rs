@@ -239,7 +239,7 @@ mod tests {
 
         let mut submodules = repo.submodules().unwrap();
         assert_eq!(submodules.len(), 2);
-        let mut s = submodules.remove(0).unwrap();
+        let mut s = submodules.remove(0);
         assert_eq!(s.name(), Some("bar"));
         assert_eq!(s.url(), Some("/path/to/nowhere"));
         assert_eq!(s.branch(), None);

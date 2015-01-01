@@ -85,7 +85,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let mut co = CheckoutBuilder::new();
     co.progress(|path, cur, total| {
         let mut state = state.borrow_mut();
-        state.path = Path::new(path.unwrap_or(&[]));
+        state.path = Path::new(path);
         state.current = cur;
         state.total = total;
         print(&mut *state);

@@ -35,7 +35,8 @@ enum ProgressState {
 /// * `username_from_url` - the username that was embedded in the url, or `None`
 ///                         if it was not included.
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
-pub type Credentials<'a> = FnMut(&str, Option<&str>, CredentialType)
+// FIXME: the second &str should be Option<&str> but that currently ICEs
+pub type Credentials<'a> = FnMut(&str, &str, CredentialType)
                                  -> Result<Cred, Error> + 'a;
 
 /// Callback to be invoked while a transfer is in progress.
@@ -68,7 +69,7 @@ impl<'a> RemoteCallbacks<'a> {
 
     /// The callback through which to fetch credentials if required.
     pub fn credentials<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-                          where F: FnMut(&str, Option<&str>, CredentialType)
+                          where F: FnMut(&str, &str, CredentialType)
                                          -> Result<Cred, Error> + 'a
     {
         self.credentials = Some(box cb as Box<Credentials<'a>>);
@@ -219,6 +220,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             },
             None => None,
         };
+        let username_from_url = username_from_url.unwrap_or("");
 
         let cred_type = CredentialType::from_bits_truncate(allowed_types as uint);
         match panic::wrap(|| {

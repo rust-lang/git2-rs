@@ -39,7 +39,7 @@ pub struct CheckoutBuilder<'cb> {
 ///
 /// The first argument is the path for the notification, the next is the numver
 /// of completed steps so far, and the final is the total number of steps.
-pub type Progress<'a> = FnMut(Option<&[u8]>, uint, uint) + 'a;
+pub type Progress<'a> = FnMut(&[u8], uint, uint) + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -375,7 +375,7 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set a callback to receive notifications of checkout progress.
     pub fn progress<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-                       where F: FnMut(Option<&[u8]>, uint, uint) + 'cb {
+                       where F: FnMut(&[u8], uint, uint) + 'cb {
         self.progress = Some(box cb as Box<Progress<'cb>>);
         self
     }
@@ -430,13 +430,9 @@ extern fn progress_cb(path: *const c_char,
             Some(ref mut c) => c,
             None => return,
         };
-        let path = if path.is_null() {
-            None
-        } else {
-            Some(CString::new(path, false))
-        };
+        let path = CString::new(path, false);
         panic::wrap(|| {
-            callback.call_mut((path.as_ref().map(|p| p.as_bytes_no_nul()),
+            callback.call_mut((path.as_bytes_no_nul(),
                                completed as uint, total as uint));
         });
     }
