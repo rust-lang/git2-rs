@@ -25,4 +25,4 @@ version = "0.1.0"
 
 [dev-dependencies]
 docopt = "0.6"
-rustc-serialize = "0.1"
+rustc-serialize = "0.2"
