@@ -1,5 +1,5 @@
+use std::c_str::{CString, ToCStr};
 use std::kinds::marker;
-use std::c_str::CString;
 use libc;
 
 use {raw, Error, Signature};

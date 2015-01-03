@@ -1,6 +1,8 @@
+use std::c_str::ToCStr;
+use std::cmp::Ordering;
+use std::io;
 use std::kinds::marker;
 use std::str;
-use std::io;
 use libc;
 
 use {raw, Oid, Repository, Error, Object, ObjectType};
@@ -200,15 +202,17 @@ impl<'a> PartialOrd for TreeEntry<'a> {
 impl<'a> Ord for TreeEntry<'a> {
     fn cmp(&self, other: &TreeEntry<'a>) -> Ordering {
         match unsafe { raw::git_tree_entry_cmp(&*self.raw(), &*other.raw()) } {
-            0 => Equal,
-            n if n < 0 => Less,
-            _ => Greater,
+            0 => Ordering::Equal,
+            n if n < 0 => Ordering::Less,
+            _ => Ordering::Greater,
         }
     }
 }
 
 impl<'a> PartialEq for TreeEntry<'a> {
-    fn eq(&self, other: &TreeEntry<'a>) -> bool { self.cmp(other) == Equal }
+    fn eq(&self, other: &TreeEntry<'a>) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
 }
 
 impl<'a> Eq for TreeEntry<'a> {}

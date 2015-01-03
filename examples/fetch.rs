@@ -12,6 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -23,7 +24,7 @@ use git2::{Repository, RemoteCallbacks, Direction};
 use std::io::stdio;
 use std::str;
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_remote: Option<String>,
 }

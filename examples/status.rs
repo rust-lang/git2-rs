@@ -12,6 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -22,7 +23,7 @@ use std::str;
 use docopt::Docopt;
 use git2::{Repository, Error, StatusOptions, ErrorCode};
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_spec: Vec<String>,
     flag_short: bool,
@@ -38,7 +39,7 @@ struct Args {
     flag_list_submodules: bool,
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 enum Format { Long, Short, Porcelain }
 
 fn run(args: &Args) -> Result<(), Error> {

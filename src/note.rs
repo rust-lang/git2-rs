@@ -81,7 +81,7 @@ impl<'repo> Notes<'repo> {
 
 impl<'repo> Iterator<(Oid, Oid)> for Notes<'repo> {
     fn next(&mut self) -> Option<(Oid, Oid)> {
-        let mut note_id = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut note_id = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         let mut annotated_id = note_id;
         unsafe {
             match raw::git_note_next(&mut note_id, &mut annotated_id, self.raw) {

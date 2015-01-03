@@ -1,6 +1,7 @@
+use std::c_str::ToCStr;
 use std::mem;
 use std::io::Command;
-use url::{mod, UrlParser};
+use url::{self, UrlParser};
 
 use {raw, Error, Config};
 
@@ -334,7 +335,7 @@ impl CredentialHelper {
 
 #[cfg(test)]
 mod test {
-    use std::io::{mod, TempDir, File, fs};
+    use std::io::{self, TempDir, File, fs};
     use std::os;
 
     use {Cred, Config, CredentialHelper, ConfigLevel};

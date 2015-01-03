@@ -1,4 +1,4 @@
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::error;
 use std::fmt;
 use std::str;
@@ -111,7 +111,7 @@ impl fmt::Show for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "[{}] ", self.raw.klass));
         let cstr = unsafe { CString::new(self.raw.message as *const _, false) };
-        f.write(cstr.as_bytes_no_nul())
+        f.write_str(cstr.as_str().unwrap())
     }
 }
 

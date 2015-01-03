@@ -1,5 +1,6 @@
-use std::kinds::marker;
+use std::c_str::ToCStr;
 use std::iter::Range;
+use std::kinds::marker;
 use std::str;
 use libc;
 
@@ -201,7 +202,7 @@ impl<'repo> Commit<'repo> {
                  message_encoding: Option<&str>,
                  message: Option<&str>,
                  tree: Option<&Tree<'repo>>) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_commit_amend(&mut raw,
                                             &*self.raw(),

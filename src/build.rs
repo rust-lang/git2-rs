@@ -1,6 +1,6 @@
 //! Builder-pattern objects for configuration various git operations.
 
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::io;
 use std::mem;
 use libc::{c_char, size_t, c_void, c_uint, c_int};

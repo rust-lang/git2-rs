@@ -1,4 +1,4 @@
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::kinds::marker;
 use std::mem;
 use std::slice;

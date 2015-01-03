@@ -12,6 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -21,7 +22,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 use docopt::Docopt;
 use git2::Repository;
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_spec: String,
     flag_git_dir: Option<String>,

@@ -12,6 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -24,7 +25,7 @@ use git2::build::{RepoBuilder, CheckoutBuilder};
 use std::cell::RefCell;
 use std::io::stdio;
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_url: String,
     arg_path: String,

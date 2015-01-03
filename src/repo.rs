@@ -1,4 +1,4 @@
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::kinds::marker;
 use std::mem;
 use std::str;
@@ -539,7 +539,7 @@ impl Repository {
     /// The Oid returned can in turn be passed to `find_blob` to get a handle to
     /// the blob.
     pub fn blob(&self, data: &[u8]) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             let ptr = data.as_ptr() as *const c_void;
             let len = data.len() as size_t;
@@ -555,7 +555,7 @@ impl Repository {
     /// The Oid returned can in turn be passed to `find_blob` to get a handle to
     /// the blob.
     pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
                                                     path.to_c_str()));
@@ -623,7 +623,7 @@ impl Repository {
                       message: &str,
                       tree: &Tree<'a>,
                       parents: &[&Commit<'a>]) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         let parent_ptrs: Vec<*const raw::git_commit> =  parents.iter().map(|p| {
             p.raw() as *const raw::git_commit
         }).collect();
@@ -803,7 +803,7 @@ impl Repository {
     pub fn tag<'a>(&'a self, name: &str, target: &Object<'a>,
                    tagger: &Signature, message: &str,
                    force: bool) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_tag_create(&mut raw, self.raw, name.to_c_str(),
                                           &*target.raw(), &*tagger.raw(),
@@ -924,7 +924,7 @@ impl Repository {
                 oid: Oid,
                 note: &str,
                 force: bool) -> Result<Oid, Error> {
-        let mut ret = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut ret = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_note_create(&mut ret,
                                            self.raw,
@@ -1013,7 +1013,7 @@ impl Repository {
 
     /// Find a merge base between two commits
     pub fn merge_base(&self, one: Oid, two: Oid) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_merge_base(&mut raw, self.raw,
                                           one.raw(), two.raw()));

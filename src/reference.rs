@@ -1,3 +1,5 @@
+use std::c_str::ToCStr;
+use std::cmp::Ordering;
 use std::kinds::marker;
 use std::mem;
 use std::str;
@@ -189,15 +191,17 @@ impl<'repo> PartialOrd for Reference<'repo> {
 impl<'repo> Ord for Reference<'repo> {
     fn cmp(&self, other: &Reference<'repo>) -> Ordering {
         match unsafe { raw::git_reference_cmp(&*self.raw, &*other.raw) } {
-            0 => Equal,
-            n if n < 0 => Less,
-            _ => Greater,
+            0 => Ordering::Equal,
+            n if n < 0 => Ordering::Less,
+            _ => Ordering::Greater,
         }
     }
 }
 
 impl<'repo> PartialEq for Reference<'repo> {
-    fn eq(&self, other: &Reference<'repo>) -> bool { self.cmp(other) == Equal }
+    fn eq(&self, other: &Reference<'repo>) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
 }
 
 impl<'repo> Eq for Reference<'repo> {}

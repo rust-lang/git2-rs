@@ -12,6 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -22,7 +23,7 @@ use docopt::Docopt;
 use git2::{Repository, RepositoryInitOptions, RepositoryInitMode, Error};
 use std::num::FromStrRadix;
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_directory: String,
     flag_quiet: bool,

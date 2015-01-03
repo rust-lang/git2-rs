@@ -71,7 +71,7 @@ extern crate libc;
 extern crate url;
 extern crate "libgit2-sys" as raw;
 
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::fmt;
 use std::mem;
 use std::str;
@@ -111,7 +111,7 @@ pub use tree::{Tree, TreeEntry};
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
-#[deriving(PartialEq, Eq, Clone, Show, Copy)]
+#[derive(PartialEq, Eq, Clone, Show, Copy)]
 pub enum ErrorCode {
     /// Generic error
     GenericError,
@@ -144,7 +144,7 @@ pub enum ErrorCode {
 }
 
 /// A listing of the possible states that a repository can be in.
-#[deriving(PartialEq, Eq, Clone, Show, Copy)]
+#[derive(PartialEq, Eq, Clone, Show, Copy)]
 #[allow(missing_docs)]
 pub enum RepositoryState {
     Clean,
@@ -160,7 +160,7 @@ pub enum RepositoryState {
 }
 
 /// An enumeration of the possible directions for a remote.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum Direction {
     /// Data will be fetched (read) from this remote.
     Fetch,
@@ -170,7 +170,7 @@ pub enum Direction {
 
 /// An enumeration of the operations that can be performed for the `reset`
 /// method on a `Repository`.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum ResetType {
     /// Move the head to the given commit.
     Soft,
@@ -181,7 +181,7 @@ pub enum ResetType {
 }
 
 /// An enumeration all possible kinds objects may have.
-#[deriving(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy)]
 pub enum ObjectType {
     /// An object which corresponds to a any git object
     Any,
@@ -196,7 +196,7 @@ pub enum ObjectType {
 }
 
 /// An enumeration for the possible types of branches
-#[deriving(PartialEq, Eq, Show, Copy)]
+#[derive(PartialEq, Eq, Show, Copy)]
 pub enum BranchType {
     /// A local branch not on a remote.
     Local,
@@ -208,7 +208,7 @@ pub enum BranchType {
 ///
 /// The levels corresponding to the escalation logic (higher to lower) when
 /// searching for config entries.
-#[deriving(PartialEq, Eq, Show, Copy)]
+#[derive(PartialEq, Eq, Show, Copy)]
 pub enum ConfigLevel {
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
@@ -311,7 +311,7 @@ mod tree;
 
 fn init() {
     static INIT: Once = ONCE_INIT;
-    INIT.doit(|| unsafe {
+    INIT.call_once(|| unsafe {
         raw::openssl_init();
         let r = raw::git_libgit2_init();
         assert!(r >= 0,
@@ -435,7 +435,7 @@ Mode options for RepositoryInitOptions
 }
 
 /// What type of change is described by a `DiffDelta`?
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum Delta {
     /// No changes
     Unmodified,
@@ -550,7 +550,7 @@ bitflags! {
 }
 
 /// Possible output formats for diff data
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum DiffFormat {
     /// full git diff
     Patch,

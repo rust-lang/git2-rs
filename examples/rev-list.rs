@@ -13,7 +13,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(slicing_syntax)]
+#![feature(slicing_syntax, old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -23,7 +23,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 use docopt::Docopt;
 use git2::{Repository, Error, Revwalk, Oid};
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_spec: Vec<String>,
     flag_topo_order: bool,

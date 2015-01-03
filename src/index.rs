@@ -1,4 +1,4 @@
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::iter::Range;
 use std::kinds::marker;
 use std::mem;
@@ -381,7 +381,7 @@ impl Index {
     ///
     /// The index must not contain any file in conflict.
     pub fn write_tree(&mut self) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_index_write_tree(&mut raw, self.raw));
             Ok(Oid::from_raw(&raw))
@@ -393,7 +393,7 @@ impl Index {
     /// This is the same as `write_tree` except that the destination repository
     /// can be chosen.
     pub fn write_tree_to(&mut self, repo: &Repository) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_index_write_tree_to(&mut raw, self.raw,
                                                    repo.raw()));
@@ -476,7 +476,7 @@ impl IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{mod, fs, File, TempDir};
+    use std::io::{self, fs, File, TempDir};
     use url::Url;
 
     use {Index, Repository, ResetType};

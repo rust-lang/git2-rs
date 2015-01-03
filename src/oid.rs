@@ -1,4 +1,5 @@
 use std::fmt;
+use std::cmp::Ordering;
 use std::hash::{sip, Hash};
 use std::str;
 use libc;
@@ -6,7 +7,7 @@ use libc;
 use {raw, Error};
 
 /// Unique identity of any object (commit, tree, blob, tag).
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct Oid {
     raw: raw::git_oid,
 }
@@ -26,7 +27,7 @@ impl Oid {
     /// returned.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         ::init();
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_oid_fromstrn(&mut raw,
                                             s.as_bytes().as_ptr()
@@ -41,7 +42,7 @@ impl Oid {
     /// If the array given is not 20 bytes in length, an error is returned.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
         ::init();
-        let mut raw = raw::git_oid { id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         if bytes.len() != raw::GIT_OID_RAWSZ {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
@@ -65,7 +66,7 @@ impl Oid {
 impl fmt::Show for Oid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut dst = [0u8, ..raw::GIT_OID_HEXSZ + 1];
+        let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
         unsafe {
             raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
                                dst.len() as libc::size_t, &self.raw);
@@ -91,9 +92,9 @@ impl PartialOrd for Oid {
 impl Ord for Oid {
     fn cmp(&self, other: &Oid) -> Ordering {
         match unsafe { raw::git_oid_cmp(&self.raw, &other.raw) } {
-            0 => Equal,
-            n if n < 0 => Less,
-            _ => Greater,
+            0 => Ordering::Equal,
+            n if n < 0 => Ordering::Less,
+            _ => Ordering::Greater,
         }
     }
 }

@@ -1,5 +1,6 @@
 extern crate libc;
 
+use std::c_str::ToCStr;
 use std::kinds::marker;
 
 use {raw, Error, Sort, Oid};
@@ -161,7 +162,7 @@ impl<'repo> Drop for Revwalk<'repo> {
 
 impl<'repo> Iterator<Oid> for Revwalk<'repo> {
     fn next(&mut self) -> Option<Oid> {
-        let mut out: raw::git_oid = raw::git_oid{ id: [0, ..raw::GIT_OID_RAWSZ] };
+        let mut out: raw::git_oid = raw::git_oid{ id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             match raw::git_revwalk_next(&mut out, self.raw()) {
                 0 => (),

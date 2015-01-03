@@ -12,7 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(macro_rules)]
+#![feature(macro_rules, old_orphan_check)]
 #![deny(warnings)]
 
 extern crate "rustc-serialize" as rustc_serialize;
@@ -25,7 +25,7 @@ use docopt::Docopt;
 use git2::{Repository, Signature, Commit, ObjectType, Time, DiffOptions};
 use git2::{Pathspec, Diff, Error, DiffFormat};
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_commit: Vec<String>,
     arg_spec: Vec<String>,

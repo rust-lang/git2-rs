@@ -1,4 +1,4 @@
-use std::c_str::CString;
+use std::c_str::{CString, ToCStr};
 use std::iter::{range, Range};
 use std::kinds::marker;
 use std::mem;
@@ -17,7 +17,7 @@ pub struct StatusOptions {
 
 /// Enumeration of possible methods of what can be shown through a status
 /// operation.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum StatusShow {
     /// Only gives status based on HEAD to index comparison, not looking at
     /// working directory changes.
