@@ -1830,6 +1830,15 @@ extern {
                                                old_tree: *mut git_tree,
                                                opts: *const git_diff_options)
                                                -> c_int;
+
+    pub fn git_graph_ahead_behind(ahead: *mut size_t, behind: *mut size_t,
+                                  repo: *mut git_repository,
+                                  local: *const git_oid, upstream: *const git_oid)
+                                  -> c_int;
+
+    pub fn git_graph_descendant_of(repo: *mut git_repository,
+                                   commit: *const git_oid, ancestor: *const git_oid)
+                                   -> c_int;
 }
 
 #[test]
