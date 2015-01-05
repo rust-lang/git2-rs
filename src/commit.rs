@@ -246,35 +246,37 @@ impl<'repo> Commit<'repo> {
     }
 }
 
-impl<'repo, 'commit> Iterator<Commit<'repo>> for Parents<'commit, 'repo> {
+impl<'repo, 'commit> Iterator for Parents<'commit, 'repo> {
+    type Item = Commit<'repo>;
     fn next(&mut self) -> Option<Commit<'repo>> {
         self.range.next().map(|i| self.commit.parent(i).unwrap())
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
 
-impl<'repo, 'commit> DoubleEndedIterator<Commit<'repo>> for Parents<'commit, 'repo> {
+impl<'repo, 'commit> DoubleEndedIterator for Parents<'commit, 'repo> {
     fn next_back(&mut self) -> Option<Commit<'repo>> {
         self.range.next_back().map(|i| self.commit.parent(i).unwrap())
     }
 }
 
-impl<'repo, 'commit> ExactSizeIterator<Commit<'repo>> for Parents<'commit, 'repo> {}
+impl<'repo, 'commit> ExactSizeIterator for Parents<'commit, 'repo> {}
 
-impl<'commit> Iterator<Oid> for ParentIds<'commit> {
+impl<'commit> Iterator for ParentIds<'commit> {
+    type Item = Oid;
     fn next(&mut self) -> Option<Oid> {
         self.range.next().map(|i| self.commit.parent_id(i).unwrap())
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
 
-impl<'commit> DoubleEndedIterator<Oid> for ParentIds<'commit> {
+impl<'commit> DoubleEndedIterator for ParentIds<'commit> {
     fn next_back(&mut self) -> Option<Oid> {
         self.range.next_back().map(|i| self.commit.parent_id(i).unwrap())
     }
 }
 
-impl<'commit> ExactSizeIterator<Oid> for ParentIds<'commit> {}
+impl<'commit> ExactSizeIterator for ParentIds<'commit> {}
 
 #[unsafe_destructor]
 impl<'repo> Drop for Commit<'repo> {

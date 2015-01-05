@@ -113,7 +113,8 @@ impl<'repo> Branches<'repo> {
     }
 }
 
-impl<'repo> Iterator<(Branch<'repo>, BranchType)> for Branches<'repo> {
+impl<'repo> Iterator for Branches<'repo> {
+    type Item = (Branch<'repo>, BranchType);
     fn next(&mut self) -> Option<(Branch<'repo>, BranchType)> {
         let mut ret = 0 as *mut raw::git_reference;
         let mut typ = raw::GIT_BRANCH_LOCAL;

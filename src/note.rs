@@ -79,7 +79,8 @@ impl<'repo> Notes<'repo> {
     }
 }
 
-impl<'repo> Iterator<(Oid, Oid)> for Notes<'repo> {
+impl<'repo> Iterator for Notes<'repo> {
+    type Item = (Oid, Oid);
     fn next(&mut self) -> Option<(Oid, Oid)> {
         let mut note_id = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         let mut annotated_id = note_id;

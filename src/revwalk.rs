@@ -160,7 +160,8 @@ impl<'repo> Drop for Revwalk<'repo> {
     }
 }
 
-impl<'repo> Iterator<Oid> for Revwalk<'repo> {
+impl<'repo> Iterator for Revwalk<'repo> {
+    type Item = Oid;
     fn next(&mut self) -> Option<Oid> {
         let mut out: raw::git_oid = raw::git_oid{ id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {

@@ -38,7 +38,7 @@ pub struct PathspecFailedEntries<'list> {
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
-                     where T: ToCStr, I: Iterator<T> {
+                     where T: ToCStr, I: Iterator<Item=T> {
         let strs = specs.map(|s| s.to_c_str()).collect::<Vec<_>>();
         let ptrs = strs.iter().map(|c| c.as_ptr()).collect::<Vec<_>>();
         let arr = raw::git_strarray {
@@ -222,44 +222,47 @@ impl<'ps> Drop for PathspecMatchList<'ps> {
     }
 }
 
-impl<'list> Iterator<&'list [u8]> for PathspecEntries<'list> {
+impl<'list> Iterator for PathspecEntries<'list> {
+    type Item = &'list [u8];
     fn next(&mut self) -> Option<&'list [u8]> {
         self.range.next().and_then(|i| self.list.entry(i))
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
-impl<'list> DoubleEndedIterator<&'list [u8]> for PathspecEntries<'list> {
+impl<'list> DoubleEndedIterator for PathspecEntries<'list> {
     fn next_back(&mut self) -> Option<&'list [u8]> {
         self.range.next_back().and_then(|i| self.list.entry(i))
     }
 }
-impl<'list> ExactSizeIterator<&'list [u8]> for PathspecEntries<'list> {}
+impl<'list> ExactSizeIterator for PathspecEntries<'list> {}
 
-impl<'list> Iterator<DiffDelta<'list>> for PathspecDiffEntries<'list> {
+impl<'list> Iterator for PathspecDiffEntries<'list> {
+    type Item = DiffDelta<'list>;
     fn next(&mut self) -> Option<DiffDelta<'list>> {
         self.range.next().and_then(|i| self.list.diff_entry(i))
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
-impl<'list> DoubleEndedIterator<DiffDelta<'list>> for PathspecDiffEntries<'list> {
+impl<'list> DoubleEndedIterator for PathspecDiffEntries<'list> {
     fn next_back(&mut self) -> Option<DiffDelta<'list>> {
         self.range.next_back().and_then(|i| self.list.diff_entry(i))
     }
 }
-impl<'list> ExactSizeIterator<DiffDelta<'list>> for PathspecDiffEntries<'list> {}
+impl<'list> ExactSizeIterator for PathspecDiffEntries<'list> {}
 
-impl<'list> Iterator<&'list [u8]> for PathspecFailedEntries<'list> {
+impl<'list> Iterator for PathspecFailedEntries<'list> {
+    type Item = &'list [u8];
     fn next(&mut self) -> Option<&'list [u8]> {
         self.range.next().and_then(|i| self.list.failed_entry(i))
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
-impl<'list> DoubleEndedIterator<&'list [u8]> for PathspecFailedEntries<'list> {
+impl<'list> DoubleEndedIterator for PathspecFailedEntries<'list> {
     fn next_back(&mut self) -> Option<&'list [u8]> {
         self.range.next_back().and_then(|i| self.list.failed_entry(i))
     }
 }
-impl<'list> ExactSizeIterator<&'list [u8]> for PathspecFailedEntries<'list> {}
+impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 
 #[cfg(test)]
 mod tests {

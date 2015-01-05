@@ -359,9 +359,9 @@ impl Repository {
     /// matching the provided pathspecs.
     pub fn reset_default<'a,
                          T: ToCStr,
-                         I: Iterator<T>>(&'a self,
-                                         target: Option<&Object<'a>>,
-                                         paths: I) -> Result<(), Error> {
+                         I: Iterator<Item=T>>(&'a self,
+                                              target: Option<&Object<'a>>,
+                                              paths: I) -> Result<(), Error> {
         let v = paths.map(|t| t.to_c_str()).collect::<Vec<CString>>();
         let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const c_char>>();
         let mut arr = raw::git_strarray {

@@ -68,7 +68,8 @@ impl StringArray {
     pub fn len(&self) -> uint { self.raw.count as uint }
 }
 
-impl<'a> Iterator<Option<&'a str>> for StringArrayItems<'a> {
+impl<'a> Iterator for StringArrayItems<'a> {
+    type Item = Option<&'a str>;
     fn next(&mut self) -> Option<Option<&'a str>> {
         if self.cur < self.arr.len() {
             self.cur += 1;
@@ -79,7 +80,8 @@ impl<'a> Iterator<Option<&'a str>> for StringArrayItems<'a> {
     }
 }
 
-impl<'a> Iterator<&'a [u8]> for StringArrayBytes<'a> {
+impl<'a> Iterator for StringArrayBytes<'a> {
+    type Item = &'a [u8];
     fn next(&mut self) -> Option<&'a [u8]> {
         if self.cur < self.arr.len() {
             self.cur += 1;

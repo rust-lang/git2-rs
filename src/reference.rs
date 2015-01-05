@@ -226,7 +226,8 @@ impl<'repo> References<'repo> {
     }
 }
 
-impl<'repo> Iterator<Reference<'repo>> for References<'repo> {
+impl<'repo> Iterator for References<'repo> {
+    type Item = Reference<'repo>;
     fn next(&mut self) -> Option<Reference<'repo>> {
         let mut out = 0 as *mut raw::git_reference;
         if unsafe { raw::git_reference_next(&mut out, self.raw) == 0 } {
@@ -257,7 +258,8 @@ impl<'repo> ReferenceNames<'repo> {
     }
 }
 
-impl<'repo> Iterator<&'repo str> for ReferenceNames<'repo> {
+impl<'repo> Iterator for ReferenceNames<'repo> {
+    type Item = &'repo str;
     fn next(&mut self) -> Option<&'repo str> {
         let mut out = 0 as *const libc::c_char;
         if unsafe { raw::git_reference_next_name(&mut out, self.inner.raw) == 0 } {
