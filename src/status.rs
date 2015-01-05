@@ -279,20 +279,21 @@ impl<'repo> Drop for Statuses<'repo> {
     }
 }
 
-impl<'a> Iterator<StatusEntry<'a>> for StatusIter<'a> {
+impl<'a> Iterator for StatusIter<'a> {
+    type Item = StatusEntry<'a>;
     fn next(&mut self) -> Option<StatusEntry<'a>> {
         self.range.next().and_then(|i| self.statuses.get(i))
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
 
-impl<'a> DoubleEndedIterator<StatusEntry<'a>> for StatusIter<'a> {
+impl<'a> DoubleEndedIterator for StatusIter<'a> {
     fn next_back(&mut self) -> Option<StatusEntry<'a>> {
         self.range.next_back().and_then(|i| self.statuses.get(i))
     }
 }
 
-impl<'a> ExactSizeIterator<StatusEntry<'a>> for StatusIter<'a> {}
+impl<'a> ExactSizeIterator for StatusIter<'a> {}
 
 impl<'statuses> StatusEntry<'statuses> {
     /// Create a new status entry from its raw component.

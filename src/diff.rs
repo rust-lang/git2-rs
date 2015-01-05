@@ -647,18 +647,19 @@ impl DiffOptions {
     // TODO: expose ignore_submodules, notify_cb/notify_payload
 }
 
-impl<'diff> Iterator<DiffDelta<'diff>> for Deltas<'diff> {
+impl<'diff> Iterator for Deltas<'diff> {
+    type Item = DiffDelta<'diff>;
     fn next(&mut self) -> Option<DiffDelta<'diff>> {
         self.range.next().and_then(|i| self.diff.get_delta(i))
     }
     fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
 }
-impl<'diff> DoubleEndedIterator<DiffDelta<'diff>> for Deltas<'diff> {
+impl<'diff> DoubleEndedIterator for Deltas<'diff> {
     fn next_back(&mut self) -> Option<DiffDelta<'diff>> {
         self.range.next_back().and_then(|i| self.diff.get_delta(i))
     }
 }
-impl<'diff> ExactSizeIterator<DiffDelta<'diff>> for Deltas<'diff> {}
+impl<'diff> ExactSizeIterator for Deltas<'diff> {}
 
 impl<'a> DiffLine<'a> {
     /// Create a new diff line from its raw component.

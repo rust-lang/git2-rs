@@ -420,7 +420,8 @@ impl Drop for Index {
     }
 }
 
-impl<'index> Iterator<IndexEntry> for IndexEntries<'index> {
+impl<'index> Iterator for IndexEntries<'index> {
+    type Item = IndexEntry;
     fn next(&mut self) -> Option<IndexEntry> {
         self.range.next().map(|i| self.index.get(i).unwrap())
     }

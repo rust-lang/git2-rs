@@ -386,7 +386,8 @@ impl<'cfg> ConfigEntries<'cfg> {
 //
 // It's also not implemented for `&'b mut T` so we can have multiple entries
 // (ok).
-impl<'cfg, 'b> Iterator<ConfigEntry<'b>> for &'b ConfigEntries<'cfg> {
+impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
+    type Item = ConfigEntry<'b>;
     fn next(&mut self) -> Option<ConfigEntry<'b>> {
         let mut raw = 0 as *mut raw::git_config_entry;
         unsafe {

@@ -168,8 +168,8 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 
     /// Set the remote's list of fetch refspecs
-    pub fn set_fetch_refspecs<T: ToCStr, I: Iterator<T>>(&mut self, i: I)
-                                                         -> Result<(), Error> {
+    pub fn set_fetch_refspecs<T: ToCStr, I: Iterator<Item=T>>(&mut self, i: I)
+                                                              -> Result<(), Error> {
         let v = i.map(|t| t.to_c_str()).collect::<Vec<CString>>();
         let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const libc::c_char>>();
         let mut arr = raw::git_strarray {
@@ -184,8 +184,8 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 
     /// Set the remote's list of push refspecs
-    pub fn set_push_refspecs<T: ToCStr, I: Iterator<T>>(&mut self, i: I)
-                                                         -> Result<(), Error> {
+    pub fn set_push_refspecs<T: ToCStr, I: Iterator<Item=T>>(&mut self, i: I)
+                                                             -> Result<(), Error> {
         let v = i.map(|t| t.to_c_str()).collect::<Vec<CString>>();
         let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const libc::c_char>>();
         let mut arr = raw::git_strarray {
@@ -329,7 +329,8 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 }
 
-impl<'a, 'b> Iterator<Refspec<'a>> for Refspecs<'a, 'b> {
+impl<'a, 'b> Iterator for Refspecs<'a, 'b> {
+    type Item = Refspec<'a>;
     fn next(&mut self) -> Option<Refspec<'a>> {
         if self.cur == self.cnt { return None }
         let ret = unsafe {
