@@ -17,7 +17,6 @@ repositories.
 
 [dependencies]
 url = "0.2"
-time = "0.1"
 
 [dependencies.libgit2-sys]
 path = "libgit2-sys"
@@ -26,3 +25,4 @@ version = "0.1.0"
 [dev-dependencies]
 docopt = "0.6"
 rustc-serialize = "0.2"
+time = "0.1"
