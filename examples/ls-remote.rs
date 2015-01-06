@@ -12,7 +12,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;

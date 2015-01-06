@@ -63,7 +63,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(macro_rules, unsafe_destructor, unboxed_closures)]
+#![feature(macro_rules, unsafe_destructor)]
 #![feature(associated_types)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]

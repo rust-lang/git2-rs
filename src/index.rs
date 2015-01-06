@@ -27,7 +27,7 @@ pub struct IndexEntries<'index> {
 /// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
 /// path, and the second is the patchspec that matched it.  Return 0 to confirm
 /// the operation on the item, > 0 to skip the item, and < 0 to abort the scan.
-pub type IndexMatchedPath<'a> = |&[u8], &[u8]|: 'a -> int;
+pub type IndexMatchedPath<'a> = FnMut(&[u8], &[u8]) -> int + 'a;
 
 /// A structure to represent an entry or a file inside of an index.
 ///
@@ -162,7 +162,7 @@ impl Index {
     pub fn add_all<T: ToCStr>(&mut self,
                               pathspecs: &[T],
                               flag: IndexAddOption,
-                              mut cb: Option<IndexMatchedPath>)
+                              mut cb: Option<&mut IndexMatchedPath>)
                               -> Result<(), Error> {
         let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
         let strarray = arr.iter().map(|c| c.as_ptr())
@@ -299,7 +299,7 @@ impl Index {
     /// the item, > 0 to skip the item, and < 0 to abort the scan.
     pub fn remove_all<T: ToCStr>(&mut self,
                                  pathspecs: &[T],
-                                 mut cb: Option<IndexMatchedPath>)
+                                 mut cb: Option<&mut IndexMatchedPath>)
                                  -> Result<(), Error> {
         let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
         let strarray = arr.iter().map(|c| c.as_ptr())
@@ -338,7 +338,7 @@ impl Index {
     /// updating the item, > 0 to skip the item, and < 0 to abort the scan.
     pub fn update_all<T: ToCStr>(&mut self,
                                  pathspecs: &[T],
-                                 mut cb: Option<IndexMatchedPath>)
+                                 mut cb: Option<&mut IndexMatchedPath>)
                                  -> Result<(), Error> {
         let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
         let strarray = arr.iter().map(|c| c.as_ptr())
@@ -408,7 +408,7 @@ extern fn index_matched_path_cb(path: *const libc::c_char,
     unsafe {
         let path = CString::new(path, false);
         let matched_pathspec = CString::new(matched_pathspec, false);
-        let payload = payload as *mut IndexMatchedPath;
+        let payload = payload as *mut &mut IndexMatchedPath;
         (*payload)(path.as_bytes_no_nul(),
                    matched_pathspec.as_bytes_no_nul()) as libc::c_int
     }
@@ -516,23 +516,24 @@ mod tests {
         fs::mkdir(&root.join("foo"), io::USER_DIR).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
-        index.add_all(&["foo"], ::ADD_DEFAULT, Some(|a: &[u8], b: &[u8]| {
+        index.add_all(&["foo"], ::ADD_DEFAULT,
+                      Some((&mut |&mut: a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b"foo");
             assert_eq!(a, b"foo/bar");
             0
-        })).unwrap();
+        }) as &mut super::IndexMatchedPath)).unwrap();
         assert!(called);
 
         called = false;
-        index.remove_all(&["."], Some(|a: &[u8], b: &[u8]| {
+        index.remove_all(&["."], Some((&mut |&mut: a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b".");
             assert_eq!(a, b"foo/bar");
             0
-        })).unwrap();
+        }) as &mut super::IndexMatchedPath)).unwrap();
         assert!(called);
     }
 

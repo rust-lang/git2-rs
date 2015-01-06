@@ -1201,7 +1201,7 @@ impl RepositoryInitOptions {
                                 raw::GIT_REPOSITORY_INIT_OPTIONS_VERSION), 0);
         opts.flags = self.flags;
         opts.mode = self.mode;
-        let cstr = |a: &Option<CString>| {
+        let cstr = |&: a: &Option<CString>| {
             a.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _)
         };
         opts.workdir_path = cstr(&self.workdir_path);

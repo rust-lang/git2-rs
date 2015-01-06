@@ -12,7 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(macro_rules, old_orphan_check)]
+#![feature(macro_rules)]
 #![deny(warnings)]
 
 extern crate "rustc-serialize" as rustc_serialize;

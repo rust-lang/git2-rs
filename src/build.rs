@@ -432,8 +432,7 @@ extern fn progress_cb(path: *const c_char,
         };
         let path = CString::new(path, false);
         panic::wrap(|| {
-            callback.call_mut((path.as_bytes_no_nul(),
-                               completed as uint, total as uint));
+            callback(path.as_bytes_no_nul(), completed as uint, total as uint);
         });
     }
 }

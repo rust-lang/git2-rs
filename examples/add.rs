@@ -12,7 +12,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(old_orphan_check)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -34,21 +33,22 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open(&Path::new(".")));
     let mut index = try!(repo.index());
 
+    let cb = (&mut |&mut: path: &[u8], _matched_spec: &[u8]| -> int {
+        let path = Path::new(path);
+        let status = repo.status_file(&path).unwrap();
+
+        let ret = if status.contains(git2::STATUS_WT_MODIFIED) ||
+                     status.contains(git2::STATUS_WT_NEW) {
+            println!("add '{}'", path.display());
+            0
+        } else {
+            1
+        };
+
+        if args.flag_dry_run {1} else {ret}
+    }) as &mut git2::IndexMatchedPath;
     let cb = if args.flag_verbose || args.flag_update {
-        Some(|path: &[u8], _matched_spec: &[u8]| -> int {
-            let path = Path::new(path);
-            let status = repo.status_file(&path).unwrap();
-
-            let ret = if status.contains(git2::STATUS_WT_MODIFIED) ||
-                         status.contains(git2::STATUS_WT_NEW) {
-                println!("add '{}'", path.display());
-                0
-            } else {
-                1
-            };
-
-            if args.flag_dry_run {1} else {ret}
-        })
+        Some(cb)
     } else {
         None
     };

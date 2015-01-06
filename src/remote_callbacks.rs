@@ -224,7 +224,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
 
         let cred_type = CredentialType::from_bits_truncate(allowed_types as uint);
         match panic::wrap(|| {
-            callback.call_mut((url, username_from_url, cred_type))
+            callback(url, username_from_url, cred_type)
         }) {
             Some(Ok(cred)) => {
                 // Turns out it's a memory safety issue if we pass through any
@@ -252,7 +252,7 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
         };
         let progress = Progress::from_raw(stats);
         let ok = panic::wrap(move || {
-            callback.call_mut((progress,))
+            callback(progress)
         }).unwrap_or(false);
         if ok {0} else {-1}
     }
@@ -270,7 +270,7 @@ extern fn sideband_progress_cb(str: *const c_char,
         let ptr = str as *const u8;
         let buf = slice::from_raw_buf(&ptr, len as uint);
         let ok = panic::wrap(|| {
-            callback.call_mut((buf,))
+            callback(buf)
         }).unwrap_or(false);
         if ok {0} else {-1}
     }
@@ -291,7 +291,7 @@ extern fn update_tips_cb(refname: *const c_char,
         let a = Oid::from_raw(a);
         let b = Oid::from_raw(b);
         let ok = panic::wrap(|| {
-            callback.call_mut((refname, a, b))
+            callback(refname, a, b)
         }).unwrap_or(false);
         if ok {0} else {-1}
     }
