@@ -1020,6 +1020,35 @@ impl Repository {
             Ok(Oid::from_raw(&raw))
         }
     }
+
+    /// Count the number of unique commits between two commit objects
+    ///
+    /// There is no need for branches containing the commits to have any
+    /// upstream relationship, but it helps to think of one as a branch and the
+    /// other as its upstream, the ahead and behind values will be what git
+    /// would report for the branches.
+    pub fn graph_ahead_behind(&self, local: Oid, upstream: Oid)
+                              -> Result<(uint, uint), Error> {
+        unsafe {
+            let mut ahead: size_t = 0;
+            let mut behind: size_t = 0;
+            try_call!(raw::git_graph_ahead_behind(&mut ahead, &mut behind,
+                                                  self.raw(), local.raw(),
+                                                  upstream.raw()));
+            Ok((ahead as uint, behind as uint))
+        }
+    }
+
+    /// Determine if a commit is the descendant of another commit
+    pub fn graph_descendant_of(&self, commit: Oid, ancestor: Oid)
+                               -> Result<bool, Error> {
+        unsafe {
+            let rv = try_call!(raw::git_graph_descendant_of(self.raw(),
+                                                            commit.raw(),
+                                                            ancestor.raw()));
+            Ok(rv != 0)
+        }
+    }
 }
 
 #[unsafe_destructor]
@@ -1268,5 +1297,50 @@ mod tests {
         Repository::init_bare(td.path()).unwrap();
         let repo = Repository::discover(subdir.path()).unwrap();
         assert!(repo.path() == *td.path());
+    }
+
+    fn graph_repo_init() -> (TempDir, Repository) {
+        let (_td, repo) = ::test::repo_init();
+        {
+            let head = repo.head().unwrap().target().unwrap();
+            let head = repo.find_commit(head).unwrap();
+
+            let mut index = repo.index().unwrap();
+            let id = index.write_tree().unwrap();
+
+            let tree = repo.find_tree(id).unwrap();
+            let sig = repo.signature().unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "second",
+                        &tree, &[&head]).unwrap();
+        }
+        (_td, repo)
+    }
+
+    #[test]
+    fn smoke_graph_ahead_behind() {
+        let (_td, repo) = graph_repo_init();
+        let head = repo.head().unwrap().target().unwrap();
+        let head = repo.find_commit(head).unwrap();
+        let head_id = head.id();
+        let head_parent_id = head.parent(0).unwrap().id();
+        let (ahead, behind) = repo.graph_ahead_behind(head_id,
+                                                      head_parent_id).unwrap();
+        assert_eq!(ahead, 1);
+        assert_eq!(behind, 0);
+        let (ahead, behind) = repo.graph_ahead_behind(head_parent_id,
+                                                      head_id).unwrap();
+        assert_eq!(ahead, 0);
+        assert_eq!(behind, 1);
+    }
+
+    #[test]
+    fn smoke_graph_descendant_of() {
+        let (_td, repo) = graph_repo_init();
+        let head = repo.head().unwrap().target().unwrap();
+        let head = repo.find_commit(head).unwrap();
+        let head_id = head.id();
+        let head_parent_id = head.parent(0).unwrap().id();
+        assert!(repo.graph_descendant_of(head_id, head_parent_id).unwrap());
+        assert!(!repo.graph_descendant_of(head_parent_id, head_id).unwrap());
     }
 }
