@@ -1,4 +1,3 @@
-#![feature(globs, phase)]
 #![allow(non_camel_case_types, missing_copy_implementations)]
 
 extern crate libc;
@@ -78,13 +77,14 @@ pub struct git_revspec {
 }
 
 #[repr(C)]
+#[derive(Show)]
 pub struct git_error {
     pub message: *mut c_char,
     pub klass: c_int,
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy,Show)]
 pub struct git_oid {
     pub id: [u8; GIT_OID_RAWSZ],
 }

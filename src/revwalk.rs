@@ -1,7 +1,7 @@
 extern crate libc;
 
-use std::c_str::ToCStr;
-use std::kinds::marker;
+use std::marker;
+use std::ffi::CString;
 
 use {raw, Error, Sort, Oid};
 
@@ -80,7 +80,7 @@ impl<'repo> Revwalk<'repo> {
     /// will be ignored.
     pub fn push_glob(&mut self, glob: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_revwalk_push_glob(self.raw, glob.to_c_str()));
+            try_call!(raw::git_revwalk_push_glob(self.raw, CString::from_slice(glob.as_bytes())));
         }
         Ok(())
     }
@@ -92,7 +92,7 @@ impl<'repo> Revwalk<'repo> {
     /// commit will be hidden and the right-hand commit pushed.
     pub fn push_range(&mut self, range: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_revwalk_push_range(self.raw, range.to_c_str()));
+            try_call!(raw::git_revwalk_push_range(self.raw, CString::from_slice(range.as_bytes())));
         }
         Ok(())
     }
@@ -102,7 +102,7 @@ impl<'repo> Revwalk<'repo> {
     /// The reference must point to a committish.
     pub fn push_ref(&mut self, reference: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_revwalk_push_ref(self.raw, reference.to_c_str()));
+            try_call!(raw::git_revwalk_push_ref(self.raw, CString::from_slice(reference.as_bytes())));
         }
         Ok(())
     }
@@ -137,7 +137,7 @@ impl<'repo> Revwalk<'repo> {
     /// will be ignored.
     pub fn hide_glob(&mut self, glob: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_revwalk_hide_glob(self.raw, glob.to_c_str()));
+            try_call!(raw::git_revwalk_hide_glob(self.raw, CString::from_slice(glob.as_bytes())));
         }
         Ok(())
     }
@@ -147,7 +147,7 @@ impl<'repo> Revwalk<'repo> {
     /// The reference must point to a committish.
     pub fn hide_ref(&mut self, reference: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_revwalk_hide_ref(self.raw, reference.to_c_str()));
+            try_call!(raw::git_revwalk_hide_ref(self.raw, CString::from_slice(reference.as_bytes())));
         }
         Ok(())
     }

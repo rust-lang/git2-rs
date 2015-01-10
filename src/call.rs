@@ -1,4 +1,4 @@
-#![macro_escape]
+#![macro_use]
 use libc;
 
 use Error;
@@ -41,7 +41,7 @@ fn last_error() -> Error {
 }
 
 mod impls {
-    use std::c_str::CString;
+    use std::ffi::CString;
     use libc;
 
     use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};

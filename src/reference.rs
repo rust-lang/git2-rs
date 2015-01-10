@@ -1,8 +1,8 @@
-use std::c_str::ToCStr;
 use std::cmp::Ordering;
-use std::kinds::marker;
+use std::marker;
 use std::mem;
 use std::str;
+use std::ffi::CString;
 use libc;
 
 use {raw, Error, Oid, Signature};
@@ -41,7 +41,7 @@ impl<'repo> Reference<'repo> {
     /// Ensure the reference name is well-formed.
     pub fn is_valid_name(refname: &str) -> bool {
         ::init();
-        let refname = refname.to_c_str();
+        let refname = CString::from_slice(refname.as_bytes());
         unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
     }
 
@@ -168,11 +168,11 @@ impl<'repo> Reference<'repo> {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_rename(&mut raw, self.raw,
-                                                new_name.to_c_str(),
+                                                CString::from_slice(new_name.as_bytes()),
                                                 force,
                                                 &*sig.map(|s| s.raw())
                                                      .unwrap_or(0 as *mut _),
-                                                msg.to_c_str()));
+                                                CString::from_slice(msg.as_bytes())));
         }
         Ok(Reference {
             raw: raw,

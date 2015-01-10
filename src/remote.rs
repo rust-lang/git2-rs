@@ -1,5 +1,5 @@
-use std::c_str::{CString, ToCStr};
-use std::kinds::marker;
+use std::ffi::CString;
+use std::marker;
 use std::mem;
 use std::slice;
 use std::str;
@@ -50,7 +50,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
         ::init();
-        let remote_name = remote_name.to_c_str();
+        let remote_name = CString::from_slice(remote_name.as_bytes());
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
     }
 
@@ -123,7 +123,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Add a fetch refspec to the remote
     pub fn add_fetch(&mut self, spec: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_remote_add_fetch(self.raw, spec.to_c_str()));
+            try_call!(raw::git_remote_add_fetch(self.raw, CString::from_slice(spec.as_bytes())));
         }
         Ok(())
     }
@@ -131,7 +131,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Add a push refspec to the remote
     pub fn add_push(&mut self, spec: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_remote_add_push(self.raw, spec.to_c_str()));
+            try_call!(raw::git_remote_add_push(self.raw, CString::from_slice(spec.as_bytes())));
         }
         Ok(())
     }
@@ -141,7 +141,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Existing connections will not be updated.
     pub fn set_url(&mut self, url: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_remote_set_url(self.raw, url.to_c_str()));
+            try_call!(raw::git_remote_set_url(self.raw, CString::from_slice(url.as_bytes())));
         }
         Ok(())
     }
@@ -152,7 +152,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// Existing connections will not be updated.
     pub fn set_pushurl(&mut self, pushurl: Option<&str>) -> Result<(), Error> {
-        let pushurl = pushurl.map(|s| s.to_c_str());
+        let pushurl = pushurl.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
             try_call!(raw::git_remote_set_pushurl(self.raw, pushurl));
         }
@@ -168,9 +168,10 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 
     /// Set the remote's list of fetch refspecs
-    pub fn set_fetch_refspecs<T: ToCStr, I: Iterator<Item=T>>(&mut self, i: I)
+    pub fn set_fetch_refspecs<T: Str, I: Iterator<Item=T>>(&mut self, i: I)
                                                               -> Result<(), Error> {
-        let v = i.map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let v = i.map(|t| CString::from_slice(t.as_slice().as_bytes()))
+                 .collect::<Vec<CString>>();
         let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const libc::c_char>>();
         let mut arr = raw::git_strarray {
             strings: v2.as_ptr() as *mut _,
@@ -184,9 +185,10 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 
     /// Set the remote's list of push refspecs
-    pub fn set_push_refspecs<T: ToCStr, I: Iterator<Item=T>>(&mut self, i: I)
+    pub fn set_push_refspecs<T: Str, I: Iterator<Item=T>>(&mut self, i: I)
                                                              -> Result<(), Error> {
-        let v = i.map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let v = i.map(|t| CString::from_slice(t.as_slice().as_bytes()))
+                 .collect::<Vec<CString>>();
         let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const libc::c_char>>();
         let mut arr = raw::git_strarray {
             strings: v2.as_ptr() as *mut _,
@@ -236,7 +238,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
                  refspecs: &[&str],
                  signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
-        let refspecs = refspecs.iter().map(|s| s.to_c_str()).collect::<Vec<_>>();
+        let refspecs = refspecs.iter().map(|s| CString::from_slice(s.as_bytes())).collect::<Vec<_>>();
         let ptrs = refspecs.iter().map(|s| s.as_ptr()).collect::<Vec<_>>();
         let arr = raw::git_strarray {
             strings: ptrs.as_ptr() as *mut _,
@@ -248,7 +250,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
                                             &arr,
                                             &*signature.map(|s| s.raw())
                                                        .unwrap_or(0 as *mut _),
-                                            msg.map(|s| s.to_c_str())));
+                                            msg.map(|s| CString::from_slice(s.as_bytes()))));
         }
         Ok(())
     }
@@ -260,7 +262,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
             try_call!(raw::git_remote_update_tips(self.raw,
                                                   &*signature.map(|s| s.raw())
                                                              .unwrap_or(0 as *mut _),
-                                                  msg.map(|s| s.to_c_str())));
+                                                  msg.map(|s| CString::from_slice(s.as_bytes()))));
         }
         Ok(())
     }

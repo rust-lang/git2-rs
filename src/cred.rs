@@ -1,4 +1,4 @@
-use std::c_str::ToCStr;
+use std::ffi::CString;
 use std::mem;
 use std::io::Command;
 use url::{self, UrlParser};
@@ -49,7 +49,7 @@ impl Cred {
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
             try_call!(raw::git_cred_ssh_key_from_agent(&mut out,
-                                                       username.to_c_str()));
+                                                       CString::from_slice(username.as_bytes())));
             Ok(Cred::from_raw(out))
         }
     }
@@ -63,10 +63,10 @@ impl Cred {
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
             try_call!(raw::git_cred_ssh_key_new(&mut out,
-                                                username.to_c_str(),
-                                                publickey.map(|s| s.to_c_str()),
-                                                privatekey.to_c_str(),
-                                                passphrase.map(|s| s.to_c_str())));
+                                                CString::from_slice(username.as_bytes()),
+                                                publickey.map(|s| CString::from_slice(s.as_vec())),
+                                                CString::from_slice(privatekey.as_vec()),
+                                                passphrase.map(|s| CString::from_slice(s.as_bytes()))));
             Ok(Cred::from_raw(out))
         }
     }
@@ -78,8 +78,8 @@ impl Cred {
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
             try_call!(raw::git_cred_userpass_plaintext_new(&mut out,
-                                                           username.to_c_str(),
-                                                           password.to_c_str()));
+                                                           CString::from_slice(username.as_bytes()),
+                                                           CString::from_slice(password.as_bytes())));
             Ok(Cred::from_raw(out))
         }
     }

@@ -1,4 +1,4 @@
-use std::c_str::{CString, ToCStr};
+use std::ffi::{CString, c_str_to_bytes};
 use std::error;
 use std::fmt;
 use std::str;
@@ -8,6 +8,7 @@ use libc::c_int;
 use {raw, ErrorCode};
 
 /// A structure to represent errors coming out of libgit2.
+#[derive(Show)]
 pub struct Error {
     raw: raw::git_error,
 }
@@ -32,7 +33,7 @@ impl Error {
         ::init();
         Error {
             raw: raw::git_error {
-                message: unsafe { s.to_c_str().into_inner() as *mut _ },
+                message: CString::from_slice(s.as_bytes()).as_ptr() as *mut _,
                 klass: raw::GIT_ERROR as libc::c_int,
             }
         }
@@ -92,8 +93,8 @@ impl Error {
 
     /// Return the message associated with this error
     pub fn message(&self) -> String {
-        let cstr = unsafe { CString::new(self.raw.message as *const _, false) };
-        String::from_utf8_lossy(cstr.as_bytes_no_nul()).to_string()
+        let cstr = unsafe { CString::from_slice(c_str_to_bytes(&(self.raw.message as *const _))) };
+        String::from_utf8_lossy(cstr.as_bytes()).to_string()
     }
 }
 
@@ -101,17 +102,17 @@ unsafe impl Send for Error { }
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        unsafe { str::from_c_str(self.raw.message as *const _) }
+        "A git2-rs Error"
     }
 
     fn detail(&self) -> Option<String> { Some(self.message()) }
 }
 
-impl fmt::Show for Error {
+impl fmt::String for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "[{}] ", self.raw.klass));
-        let cstr = unsafe { CString::new(self.raw.message as *const _, false) };
-        f.write_str(cstr.as_str().unwrap())
+        let cstr = unsafe { CString::from_slice(c_str_to_bytes(&(self.raw.message as *const _))) };
+        f.write_str(str::from_utf8(cstr.as_bytes()).unwrap())
     }
 }
 

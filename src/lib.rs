@@ -63,16 +63,18 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(macro_rules, unsafe_destructor)]
-#![feature(associated_types)]
+#![feature(unsafe_destructor)]
+#![feature(box_syntax)]
+#![feature(int_uint)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
+#![allow(unstable)]
 
 extern crate libc;
 extern crate url;
 extern crate "libgit2-sys" as raw;
 
-use std::c_str::{CString, ToCStr};
+use std::ffi::{CString, c_str_to_bytes};
 use std::fmt;
 use std::mem;
 use std::str;
@@ -327,8 +329,8 @@ unsafe fn opt_bytes<'a, T>(_: &'a T,
     if c.is_null() {
         None
     } else {
-        let s = CString::new(c, false);
-        Some(mem::transmute(s.as_bytes_no_nul()))
+        let s = CString::from_slice(c_str_to_bytes(&c));
+        Some(mem::transmute(s.as_bytes()))
     }
 }
 
@@ -337,7 +339,9 @@ impl ObjectType {
     pub fn str(&self) -> &'static str {
         unsafe {
             let ptr = call!(raw::git_object_type2string(*self));
-            mem::transmute::<&str, &'static str>(str::from_c_str(ptr as *const _))
+            mem::transmute::<&str, &'static str>(
+                str::from_utf8(c_str_to_bytes(&(ptr as *const _))).ok().unwrap_or("")
+            )
         }
     }
 
@@ -369,7 +373,7 @@ impl ObjectType {
 
     /// Convert a string object type representation to its object type.
     pub fn from_str(s: &str) -> Option<ObjectType> {
-        let raw = unsafe { call!(raw::git_object_string2type(s.to_c_str())) };
+        let raw = unsafe { call!(raw::git_object_string2type(CString::from_slice(s.as_bytes()))) };
         ObjectType::from_raw(raw)
     }
 }

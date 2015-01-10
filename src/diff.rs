@@ -1,6 +1,6 @@
-use std::c_str::{CString, ToCStr};
+use std::ffi::CString;
 use std::iter::Range;
-use std::kinds::marker;
+use std::marker;
 use std::mem;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
@@ -609,22 +609,22 @@ impl DiffOptions {
     /// The virtual "directory" to prefix old file names with in hunk headers.
     ///
     /// The default value for this is "a".
-    pub fn old_prefix<T: ToCStr>(&mut self, t: T) -> &mut DiffOptions {
-        self.old_prefix = Some(t.to_c_str());
+    pub fn old_prefix<T: Str>(&mut self, t: T) -> &mut DiffOptions {
+        self.old_prefix = Some(CString::from_slice(t.as_slice().as_bytes()));
         self
     }
 
     /// The virtual "directory" to prefix new file names with in hunk headers.
     ///
     /// The default value for this is "b".
-    pub fn new_prefix<T: ToCStr>(&mut self, t: T) -> &mut DiffOptions {
-        self.new_prefix = Some(t.to_c_str());
+    pub fn new_prefix<T: Str>(&mut self, t: T) -> &mut DiffOptions {
+        self.new_prefix = Some(CString::from_slice(t.as_slice().as_bytes()));
         self
     }
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
-    pub fn pathspec<T: ToCStr>(&mut self, pathspec: T) -> &mut DiffOptions {
-        let s = pathspec.to_c_str();
+    pub fn pathspec<T: Str>(&mut self, pathspec: T) -> &mut DiffOptions {
+        let s = CString::from_slice(pathspec.as_slice().as_bytes());
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

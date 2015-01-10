@@ -1,6 +1,6 @@
-use std::c_str::{CString, ToCStr};
+use std::ffi::CString;
 use std::iter::{range, Range};
-use std::kinds::marker;
+use std::marker;
 use std::mem;
 use std::str;
 use libc::{c_char, size_t, c_uint};
@@ -89,8 +89,8 @@ impl StatusOptions {
     /// If the `disable_pathspec_match` option is given, then this is a literal
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
-    pub fn pathspec<T: ToCStr>(&mut self, pathspec: T) -> &mut StatusOptions {
-        let s = pathspec.to_c_str();
+    pub fn pathspec<T: Str>(&mut self, pathspec: T) -> &mut StatusOptions {
+        let s = CString::from_slice(pathspec.as_slice().as_bytes());
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

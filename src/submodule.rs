@@ -1,5 +1,5 @@
 use std::str;
-use std::kinds::marker;
+use std::marker;
 
 use {raw, Oid, Repository, Error, SubmoduleStatus};
 

@@ -1,6 +1,6 @@
-use std::c_str::ToCStr;
+use std::ffi::CString;
 use std::iter::Range;
-use std::kinds::marker;
+use std::marker;
 use std::str;
 use libc;
 
@@ -206,11 +206,11 @@ impl<'repo> Commit<'repo> {
         unsafe {
             try_call!(raw::git_commit_amend(&mut raw,
                                             &*self.raw(),
-                                            update_ref.map(|s| s.to_c_str()),
+                                            update_ref.map(|s| CString::from_slice(s.as_bytes())),
                                             author.map(|s| &*s.raw()),
                                             committer.map(|s| &*s.raw()),
-                                            message_encoding.map(|s| s.to_c_str()),
-                                            message.map(|s| s.to_c_str()),
+                                            message_encoding.map(|s| CString::from_slice(s.as_bytes())),
+                                            message.map(|s| CString::from_slice(s.as_bytes())),
                                             tree.map(|t| &*t.raw())));
             Ok(Oid::from_raw(&raw))
         }

@@ -1,4 +1,4 @@
-use std::kinds::marker;
+use std::marker;
 use std::str;
 
 use {raw, Error, Oid, Object, Signature, ObjectType};

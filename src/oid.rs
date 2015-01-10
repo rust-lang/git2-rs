@@ -1,13 +1,13 @@
 use std::fmt;
 use std::cmp::Ordering;
-use std::hash::{sip, Hash};
+use std::hash::{Hasher, Writer, Hash};
 use std::str;
 use libc;
 
 use {raw, Error};
 
 /// Unique identity of any object (commit, tree, blob, tag).
-#[derive(Copy)]
+#[derive(Copy,Show)]
 pub struct Oid {
     raw: raw::git_oid,
 }
@@ -63,7 +63,7 @@ impl Oid {
     }
 }
 
-impl fmt::Show for Oid {
+impl fmt::String for Oid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
@@ -103,8 +103,8 @@ impl Clone for Oid {
     fn clone(&self) -> Oid { *self }
 }
 
-impl Hash for Oid {
-    fn hash(&self, into: &mut sip::SipState) {
+impl<S: Hasher + Writer> Hash<S> for Oid {
+    fn hash(&self, into: &mut S) {
         self.raw.id.as_slice().hash(into)
     }
 }

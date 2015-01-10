@@ -1,5 +1,5 @@
-use std::c_str::ToCStr;
-use std::kinds::marker;
+use std::marker;
+use std::ffi::CString;
 use std::str;
 
 use {raw, Direction};
@@ -47,7 +47,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's destination descriptor matches a reference
     pub fn dst_matches(&self, refname: &str) -> bool {
-        let refname = refname.to_c_str();
+        let refname = CString::from_slice(refname.as_bytes());
         unsafe { raw::git_refspec_dst_matches(self.raw, refname.as_ptr()) == 1 }
     }
 
@@ -65,7 +65,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's source descriptor matches a reference
     pub fn src_matches(&self, refname: &str) -> bool {
-        let refname = refname.to_c_str();
+        let refname = CString::from_slice(refname.as_bytes());
         unsafe { raw::git_refspec_src_matches(self.raw, refname.as_ptr()) == 1 }
     }
 

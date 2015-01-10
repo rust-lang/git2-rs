@@ -1,5 +1,5 @@
-use std::c_str::ToCStr;
-use std::kinds::marker;
+use std::ffi::CString;
+use std::marker;
 use std::str;
 use libc;
 
@@ -44,7 +44,7 @@ impl Config {
         ::init();
         let mut raw = 0 as *mut raw::git_config;
         unsafe {
-            try_call!(raw::git_config_open_ondisk(&mut raw, path.to_c_str()));
+            try_call!(raw::git_config_open_ondisk(&mut raw, CString::from_slice(path.as_vec())));
             Ok(Config::from_raw(raw))
         }
     }
@@ -124,7 +124,7 @@ impl Config {
     pub fn add_file(&mut self, path: &Path, level: ConfigLevel,
                     force: bool) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_config_add_file_ondisk(self.raw, path.to_c_str(),
+            try_call!(raw::git_config_add_file_ondisk(self.raw, CString::from_slice(path.as_vec()),
                                                       level, force));
             Ok(())
         }
@@ -134,7 +134,7 @@ impl Config {
     /// (usually the local one).
     pub fn remove(&mut self, name: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_config_delete_entry(self.raw, name.to_c_str()));
+            try_call!(raw::git_config_delete_entry(self.raw, CString::from_slice(name.as_bytes())));
             Ok(())
         }
     }
@@ -148,7 +148,7 @@ impl Config {
         let mut out = 0 as libc::c_int;
         unsafe {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw,
-                                               name.to_c_str()));
+                                               CString::from_slice(name.as_bytes())));
         }
         Ok(if out == 0 {false} else {true})
     }
@@ -162,7 +162,7 @@ impl Config {
         let mut out = 0i32;
         unsafe {
             try_call!(raw::git_config_get_int32(&mut out, &*self.raw,
-                                                name.to_c_str()));
+                                                CString::from_slice(name.as_bytes())));
         }
         Ok(out)
     }
@@ -176,7 +176,7 @@ impl Config {
         let mut out = 0i64;
         unsafe {
             try_call!(raw::git_config_get_int64(&mut out, &*self.raw,
-                                                name.to_c_str()));
+                                                CString::from_slice(name.as_bytes())));
         }
         Ok(out)
     }
@@ -196,7 +196,7 @@ impl Config {
         let mut ret = 0 as *const libc::c_char;
         unsafe {
             try_call!(raw::git_config_get_string(&mut ret, &*self.raw,
-                                                 name.to_c_str()));
+                                                 CString::from_slice(name.as_bytes())));
             Ok(::opt_bytes(self, ret).unwrap())
         }
     }
@@ -206,7 +206,7 @@ impl Config {
         let mut ret = 0 as *const raw::git_config_entry;
         unsafe {
             try_call!(raw::git_config_get_entry(&mut ret, &*self.raw,
-                                                name.to_c_str()));
+                                                CString::from_slice(name.as_bytes())));
             Ok(ConfigEntry::from_raw(ret))
         }
     }
@@ -234,7 +234,7 @@ impl Config {
                 Some(s) => {
                     try_call!(raw::git_config_iterator_glob_new(&mut ret,
                                                                 &*self.raw,
-                                                                s.to_c_str()));
+                                                                CString::from_slice(s.as_bytes())));
                 }
                 None => {
                     try_call!(raw::git_config_iterator_new(&mut ret, &*self.raw));
@@ -274,7 +274,7 @@ impl Config {
     /// highest level (usually the local one).
     pub fn set_bool(&mut self, name: &str, value: bool) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_config_set_bool(self.raw, name.to_c_str(),
+            try_call!(raw::git_config_set_bool(self.raw, CString::from_slice(name.as_bytes()),
                                                value));
         }
         Ok(())
@@ -284,7 +284,7 @@ impl Config {
     /// highest level (usually the local one).
     pub fn set_i32(&mut self, name: &str, value: i32) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_config_set_int32(self.raw, name.to_c_str(),
+            try_call!(raw::git_config_set_int32(self.raw, CString::from_slice(name.as_bytes()),
                                                 value));
         }
         Ok(())
@@ -294,7 +294,7 @@ impl Config {
     /// highest level (usually the local one).
     pub fn set_i64(&mut self, name: &str, value: i64) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_config_set_int64(self.raw, name.to_c_str(),
+            try_call!(raw::git_config_set_int64(self.raw, CString::from_slice(name.as_bytes()),
                                                 value));
         }
         Ok(())
@@ -304,8 +304,8 @@ impl Config {
     /// highest level (usually the local one).
     pub fn set_str(&mut self, name: &str, value: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_config_set_string(self.raw, name.to_c_str(),
-                                                 value.to_c_str()));
+            try_call!(raw::git_config_set_string(self.raw, CString::from_slice(name.as_bytes()),
+                                                 CString::from_slice(value.as_bytes())));
         }
         Ok(())
     }

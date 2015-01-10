@@ -1,5 +1,5 @@
-use std::c_str::ToCStr;
-use std::kinds::marker;
+use std::ffi::CString;
+use std::marker;
 use std::iter::Range;
 use libc::size_t;
 
@@ -38,8 +38,9 @@ pub struct PathspecFailedEntries<'list> {
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
-                     where T: ToCStr, I: Iterator<Item=T> {
-        let strs = specs.map(|s| s.to_c_str()).collect::<Vec<_>>();
+                     where T: Str, I: Iterator<Item=T> {
+        let strs = specs.map(|s| CString::from_slice(s.as_slice().as_bytes()))
+                        .collect::<Vec<_>>();
         let ptrs = strs.iter().map(|c| c.as_ptr()).collect::<Vec<_>>();
         let arr = raw::git_strarray {
             strings: ptrs.as_ptr() as *mut _,
@@ -122,7 +123,7 @@ impl Pathspec {
     /// explicitly pass flags to control case sensitivity or else this will fall
     /// back on being case sensitive.
     pub fn matches_path(&self, path: &Path, flags: PathspecFlags) -> bool {
-        let path = path.to_c_str();
+        let path = CString::from_slice(path.as_vec());
         unsafe {
             raw::git_pathspec_matches_path(&*self.raw, flags.bits(),
                                            path.as_ptr()) == 1

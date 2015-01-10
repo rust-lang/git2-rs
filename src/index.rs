@@ -1,6 +1,6 @@
-use std::c_str::{CString, ToCStr};
+use std::ffi::{CString, c_str_to_bytes};
 use std::iter::Range;
-use std::kinds::marker;
+use std::marker;
 use std::mem;
 use std::path::PosixPath;
 
@@ -75,7 +75,7 @@ impl Index {
         ::init();
         let mut raw = 0 as *mut raw::git_index;
         unsafe {
-            try_call!(raw::git_index_open(&mut raw, index_path.to_c_str()));
+            try_call!(raw::git_index_open(&mut raw, CString::from_slice(index_path.as_vec())));
             Ok(Index::from_raw(raw))
         }
     }
@@ -121,7 +121,7 @@ impl Index {
             posix_path.push(comp);
         }
         unsafe {
-            try_call!(raw::git_index_add_bypath(self.raw, posix_path.to_c_str()));
+            try_call!(raw::git_index_add_bypath(self.raw, CString::from_slice(posix_path.as_vec())));
             Ok(())
         }
     }
@@ -159,12 +159,13 @@ impl Index {
     /// updated in the index. Returning zero will add the item to the index,
     /// greater than zero will skip the item, and less than zero will abort the
     /// scan an return an error to the caller.
-    pub fn add_all<T: ToCStr>(&mut self,
+    pub fn add_all<T: Str>(&mut self,
                               pathspecs: &[T],
                               flag: IndexAddOption,
                               mut cb: Option<&mut IndexMatchedPath>)
                               -> Result<(), Error> {
-        let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let arr = pathspecs.iter().map(|t| CString::from_slice(t.as_slice().as_bytes()))
+                           .collect::<Vec<CString>>();
         let strarray = arr.iter().map(|c| c.as_ptr())
                           .collect::<Vec<*const libc::c_char>>();
         let ptr = cb.as_mut();
@@ -220,7 +221,7 @@ impl Index {
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: int) -> Option<IndexEntry> {
         unsafe {
-            let ptr = call!(raw::git_index_get_bypath(self.raw, path.to_c_str(),
+            let ptr = call!(raw::git_index_get_bypath(self.raw, CString::from_slice(path.as_vec()),
                                                       stage as libc::c_int));
             if ptr.is_null() {None} else {Some(IndexEntry::from_raw(ptr))}
         }
@@ -262,7 +263,7 @@ impl Index {
     /// Remove an entry from the index
     pub fn remove(&mut self, path: &Path, stage: int) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_index_remove(self.raw, path.to_c_str(),
+            try_call!(raw::git_index_remove(self.raw, CString::from_slice(path.as_vec()),
                                             stage as libc::c_int));
         }
         Ok(())
@@ -278,7 +279,7 @@ impl Index {
     /// moved to the "resolve undo" (REUC) section.
     pub fn remove_path(&mut self, path: &Path) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_index_remove_bypath(self.raw, path.to_c_str()));
+            try_call!(raw::git_index_remove_bypath(self.raw, CString::from_slice(path.as_vec())));
         }
         Ok(())
     }
@@ -286,7 +287,7 @@ impl Index {
     /// Remove all entries from the index under a given directory.
     pub fn remove_dir(&mut self, path: &Path, stage: int) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_index_remove_directory(self.raw, path.to_c_str(),
+            try_call!(raw::git_index_remove_directory(self.raw, CString::from_slice(path.as_vec()),
                                                       stage as libc::c_int));
         }
         Ok(())
@@ -297,11 +298,12 @@ impl Index {
     /// If you provide a callback function, it will be invoked on each matching
     /// item in the index immediately before it is removed. Return 0 to remove
     /// the item, > 0 to skip the item, and < 0 to abort the scan.
-    pub fn remove_all<T: ToCStr>(&mut self,
+    pub fn remove_all<T: Str>(&mut self,
                                  pathspecs: &[T],
                                  mut cb: Option<&mut IndexMatchedPath>)
                                  -> Result<(), Error> {
-        let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let arr = pathspecs.iter().map(|t| CString::from_slice(t.as_slice().as_bytes()))
+                           .collect::<Vec<CString>>();
         let strarray = arr.iter().map(|c| c.as_ptr())
                           .collect::<Vec<*const libc::c_char>>();
         let ptr = cb.as_mut();
@@ -336,11 +338,12 @@ impl Index {
     /// item in the index immediately before it is updated (either refreshed or
     /// removed depending on working directory state). Return 0 to proceed with
     /// updating the item, > 0 to skip the item, and < 0 to abort the scan.
-    pub fn update_all<T: ToCStr>(&mut self,
+    pub fn update_all<T: Str>(&mut self,
                                  pathspecs: &[T],
                                  mut cb: Option<&mut IndexMatchedPath>)
                                  -> Result<(), Error> {
-        let arr = pathspecs.iter().map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let arr = pathspecs.iter().map(|t| CString::from_slice(t.as_slice().as_bytes()))
+                           .collect::<Vec<CString>>();
         let strarray = arr.iter().map(|c| c.as_ptr())
                           .collect::<Vec<*const libc::c_char>>();
         let ptr = cb.as_mut();
@@ -406,11 +409,11 @@ extern fn index_matched_path_cb(path: *const libc::c_char,
                                 matched_pathspec: *const libc::c_char,
                                 payload: *mut libc::c_void) -> libc::c_int {
     unsafe {
-        let path = CString::new(path, false);
-        let matched_pathspec = CString::new(matched_pathspec, false);
+        let path = CString::from_slice(c_str_to_bytes(&path));
+        let matched_pathspec = CString::from_slice(c_str_to_bytes(&matched_pathspec));
         let payload = payload as *mut &mut IndexMatchedPath;
-        (*payload)(path.as_bytes_no_nul(),
-                   matched_pathspec.as_bytes_no_nul()) as libc::c_int
+        (*payload)(path.as_bytes(),
+                   matched_pathspec.as_bytes()) as libc::c_int
     }
 }
 
@@ -444,7 +447,7 @@ impl IndexEntry {
             id: Oid::from_raw(&id),
             flags: flags as u16,
             flags_extended: flags_extended as u16,
-            path: CString::new(path, false).clone(),
+            path: CString::from_slice(c_str_to_bytes(&path)).clone(),
             mtime: IndexTime::from_raw(&mtime),
             ctime: IndexTime::from_raw(&ctime),
         }

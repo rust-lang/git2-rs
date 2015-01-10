@@ -1,6 +1,6 @@
-use std::c_str::ToCStr;
 use std::str;
-use std::kinds::marker;
+use std::marker;
+use std::ffi::CString;
 use libc;
 
 use {raw, Error, Time};
@@ -25,8 +25,8 @@ impl<'a> Signature<'a> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
         unsafe {
-            try_call!(raw::git_signature_now(&mut ret, name.to_c_str(),
-                                             email.to_c_str()));
+            try_call!(raw::git_signature_now(&mut ret, CString::from_slice(name.as_bytes()),
+                                             CString::from_slice(email.as_bytes())));
             Ok(Signature::from_raw(ret))
         }
     }
@@ -42,8 +42,8 @@ impl<'a> Signature<'a> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
         unsafe {
-            try_call!(raw::git_signature_new(&mut ret, name.to_c_str(),
-                                             email.to_c_str(),
+            try_call!(raw::git_signature_new(&mut ret, CString::from_slice(name.as_bytes()),
+                                             CString::from_slice(email.as_bytes()),
                                              time as raw::git_time_t,
                                              offset as libc::c_int));
             Ok(Signature::from_raw(ret))

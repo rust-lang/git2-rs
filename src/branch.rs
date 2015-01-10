@@ -1,5 +1,5 @@
-use std::c_str::ToCStr;
-use std::kinds::marker;
+use std::ffi::CString;
+use std::marker;
 use std::str;
 use libc;
 
@@ -49,11 +49,11 @@ impl<'repo> Branch<'repo> {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
-                                           new_branch_name.to_c_str(),
+                                           CString::from_slice(new_branch_name.as_bytes()),
                                            force,
                                            &*signature.map(|s| s.raw())
                                                       .unwrap_or(0 as *mut _),
-                                           log_message.to_c_str()));
+                                           CString::from_slice(log_message.as_bytes())));
             Ok(Branch::wrap(Reference::from_raw(ret)))
         }
     }
@@ -90,7 +90,7 @@ impl<'repo> Branch<'repo> {
     /// provided is the name of the branch to set as upstream.
     pub fn set_upstream(&mut self,
                         upstream_name: Option<&str>) -> Result<(), Error> {
-        let upstream_name = upstream_name.map(|s| s.to_c_str());
+        let upstream_name = upstream_name.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
             try_call!(raw::git_branch_set_upstream(self.get().raw(),
                                                    upstream_name));

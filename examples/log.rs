@@ -14,6 +14,7 @@
 
 #![feature(macro_rules)]
 #![deny(warnings)]
+#![allow(unstable)]
 
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate docopt;

@@ -1,7 +1,8 @@
-use std::c_str::CString;
-use std::kinds::marker;
+use std::ffi::c_str_to_bytes;
+use std::marker;
 use std::mem;
 use std::slice;
+use std::str;
 use libc::{c_void, c_int, c_char, c_uint};
 
 use {raw, panic, Error, Cred, CredentialType, Oid};
@@ -203,20 +204,19 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             None => return raw::GIT_PASSTHROUGH as c_int,
         };
         *ret = 0 as *mut raw::git_cred;
-        let url = CString::new(url, false);
-        let url = match url.as_str()  {
-            Some(url) => url,
-            None => return raw::GIT_PASSTHROUGH as c_int,
+        let url = match str::from_utf8(c_str_to_bytes(&url))  {
+            Ok(url) => url,
+            Err(_) => return raw::GIT_PASSTHROUGH as c_int,
         };
         let username_from_url = if username_from_url.is_null() {
             None
         } else {
-            Some(CString::new(username_from_url, false))
+            Some(c_str_to_bytes(&username_from_url))
         };
         let username_from_url = match username_from_url {
-            Some(ref username) => match username.as_str() {
-                Some(s) => Some(s),
-                None => return raw::GIT_PASSTHROUGH as c_int,
+            Some(username) => match str::from_utf8(username) {
+                Ok(s) => Some(s),
+                Err(_) => return raw::GIT_PASSTHROUGH as c_int,
             },
             None => None,
         };
@@ -286,8 +286,7 @@ extern fn update_tips_cb(refname: *const c_char,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let refname = CString::new(refname, false);
-        let refname = refname.as_str().unwrap();
+        let refname = str::from_utf8(c_str_to_bytes(&refname)).ok().unwrap();
         let a = Oid::from_raw(a);
         let b = Oid::from_raw(b);
         let ok = panic::wrap(|| {

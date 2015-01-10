@@ -1,5 +1,6 @@
-use std::c_str::{CString, ToCStr};
-use std::kinds::marker;
+use std::ffi::{CString, c_str_to_bytes};
+use std::marker;
+use std::str;
 use libc;
 
 use {raw, Error, Signature};
@@ -40,7 +41,7 @@ impl<'remote> Push<'remote> {
     /// Add a refspec to be pushed
     pub fn add_refspec(&mut self, refspec: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_push_add_refspec(self.raw, refspec.to_c_str()));
+            try_call!(raw::git_push_add_refspec(self.raw, CString::from_slice(refspec.as_bytes())));
             Ok(())
         }
     }
@@ -64,7 +65,7 @@ impl<'remote> Push<'remote> {
         unsafe {
             try_call!(raw::git_push_update_tips(self.raw,
                                                 signature.map(|s| &*s.raw()),
-                                                reflog_message.map(|s| s.to_c_str())));
+                                                reflog_message.map(|s| CString::from_slice(s.as_bytes()))));
             Ok(())
         }
     }
@@ -83,14 +84,14 @@ impl<'remote> Push<'remote> {
                      msg: *const libc::c_char,
                      data: *mut libc::c_void) -> libc::c_int {
             unsafe {
-                let git_ref = match CString::new(git_ref, false).as_str() {
-                    Some(s) => s.to_string(),
-                    None => return 0,
+                let git_ref = match str::from_utf8(c_str_to_bytes(&git_ref)) {
+                    Ok(s) => s.to_string(),
+                    Err(_) => return 0,
                 };
                 let msg = if !msg.is_null() {
-                    match CString::new(msg, false).as_str() {
-                        Some(s) => Some(s.to_string()),
-                        None => return 0,
+                    match str::from_utf8(c_str_to_bytes(&msg)) {
+                        Ok(s) => Some(s.to_string()),
+                        Err(_) => return 0,
                     }
                 } else {
                     None

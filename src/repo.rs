@@ -1,5 +1,5 @@
-use std::c_str::{CString, ToCStr};
-use std::kinds::marker;
+use std::ffi::{CString, c_str_to_bytes};
+use std::marker;
 use std::mem;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
@@ -46,7 +46,7 @@ impl Repository {
         init();
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
-            try_call!(raw::git_repository_open(&mut ret, path.to_c_str()));
+            try_call!(raw::git_repository_open(&mut ret, CString::from_slice(path.as_vec())));
         }
         Ok(unsafe { Repository::from_raw(ret) })
     }
@@ -60,7 +60,7 @@ impl Repository {
         unsafe {
             let mut raw: raw::git_buf = mem::zeroed();
             try_call!(raw::git_repository_discover(&mut raw,
-                                                   path.to_c_str(),
+                                                   CString::from_slice(path.as_vec()),
                                                    1i32,
                                                    0 as *const c_char));
             let buf = Buf::from_raw(raw);
@@ -94,7 +94,7 @@ impl Repository {
         unsafe {
             let mut opts = opts.raw();
             try_call!(raw::git_repository_init_ext(&mut ret,
-                                                   path.to_c_str(),
+                                                   CString::from_slice(path.as_vec()),
                                                    &mut opts));
         }
         Ok(unsafe { Repository::from_raw(ret) })
@@ -130,7 +130,7 @@ impl Repository {
             flags: 0,
         };
         unsafe {
-            try_call!(raw::git_revparse(&mut raw, self.raw, spec.to_c_str()));
+            try_call!(raw::git_revparse(&mut raw, self.raw, CString::from_slice(spec.as_bytes())));
         }
 
         let to = if raw.to.is_null() {
@@ -152,7 +152,7 @@ impl Repository {
         let mut obj = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_revparse_single(&mut obj, self.raw,
-                                               spec.to_c_str()));
+                                               CString::from_slice(spec.as_bytes())));
         }
         assert!(!obj.is_null());
         Ok(unsafe { Object::from_raw(obj) })
@@ -182,7 +182,7 @@ impl Repository {
         unsafe {
             let ptr = raw::git_repository_path(self.raw);
             assert!(!ptr.is_null());
-            Path::new(CString::new(ptr, false).as_bytes_no_nul())
+            Path::new(CString::from_slice(c_str_to_bytes(&ptr)))
         }
     }
 
@@ -221,7 +221,7 @@ impl Repository {
             if ptr.is_null() {
                 None
             } else {
-                Some(Path::new(CString::new(ptr, false).as_bytes_no_nul()))
+                Some(Path::new(CString::from_slice(c_str_to_bytes(&ptr))))
             }
         }
     }
@@ -258,7 +258,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_remote;
         unsafe {
             try_call!(raw::git_remote_lookup(&mut ret, self.raw,
-                                             name.to_c_str()));
+                                             CString::from_slice(name.as_bytes())));
             Ok(Remote::from_raw(ret))
         }
     }
@@ -269,7 +269,8 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_remote;
         unsafe {
             try_call!(raw::git_remote_create(&mut ret, self.raw,
-                                             name.to_c_str(), url.to_c_str()));
+                                             CString::from_slice(name.as_bytes()),
+                                             CString::from_slice(url.as_bytes())));
             Ok(Remote::from_raw(ret))
         }
     }
@@ -283,10 +284,10 @@ impl Repository {
                             url: &str,
                             fetch: Option<&str>) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let fetch = fetch.map(|t| t.to_c_str());
+        let fetch = fetch.map(|t| CString::from_slice(t.as_bytes()));
         unsafe {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw,
-                                                       url.to_c_str(),
+                                                       CString::from_slice(url.as_bytes()),
                                                        fetch));
             Ok(Remote::from_raw(ret))
         }
@@ -307,8 +308,8 @@ impl Repository {
         unsafe {
             try_call!(raw::git_remote_rename(&mut problems,
                                              self.raw,
-                                             name.to_c_str(),
-                                             new_name.to_c_str()));
+                                             CString::from_slice(name.as_bytes()),
+                                             CString::from_slice(new_name.as_bytes())));
             let _s = StringArray::from_raw(problems);
         }
         Ok(())
@@ -319,7 +320,7 @@ impl Repository {
     /// All remote-tracking branches and configuration settings for the remote
     /// will be removed.
     pub fn remote_delete(&self, name: &str) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_remote_delete(self.raw, name.to_c_str())); }
+        unsafe { try_call!(raw::git_remote_delete(self.raw, CString::from_slice(name.as_bytes()))); }
         Ok(())
     }
 
@@ -345,7 +346,7 @@ impl Repository {
                                      // FIXME: expose git_checkout_options_t
                                      0 as *mut _,
                                      sig.map(|s| s.raw()).unwrap_or(0 as *mut _),
-                                     msg.map(|s| s.to_c_str())));
+                                     msg.map(|s| CString::from_slice(s.as_bytes()))));
         }
         Ok(())
     }
@@ -358,11 +359,12 @@ impl Repository {
     /// Passing a `None` target will result in removing entries in the index
     /// matching the provided pathspecs.
     pub fn reset_default<'a,
-                         T: ToCStr,
+                         T: Str,
                          I: Iterator<Item=T>>(&'a self,
                                               target: Option<&Object<'a>>,
                                               paths: I) -> Result<(), Error> {
-        let v = paths.map(|t| t.to_c_str()).collect::<Vec<CString>>();
+        let v = paths.map(|t| CString::from_slice(t.as_slice().as_bytes()))
+                     .collect::<Vec<CString>>();
         let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const c_char>>();
         let mut arr = raw::git_strarray {
             strings: v2.as_ptr() as *mut _,
@@ -400,7 +402,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_reference_iterator;
         unsafe {
             try_call!(raw::git_reference_iterator_glob_new(&mut ret, self.raw,
-                                                           glob.to_c_str()));
+                                                           CString::from_slice(glob.as_bytes())));
             Ok(References::from_raw(ret))
         }
     }
@@ -469,7 +471,7 @@ impl Repository {
         let mut ret = 0 as c_int;
         unsafe {
             try_call!(raw::git_status_should_ignore(&mut ret, self.raw,
-                                                    path.to_c_str()));
+                                                    CString::from_slice(path.as_vec())));
         }
         Ok(ret != 0)
     }
@@ -494,7 +496,7 @@ impl Repository {
         let mut ret = 0 as c_uint;
         unsafe {
             try_call!(raw::git_status_file(&mut ret, self.raw,
-                                           path.to_c_str()));
+                                           CString::from_slice(path.as_vec())));
         }
         Ok(Status::from_bits_truncate(ret as u32))
     }
@@ -558,7 +560,7 @@ impl Repository {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
-                                                    path.to_c_str()));
+                                                    CString::from_slice(path.as_vec())));
             Ok(Oid::from_raw(&raw))
         }
     }
@@ -587,12 +589,12 @@ impl Repository {
         unsafe {
             try_call!(raw::git_branch_create(&mut raw,
                                              self.raw(),
-                                             branch_name.to_c_str(),
+                                             CString::from_slice(branch_name.as_bytes()),
                                              &*target.raw(),
                                              force,
                                              &*signature.map(|s| s.raw())
                                                         .unwrap_or(0 as *mut _),
-                                             log_message.map(|s| s.to_c_str())));
+                                             log_message.map(|s| CString::from_slice(s.as_bytes()))));
             Ok(Branch::wrap(Reference::from_raw(raw)))
         }
     }
@@ -603,7 +605,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_lookup(&mut ret, self.raw(),
-                                             name.to_c_str(), branch_type));
+                                             CString::from_slice(name.as_bytes()), branch_type));
             Ok(Branch::wrap(Reference::from_raw(ret)))
         }
     }
@@ -630,11 +632,11 @@ impl Repository {
         unsafe {
             try_call!(raw::git_commit_create(&mut raw,
                                              self.raw(),
-                                             update_ref.map(|s| s.to_c_str()),
+                                             update_ref.map(|s| CString::from_slice(s.as_bytes())),
                                              &*author.raw(),
                                              &*committer.raw(),
                                              0 as *const c_char,
-                                             message.to_c_str(),
+                                             CString::from_slice(message.as_bytes()),
                                              &*tree.raw(),
                                              parents.len() as size_t,
                                              parent_ptrs.as_ptr()));
@@ -674,11 +676,11 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_create(&mut raw, self.raw(),
-                                                name.to_c_str(),
+                                                CString::from_slice(name.as_bytes()),
                                                 &*id.raw(), force,
                                                 &*sig.map(|s| s.raw())
                                                      .unwrap_or(0 as *mut _),
-                                                log_message.to_c_str()));
+                                                CString::from_slice(log_message.as_bytes())));
             Ok(Reference::from_raw(raw))
         }
     }
@@ -695,12 +697,12 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_symbolic_create(&mut raw, self.raw(),
-                                                         name.to_c_str(),
-                                                         target.to_c_str(),
+                                                         CString::from_slice(name.as_bytes()),
+                                                         CString::from_slice(target.as_bytes()),
                                                          force,
                                                          &*sig.map(|s| s.raw())
                                                               .unwrap_or(0 as *mut _),
-                                                         log_message.to_c_str()));
+                                                         CString::from_slice(log_message.as_bytes())));
             Ok(Reference::from_raw(raw))
         }
     }
@@ -710,7 +712,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_lookup(&mut raw, self.raw(),
-                                                name.to_c_str()));
+                                                CString::from_slice(name.as_bytes())));
             Ok(Reference::from_raw(raw))
         }
     }
@@ -724,7 +726,7 @@ impl Repository {
         let mut ret: raw::git_oid = unsafe { mem::zeroed() };
         unsafe {
             try_call!(raw::git_reference_name_to_id(&mut ret, self.raw(),
-                                                    name.to_c_str()));
+                                                    CString::from_slice(name.as_bytes())));
             Ok(Oid::from_raw(&ret))
         }
     }
@@ -760,8 +762,8 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_submodule;
         unsafe {
             try_call!(raw::git_submodule_add_setup(&mut raw, self.raw(),
-                                                   url.to_c_str(),
-                                                   path.to_c_str(),
+                                                   CString::from_slice(url.as_bytes()),
+                                                   CString::from_slice(path.as_vec()),
                                                    use_gitlink));
             Ok(Submodule::from_raw(raw))
         }
@@ -775,7 +777,7 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_submodule;
         unsafe {
             try_call!(raw::git_submodule_lookup(&mut raw, self.raw(),
-                                                name.to_c_str()));
+                                                CString::from_slice(name.as_bytes())));
             Ok(Submodule::from_raw(raw))
         }
     }
@@ -805,9 +807,9 @@ impl Repository {
                    force: bool) -> Result<Oid, Error> {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
-            try_call!(raw::git_tag_create(&mut raw, self.raw, name.to_c_str(),
+            try_call!(raw::git_tag_create(&mut raw, self.raw, CString::from_slice(name.as_bytes()),
                                           &*target.raw(), &*tagger.raw(),
-                                          message.to_c_str(), force));
+                                          CString::from_slice(message.as_bytes()), force));
             Ok(Oid::from_raw(&raw))
         }
     }
@@ -827,7 +829,7 @@ impl Repository {
     /// about valid names.
     pub fn tag_delete(&self, name: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_tag_delete(self.raw, name.to_c_str()));
+            try_call!(raw::git_tag_delete(self.raw, CString::from_slice(name.as_bytes())));
             Ok(())
         }
     }
@@ -843,7 +845,7 @@ impl Repository {
         unsafe {
             match pattern {
                 Some(s) => {
-                    try_call!(raw::git_tag_list_match(&mut arr, s.to_c_str(),
+                    try_call!(raw::git_tag_list_match(&mut arr, CString::from_slice(s.as_bytes()),
                                                       self.raw));
                 }
                 None => { try_call!(raw::git_tag_list(&mut arr, self.raw)); }
@@ -928,11 +930,11 @@ impl Repository {
         unsafe {
             try_call!(raw::git_note_create(&mut ret,
                                            self.raw,
-                                           notes_ref.map(|s| s.to_c_str()),
+                                           notes_ref.map(|s| CString::from_slice(s.as_bytes())),
                                            &*author.raw(),
                                            &*committer.raw(),
                                            &*oid.raw(),
-                                           note.to_c_str(),
+                                           CString::from_slice(note.as_bytes()),
                                            force));
             Ok(Oid::from_raw(&ret))
         }
@@ -959,7 +961,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_note_iterator;
         unsafe {
             try_call!(raw::git_note_iterator_new(&mut ret, self.raw,
-                                                 notes_ref.map(|s| s.to_c_str())));
+                                                 notes_ref.map(|s| CString::from_slice(s.as_bytes()))));
             Ok(Notes::from_raw(ret))
         }
     }
@@ -975,7 +977,7 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_note;
         unsafe {
             try_call!(raw::git_note_read(&mut ret, self.raw,
-                                         notes_ref.map(|s| s.to_c_str()),
+                                         notes_ref.map(|s| CString::from_slice(s.as_bytes())),
                                          &*id.raw()));
             Ok(Note::from_raw(ret))
         }
@@ -994,7 +996,7 @@ impl Repository {
                        committer: &Signature) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_note_remove(self.raw,
-                                           notes_ref.map(|s| s.to_c_str()),
+                                           notes_ref.map(|s| CString::from_slice(s.as_bytes())),
                                            &*author.raw(),
                                            &*committer.raw(),
                                            &*id.raw()));
@@ -1152,14 +1154,14 @@ impl RepositoryInitOptions {
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
     pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
-        self.workdir_path = Some(path.to_c_str());
+        self.workdir_path = Some(CString::from_slice(path.as_vec()));
         self
     }
 
     /// If set, this will be used to initialize the "description" file in the
     /// repository instead of using the template content.
     pub fn description(&mut self, desc: &str) -> &mut RepositoryInitOptions {
-        self.description = Some(desc.to_c_str());
+        self.description = Some(CString::from_slice(desc.as_bytes()));
         self
     }
 
@@ -1169,7 +1171,7 @@ impl RepositoryInitOptions {
     /// If this is not configured, then the default locations will be searched
     /// instead.
     pub fn template_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
-        self.template_path = Some(path.to_c_str());
+        self.template_path = Some(CString::from_slice(path.as_vec()));
         self
     }
 
@@ -1179,14 +1181,14 @@ impl RepositoryInitOptions {
     /// will be set to `refs/heads/master`. If this begins with `refs/` it will
     /// be used verbatim; otherwise `refs/heads/` will be prefixed
     pub fn initial_head(&mut self, head: &str) -> &mut RepositoryInitOptions {
-        self.initial_head = Some(head.to_c_str());
+        self.initial_head = Some(CString::from_slice(head.as_bytes()));
         self
     }
 
     /// If set, then after the rest of the repository initialization is
     /// completed an `origin` remote will be added pointing to this URL.
     pub fn origin_url(&mut self, url: &str) -> &mut RepositoryInitOptions {
-        self.origin_url = Some(url.to_c_str());
+        self.origin_url = Some(CString::from_slice(url.as_bytes()));
         self
     }
 

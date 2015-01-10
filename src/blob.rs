@@ -1,4 +1,4 @@
-use std::kinds::marker;
+use std::marker;
 use std::mem;
 use std::raw as stdraw;
 

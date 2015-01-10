@@ -1,8 +1,8 @@
-use std::c_str::ToCStr;
 use std::cmp::Ordering;
 use std::io;
-use std::kinds::marker;
+use std::marker;
 use std::str;
+use std::ffi::CString;
 use libc;
 
 use {raw, Oid, Repository, Error, Object, ObjectType};
@@ -77,7 +77,7 @@ impl<'repo> Tree<'repo> {
     pub fn get_name(&self, filename: &str) -> Option<TreeEntry> {
         unsafe {
             let ptr = call!(raw::git_tree_entry_byname(&*self.raw(),
-                                                       filename.to_c_str()));
+                                                       CString::from_slice(filename.as_bytes())));
             if ptr.is_null() {
                 None
             } else {
@@ -93,7 +93,7 @@ impl<'repo> Tree<'repo> {
         unsafe {
             try_call!(raw::git_tree_entry_bypath(&mut ret,
                                                  &*self.raw(),
-                                                 path.to_c_str()));
+                                                 CString::from_slice(path.as_vec())));
             Ok(TreeEntry::from_raw(ret))
         }
     }
