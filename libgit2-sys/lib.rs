@@ -1,4 +1,3 @@
-#![feature(globs, phase)]
 #![allow(non_camel_case_types, missing_copy_implementations)]
 
 extern crate libc;
