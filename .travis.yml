@@ -2,7 +2,6 @@ language: rust
 script:
   - cargo build --verbose
   - cargo test --verbose
-  - rustdoc --test README.md -L target
   - cargo doc
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
