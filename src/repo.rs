@@ -292,8 +292,15 @@ impl Repository {
     /// are updated.
     ///
     /// A temporary in-memory remote cannot be given a name with this method.
+    ///
+    /// No loaded instances of the remote with the old name will change their
+    /// name or their list of refspecs.
+    ///
+    /// The returned array of strings is a list of the non-default refspecs
+    /// which cannot be renamed and are returned for further processing by the
+    /// caller.
     pub fn remote_rename(&self, name: &str,
-                         new_name: &str) -> Result<(), Error> {
+                         new_name: &str) -> Result<StringArray, Error> {
         let name = CString::from_slice(name.as_bytes());
         let new_name = CString::from_slice(new_name.as_bytes());
         let mut problems = raw::git_strarray {
@@ -303,10 +310,8 @@ impl Repository {
         unsafe {
             try_call!(raw::git_remote_rename(&mut problems, self.raw, name,
                                              new_name));
-            // TODO: return this array of errors?
-            let _s: StringArray = Binding::from_raw(problems);
+            Ok(Binding::from_raw(problems))
         }
-        Ok(())
     }
 
     /// Delete an existing persisted remote.
