@@ -270,7 +270,7 @@ impl Diff {
         }
     }
 
-    // TODO: num_deltas_of_type, foreach, format_email
+    // TODO: num_deltas_of_type, foreach, format_email, find_similar
 }
 
 impl Binding for Diff {
