@@ -214,6 +214,7 @@ impl Config {
     /// # Example
     ///
     /// ```
+    /// # #![allow(unstable)]
     /// use git2::Config;
     ///
     /// let cfg = Config::new().unwrap();

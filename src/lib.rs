@@ -23,6 +23,7 @@
 //! already exist.
 //!
 //! ```no_run
+//! # #![allow(unstable)]
 //! use git2::Repository;
 //!
 //! let path = Path::new("/path/to/a/repo");
@@ -35,6 +36,7 @@
 //! ### Opening an existing repository
 //!
 //! ```no_run
+//! # #![allow(unstable)]
 //! use git2::Repository;
 //!
 //! let path = Path::new("/path/to/a/repo");
@@ -47,6 +49,7 @@
 //! ### Cloning an existing repository
 //!
 //! ```no_run
+//! # #![allow(unstable)]
 //! use git2::Repository;
 //!
 //! let url = "https://github.com/alexcrichton/git2-rs";
