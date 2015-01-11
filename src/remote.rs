@@ -194,11 +194,14 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// The .idx file will be created and both it and the packfile with be
     /// renamed to their final name.
-    pub fn download(&mut self) -> Result<(), Error> {
+    ///
+    /// The `specs` argument is a list of refspecs to use for this negotiation
+    /// and download. Use an empty array to use the base refspecs.
+    pub fn download(&mut self, specs: &[&str]) -> Result<(), Error> {
+        let (_a, _b, arr) = ::util::iter2cstrs(specs.iter());
         unsafe {
             try!(self.set_raw_callbacks());
-            // TODO expose refspec array at the API level
-            try_call!(raw::git_remote_download(self.raw, 0 as *const _));
+            try_call!(raw::git_remote_download(self.raw, &arr));
         }
         Ok(())
     }
@@ -452,7 +455,7 @@ mod tests {
 
         origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
-        origin.download().unwrap();
+        origin.download(&[]).unwrap();
         origin.disconnect();
 
         origin.save().unwrap();

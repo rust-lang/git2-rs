@@ -85,7 +85,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // Download the packfile and index it. This function updates the amount of
     // received data and the indexer stats which lets you inform the user about
     // progress.
-    try!(remote.download());
+    try!(remote.download(&[]));
 
     {
         // If there are local objects (we got a thin pack), then tell the user
