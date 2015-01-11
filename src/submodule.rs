@@ -1,7 +1,8 @@
-use std::str;
 use std::marker;
+use std::str;
 
 use {raw, Oid, Repository, Error, SubmoduleStatus};
+use util::Binding;
 
 /// A structure to represent a git [submodule][1]
 ///
@@ -12,17 +13,6 @@ pub struct Submodule<'repo> {
 }
 
 impl<'repo> Submodule<'repo> {
-    /// Create a new object from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
-        Submodule {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the submodule's branch.
     ///
     /// Returns `None` if the branch is not valid utf-8 or if the branch is not
@@ -79,7 +69,7 @@ impl<'repo> Submodule<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(Oid::from_raw(ptr))
+                Some(Binding::from_raw(ptr))
             }
         }
     }
@@ -91,7 +81,7 @@ impl<'repo> Submodule<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(Oid::from_raw(ptr))
+                Some(Binding::from_raw(ptr))
             }
         }
     }
@@ -107,7 +97,7 @@ impl<'repo> Submodule<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(Oid::from_raw(ptr))
+                Some(Binding::from_raw(ptr))
             }
         }
     }
@@ -136,12 +126,9 @@ impl<'repo> Submodule<'repo> {
         let mut raw = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_submodule_open(&mut raw, self.raw));
+            Ok(Binding::from_raw(raw))
         }
-        Ok(unsafe { Repository::from_raw(raw) })
     }
-
-    /// Access the underlying raw git submodule pointer.
-    pub fn raw(&self) -> *mut raw::git_submodule { self.raw }
 
     /// Reread submodule info from config, index, and HEAD.
     ///
@@ -212,6 +199,17 @@ impl<'repo> Submodule<'repo> {
         unsafe { try_call!(raw::git_submodule_status(&mut ret, self.raw)); }
         Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
     }
+}
+
+impl<'repo> Binding for Submodule<'repo> {
+    type Raw = *mut raw::git_submodule;
+    unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
+        Submodule {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_submodule { self.raw }
 }
 
 #[unsafe_destructor]

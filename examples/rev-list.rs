@@ -13,7 +13,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(slicing_syntax)]
 #![deny(warnings)]
 #![allow(unstable)]
 

@@ -1,9 +1,11 @@
-use std::str;
-use std::marker;
 use std::ffi::CString;
+use std::marker;
+use std::mem;
+use std::str;
 use libc;
 
 use {raw, Error, Time};
+use util::Binding;
 
 /// A Signature is used to indicate authorship of various actions throughout the
 /// library.
@@ -24,10 +26,11 @@ impl<'a> Signature<'a> {
     pub fn now(name: &str, email: &str) -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
+        let name = CString::from_slice(name.as_bytes());
+        let email = CString::from_slice(email.as_bytes());
         unsafe {
-            try_call!(raw::git_signature_now(&mut ret, CString::from_slice(name.as_bytes()),
-                                             CString::from_slice(email.as_bytes())));
-            Ok(Signature::from_raw(ret))
+            try_call!(raw::git_signature_now(&mut ret, name, email));
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -37,42 +40,17 @@ impl<'a> Signature<'a> {
     /// the time zone offset in minutes.
     ///
     /// Returns error if either `name` or `email` contain angle brackets.
-    pub fn new(name: &str, email: &str, time: u64,
-               offset: int) -> Result<Signature<'static>, Error> {
+    pub fn new(name: &str, email: &str, time: &Time)
+               -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
+        let name = CString::from_slice(name.as_bytes());
+        let email = CString::from_slice(email.as_bytes());
         unsafe {
-            try_call!(raw::git_signature_new(&mut ret, CString::from_slice(name.as_bytes()),
-                                             CString::from_slice(email.as_bytes()),
-                                             time as raw::git_time_t,
-                                             offset as libc::c_int));
-            Ok(Signature::from_raw(ret))
-        }
-    }
-
-    /// Consumes ownership of a raw signature pointer
-    ///
-    /// This function is unsafe as the pointer is not guranteed to be valid.
-    pub unsafe fn from_raw(raw: *mut raw::git_signature) -> Signature<'static> {
-        Signature {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-            owned: true,
-        }
-    }
-
-    /// Creates a new signature from the give raw pointer, tied to the lifetime
-    /// of the given object.
-    ///
-    /// This function is unsafe as there is no guarantee that `raw` is valid for
-    /// `'a` nor if it's a valid pointer.
-    pub unsafe fn from_raw_const<'b, T>(_lt: &'b T,
-                                        raw: *const raw::git_signature)
-                                        -> Signature<'b> {
-        Signature {
-            raw: raw as *mut raw::git_signature,
-            marker: marker::ContravariantLifetime,
-            owned: false,
+            try_call!(raw::git_signature_new(&mut ret, name, email,
+                                             time.seconds() as raw::git_time_t,
+                                             time.offset_minutes() as libc::c_int));
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -102,19 +80,54 @@ impl<'a> Signature<'a> {
 
     /// Get the `when` of this signature.
     pub fn when(&self) -> Time {
-        unsafe { Time::from_raw(&(*self.raw).when) }
+        unsafe { Binding::from_raw((*self.raw).when) }
     }
 
-    /// Get access to the underlying raw signature
-    pub fn raw(&self) -> *mut raw::git_signature { self.raw }
+    /// Convert a signature of any lifetime into an owned signature with a
+    /// static lifetime.
+    pub fn to_owned(&self) -> Signature<'static> {
+        unsafe {
+            let me = mem::transmute::<&Signature<'a>, &Signature<'static>>(self);
+            me.clone()
+        }
+    }
+}
+
+impl<'a> Binding for Signature<'a> {
+    type Raw = *mut raw::git_signature;
+    unsafe fn from_raw(raw: *mut raw::git_signature) -> Signature<'a> {
+        Signature {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+            owned: true,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_signature { self.raw }
+}
+
+/// Creates a new signature from the give raw pointer, tied to the lifetime
+/// of the given object.
+///
+/// This function is unsafe as there is no guarantee that `raw` is valid for
+/// `'a` nor if it's a valid pointer.
+pub unsafe fn from_raw_const<'b, T>(_lt: &'b T,
+                                    raw: *const raw::git_signature)
+                                    -> Signature<'b> {
+    Signature {
+        raw: raw as *mut raw::git_signature,
+        marker: marker::ContravariantLifetime,
+        owned: false,
+    }
 }
 
 impl Clone for Signature<'static> {
     fn clone(&self) -> Signature<'static> {
+        // TODO: can this be defined for 'a and just do a plain old copy if the
+        //       lifetime isn't static?
         let mut raw = 0 as *mut raw::git_signature;
         let rc = unsafe { raw::git_signature_dup(&mut raw, &*self.raw) };
         assert_eq!(rc, 0);
-        unsafe { Signature::from_raw(raw) }
+        unsafe { Binding::from_raw(raw) }
     }
 }
 
@@ -129,13 +142,13 @@ impl<'a> Drop for Signature<'a> {
 
 #[cfg(test)]
 mod tests {
-    use Signature;
+    use {Signature, Time};
 
     #[test]
     fn smoke() {
-        Signature::new("foo", "bar", 89, 0).unwrap();
+        Signature::new("foo", "bar", &Time::new(89, 0)).unwrap();
         Signature::now("foo", "bar").unwrap();
-        assert!(Signature::new("<foo>", "bar", 89, 0).is_err());
+        assert!(Signature::new("<foo>", "bar", &Time::new(89, 0)).is_err());
         assert!(Signature::now("<foo>", "bar").is_err());
 
         let s = Signature::now("foo", "bar").unwrap();

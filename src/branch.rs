@@ -4,6 +4,7 @@ use std::str;
 use libc;
 
 use {raw, Error, Reference, Signature, BranchType};
+use util::Binding;
 
 /// A structure to represent a git [branch][1]
 ///
@@ -47,14 +48,14 @@ impl<'repo> Branch<'repo> {
                   signature: Option<&Signature>,
                   log_message: &str) -> Result<Branch<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_reference;
+        let new_branch_name = CString::from_slice(new_branch_name.as_bytes());
+        let log_message = CString::from_slice(log_message.as_bytes());
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
-                                           CString::from_slice(new_branch_name.as_bytes()),
-                                           force,
-                                           &*signature.map(|s| s.raw())
-                                                      .unwrap_or(0 as *mut _),
-                                           CString::from_slice(log_message.as_bytes())));
-            Ok(Branch::wrap(Reference::from_raw(ret)))
+                                           new_branch_name, force,
+                                           signature.map(|s| s.raw()),
+                                           log_message));
+            Ok(Branch::wrap(Binding::from_raw(ret)))
         }
     }
 
@@ -80,7 +81,7 @@ impl<'repo> Branch<'repo> {
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_upstream(&mut ret, &*self.get().raw()));
-            Ok(Branch::wrap(Reference::from_raw(ret)))
+            Ok(Branch::wrap(Binding::from_raw(ret)))
         }
     }
 
@@ -129,7 +130,7 @@ impl<'repo> Iterator for Branches<'repo> {
                 raw::GIT_BRANCH_REMOTE => BranchType::Remote,
                 raw::GIT_BRANCH_ALL => panic!("unexected branch type"),
             };
-            Some((Branch::wrap(Reference::from_raw(ret)), typ))
+            Some((Branch::wrap(Binding::from_raw(ret)), typ))
         }
     }
 }

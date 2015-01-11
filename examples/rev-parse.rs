@@ -32,7 +32,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let path = args.flag_git_dir.as_ref().map(Path::new).unwrap_or(Path::new("."));
     let repo = try!(Repository::open(&path));
 
-    let revspec = try!(repo.revparse(args.arg_spec.as_slice()));
+    let revspec = try!(repo.revparse(&args.arg_spec[]));
 
     if revspec.mode().contains(git2::REVPARSE_SINGLE) {
         println!("{}", revspec.from().unwrap().id());

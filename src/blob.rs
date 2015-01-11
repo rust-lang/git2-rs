@@ -1,8 +1,9 @@
 use std::marker;
 use std::mem;
-use std::raw as stdraw;
+use std::slice;
 
 use {raw, Oid};
+use util::Binding;
 
 /// A structure to represent a git [blob][1]
 ///
@@ -13,24 +14,10 @@ pub struct Blob<'repo> {
 }
 
 impl<'repo> Blob<'repo> {
-    /// Create a new object from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
-        Blob {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the id (SHA1) of a repository blob
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_blob_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_blob_id(&*self.raw)) }
     }
-
-    /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_blob { self.raw }
 
     /// Determine if the blob content is most certainly binary or not.
     pub fn is_binary(&self) -> bool {
@@ -40,13 +27,25 @@ impl<'repo> Blob<'repo> {
     /// Get the content of this blob.
     pub fn content(&self) -> &[u8] {
         unsafe {
-            mem::transmute(stdraw::Slice {
-                data: raw::git_blob_rawcontent(&*self.raw) as *const u8,
-                len: raw::git_blob_rawsize(&*self.raw) as uint,
-            })
+            let data = raw::git_blob_rawcontent(&*self.raw) as *const u8;
+            let len = raw::git_blob_rawsize(&*self.raw) as usize;
+            slice::from_raw_buf(mem::copy_lifetime(self, &data), len)
         }
     }
 }
+
+impl<'repo> Binding for Blob<'repo> {
+    type Raw = *mut raw::git_blob;
+
+    unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
+        Blob {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_blob { self.raw }
+}
+
 
 #[unsafe_destructor]
 impl<'repo> Drop for Blob<'repo> {

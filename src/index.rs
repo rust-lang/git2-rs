@@ -1,24 +1,23 @@
-use std::ffi::{CString, c_str_to_bytes};
+use std::ffi::{self, CString};
 use std::iter::Range;
-use std::marker;
-use std::mem;
+use std::path::BytesContainer;
 use std::path::PosixPath;
 
-use libc;
+use libc::{c_int, c_uint, size_t, c_void, c_char, c_ushort};
 
-use {raw, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
+use {raw, panic, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
+use util::Binding;
 
 /// A structure to represent a git [index][1]
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Index {
     raw: *mut raw::git_index,
-    marker: marker::NoSync,
 }
 
 /// An iterator over the entries in an index
 pub struct IndexEntries<'index> {
-    range: Range<uint>,
+    range: Range<usize>,
     index: &'index Index,
 }
 
@@ -27,7 +26,7 @@ pub struct IndexEntries<'index> {
 /// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
 /// path, and the second is the patchspec that matched it.  Return 0 to confirm
 /// the operation on the item, > 0 to skip the item, and < 0 to abort the scan.
-pub type IndexMatchedPath<'a> = FnMut(&[u8], &[u8]) -> int + 'a;
+pub type IndexMatchedPath<'a> = FnMut(&[u8], &[u8]) -> i32 + 'a;
 
 /// A structure to represent an entry or a file inside of an index.
 ///
@@ -37,16 +36,16 @@ pub type IndexMatchedPath<'a> = FnMut(&[u8], &[u8]) -> int + 'a;
 pub struct IndexEntry {
     pub ctime: IndexTime,
     pub mtime: IndexTime,
-    pub dev: uint,
-    pub ino: uint,
-    pub mode: uint,
-    pub uid: uint,
-    pub gid: uint,
+    pub dev: u32,
+    pub ino: u32,
+    pub mode: u32,
+    pub uid: u32,
+    pub gid: u32,
     pub file_size: u64,
     pub id: Oid,
     pub flags: u16,
     pub flags_extended: u16,
-    pub path: CString,
+    pub path: Vec<u8>,
 }
 
 impl Index {
@@ -59,7 +58,7 @@ impl Index {
         let mut raw = 0 as *mut raw::git_index;
         unsafe {
             try_call!(raw::git_index_new(&mut raw));
-            Ok(Index::from_raw(raw))
+            Ok(Binding::from_raw(raw))
         }
     }
 
@@ -74,17 +73,11 @@ impl Index {
     pub fn open(index_path: &Path) -> Result<Index, Error> {
         ::init();
         let mut raw = 0 as *mut raw::git_index;
+        let index_path = CString::from_slice(index_path.as_vec());
         unsafe {
-            try_call!(raw::git_index_open(&mut raw, CString::from_slice(index_path.as_vec())));
-            Ok(Index::from_raw(raw))
+            try_call!(raw::git_index_open(&mut raw, index_path));
+            Ok(Binding::from_raw(raw))
         }
-    }
-
-    /// Creates a new index from a raw pointer.
-    ///
-    /// This function is unsafe as it cannot guarantee the validity of `raw`.
-    pub unsafe fn from_raw(raw: *mut raw::git_index) -> Index {
-        Index { raw: raw, marker: marker::NoSync }
     }
 
     /// Add or update an index entry from an in-memory struct
@@ -93,8 +86,7 @@ impl Index {
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
     pub fn add(&mut self, source_entry: &IndexEntry) -> Result<(), Error> {
-        let mut entry: raw::git_index_entry = unsafe { mem::zeroed() };
-        source_entry.configure(&mut entry);
+        let entry = source_entry.raw();
         unsafe {
             try_call!(raw::git_index_add(self.raw, &entry));
             Ok(())
@@ -120,8 +112,9 @@ impl Index {
         for comp in path.components() {
             posix_path.push(comp);
         }
+        let posix_path = CString::from_slice(posix_path.as_vec());
         unsafe {
-            try_call!(raw::git_index_add_bypath(self.raw, CString::from_slice(posix_path.as_vec())));
+            try_call!(raw::git_index_add_bypath(self.raw, posix_path));
             Ok(())
         }
     }
@@ -159,37 +152,29 @@ impl Index {
     /// updated in the index. Returning zero will add the item to the index,
     /// greater than zero will skip the item, and less than zero will abort the
     /// scan an return an error to the caller.
-    pub fn add_all<T: Str>(&mut self,
-                              pathspecs: &[T],
-                              flag: IndexAddOption,
-                              mut cb: Option<&mut IndexMatchedPath>)
-                              -> Result<(), Error> {
-        let arr = pathspecs.iter().map(|t| CString::from_slice(t.as_slice().as_bytes()))
-                           .collect::<Vec<CString>>();
-        let strarray = arr.iter().map(|c| c.as_ptr())
-                          .collect::<Vec<*const libc::c_char>>();
+    pub fn add_all<T, I>(&mut self,
+                         pathspecs: I,
+                         flag: IndexAddOption,
+                         mut cb: Option<&mut IndexMatchedPath>)
+                         -> Result<(), Error>
+        where T: BytesContainer, I: Iterator<Item=T>,
+    {
+        let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
         let ptr = cb.as_mut();
-        let raw_strarray = raw::git_strarray {
-            strings: strarray.as_ptr() as *mut _,
-            count: strarray.len() as libc::size_t,
-        };
         let callback = ptr.as_ref().map(|_| {
             index_matched_path_cb as raw::git_index_matched_path_cb
         });
         unsafe {
             try_call!(raw::git_index_add_all(self.raw,
                                              &raw_strarray,
-                                             flag.bits() as libc::c_uint,
+                                             flag.bits() as c_uint,
                                              callback,
                                              ptr.map(|p| p as *mut _)
                                                 .unwrap_or(0 as *mut _)
-                                                    as *mut libc::c_void));
+                                                    as *mut c_void));
         }
         return Ok(());
     }
-
-    /// Get access to the underlying raw index pointer.
-    pub fn raw(&self) -> *mut raw::git_index { self.raw }
 
     /// Clear the contents (all the entries) of an index object.
     ///
@@ -201,15 +186,15 @@ impl Index {
     }
 
     /// Get the count of entries currently in the index
-    pub fn len(&self) -> uint {
-        unsafe { raw::git_index_entrycount(&*self.raw) as uint }
+    pub fn len(&self) -> usize {
+        unsafe { raw::git_index_entrycount(&*self.raw) as usize }
     }
 
     /// Get one of the entries in the index by its position.
-    pub fn get(&self, n: uint) -> Option<IndexEntry> {
+    pub fn get(&self, n: usize) -> Option<IndexEntry> {
         unsafe {
-            let ptr = raw::git_index_get_byindex(self.raw, n as libc::size_t);
-            if ptr.is_null() {None} else {Some(IndexEntry::from_raw(ptr))}
+            let ptr = raw::git_index_get_byindex(self.raw, n as size_t);
+            if ptr.is_null() {None} else {Some(Binding::from_raw(*ptr))}
         }
     }
 
@@ -219,11 +204,12 @@ impl Index {
     }
 
     /// Get one of the entries in the index by its path.
-    pub fn get_path(&self, path: &Path, stage: int) -> Option<IndexEntry> {
+    pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
+        let path = CString::from_slice(path.as_vec());
         unsafe {
-            let ptr = call!(raw::git_index_get_bypath(self.raw, CString::from_slice(path.as_vec()),
-                                                      stage as libc::c_int));
-            if ptr.is_null() {None} else {Some(IndexEntry::from_raw(ptr))}
+            let ptr = call!(raw::git_index_get_bypath(self.raw, path,
+                                                      stage as c_int));
+            if ptr.is_null() {None} else {Some(Binding::from_raw(*ptr))}
         }
     }
 
@@ -261,10 +247,10 @@ impl Index {
     }
 
     /// Remove an entry from the index
-    pub fn remove(&mut self, path: &Path, stage: int) -> Result<(), Error> {
+    pub fn remove(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
+        let path = CString::from_slice(path.as_vec());
         unsafe {
-            try_call!(raw::git_index_remove(self.raw, CString::from_slice(path.as_vec()),
-                                            stage as libc::c_int));
+            try_call!(raw::git_index_remove(self.raw, path, stage as c_int));
         }
         Ok(())
     }
@@ -278,17 +264,19 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn remove_path(&mut self, path: &Path) -> Result<(), Error> {
+        let path = CString::from_slice(path.as_vec());
         unsafe {
-            try_call!(raw::git_index_remove_bypath(self.raw, CString::from_slice(path.as_vec())));
+            try_call!(raw::git_index_remove_bypath(self.raw, path));
         }
         Ok(())
     }
 
     /// Remove all entries from the index under a given directory.
-    pub fn remove_dir(&mut self, path: &Path, stage: int) -> Result<(), Error> {
+    pub fn remove_dir(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
+        let path = CString::from_slice(path.as_vec());
         unsafe {
-            try_call!(raw::git_index_remove_directory(self.raw, CString::from_slice(path.as_vec()),
-                                                      stage as libc::c_int));
+            try_call!(raw::git_index_remove_directory(self.raw, path,
+                                                      stage as c_int));
         }
         Ok(())
     }
@@ -298,19 +286,14 @@ impl Index {
     /// If you provide a callback function, it will be invoked on each matching
     /// item in the index immediately before it is removed. Return 0 to remove
     /// the item, > 0 to skip the item, and < 0 to abort the scan.
-    pub fn remove_all<T: Str>(&mut self,
-                                 pathspecs: &[T],
-                                 mut cb: Option<&mut IndexMatchedPath>)
-                                 -> Result<(), Error> {
-        let arr = pathspecs.iter().map(|t| CString::from_slice(t.as_slice().as_bytes()))
-                           .collect::<Vec<CString>>();
-        let strarray = arr.iter().map(|c| c.as_ptr())
-                          .collect::<Vec<*const libc::c_char>>();
+    pub fn remove_all<T, I>(&mut self,
+                            pathspecs: I,
+                            mut cb: Option<&mut IndexMatchedPath>)
+                            -> Result<(), Error>
+        where T: BytesContainer, I: Iterator<Item=T>,
+    {
+        let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
         let ptr = cb.as_mut();
-        let raw_strarray = raw::git_strarray {
-            strings: strarray.as_ptr() as *mut _,
-            count: strarray.len() as libc::size_t,
-        };
         let callback = ptr.as_ref().map(|_| {
             index_matched_path_cb as raw::git_index_matched_path_cb
         });
@@ -320,7 +303,7 @@ impl Index {
                                                 callback,
                                                 ptr.map(|p| p as *mut _)
                                                    .unwrap_or(0 as *mut _)
-                                                        as *mut libc::c_void));
+                                                        as *mut c_void));
         }
         return Ok(());
     }
@@ -338,19 +321,14 @@ impl Index {
     /// item in the index immediately before it is updated (either refreshed or
     /// removed depending on working directory state). Return 0 to proceed with
     /// updating the item, > 0 to skip the item, and < 0 to abort the scan.
-    pub fn update_all<T: Str>(&mut self,
-                                 pathspecs: &[T],
-                                 mut cb: Option<&mut IndexMatchedPath>)
-                                 -> Result<(), Error> {
-        let arr = pathspecs.iter().map(|t| CString::from_slice(t.as_slice().as_bytes()))
-                           .collect::<Vec<CString>>();
-        let strarray = arr.iter().map(|c| c.as_ptr())
-                          .collect::<Vec<*const libc::c_char>>();
+    pub fn update_all<T, I>(&mut self,
+                            pathspecs: I,
+                            mut cb: Option<&mut IndexMatchedPath>)
+                            -> Result<(), Error>
+        where T: BytesContainer, I: Iterator<Item=T>,
+    {
+        let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
         let ptr = cb.as_mut();
-        let raw_strarray = raw::git_strarray {
-            strings: strarray.as_ptr() as *mut _,
-            count: strarray.len() as libc::size_t,
-        };
         let callback = ptr.as_ref().map(|_| {
             index_matched_path_cb as raw::git_index_matched_path_cb
         });
@@ -360,7 +338,7 @@ impl Index {
                                                 callback,
                                                 ptr.map(|p| p as *mut _)
                                                    .unwrap_or(0 as *mut _)
-                                                        as *mut libc::c_void));
+                                                        as *mut c_void));
         }
         return Ok(());
     }
@@ -387,7 +365,7 @@ impl Index {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_index_write_tree(&mut raw, self.raw));
-            Ok(Oid::from_raw(&raw))
+            Ok(Binding::from_raw(&raw as *const _))
         }
     }
 
@@ -400,20 +378,29 @@ impl Index {
         unsafe {
             try_call!(raw::git_index_write_tree_to(&mut raw, self.raw,
                                                    repo.raw()));
-            Ok(Oid::from_raw(&raw))
+            Ok(Binding::from_raw(&raw as *const _))
         }
     }
 }
 
-extern fn index_matched_path_cb(path: *const libc::c_char,
-                                matched_pathspec: *const libc::c_char,
-                                payload: *mut libc::c_void) -> libc::c_int {
+impl Binding for Index {
+    type Raw = *mut raw::git_index;
+    unsafe fn from_raw(raw: *mut raw::git_index) -> Index {
+        Index { raw: raw }
+    }
+    fn raw(&self) -> *mut raw::git_index { self.raw }
+}
+
+extern fn index_matched_path_cb(path: *const c_char,
+                                matched_pathspec: *const c_char,
+                                payload: *mut c_void) -> c_int {
     unsafe {
-        let path = CString::from_slice(c_str_to_bytes(&path));
-        let matched_pathspec = CString::from_slice(c_str_to_bytes(&matched_pathspec));
+        let path = ffi::c_str_to_bytes(&path);
+        let matched_pathspec = ffi::c_str_to_bytes(&matched_pathspec);
         let payload = payload as *mut &mut IndexMatchedPath;
-        (*payload)(path.as_bytes(),
-                   matched_pathspec.as_bytes()) as libc::c_int
+        panic::wrap(|| {
+            (*payload)(path, matched_pathspec) as c_int
+        }).unwrap_or(-1)
     }
 }
 
@@ -430,51 +417,51 @@ impl<'index> Iterator for IndexEntries<'index> {
     }
 }
 
-impl IndexEntry {
-    /// Creates a new entry from its raw pointer.
-    pub unsafe fn from_raw(raw: *const raw::git_index_entry) -> IndexEntry {
+impl Binding for IndexEntry {
+    type Raw = raw::git_index_entry;
+
+    unsafe fn from_raw(raw: raw::git_index_entry) -> IndexEntry {
         let raw::git_index_entry {
             ctime, mtime, dev, ino, mode, uid, gid, file_size, id, flags,
             flags_extended, path
-        } = *raw;
+        } = raw;
         IndexEntry {
-            dev: dev as uint,
-            ino: ino as uint,
-            mode: mode as uint,
-            uid: uid as uint,
-            gid: gid as uint,
+            dev: dev as u32,
+            ino: ino as u32,
+            mode: mode as u32,
+            uid: uid as u32,
+            gid: gid as u32,
             file_size: file_size as u64,
-            id: Oid::from_raw(&id),
+            id: Binding::from_raw(&id as *const _),
             flags: flags as u16,
             flags_extended: flags_extended as u16,
-            path: CString::from_slice(c_str_to_bytes(&path)).clone(),
-            mtime: IndexTime::from_raw(&mtime),
-            ctime: IndexTime::from_raw(&ctime),
+            path: ffi::c_str_to_bytes(&path).to_vec(),
+            mtime: Binding::from_raw(mtime),
+            ctime: Binding::from_raw(ctime),
         }
     }
 
-    /// Configures a raw git entry from this entry
-    pub fn configure(&self, raw: &mut raw::git_index_entry) {
-        *raw = raw::git_index_entry {
-            dev: self.dev as libc::c_uint,
-            ino: self.ino as libc::c_uint,
-            mode: self.mode as libc::c_uint,
-            uid: self.uid as libc::c_uint,
-            gid: self.gid as libc::c_uint,
+    fn raw(&self) -> raw::git_index_entry {
+        raw::git_index_entry {
+            dev: self.dev as c_uint,
+            ino: self.ino as c_uint,
+            mode: self.mode as c_uint,
+            uid: self.uid as c_uint,
+            gid: self.gid as c_uint,
             file_size: self.file_size as raw::git_off_t,
             id: unsafe { *self.id.raw() },
-            flags: self.flags as libc::c_ushort,
-            flags_extended: self.flags_extended as libc::c_ushort,
-            path: self.path.as_ptr(),
+            flags: self.flags as c_ushort,
+            flags_extended: self.flags_extended as c_ushort,
+            path: self.path.as_ptr() as *const _,
             mtime: raw::git_index_time {
                 seconds: self.mtime.seconds() as raw::git_time_t,
-                nanoseconds: self.mtime.nanoseconds() as libc::c_uint,
+                nanoseconds: self.mtime.nanoseconds() as c_uint,
             },
             ctime: raw::git_index_time {
                 seconds: self.ctime.seconds() as raw::git_time_t,
-                nanoseconds: self.ctime.nanoseconds() as libc::c_uint,
+                nanoseconds: self.ctime.nanoseconds() as c_uint,
             },
-        };
+        }
     }
 }
 
@@ -519,7 +506,7 @@ mod tests {
         fs::mkdir(&root.join("foo"), io::USER_DIR).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
-        index.add_all(&["foo"], ::ADD_DEFAULT,
+        index.add_all(["foo"].iter(), ::ADD_DEFAULT,
                       Some((&mut |&mut: a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
@@ -530,7 +517,7 @@ mod tests {
         assert!(called);
 
         called = false;
-        index.remove_all(&["."], Some((&mut |&mut: a: &[u8], b: &[u8]| {
+        index.remove_all(["."].iter(), Some((&mut |&mut: a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b".");

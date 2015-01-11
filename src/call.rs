@@ -61,6 +61,9 @@ mod impls {
     impl<'a, T> Convert<*mut T> for &'a mut T {
         fn convert(&self) -> *mut T { &**self as *const T as *mut T }
     }
+    impl<T> Convert<*const T> for *mut T {
+        fn convert(&self) -> *const T { *self as *const T }
+    }
 
     impl Convert<*const libc::c_char> for CString {
         fn convert(&self) -> *const libc::c_char { self.as_ptr() }

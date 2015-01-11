@@ -2,10 +2,12 @@ use std::ffi::CString;
 use std::iter::{range, Range};
 use std::marker;
 use std::mem;
+use std::path::BytesContainer;
 use std::str;
 use libc::{c_char, size_t, c_uint};
 
 use {raw, Status, DiffDelta};
+use util::Binding;
 
 /// Options that can be provided to `repo.statuses()` to control how the status
 /// information is gathered.
@@ -44,7 +46,7 @@ pub struct Statuses<'repo> {
 /// An iterator over the statuses in a `Statuses` instance.
 pub struct StatusIter<'statuses> {
     statuses: &'statuses Statuses<'statuses>,
-    range: Range<uint>,
+    range: Range<usize>,
 }
 
 /// A structure representing an entry in the `Statuses` structure.
@@ -89,8 +91,9 @@ impl StatusOptions {
     /// If the `disable_pathspec_match` option is given, then this is a literal
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
-    pub fn pathspec<T: Str>(&mut self, pathspec: T) -> &mut StatusOptions {
-        let s = CString::from_slice(pathspec.as_slice().as_bytes());
+    pub fn pathspec<T: BytesContainer>(&mut self, pathspec: T)
+                                       -> &mut StatusOptions {
+        let s = CString::from_slice(pathspec.container_as_bytes());
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self
@@ -230,21 +233,10 @@ impl StatusOptions {
 }
 
 impl<'repo> Statuses<'repo> {
-    /// Create a new statuses iterator from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
-        Statuses {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Gets a status entry from this list at the specified index.
     ///
     /// Returns `None` if the index is out of bounds.
-    pub fn get(&self, index: uint) -> Option<StatusEntry> {
+    pub fn get(&self, index: usize) -> Option<StatusEntry> {
         unsafe {
             let p = raw::git_status_byindex(self.raw, index as size_t);
             if p.is_null() {
@@ -259,8 +251,8 @@ impl<'repo> Statuses<'repo> {
     ///
     /// If there are no changes in status (at least according the options given
     /// when the status list was created), this can return 0.
-    pub fn len(&self) -> uint {
-        unsafe { raw::git_status_list_entrycount(self.raw) as uint }
+    pub fn len(&self) -> usize {
+        unsafe { raw::git_status_list_entrycount(self.raw) as usize }
     }
 
     /// Returns an iterator over the statuses in this list.
@@ -270,6 +262,17 @@ impl<'repo> Statuses<'repo> {
             range: range(0, self.len()),
         }
     }
+}
+
+impl<'repo> Binding for Statuses<'repo> {
+    type Raw = *mut raw::git_status_list;
+    unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
+        Statuses {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_status_list { self.raw }
 }
 
 #[unsafe_destructor]
@@ -284,15 +287,13 @@ impl<'a> Iterator for StatusIter<'a> {
     fn next(&mut self) -> Option<StatusEntry<'a>> {
         self.range.next().and_then(|i| self.statuses.get(i))
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
-
 impl<'a> DoubleEndedIterator for StatusIter<'a> {
     fn next_back(&mut self) -> Option<StatusEntry<'a>> {
         self.range.next_back().and_then(|i| self.statuses.get(i))
     }
 }
-
 impl<'a> ExactSizeIterator for StatusIter<'a> {}
 
 impl<'statuses> StatusEntry<'statuses> {
@@ -337,7 +338,7 @@ impl<'statuses> StatusEntry<'statuses> {
             if p.is_null() {
                 None
             } else {
-                Some(DiffDelta::from_raw(p))
+                Some(Binding::from_raw(p))
             }
         }
     }
@@ -350,7 +351,7 @@ impl<'statuses> StatusEntry<'statuses> {
             if p.is_null() {
                 None
             } else {
-                Some(DiffDelta::from_raw(p))
+                Some(Binding::from_raw(p))
             }
         }
     }

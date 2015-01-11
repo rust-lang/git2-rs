@@ -64,17 +64,16 @@
 //! itself.
 
 #![feature(unsafe_destructor)]
-#![feature(box_syntax)]
-#![feature(int_uint)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
+#![cfg_attr(test, allow(unstable))]
 #![allow(unstable)]
 
 extern crate libc;
 extern crate url;
 extern crate "libgit2-sys" as raw;
 
-use std::ffi::{CString, c_str_to_bytes};
+use std::ffi::{self, CString};
 use std::fmt;
 use std::mem;
 use std::str;
@@ -106,7 +105,6 @@ pub use revspec::Revspec;
 pub use revwalk::Revwalk;
 pub use signature::Signature;
 pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
-pub use string_array::{StringArray, StringArrayItems, StringArrayBytes};
 pub use submodule::Submodule;
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
@@ -231,11 +229,11 @@ bitflags! {
     #[doc = "
 Orderings that may be specified for Revwalk iteration.
 "]
-    flags Sort: uint {
-        const SORT_NONE = raw::GIT_SORT_NONE as uint,
-        const SORT_TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as uint,
-        const SORT_TIME = raw::GIT_SORT_TIME as uint,
-        const SORT_REVERSE = raw::GIT_SORT_REVERSE as uint,
+    flags Sort: u32 {
+        const SORT_NONE = raw::GIT_SORT_NONE as u32,
+        const SORT_TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as u32,
+        const SORT_TIME = raw::GIT_SORT_TIME as u32,
+        const SORT_REVERSE = raw::GIT_SORT_REVERSE as u32,
     }
 }
 
@@ -243,12 +241,12 @@ bitflags! {
     #[doc = "
 Types of credentials that can be requested by a credential callback.
 "]
-    flags CredentialType: uint {
-        const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as uint,
-        const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as uint,
-        const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as uint,
-        const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as uint,
-        const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as uint,
+    flags CredentialType: u32 {
+        const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32,
+        const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32,
+        const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32,
+        const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32,
+        const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32,
     }
 }
 
@@ -278,8 +276,10 @@ Flags for the return value of `Repository::revparse`
 
 mod call;
 mod panic;
+mod util;
 
 pub mod build;
+pub mod string_array;
 
 mod blob;
 mod branch;
@@ -304,7 +304,6 @@ mod revspec;
 mod revwalk;
 mod signature;
 mod status;
-mod string_array;
 mod submodule;
 mod tag;
 mod time;
@@ -324,13 +323,12 @@ fn init() {
     extern fn shutdown() { unsafe { raw::git_libgit2_shutdown() } }
 }
 
-unsafe fn opt_bytes<'a, T>(_: &'a T,
+unsafe fn opt_bytes<'a, T>(anchor: &'a T,
                            c: *const libc::c_char) -> Option<&'a [u8]> {
     if c.is_null() {
         None
     } else {
-        let s = CString::from_slice(c_str_to_bytes(&c));
-        Some(mem::transmute(s.as_bytes()))
+        Some(ffi::c_str_to_bytes(mem::copy_lifetime(anchor, &c)))
     }
 }
 
@@ -338,10 +336,10 @@ impl ObjectType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         unsafe {
-            let ptr = call!(raw::git_object_type2string(*self));
-            mem::transmute::<&str, &'static str>(
-                str::from_utf8(c_str_to_bytes(&(ptr as *const _))).ok().unwrap_or("")
-            )
+            static STATIC: () = ();
+            let ptr = call!(raw::git_object_type2string(*self)) as *const _;
+            let data = ffi::c_str_to_bytes(mem::copy_lifetime(&STATIC, &ptr));
+            str::from_utf8(data).unwrap()
         }
     }
 

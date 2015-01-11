@@ -1,11 +1,13 @@
 //! Builder-pattern objects for configuration various git operations.
 
-use std::ffi::{CString, c_str_to_bytes};
+use std::ffi::{self, CString};
 use std::io;
 use std::mem;
+use std::path::BytesContainer;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
 use {raw, Signature, Error, Repository, RemoteCallbacks, panic};
+use util::Binding;
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
@@ -20,7 +22,6 @@ pub struct RepoBuilder<'cb> {
 }
 
 /// A builder struct for configuring checkouts of a repository.
-#[allow(raw_pointer_deriving)]
 pub struct CheckoutBuilder<'cb> {
     their_label: Option<CString>,
     our_label: Option<CString>,
@@ -31,7 +32,7 @@ pub struct CheckoutBuilder<'cb> {
     file_perm: Option<io::FilePermission>,
     dir_perm: Option<io::FilePermission>,
     disable_filters: bool,
-    checkout_opts: uint,
+    checkout_opts: u32,
     progress: Option<Box<Progress<'cb>>>,
 }
 
@@ -39,7 +40,7 @@ pub struct CheckoutBuilder<'cb> {
 ///
 /// The first argument is the path for the notification, the next is the numver
 /// of completed steps so far, and the final is the total number of steps.
-pub type Progress<'a> = FnMut(&[u8], uint, uint) + 'a;
+pub type Progress<'a> = FnMut(&[u8], usize, usize) + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -141,7 +142,7 @@ impl<'cb> RepoBuilder<'cb> {
             raw::GIT_CHECKOUT_SAFE_CREATE as c_uint;
 
         match self.callbacks {
-            Some(ref mut cbs) => unsafe {
+            Some(ref mut cbs) => {
                 opts.remote_callbacks = cbs.raw();
             },
             None => {}
@@ -152,11 +153,12 @@ impl<'cb> RepoBuilder<'cb> {
             None => {}
         }
 
+        let url = CString::from_slice(url.as_bytes());
+        let into = CString::from_slice(into.as_vec());
         let mut raw = 0 as *mut raw::git_repository;
         unsafe {
-            try_call!(raw::git_clone(&mut raw, CString::from_slice(url.as_bytes()),
-                                     CString::from_slice(into.as_vec()), &opts));
-            Ok(Repository::from_raw(raw))
+            try_call!(raw::git_clone(&mut raw, url, into, &opts));
+            Ok(Binding::from_raw(raw))
         }
     }
 }
@@ -176,7 +178,7 @@ impl<'cb> CheckoutBuilder<'cb> {
             ancestor_label: None,
             our_label: None,
             their_label: None,
-            checkout_opts: raw::GIT_CHECKOUT_SAFE_CREATE as uint,
+            checkout_opts: raw::GIT_CHECKOUT_SAFE_CREATE as u32,
             progress: None,
         }
     }
@@ -185,7 +187,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// conflicts but not make any actual changes.
     pub fn dry_run(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
-        self.checkout_opts |= raw::GIT_CHECKOUT_NONE as uint;
+        self.checkout_opts |= raw::GIT_CHECKOUT_NONE as u32;
         self
     }
 
@@ -193,7 +195,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// target including potentially discarding modified files.
     pub fn force(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
-        self.checkout_opts |= raw::GIT_CHECKOUT_FORCE as uint;
+        self.checkout_opts |= raw::GIT_CHECKOUT_FORCE as u32;
         self
     }
 
@@ -203,16 +205,16 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// This is the default.
     pub fn safe(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
-        self.checkout_opts |= raw::GIT_CHECKOUT_SAFE_CREATE as uint;
+        self.checkout_opts |= raw::GIT_CHECKOUT_SAFE_CREATE as u32;
         self
     }
 
     fn flag(&mut self, bit: raw::git_checkout_strategy_t,
             on: bool) -> &mut CheckoutBuilder<'cb> {
         if on {
-            self.checkout_opts |= bit as uint;
+            self.checkout_opts |= bit as u32;
         } else {
-            self.checkout_opts &= !(bit as uint);
+            self.checkout_opts &= !(bit as u32);
         }
         self
     }
@@ -342,8 +344,9 @@ impl<'cb> CheckoutBuilder<'cb> {
     ///
     /// If no paths are specified, then all files are checked out. Otherwise
     /// only these specified paths are checked out.
-    pub fn path<T: Str>(&mut self, path: T) -> &mut CheckoutBuilder<'cb> {
-        let path = CString::from_slice(path.as_slice().as_bytes());
+    pub fn path<T: BytesContainer>(&mut self, path: T)
+                                   -> &mut CheckoutBuilder<'cb> {
+        let path = CString::from_slice(path.container_as_bytes());
         self.path_ptrs.push(path.as_ptr());
         self.paths.push(path);
         self
@@ -375,8 +378,8 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set a callback to receive notifications of checkout progress.
     pub fn progress<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-                       where F: FnMut(&[u8], uint, uint) + 'cb {
-        self.progress = Some(box cb as Box<Progress<'cb>>);
+                       where F: FnMut(&[u8], usize, usize) + 'cb {
+        self.progress = Some(Box::new(cb) as Box<Progress<'cb>>);
         self
     }
 
@@ -430,9 +433,9 @@ extern fn progress_cb(path: *const c_char,
             Some(ref mut c) => c,
             None => return,
         };
-        let path = CString::from_slice(c_str_to_bytes(&path));
+        let path = ffi::c_str_to_bytes(&path);
         panic::wrap(|| {
-            callback(path.as_bytes(), completed as uint, total as uint);
+            callback(path, completed as usize, total as usize);
         });
     }
 }

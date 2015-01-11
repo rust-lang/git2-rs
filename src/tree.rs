@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
+use std::ffi::CString;
 use std::io;
 use std::marker;
 use std::str;
-use std::ffi::CString;
 use libc;
 
 use {raw, Oid, Repository, Error, Object, ObjectType};
+use util::Binding;
 
 /// A structure to represent a git [tree][1]
 ///
@@ -24,28 +25,14 @@ pub struct TreeEntry<'tree> {
 }
 
 impl<'repo> Tree<'repo> {
-    /// Create a new object from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
-        Tree {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_tree_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_tree_id(&*self.raw)) }
     }
 
-    /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_tree { self.raw }
-
     /// Get the number of entries listed in this tree.
-    pub fn len(&self) -> uint {
-        unsafe { raw::git_tree_entrycount(&*self.raw) as uint }
+    pub fn len(&self) -> usize {
+        unsafe { raw::git_tree_entrycount(&*self.raw) as usize }
     }
 
     /// Lookup a tree entry by SHA value.
@@ -61,7 +48,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Lookup a tree entry by its position in the tree
-    pub fn get(&self, n: uint) -> Option<TreeEntry> {
+    pub fn get(&self, n: usize) -> Option<TreeEntry> {
         unsafe {
             let ptr = raw::git_tree_entry_byindex(&*self.raw(),
                                                   n as libc::size_t);
@@ -75,9 +62,9 @@ impl<'repo> Tree<'repo> {
 
     /// Lookup a tree entry by its filename
     pub fn get_name(&self, filename: &str) -> Option<TreeEntry> {
+        let filename = CString::from_slice(filename.as_bytes());
         unsafe {
-            let ptr = call!(raw::git_tree_entry_byname(&*self.raw(),
-                                                       CString::from_slice(filename.as_bytes())));
+            let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
             if ptr.is_null() {
                 None
             } else {
@@ -89,14 +76,25 @@ impl<'repo> Tree<'repo> {
     /// Retrieve a tree entry contained in a tree or in any of its subtrees,
     /// given its relative path.
     pub fn get_path(&self, path: &Path) -> Result<TreeEntry<'static>, Error> {
+        let path = CString::from_slice(path.as_vec());
         let mut ret = 0 as *mut raw::git_tree_entry;
         unsafe {
-            try_call!(raw::git_tree_entry_bypath(&mut ret,
-                                                 &*self.raw(),
-                                                 CString::from_slice(path.as_vec())));
-            Ok(TreeEntry::from_raw(ret))
+            try_call!(raw::git_tree_entry_bypath(&mut ret, &*self.raw(), path));
+            Ok(Binding::from_raw(ret))
         }
     }
+}
+
+impl<'repo> Binding for Tree<'repo> {
+    type Raw = *mut raw::git_tree;
+
+    unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
+        Tree {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_tree { self.raw }
 }
 
 #[unsafe_destructor]
@@ -111,7 +109,7 @@ impl<'tree> TreeEntry<'tree> {
     ///
     /// The lifetime of the entry is tied to the tree provided and the function
     /// is unsafe because the validity of the pointer cannot be guaranteed.
-    pub unsafe fn from_raw_const(raw: *const raw::git_tree_entry)
+    unsafe fn from_raw_const(raw: *const raw::git_tree_entry)
                                  -> TreeEntry<'tree> {
         TreeEntry {
             raw: raw as *mut raw::git_tree_entry,
@@ -120,24 +118,9 @@ impl<'tree> TreeEntry<'tree> {
         }
     }
 
-    /// Create a new tree entry from the raw pointer provided.
-    ///
-    /// This will consume ownership of the pointer and free it when the entry is
-    /// dropped.
-    pub unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'static> {
-        TreeEntry {
-            raw: raw,
-            owned: true,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
-    /// Gain access to the underlying raw pointer for this tree entry.
-    pub fn raw(&self) -> *mut raw::git_tree_entry { self.raw }
-
     /// Get the id of the object pointed by the entry
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_tree_entry_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_tree_entry_id(&*self.raw)) }
     }
 
     /// Get the filename of a tree entry
@@ -161,7 +144,7 @@ impl<'tree> TreeEntry<'tree> {
         unsafe {
             try_call!(raw::git_tree_entry_to_object(&mut ret, repo.raw(),
                                                     &*self.raw()));
-            Ok(Object::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -183,12 +166,24 @@ impl<'tree> TreeEntry<'tree> {
     }
 }
 
+impl<'a> Binding for TreeEntry<'a> {
+    type Raw = *mut raw::git_tree_entry;
+    unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'a> {
+        TreeEntry {
+            raw: raw,
+            owned: true,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_tree_entry { self.raw }
+}
+
 impl<'a> Clone for TreeEntry<'a> {
     fn clone(&self) -> TreeEntry<'a> {
         let mut ret = 0 as *mut raw::git_tree_entry;
         unsafe {
             assert_eq!(raw::git_tree_entry_dup(&mut ret, &*self.raw()), 0);
-            TreeEntry::from_raw(ret)
+            Binding::from_raw(ret)
         }
     }
 }
@@ -198,7 +193,6 @@ impl<'a> PartialOrd for TreeEntry<'a> {
         Some(self.cmp(other))
     }
 }
-
 impl<'a> Ord for TreeEntry<'a> {
     fn cmp(&self, other: &TreeEntry<'a>) -> Ordering {
         match unsafe { raw::git_tree_entry_cmp(&*self.raw(), &*other.raw()) } {
@@ -214,7 +208,6 @@ impl<'a> PartialEq for TreeEntry<'a> {
         self.cmp(other) == Ordering::Equal
     }
 }
-
 impl<'a> Eq for TreeEntry<'a> {}
 
 #[unsafe_destructor]

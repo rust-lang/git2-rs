@@ -1,7 +1,8 @@
 use std::marker;
 use std::str;
 
-use {raw, Error, Oid, Object, Signature, ObjectType};
+use {raw, signature, Error, Oid, Object, Signature, ObjectType};
+use util::Binding;
 
 /// A structure to represent a git [tag][1]
 ///
@@ -12,20 +13,9 @@ pub struct Tag<'repo> {
 }
 
 impl<'repo> Tag<'repo> {
-    /// Create a new tag from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
-        Tag {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the id (SHA1) of a repository tag
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_tag_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_tag_id(&*self.raw)) }
     }
 
     /// Get the message of a tag
@@ -59,7 +49,7 @@ impl<'repo> Tag<'repo> {
         let mut ret = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_tag_peel(&mut ret, &*self.raw));
-            Ok(Object::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -72,7 +62,7 @@ impl<'repo> Tag<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(Signature::from_raw_const(self, ptr))
+                Some(signature::from_raw_const(self, ptr))
             }
         }
     }
@@ -85,22 +75,30 @@ impl<'repo> Tag<'repo> {
         let mut ret = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_tag_target(&mut ret, &*self.raw));
-            Ok(Object::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
     /// Get the OID of the tagged object of a tag
     pub fn target_id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_tag_target_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_tag_target_id(&*self.raw)) }
     }
 
     /// Get the OID of the tagged object of a tag
     pub fn target_type(&self) -> Option<ObjectType> {
         unsafe { ObjectType::from_raw(raw::git_tag_target_type(&*self.raw)) }
     }
+}
 
-    /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_tag { self.raw }
+impl<'repo> Binding for Tag<'repo> {
+    type Raw = *mut raw::git_tag;
+    unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
+        Tag {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_tag { self.raw }
 }
 
 #[unsafe_destructor]
@@ -109,7 +107,6 @@ impl<'repo> Drop for Tag<'repo> {
         unsafe { raw::git_tag_free(self.raw) }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -1,9 +1,9 @@
-extern crate libc;
-
 use std::marker;
 use std::ffi::CString;
+use libc::c_uint;
 
 use {raw, Error, Sort, Oid};
+use util::Binding;
 
 /// A revwalk allows traversal of the commit graph defined by including one or
 /// more leaves and excluding one or more roots.
@@ -13,17 +13,6 @@ pub struct Revwalk<'repo> {
 }
 
 impl<'repo> Revwalk<'repo> {
-    /// Creates a new revwalk from its raw pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
-        Revwalk {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
-    /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_revwalk { self.raw }
-
     /// Reset a revwalk to allow re-configuring it.
     ///
     /// The revwalk is automatically reset when iteration of its commits
@@ -34,7 +23,9 @@ impl<'repo> Revwalk<'repo> {
 
     /// Set the order in which commits are visited.
     pub fn set_sorting(&mut self, sort_mode: Sort) {
-        unsafe { raw::git_revwalk_sorting(self.raw(), sort_mode.bits() as libc::c_uint) }
+        unsafe {
+            raw::git_revwalk_sorting(self.raw(), sort_mode.bits() as c_uint)
+        }
     }
 
     /// Simplify the history by first-parent
@@ -79,8 +70,9 @@ impl<'repo> Revwalk<'repo> {
     /// Any references matching this glob which do not point to a committish
     /// will be ignored.
     pub fn push_glob(&mut self, glob: &str) -> Result<(), Error> {
+        let glob = CString::from_slice(glob.as_bytes());
         unsafe {
-            try_call!(raw::git_revwalk_push_glob(self.raw, CString::from_slice(glob.as_bytes())));
+            try_call!(raw::git_revwalk_push_glob(self.raw, glob));
         }
         Ok(())
     }
@@ -91,8 +83,9 @@ impl<'repo> Revwalk<'repo> {
     /// `<commit>` is in the form accepted by `revparse_single`. The left-hand
     /// commit will be hidden and the right-hand commit pushed.
     pub fn push_range(&mut self, range: &str) -> Result<(), Error> {
+        let range = CString::from_slice(range.as_bytes());
         unsafe {
-            try_call!(raw::git_revwalk_push_range(self.raw, CString::from_slice(range.as_bytes())));
+            try_call!(raw::git_revwalk_push_range(self.raw, range));
         }
         Ok(())
     }
@@ -101,8 +94,9 @@ impl<'repo> Revwalk<'repo> {
     ///
     /// The reference must point to a committish.
     pub fn push_ref(&mut self, reference: &str) -> Result<(), Error> {
+        let reference = CString::from_slice(reference.as_bytes());
         unsafe {
-            try_call!(raw::git_revwalk_push_ref(self.raw, CString::from_slice(reference.as_bytes())));
+            try_call!(raw::git_revwalk_push_ref(self.raw, reference));
         }
         Ok(())
     }
@@ -136,8 +130,9 @@ impl<'repo> Revwalk<'repo> {
     /// Any references matching this glob which do not point to a committish
     /// will be ignored.
     pub fn hide_glob(&mut self, glob: &str) -> Result<(), Error> {
+        let glob = CString::from_slice(glob.as_bytes());
         unsafe {
-            try_call!(raw::git_revwalk_hide_glob(self.raw, CString::from_slice(glob.as_bytes())));
+            try_call!(raw::git_revwalk_hide_glob(self.raw, glob));
         }
         Ok(())
     }
@@ -146,11 +141,23 @@ impl<'repo> Revwalk<'repo> {
     ///
     /// The reference must point to a committish.
     pub fn hide_ref(&mut self, reference: &str) -> Result<(), Error> {
+        let reference = CString::from_slice(reference.as_bytes());
         unsafe {
-            try_call!(raw::git_revwalk_hide_ref(self.raw, CString::from_slice(reference.as_bytes())));
+            try_call!(raw::git_revwalk_hide_ref(self.raw, reference));
         }
         Ok(())
     }
+}
+
+impl<'repo> Binding for Revwalk<'repo> {
+    type Raw = *mut raw::git_revwalk;
+    unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
+        Revwalk {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_revwalk { self.raw }
 }
 
 #[unsafe_destructor]
@@ -170,7 +177,7 @@ impl<'repo> Iterator for Revwalk<'repo> {
                 _ => return None,
             }
 
-            Some(Oid::from_raw(&out))
+            Some(Binding::from_raw(&out as *const _))
         }
     }
 }

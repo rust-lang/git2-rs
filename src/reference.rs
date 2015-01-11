@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
+use std::ffi::CString;
 use std::marker;
 use std::mem;
 use std::str;
-use std::ffi::CString;
 use libc;
 
 use {raw, Error, Oid, Signature};
+use util::Binding;
 
 /// A structure to represent a git [reference][1].
 ///
@@ -27,17 +28,6 @@ pub struct ReferenceNames<'repo> {
 }
 
 impl<'repo> Reference<'repo> {
-    /// Creates a new reference from a raw pointer.
-    ///
-    /// This methods is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
-        Reference {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Ensure the reference name is well-formed.
     pub fn is_valid_name(refname: &str) -> bool {
         ::init();
@@ -113,7 +103,7 @@ impl<'repo> Reference<'repo> {
     /// not a symbolic one).
     pub fn target(&self) -> Option<Oid> {
         let ptr = unsafe { raw::git_reference_target(&*self.raw) };
-        if ptr.is_null() {None} else {Some(unsafe { Oid::from_raw(ptr) })}
+        if ptr.is_null() {None} else {Some(unsafe { Binding::from_raw(ptr) })}
     }
 
     /// Return the peeled OID target of this reference.
@@ -122,7 +112,7 @@ impl<'repo> Reference<'repo> {
     /// Tag object: it is the result of peeling such Tag.
     pub fn target_peel(&self) -> Option<Oid> {
         let ptr = unsafe { raw::git_reference_target_peel(&*self.raw) };
-        if ptr.is_null() {None} else {Some(unsafe { Oid::from_raw(ptr) })}
+        if ptr.is_null() {None} else {Some(unsafe { Binding::from_raw(ptr) })}
     }
 
     /// Get full name to the reference pointed to by a symbolic reference.
@@ -166,13 +156,12 @@ impl<'repo> Reference<'repo> {
                   sig: Option<&Signature>,
                   msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
+        let new_name = CString::from_slice(new_name.as_bytes());
+        let msg = CString::from_slice(msg.as_bytes());
         unsafe {
-            try_call!(raw::git_reference_rename(&mut raw, self.raw,
-                                                CString::from_slice(new_name.as_bytes()),
-                                                force,
-                                                &*sig.map(|s| s.raw())
-                                                     .unwrap_or(0 as *mut _),
-                                                CString::from_slice(msg.as_bytes())));
+            try_call!(raw::git_reference_rename(&mut raw, self.raw, new_name,
+                                                force, sig.map(|s| s.raw()),
+                                                msg));
         }
         Ok(Reference {
             raw: raw,
@@ -206,6 +195,17 @@ impl<'repo> PartialEq for Reference<'repo> {
 
 impl<'repo> Eq for Reference<'repo> {}
 
+impl<'repo> Binding for Reference<'repo> {
+    type Raw = *mut raw::git_reference;
+    unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
+        Reference {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_reference { self.raw }
+}
+
 #[unsafe_destructor]
 impl<'repo> Drop for Reference<'repo> {
     fn drop(&mut self) {
@@ -214,16 +214,28 @@ impl<'repo> Drop for Reference<'repo> {
 }
 
 impl<'repo> References<'repo> {
-    /// Creates a new iterator from its raw underlying pointer.
+    /// Consumes a `References` iterator to create an iterator over just the
+    /// name of some references.
     ///
-    /// This function is unsafe as there is no guarantee that `raw` is valid.
-    pub unsafe fn from_raw(raw: *mut raw::git_reference_iterator)
-                           -> References<'repo> {
+    /// This is more efficient if only the names are desired of references as
+    /// the references themselves don't have to be allocated and deallocated.
+    ///
+    /// The returned iterator will yield strings as opposed to a `Reference`.
+    pub fn names(self) -> ReferenceNames<'repo> {
+        ReferenceNames { inner: self }
+    }
+}
+
+impl<'repo> Binding for References<'repo> {
+    type Raw = *mut raw::git_reference_iterator;
+    unsafe fn from_raw(raw: *mut raw::git_reference_iterator)
+                       -> References<'repo> {
         References {
             raw: raw,
             marker: marker::ContravariantLifetime,
         }
     }
+    fn raw(&self) -> *mut raw::git_reference_iterator { self.raw }
 }
 
 impl<'repo> Iterator for References<'repo> {
@@ -231,7 +243,7 @@ impl<'repo> Iterator for References<'repo> {
     fn next(&mut self) -> Option<Reference<'repo>> {
         let mut out = 0 as *mut raw::git_reference;
         if unsafe { raw::git_reference_next(&mut out, self.raw) == 0 } {
-            Some(unsafe { Reference::from_raw(out) })
+            Some(unsafe { Binding::from_raw(out) })
         } else {
             None
         }
@@ -242,19 +254,6 @@ impl<'repo> Iterator for References<'repo> {
 impl<'repo> Drop for References<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_reference_iterator_free(self.raw) }
-    }
-}
-
-impl<'repo> ReferenceNames<'repo> {
-    /// Consumes a `References` iterator to create an iterator over just the
-    /// name of some references.
-    ///
-    /// This is more efficient if only the names are desired of references as
-    /// the references themselves don't have to be allocated and deallocated.
-    ///
-    /// The returned iterator will yield strings as opposed to a `Reference`.
-    pub fn new(refs: References) -> ReferenceNames {
-        ReferenceNames { inner: refs }
     }
 }
 
@@ -322,7 +321,7 @@ mod tests {
         {
             assert!(repo.references().unwrap().count() == 1);
             assert!(repo.references().unwrap().next().unwrap() == head);
-            let mut names = ::ReferenceNames::new(repo.references().unwrap());
+            let mut names = repo.references().unwrap().names();
             assert_eq!(names.next(), Some("refs/heads/master"));
             assert_eq!(names.next(), None);
             assert!(repo.references_glob("foo").unwrap().count() == 0);

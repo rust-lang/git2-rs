@@ -1,9 +1,11 @@
 use std::ffi::CString;
-use std::marker;
 use std::iter::Range;
+use std::marker;
+use std::path::BytesContainer;
 use libc::size_t;
 
 use {raw, Error, Tree, PathspecFlags, Index, Repository, DiffDelta};
+use util::Binding;
 
 /// Structure representing a compiled pathspec used for matching against various
 /// structures.
@@ -19,47 +21,32 @@ pub struct PathspecMatchList<'ps> {
 
 /// Iterator over the matched paths in a pathspec.
 pub struct PathspecEntries<'list> {
-    range: Range<uint>,
+    range: Range<usize>,
     list: &'list PathspecMatchList<'list>,
 }
 
 /// Iterator over the matching diff deltas.
 pub struct PathspecDiffEntries<'list> {
-    range: Range<uint>,
+    range: Range<usize>,
     list: &'list PathspecMatchList<'list>,
 }
 
 /// Iterator over the failed list of pathspec items that did not match.
 pub struct PathspecFailedEntries<'list> {
-    range: Range<uint>,
+    range: Range<usize>,
     list: &'list PathspecMatchList<'list>,
 }
 
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
-                     where T: Str, I: Iterator<Item=T> {
-        let strs = specs.map(|s| CString::from_slice(s.as_slice().as_bytes()))
-                        .collect::<Vec<_>>();
-        let ptrs = strs.iter().map(|c| c.as_ptr()).collect::<Vec<_>>();
-        let arr = raw::git_strarray {
-            strings: ptrs.as_ptr() as *mut _,
-            count: ptrs.len() as size_t,
-        };
+                     where T: BytesContainer, I: Iterator<Item=T> {
+        let (_a, _b, arr) = ::util::iter2cstrs(specs);
         unsafe {
             let mut ret = 0 as *mut raw::git_pathspec;
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
-            Ok(Pathspec::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
-    }
-
-    /// Consumes ownership of a pathspec pointer, returning the wrapped
-    /// structure.
-    ///
-    /// This function is unsafe as the validity of the pointer is not
-    /// guaranteed.
-    pub unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Pathspec {
-        Pathspec { raw: raw }
     }
 
     /// Match a pathspec against files in a tree.
@@ -74,7 +61,7 @@ impl Pathspec {
         unsafe {
             try_call!(raw::git_pathspec_match_tree(&mut ret, tree.raw(),
                                                    flags.bits(), self.raw));
-            Ok(PathspecMatchList::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -90,7 +77,7 @@ impl Pathspec {
         unsafe {
             try_call!(raw::git_pathspec_match_index(&mut ret, index.raw(),
                                                     flags.bits(), self.raw));
-            Ok(PathspecMatchList::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -112,7 +99,7 @@ impl Pathspec {
         unsafe {
             try_call!(raw::git_pathspec_match_workdir(&mut ret, repo.raw(),
                                                       flags.bits(), self.raw));
-            Ok(PathspecMatchList::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -131,6 +118,15 @@ impl Pathspec {
     }
 }
 
+impl Binding for Pathspec {
+    type Raw = *mut raw::git_pathspec;
+
+    unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Pathspec {
+        Pathspec { raw: raw }
+    }
+    fn raw(&self) -> *mut raw::git_pathspec { self.raw }
+}
+
 #[unsafe_destructor]
 impl Drop for Pathspec {
     fn drop(&mut self) {
@@ -139,23 +135,12 @@ impl Drop for Pathspec {
 }
 
 impl<'ps> PathspecMatchList<'ps> {
-    /// Consumes ownership of a raw pointer
-    ///
-    /// This function is unsafe as the pointer is not guranteed to be valid.
-    pub unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list)
-                           -> PathspecMatchList<'ps> {
-        PathspecMatchList {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+    fn entrycount(&self) -> usize {
+        unsafe { raw::git_pathspec_match_list_entrycount(&*self.raw) as usize }
     }
 
-    fn entrycount(&self) -> uint {
-        unsafe { raw::git_pathspec_match_list_entrycount(&*self.raw) as uint }
-    }
-
-    fn failed_entrycount(&self) -> uint {
-        unsafe { raw::git_pathspec_match_list_failed_entrycount(&*self.raw) as uint }
+    fn failed_entrycount(&self) -> usize {
+        unsafe { raw::git_pathspec_match_list_failed_entrycount(&*self.raw) as usize }
     }
 
     /// Returns an iterator over the matching filenames in this list.
@@ -169,7 +154,7 @@ impl<'ps> PathspecMatchList<'ps> {
     ///
     /// If this list was generated from a diff, then the return value will
     /// always be `None.
-    pub fn entry(&self, i: uint) -> Option<&[u8]> {
+    pub fn entry(&self, i: usize) -> Option<&[u8]> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_entry(&*self.raw, i as size_t);
             ::opt_bytes(self, ptr)
@@ -187,14 +172,14 @@ impl<'ps> PathspecMatchList<'ps> {
     ///
     /// If the list was not generated from a diff, then the return value will
     /// always be `None`.
-    pub fn diff_entry(&self, i: uint) -> Option<DiffDelta> {
+    pub fn diff_entry(&self, i: usize) -> Option<DiffDelta> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_diff_entry(&*self.raw,
                                                               i as size_t);
             if ptr.is_null() {
                 None
             } else {
-                Some(DiffDelta::from_raw(ptr as *mut _))
+                Some(Binding::from_raw(ptr as *mut _))
             }
         }
     }
@@ -207,13 +192,26 @@ impl<'ps> PathspecMatchList<'ps> {
     }
 
     /// Get an original pathspec string that had no matches.
-    pub fn failed_entry(&self, i: uint) -> Option<&[u8]> {
+    pub fn failed_entry(&self, i: usize) -> Option<&[u8]> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_failed_entry(&*self.raw,
                                                                 i as size_t);
             ::opt_bytes(self, ptr)
         }
     }
+}
+
+impl<'ps> Binding for PathspecMatchList<'ps> {
+    type Raw = *mut raw::git_pathspec_match_list;
+
+    unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list)
+                       -> PathspecMatchList<'ps> {
+        PathspecMatchList {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_pathspec_match_list { self.raw }
 }
 
 #[unsafe_destructor]
@@ -228,7 +226,7 @@ impl<'list> Iterator for PathspecEntries<'list> {
     fn next(&mut self) -> Option<&'list [u8]> {
         self.range.next().and_then(|i| self.list.entry(i))
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
 impl<'list> DoubleEndedIterator for PathspecEntries<'list> {
     fn next_back(&mut self) -> Option<&'list [u8]> {
@@ -242,7 +240,7 @@ impl<'list> Iterator for PathspecDiffEntries<'list> {
     fn next(&mut self) -> Option<DiffDelta<'list>> {
         self.range.next().and_then(|i| self.list.diff_entry(i))
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
 impl<'list> DoubleEndedIterator for PathspecDiffEntries<'list> {
     fn next_back(&mut self) -> Option<DiffDelta<'list>> {
@@ -256,7 +254,7 @@ impl<'list> Iterator for PathspecFailedEntries<'list> {
     fn next(&mut self) -> Option<&'list [u8]> {
         self.range.next().and_then(|i| self.list.failed_entry(i))
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
 impl<'list> DoubleEndedIterator for PathspecFailedEntries<'list> {
     fn next_back(&mut self) -> Option<&'list [u8]> {

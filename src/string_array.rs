@@ -1,6 +1,10 @@
+//! Bindings to libgit2's raw git_strarray type
+
 use std::str;
+use std::iter::Range;
 
 use raw;
+use util::Binding;
 
 /// A string array structure used by libgit2
 ///
@@ -12,37 +16,28 @@ pub struct StringArray {
 }
 
 /// A forward iterator over the strings of an array, casted to `&str`.
-pub struct StringArrayItems<'a> {
-    cur: uint,
+pub struct Iter<'a> {
+    range: Range<usize>,
     arr: &'a StringArray,
 }
 
 /// A forward iterator over the strings of an array, casted to `&[u8]`.
-pub struct StringArrayBytes<'a> {
-    cur: uint,
+pub struct IterBytes<'a> {
+    range: Range<usize>,
     arr: &'a StringArray,
 }
 
 impl StringArray {
-    /// Creates a new string array from the raw representation.
-    ///
-    /// This is unsafe because it consumes ownership of the array and there is
-    /// no guarantee that the array itself is valid or that no one else is using
-    /// it.
-    pub unsafe fn from_raw(raw: raw::git_strarray) -> StringArray {
-        StringArray { raw: raw }
-    }
-
     /// Returns None if the i'th string is not utf8 or if i is out of bounds.
-    pub fn get(&self, i: uint) -> Option<&str> {
+    pub fn get(&self, i: usize) -> Option<&str> {
         self.get_bytes(i).and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Returns None if `i` is out of bounds.
-    pub fn get_bytes(&self, i: uint) -> Option<&[u8]> {
-        if i < self.raw.count as uint {
+    pub fn get_bytes(&self, i: usize) -> Option<&[u8]> {
+        if i < self.raw.count as usize {
             unsafe {
-                let ptr = *self.raw.strings.offset(i as int) as *const _;
+                let ptr = *self.raw.strings.offset(i as isize) as *const _;
                 Some(::opt_bytes(self, ptr).unwrap())
             }
         } else {
@@ -54,43 +49,55 @@ impl StringArray {
     ///
     /// The iterator yields `Option<&str>` as it is unknown whether the contents
     /// are utf-8 or not.
-    pub fn iter(&self) -> StringArrayItems {
-        StringArrayItems { cur: 0, arr: self }
+    pub fn iter(&self) -> Iter {
+        Iter { range: range(0, self.len()), arr: self }
     }
 
     /// Returns an iterator over the strings contained within this array,
     /// yielding byte slices.
-    pub fn iter_bytes(&self) -> StringArrayBytes {
-        StringArrayBytes { cur: 0, arr: self }
+    pub fn iter_bytes(&self) -> IterBytes {
+        IterBytes { range: range(0, self.len()), arr: self }
     }
 
     /// Returns the number of strings in this array.
-    pub fn len(&self) -> uint { self.raw.count as uint }
+    pub fn len(&self) -> usize { self.raw.count as usize }
 }
 
-impl<'a> Iterator for StringArrayItems<'a> {
+impl Binding for StringArray {
+    type Raw = raw::git_strarray;
+    unsafe fn from_raw(raw: raw::git_strarray) -> StringArray {
+        StringArray { raw: raw }
+    }
+    fn raw(&self) -> raw::git_strarray { self.raw }
+}
+
+impl<'a> Iterator for Iter<'a> {
     type Item = Option<&'a str>;
     fn next(&mut self) -> Option<Option<&'a str>> {
-        if self.cur < self.arr.len() {
-            self.cur += 1;
-            Some(self.arr.get(self.cur - 1))
-        } else {
-            None
-        }
+        self.range.next().map(|i| self.arr.get(i))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+}
+impl<'a> DoubleEndedIterator for Iter<'a> {
+    fn next_back(&mut self) -> Option<Option<&'a str>> {
+        self.range.next_back().map(|i| self.arr.get(i))
     }
 }
+impl<'a> ExactSizeIterator for Iter<'a> {}
 
-impl<'a> Iterator for StringArrayBytes<'a> {
+impl<'a> Iterator for IterBytes<'a> {
     type Item = &'a [u8];
     fn next(&mut self) -> Option<&'a [u8]> {
-        if self.cur < self.arr.len() {
-            self.cur += 1;
-            self.arr.get_bytes(self.cur - 1)
-        } else {
-            None
-        }
+        self.range.next().and_then(|i| self.arr.get_bytes(i))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+}
+impl<'a> DoubleEndedIterator for IterBytes<'a> {
+    fn next_back(&mut self) -> Option<&'a [u8]> {
+        self.range.next_back().and_then(|i| self.arr.get_bytes(i))
     }
 }
+impl<'a> ExactSizeIterator for IterBytes<'a> {}
 
 impl Drop for StringArray {
     fn drop(&mut self) {

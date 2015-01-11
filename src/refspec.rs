@@ -1,8 +1,9 @@
-use std::marker;
 use std::ffi::CString;
+use std::marker;
 use std::str;
 
 use {raw, Direction};
+use util::Binding;
 
 /// A structure to represent a git [refspec][1].
 ///
@@ -15,16 +16,6 @@ pub struct Refspec<'remote> {
 }
 
 impl<'remote> Refspec<'remote> {
-    /// Creates a new refspec from the raw components.
-    ///
-    /// This is unsafe as the `raw` pointer is not guaranteed to be valid.
-    pub unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
-        Refspec {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the refspec's direction.
     pub fn direction(&self) -> Direction {
         match unsafe { raw::git_refspec_direction(self.raw) } {
@@ -85,4 +76,16 @@ impl<'remote> Refspec<'remote> {
     pub fn bytes(&self) -> &[u8] {
         unsafe { ::opt_bytes(self, raw::git_refspec_string(self.raw)).unwrap() }
     }
+}
+
+impl<'remote> Binding for Refspec<'remote> {
+    type Raw = *const raw::git_refspec;
+
+    unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
+        Refspec {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *const raw::git_refspec { self.raw }
 }

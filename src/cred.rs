@@ -4,6 +4,7 @@ use std::io::Command;
 use url::{self, UrlParser};
 
 use {raw, Error, Config};
+use util::Binding;
 
 /// A structure to represent git credentials in libgit2.
 pub struct Cred {
@@ -22,14 +23,6 @@ pub struct CredentialHelper {
 }
 
 impl Cred {
-    /// Create a new credential object from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_cred) -> Cred {
-        Cred { raw: raw }
-    }
-
     /// Create a "default" credential usable for Negotiate mechanisms like NTLM
     /// or Kerberos authentication.
     pub fn default() -> Result<Cred, Error> {
@@ -37,7 +30,7 @@ impl Cred {
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
             try_call!(raw::git_cred_default_new(&mut out));
-            Ok(Cred::from_raw(out))
+            Ok(Binding::from_raw(out))
         }
     }
 
@@ -47,10 +40,10 @@ impl Cred {
     pub fn ssh_key_from_agent(username: &str) -> Result<Cred, Error> {
         ::init();
         let mut out = 0 as *mut raw::git_cred;
+        let username = CString::from_slice(username.as_bytes());
         unsafe {
-            try_call!(raw::git_cred_ssh_key_from_agent(&mut out,
-                                                       CString::from_slice(username.as_bytes())));
-            Ok(Cred::from_raw(out))
+            try_call!(raw::git_cred_ssh_key_from_agent(&mut out, username));
+            Ok(Binding::from_raw(out))
         }
     }
 
@@ -60,14 +53,15 @@ impl Cred {
                    privatekey: &Path,
                    passphrase: Option<&str>) -> Result<Cred, Error> {
         ::init();
+        let username = CString::from_slice(username.as_bytes());
+        let publickey = publickey.map(|s| CString::from_slice(s.as_vec()));
+        let privatekey = CString::from_slice(privatekey.as_vec());
+        let passphrase = passphrase.map(|s| CString::from_slice(s.as_bytes()));
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
-            try_call!(raw::git_cred_ssh_key_new(&mut out,
-                                                CString::from_slice(username.as_bytes()),
-                                                publickey.map(|s| CString::from_slice(s.as_vec())),
-                                                CString::from_slice(privatekey.as_vec()),
-                                                passphrase.map(|s| CString::from_slice(s.as_bytes()))));
-            Ok(Cred::from_raw(out))
+            try_call!(raw::git_cred_ssh_key_new(&mut out, username, publickey,
+                                                privatekey, passphrase));
+            Ok(Binding::from_raw(out))
         }
     }
 
@@ -75,12 +69,13 @@ impl Cred {
     pub fn userpass_plaintext(username: &str,
                               password: &str) -> Result<Cred, Error> {
         ::init();
+        let username = CString::from_slice(username.as_bytes());
+        let password = CString::from_slice(password.as_bytes());
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
-            try_call!(raw::git_cred_userpass_plaintext_new(&mut out,
-                                                           CString::from_slice(username.as_bytes()),
-                                                           CString::from_slice(password.as_bytes())));
-            Ok(Cred::from_raw(out))
+            try_call!(raw::git_cred_userpass_plaintext_new(&mut out, username,
+                                                           password));
+            Ok(Binding::from_raw(out))
         }
     }
 
@@ -114,9 +109,6 @@ impl Cred {
         unsafe { raw::git_cred_has_username(self.raw) == 1 }
     }
 
-    /// Gain access to the underlying raw credential pointer.
-    pub fn raw(&self) -> *mut raw::git_cred { self.raw }
-
     /// Return the type of credentials that this object represents.
     pub fn credtype(&self) -> raw::git_credtype_t {
         unsafe { (*self.raw).credtype }
@@ -126,6 +118,15 @@ impl Cred {
     pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
         mem::replace(&mut self.raw, 0 as *mut raw::git_cred)
     }
+}
+
+impl Binding for Cred {
+    type Raw = *mut raw::git_cred;
+
+    unsafe fn from_raw(raw: *mut raw::git_cred) -> Cred {
+        Cred { raw: raw }
+    }
+    fn raw(&self) -> *mut raw::git_cred { self.raw }
 }
 
 impl Drop for Cred {

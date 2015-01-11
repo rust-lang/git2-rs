@@ -1,7 +1,8 @@
 use std::marker;
 use std::str;
 
-use {raw, Signature, Oid};
+use {raw, signature, Signature, Oid};
+use util::Binding;
 
 /// A structure representing a [note][note] in git.
 ///
@@ -18,28 +19,17 @@ pub struct Notes<'repo> {
 }
 
 impl<'repo> Note<'repo> {
-    /// Create a new note from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
-        Note {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the note author
     pub fn author(&self) -> Signature {
         unsafe {
-            Signature::from_raw_const(self, raw::git_note_author(&*self.raw))
+            signature::from_raw_const(self, raw::git_note_author(&*self.raw))
         }
     }
 
     /// Get the note committer
     pub fn committer(&self) -> Signature {
         unsafe {
-            Signature::from_raw_const(self, raw::git_note_committer(&*self.raw))
+            signature::from_raw_const(self, raw::git_note_committer(&*self.raw))
         }
     }
 
@@ -55,9 +45,21 @@ impl<'repo> Note<'repo> {
 
     /// Get the note object's id
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_note_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_note_id(&*self.raw)) }
     }
 }
+
+impl<'repo> Binding for Note<'repo> {
+    type Raw = *mut raw::git_note;
+    unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
+        Note {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_note { self.raw }
+}
+
 
 #[unsafe_destructor]
 impl<'repo> Drop for Note<'repo> {
@@ -66,17 +68,15 @@ impl<'repo> Drop for Note<'repo> {
     }
 }
 
-impl<'repo> Notes<'repo> {
-    /// Create a new note iterator from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
+impl<'repo> Binding for Notes<'repo> {
+    type Raw = *mut raw::git_note_iterator;
+    unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
         Notes {
             raw: raw,
             marker: marker::ContravariantLifetime,
         }
     }
+    fn raw(&self) -> *mut raw::git_note_iterator { self.raw }
 }
 
 impl<'repo> Iterator for Notes<'repo> {
@@ -86,7 +86,8 @@ impl<'repo> Iterator for Notes<'repo> {
         let mut annotated_id = note_id;
         unsafe {
             match raw::git_note_next(&mut note_id, &mut annotated_id, self.raw) {
-                0 => Some((Oid::from_raw(&note_id), Oid::from_raw(&annotated_id))),
+                0 => Some((Binding::from_raw(&note_id as *const _),
+                           Binding::from_raw(&annotated_id as *const _))),
                 _ => None,
             }
         }

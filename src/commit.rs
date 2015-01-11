@@ -4,7 +4,8 @@ use std::marker;
 use std::str;
 use libc;
 
-use {raw, Oid, Error, Signature, Tree, Time};
+use {raw, signature, Oid, Error, Signature, Tree, Time};
+use util::Binding;
 
 /// A structure to represent a git [commit][1]
 ///
@@ -16,38 +17,27 @@ pub struct Commit<'repo> {
 
 /// An iterator over the parent commits of a commit.
 pub struct Parents<'commit, 'repo: 'commit> {
-    range: Range<uint>,
+    range: Range<usize>,
     commit: &'commit Commit<'repo>,
 }
 
 /// An iterator over the parent commits' ids of a commit.
 pub struct ParentIds<'commit> {
-    range: Range<uint>,
+    range: Range<usize>,
     commit: &'commit Commit<'commit>,
 }
 
 impl<'repo> Commit<'repo> {
-    /// Create a new object from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
-        Commit {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the id (SHA1) of a repository commit
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_commit_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_commit_id(&*self.raw)) }
     }
 
     /// Get the id of the tree pointed to by this commit.
     ///
     /// No attempts are made to fetch an object from the ODB.
     pub fn tree_id(&self) -> Oid {
-        unsafe { Oid::from_raw(raw::git_commit_tree_id(&*self.raw)) }
+        unsafe { Binding::from_raw(raw::git_commit_tree_id(&*self.raw)) }
     }
 
     /// Get the tree pointed to by a commit.
@@ -55,7 +45,7 @@ impl<'repo> Commit<'repo> {
         let mut ret = 0 as *mut raw::git_tree;
         unsafe {
             try_call!(raw::git_commit_tree(&mut ret, &*self.raw));
-            Ok(Tree::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -150,13 +140,13 @@ impl<'repo> Commit<'repo> {
     pub fn time(&self) -> Time {
         unsafe {
             Time::new(raw::git_commit_time(&*self.raw) as i64,
-                      raw::git_commit_time_offset(&*self.raw) as int)
+                      raw::git_commit_time_offset(&*self.raw) as i32)
         }
     }
 
     /// Creates a new iterator over the parents of this commit.
     pub fn parents<'a>(&'a self) -> Parents<'a, 'repo> {
-        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as uint };
+        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as usize };
         Parents {
             range: range(0, max),
             commit: self,
@@ -165,7 +155,7 @@ impl<'repo> Commit<'repo> {
 
     /// Creates a new iterator over the parents of this commit.
     pub fn parent_ids(&self) -> ParentIds {
-        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as uint };
+        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as usize };
         ParentIds {
             range: range(0, max),
             commit: self,
@@ -176,7 +166,7 @@ impl<'repo> Commit<'repo> {
     pub fn author(&self) -> Signature {
         unsafe {
             let ptr = raw::git_commit_author(&*self.raw);
-            Signature::from_raw_const(self, ptr)
+            signature::from_raw_const(self, ptr)
         }
     }
 
@@ -184,7 +174,7 @@ impl<'repo> Commit<'repo> {
     pub fn committer(&self) -> Signature {
         unsafe {
             let ptr = raw::git_commit_committer(&*self.raw);
-            Signature::from_raw_const(self, ptr)
+            signature::from_raw_const(self, ptr)
         }
     }
 
@@ -203,28 +193,31 @@ impl<'repo> Commit<'repo> {
                  message: Option<&str>,
                  tree: Option<&Tree<'repo>>) -> Result<Oid, Error> {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let update_ref = update_ref.map(|s| CString::from_slice(s.as_bytes()));
+        let encoding = message_encoding.map(|s| CString::from_slice(s.as_bytes()));
+        let message = message.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
             try_call!(raw::git_commit_amend(&mut raw,
-                                            &*self.raw(),
-                                            update_ref.map(|s| CString::from_slice(s.as_bytes())),
-                                            author.map(|s| &*s.raw()),
-                                            committer.map(|s| &*s.raw()),
-                                            message_encoding.map(|s| CString::from_slice(s.as_bytes())),
-                                            message.map(|s| CString::from_slice(s.as_bytes())),
-                                            tree.map(|t| &*t.raw())));
-            Ok(Oid::from_raw(&raw))
+                                            self.raw(),
+                                            update_ref,
+                                            author.map(|s| s.raw()),
+                                            committer.map(|s| s.raw()),
+                                            encoding,
+                                            message,
+                                            tree.map(|t| t.raw())));
+            Ok(Binding::from_raw(&raw as *const _))
         }
     }
 
     /// Get the specified parent of the commit.
     ///
     /// Use the `parents` iterator to return an iterator over all parents.
-    pub fn parent(&self, i: uint) -> Result<Commit<'repo>, Error> {
+    pub fn parent(&self, i: usize) -> Result<Commit<'repo>, Error> {
         unsafe {
             let mut raw = 0 as *mut raw::git_commit;
             try_call!(raw::git_commit_parent(&mut raw, &*self.raw,
                                              i as libc::c_uint));
-            Ok(Commit::from_raw(raw))
+            Ok(Binding::from_raw(raw))
         }
     }
 
@@ -234,24 +227,36 @@ impl<'repo> Commit<'repo> {
     /// parent commit from the ODB.
     ///
     /// Use the `parent_ids` iterator to return an iterator over all parents.
-    pub fn parent_id(&self, i: uint) -> Result<Oid, Error> {
+    pub fn parent_id(&self, i: usize) -> Result<Oid, Error> {
         unsafe {
             let id = raw::git_commit_parent_id(self.raw, i as libc::c_uint);
             if id.is_null() {
                 Err(Error::from_str("parent index out of bounds"))
             } else {
-                Ok(Oid::from_raw(id))
+                Ok(Binding::from_raw(id))
             }
         }
     }
 }
+
+impl<'repo> Binding for Commit<'repo> {
+    type Raw = *mut raw::git_commit;
+    unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
+        Commit {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_commit { self.raw }
+}
+
 
 impl<'repo, 'commit> Iterator for Parents<'commit, 'repo> {
     type Item = Commit<'repo>;
     fn next(&mut self) -> Option<Commit<'repo>> {
         self.range.next().map(|i| self.commit.parent(i).unwrap())
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
 
 impl<'repo, 'commit> DoubleEndedIterator for Parents<'commit, 'repo> {
@@ -267,7 +272,7 @@ impl<'commit> Iterator for ParentIds<'commit> {
     fn next(&mut self) -> Option<Oid> {
         self.range.next().map(|i| self.commit.parent_id(i).unwrap())
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
 
 impl<'commit> DoubleEndedIterator for ParentIds<'commit> {

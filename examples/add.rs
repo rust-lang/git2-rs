@@ -34,7 +34,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open(&Path::new(".")));
     let mut index = try!(repo.index());
 
-    let cb = (&mut |&mut: path: &[u8], _matched_spec: &[u8]| -> int {
+    let cb = (&mut |&mut: path: &[u8], _matched_spec: &[u8]| -> i32 {
         let path = Path::new(path);
         let status = repo.status_file(&path).unwrap();
 
@@ -55,9 +55,9 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     };
 
     if args.flag_update {
-        try!(index.update_all(args.arg_spec.as_slice(), cb));
+        try!(index.update_all(args.arg_spec.iter(), cb));
     } else {
-        try!(index.add_all(args.arg_spec.as_slice(), git2::ADD_DEFAULT, cb));
+        try!(index.add_all(args.arg_spec.iter(), git2::ADD_DEFAULT, cb));
     }
 
     try!(index.write());

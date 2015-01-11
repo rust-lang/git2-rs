@@ -12,8 +12,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(macro_rules)]
-#![deny(warnings)]
 #![allow(unstable)]
 
 extern crate "rustc-serialize" as rustc_serialize;
@@ -37,14 +35,14 @@ struct Args {
     flag_committer: Option<String>,
     flag_grep: Option<String>,
     flag_git_dir: Option<String>,
-    flag_skip: Option<uint>,
-    flag_max_count: Option<uint>,
+    flag_skip: Option<usize>,
+    flag_max_count: Option<usize>,
     flag_merges: bool,
     flag_no_merges: bool,
     flag_no_min_parents: bool,
     flag_no_max_parents: bool,
-    flag_max_parents: Option<uint>,
-    flag_min_parents: Option<uint>,
+    flag_max_parents: Option<usize>,
+    flag_min_parents: Option<usize>,
     flag_patch: bool,
 }
 
@@ -221,12 +219,12 @@ fn match_with_parent(repo: &Repository, commit: &Commit, parent: &Commit,
 }
 
 impl Args {
-    fn min_parents(&self) -> uint {
+    fn min_parents(&self) -> usize {
         if self.flag_no_min_parents { return 0 }
         self.flag_min_parents.unwrap_or(if self.flag_merges {2} else {0})
     }
 
-    fn max_parents(&self) -> Option<uint> {
+    fn max_parents(&self) -> Option<usize> {
         if self.flag_no_max_parents { return None }
         self.flag_max_parents.or(if self.flag_no_merges {Some(1)} else {None})
     }

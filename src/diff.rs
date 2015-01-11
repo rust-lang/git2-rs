@@ -2,10 +2,12 @@ use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
 use std::mem;
+use std::path::BytesContainer;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
 use {raw, panic, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+use util::Binding;
 
 /// The diff object that contains all individual file deltas.
 ///
@@ -42,7 +44,7 @@ pub struct DiffOptions {
 
 /// An iterator over the diffs in a delta
 pub struct Deltas<'diff> {
-    range: Range<uint>,
+    range: Range<usize>,
     diff: &'diff Diff,
 }
 
@@ -83,7 +85,7 @@ impl Diff {
                                                  old_tree.map(|s| s.raw()),
                                                  new_tree.map(|s| s.raw()),
                                                  opts.map(|s| s.raw())));
-            Ok(Diff::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -111,7 +113,7 @@ impl Diff {
                                                   old_tree.map(|s| s.raw()),
                                                   index.map(|s| s.raw()),
                                                   opts.map(|s| s.raw())));
-            Ok(Diff::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -138,7 +140,7 @@ impl Diff {
                                                      repo.raw(),
                                                      index.map(|s| s.raw()),
                                                      opts.map(|s| s.raw())));
-            Ok(Diff::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -170,7 +172,7 @@ impl Diff {
                                                     repo.raw(),
                                                     old_tree.map(|s| s.raw()),
                                                     opts.map(|s| s.raw())));
-            Ok(Diff::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -188,16 +190,8 @@ impl Diff {
         unsafe {
             try_call!(raw::git_diff_tree_to_workdir_with_index(&mut ret,
                     repo.raw(), old_tree.map(|s| s.raw()), opts.map(|s| s.raw())));
-            Ok(Diff::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
-    }
-
-    /// Create a new diff from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff {
-        Diff { raw: raw }
     }
 
     /// Merge one diff into another.
@@ -216,17 +210,17 @@ impl Diff {
     /// Returns an iterator over the deltas in this diff.
     pub fn deltas(&self) -> Deltas {
         let num_deltas = unsafe { raw::git_diff_num_deltas(&*self.raw) };
-        Deltas { range: range(0, num_deltas as uint), diff: self }
+        Deltas { range: range(0, num_deltas as usize), diff: self }
     }
 
     /// Return the diff delta for an entry in the diff list.
-    pub fn get_delta(&self, i: uint) -> Option<DiffDelta> {
+    pub fn get_delta(&self, i: usize) -> Option<DiffDelta> {
         unsafe {
             let ptr = raw::git_diff_get_delta(&*self.raw, i as size_t);
             if ptr.is_null() {
                 None
             } else {
-                Some(DiffDelta::from_raw(ptr as *mut _))
+                Some(Binding::from_raw(ptr as *mut _))
             }
         }
     }
@@ -254,9 +248,9 @@ impl Diff {
                            where F: FnMut(DiffDelta, DiffHunk, DiffLine) -> bool
         {
             unsafe {
-                let delta = DiffDelta::from_raw(delta as *mut _);
-                let hunk = DiffHunk::from_raw(hunk);
-                let line = DiffLine::from_raw(line);
+                let delta = Binding::from_raw(delta as *mut _);
+                let hunk = Binding::from_raw(hunk);
+                let line = Binding::from_raw(line);
                 let data = data as *mut F;
                 let ok = panic::wrap(move || {
                     (*data)(delta, hunk, line)
@@ -271,11 +265,19 @@ impl Diff {
         let mut ret = 0 as *mut raw::git_diff_stats;
         unsafe {
             try_call!(raw::git_diff_get_stats(&mut ret, self.raw));
-            Ok(DiffStats::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
     // TODO: num_deltas_of_type, foreach, format_email
+}
+
+impl Binding for Diff {
+    type Raw = *mut raw::git_diff;
+    unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff {
+        Diff { raw: raw }
+    }
+    fn raw(&self) -> *mut raw::git_diff { self.raw }
 }
 
 #[unsafe_destructor]
@@ -286,17 +288,6 @@ impl Drop for Diff {
 }
 
 impl<'a> DiffDelta<'a> {
-    /// Create a new diff delta from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
-        DiffDelta {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     // TODO: expose when diffs are more exposed
     // pub fn similarity(&self) -> u16 {
     //     unsafe { (*self.raw).similarity }
@@ -330,7 +321,7 @@ impl<'a> DiffDelta<'a> {
     /// What side this means depends on the function that was used to generate
     /// the diff and will be documented on the function itself.
     pub fn old_file(&self) -> DiffFile<'a> {
-        unsafe { DiffFile::from_raw(&(*self.raw).old_file) }
+        unsafe { Binding::from_raw(&(*self.raw).old_file as *const _) }
     }
 
     /// Return the file which represents the "to" side of the diff.
@@ -338,28 +329,28 @@ impl<'a> DiffDelta<'a> {
     /// What side this means depends on the function that was used to generate
     /// the diff and will be documented on the function itself.
     pub fn new_file(&self) -> DiffFile<'a> {
-        unsafe { DiffFile::from_raw(&(*self.raw).new_file) }
+        unsafe { Binding::from_raw(&(*self.raw).new_file as *const _) }
     }
 }
 
-impl<'a> DiffFile<'a> {
-    /// Create a new diff delta from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
-        DiffFile {
+impl<'a> Binding for DiffDelta<'a> {
+    type Raw = *mut raw::git_diff_delta;
+    unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
+        DiffDelta {
             raw: raw,
             marker: marker::ContravariantLifetime,
         }
     }
+    fn raw(&self) -> *mut raw::git_diff_delta { self.raw }
+}
 
+impl<'a> DiffFile<'a> {
     /// Returns the Oid of this item.
     ///
     /// If this entry represents an absent side of a diff (e.g. the `old_file`
     /// of a `Added` delta), then the oid returned will be zeroes.
     pub fn id(&self) -> Oid {
-        unsafe { Oid::from_raw(&(*self.raw).id) }
+        unsafe { Binding::from_raw(&(*self.raw).id as *const _) }
     }
 
     /// Returns the path, in bytes, of the entry relative to the working
@@ -378,6 +369,17 @@ impl<'a> DiffFile<'a> {
     pub fn size(&self) -> u64 { unsafe { (*self.raw).size as u64 } }
 
     // TODO: expose flags/mode
+}
+
+impl<'a> Binding for DiffFile<'a> {
+    type Raw = *const raw::git_diff_file;
+    unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
+        DiffFile {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *const raw::git_diff_file { self.raw }
 }
 
 impl DiffOptions {
@@ -609,22 +611,23 @@ impl DiffOptions {
     /// The virtual "directory" to prefix old file names with in hunk headers.
     ///
     /// The default value for this is "a".
-    pub fn old_prefix<T: Str>(&mut self, t: T) -> &mut DiffOptions {
-        self.old_prefix = Some(CString::from_slice(t.as_slice().as_bytes()));
+    pub fn old_prefix<T: BytesContainer>(&mut self, t: T) -> &mut DiffOptions {
+        self.old_prefix = Some(CString::from_slice(t.container_as_bytes()));
         self
     }
 
     /// The virtual "directory" to prefix new file names with in hunk headers.
     ///
     /// The default value for this is "b".
-    pub fn new_prefix<T: Str>(&mut self, t: T) -> &mut DiffOptions {
-        self.new_prefix = Some(CString::from_slice(t.as_slice().as_bytes()));
+    pub fn new_prefix<T: BytesContainer>(&mut self, t: T) -> &mut DiffOptions {
+        self.new_prefix = Some(CString::from_slice(t.container_as_bytes()));
         self
     }
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
-    pub fn pathspec<T: Str>(&mut self, pathspec: T) -> &mut DiffOptions {
-        let s = CString::from_slice(pathspec.as_slice().as_bytes());
+    pub fn pathspec<T: BytesContainer>(&mut self, pathspec: T)
+                                       -> &mut DiffOptions {
+        let s = CString::from_slice(pathspec.container_as_bytes());
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self
@@ -652,7 +655,7 @@ impl<'diff> Iterator for Deltas<'diff> {
     fn next(&mut self) -> Option<DiffDelta<'diff>> {
         self.range.next().and_then(|i| self.diff.get_delta(i))
     }
-    fn size_hint(&self) -> (uint, Option<uint>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
 impl<'diff> DoubleEndedIterator for Deltas<'diff> {
     fn next_back(&mut self) -> Option<DiffDelta<'diff>> {
@@ -662,17 +665,6 @@ impl<'diff> DoubleEndedIterator for Deltas<'diff> {
 impl<'diff> ExactSizeIterator for Deltas<'diff> {}
 
 impl<'a> DiffLine<'a> {
-    /// Create a new diff line from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
-        DiffLine {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Line number in old file or `None` for added line
     pub fn old_lineno(&self) -> Option<u32> {
         match unsafe { (*self.raw).old_lineno } {
@@ -703,7 +695,7 @@ impl<'a> DiffLine<'a> {
     pub fn content(&self) -> &[u8] {
         unsafe {
             slice::from_raw_buf(&(*self.raw).content,
-                                (*self.raw).content_len as uint)
+                                (*self.raw).content_len as usize)
         }
     }
 
@@ -725,18 +717,18 @@ impl<'a> DiffLine<'a> {
     }
 }
 
-impl<'a> DiffHunk<'a> {
-    /// Create a new diff line from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
-        DiffHunk {
+impl<'a> Binding for DiffLine<'a> {
+    type Raw = *const raw::git_diff_line;
+    unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
+        DiffLine {
             raw: raw,
             marker: marker::ContravariantLifetime,
         }
     }
+    fn raw(&self) -> *const raw::git_diff_line { self.raw }
+}
 
+impl<'a> DiffHunk<'a> {
     /// Starting line number in old_file
     pub fn old_start(&self) -> u32 {
         unsafe { (*self.raw).old_start as u32 }
@@ -759,35 +751,47 @@ impl<'a> DiffHunk<'a> {
 
     /// Header text
     pub fn header(&self) -> &[u8] {
-        unsafe { (*self.raw).header.slice_to((*self.raw).header_len as uint) }
+        unsafe { (*self.raw).header.slice_to((*self.raw).header_len as usize) }
     }
 }
 
-impl DiffStats {
-    /// Create diff stats from its raw component.
-    ///
-    /// This function is unsafe as the validity of the pointer cannot be
-    /// guaranteed.
-    pub unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
-        DiffStats { raw: raw }
+impl<'a> Binding for DiffHunk<'a> {
+    type Raw = *const raw::git_diff_hunk;
+    unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
+        DiffHunk {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
     }
+    fn raw(&self) -> *const raw::git_diff_hunk { self.raw }
+}
 
+impl DiffStats {
     /// Get the total number of files chaned in a diff.
-    pub fn files_changed(&self) -> uint {
-        unsafe { raw::git_diff_stats_files_changed(&*self.raw) as uint }
+    pub fn files_changed(&self) -> usize {
+        unsafe { raw::git_diff_stats_files_changed(&*self.raw) as usize }
     }
 
     /// Get the total number of insertions in a diff
-    pub fn insertions(&self) -> uint {
-        unsafe { raw::git_diff_stats_insertions(&*self.raw) as uint }
+    pub fn insertions(&self) -> usize {
+        unsafe { raw::git_diff_stats_insertions(&*self.raw) as usize }
     }
 
     /// Get the total number of deletions in a diff
-    pub fn deletions(&self) -> uint {
-        unsafe { raw::git_diff_stats_deletions(&*self.raw) as uint }
+    pub fn deletions(&self) -> usize {
+        unsafe { raw::git_diff_stats_deletions(&*self.raw) as usize }
     }
 
     // TODO: expose to_buf
+}
+
+impl Binding for DiffStats {
+    type Raw = *mut raw::git_diff_stats;
+
+    unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
+        DiffStats { raw: raw }
+    }
+    fn raw(&self) -> *mut raw::git_diff_stats { self.raw }
 }
 
 #[unsafe_destructor]

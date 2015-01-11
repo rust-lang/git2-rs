@@ -33,8 +33,8 @@ struct Args {
 
 struct State {
     progress: Option<Progress<'static>>,
-    total: uint,
-    current: uint,
+    total: usize,
+    current: usize,
     path: Path,
     newline: bool,
 }

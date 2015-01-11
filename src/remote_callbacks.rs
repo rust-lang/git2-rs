@@ -1,4 +1,4 @@
-use std::ffi::c_str_to_bytes;
+use std::ffi;
 use std::marker;
 use std::mem;
 use std::slice;
@@ -6,6 +6,7 @@ use std::str;
 use libc::{c_void, c_int, c_char, c_uint};
 
 use {raw, panic, Error, Cred, CredentialType, Oid};
+use util::Binding;
 
 /// A structure to contain the callbacks which are invoked when a repository is
 /// being updated or downloaded.
@@ -36,7 +37,7 @@ enum ProgressState {
 /// * `username_from_url` - the username that was embedded in the url, or `None`
 ///                         if it was not included.
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
-// FIXME: the second &str should be Option<&str> but that currently ICEs
+// TODO: the second &str should be Option<&str> but that currently ICEs
 pub type Credentials<'a> = FnMut(&str, &str, CredentialType)
                                  -> Result<Cred, Error> + 'a;
 
@@ -73,14 +74,14 @@ impl<'a> RemoteCallbacks<'a> {
                           where F: FnMut(&str, &str, CredentialType)
                                          -> Result<Cred, Error> + 'a
     {
-        self.credentials = Some(box cb as Box<Credentials<'a>>);
+        self.credentials = Some(Box::new(cb) as Box<Credentials<'a>>);
         self
     }
 
     /// The callback through which progress is monitored.
     pub fn transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
                                 where F: FnMut(Progress) -> bool + 'a {
-        self.progress = Some(box cb as Box<TransferProgress<'a>>);
+        self.progress = Some(Box::new(cb) as Box<TransferProgress<'a>>);
         self
     }
 
@@ -90,7 +91,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// (this is the 'counting objects' output.
     pub fn sideband_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
                                 where F: FnMut(&[u8]) -> bool + 'a {
-        self.sideband_progress = Some(box cb as Box<TransportMessage<'a>>);
+        self.sideband_progress = Some(Box::new(cb) as Box<TransportMessage<'a>>);
         self
     }
 
@@ -98,88 +99,92 @@ impl<'a> RemoteCallbacks<'a> {
     /// with information about it.
     pub fn update_tips<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
                           where F: FnMut(&str, Oid, Oid) -> bool + 'a {
-        self.update_tips = Some(box cb as Box<UpdateTips<'a>>);
+        self.update_tips = Some(Box::new(cb) as Box<UpdateTips<'a>>);
         self
     }
+}
 
-    /// Convert this set of callbacks to a raw callbacks structure.
-    ///
-    /// This function is unsafe as the callbacks returned have a reference to
-    /// this object and are only valid while the object is alive.
-    pub unsafe fn raw(&mut self) -> raw::git_remote_callbacks {
-        let mut callbacks: raw::git_remote_callbacks = mem::zeroed();
-        assert_eq!(raw::git_remote_init_callbacks(&mut callbacks,
-                                    raw::GIT_REMOTE_CALLBACKS_VERSION), 0);
-        if self.progress.is_some() {
-            let f: raw::git_transfer_progress_cb = transfer_progress_cb;
-            callbacks.transfer_progress = Some(f);
+impl<'a> Binding for RemoteCallbacks<'a> {
+    type Raw = raw::git_remote_callbacks;
+    unsafe fn from_raw(_raw: raw::git_remote_callbacks) -> RemoteCallbacks<'a> {
+        panic!("unimplemented");
+    }
+
+    fn raw(&self) -> raw::git_remote_callbacks {
+        unsafe {
+            let mut callbacks: raw::git_remote_callbacks = mem::zeroed();
+            assert_eq!(raw::git_remote_init_callbacks(&mut callbacks,
+                                        raw::GIT_REMOTE_CALLBACKS_VERSION), 0);
+            if self.progress.is_some() {
+                let f: raw::git_transfer_progress_cb = transfer_progress_cb;
+                callbacks.transfer_progress = Some(f);
+            }
+            if self.credentials.is_some() {
+                let f: raw::git_cred_acquire_cb = credentials_cb;
+                callbacks.credentials = Some(f);
+            }
+            if self.sideband_progress.is_some() {
+                let f: raw::git_transport_message_cb = sideband_progress_cb;
+                callbacks.sideband_progress = Some(f);
+            }
+            if self.update_tips.is_some() {
+                let f: extern fn(*const c_char, *const raw::git_oid,
+                                 *const raw::git_oid, *mut c_void) -> c_int
+                                = update_tips_cb;
+                callbacks.update_tips = Some(f);
+            }
+            callbacks.payload = self as *const _ as *mut _;
+            return callbacks;
         }
-        if self.credentials.is_some() {
-            let f: raw::git_cred_acquire_cb = credentials_cb;
-            callbacks.credentials = Some(f);
-        }
-        if self.sideband_progress.is_some() {
-            let f: raw::git_transport_message_cb = sideband_progress_cb;
-            callbacks.sideband_progress = Some(f);
-        }
-        if self.update_tips.is_some() {
-            let f: extern fn(*const c_char, *const raw::git_oid,
-                             *const raw::git_oid, *mut c_void) -> c_int
-                            = update_tips_cb;
-            callbacks.update_tips = Some(f);
-        }
-        callbacks.payload = self as *mut _ as *mut _;
-        return callbacks;
     }
 }
 
 impl<'a> Progress<'a> {
-    /// Creates a new progress structure from its raw counterpart.
-    ///
-    /// This function is unsafe as there is no anchor for the returned lifetime
-    /// and the validity of the pointer cannot be guaranteed.
-    pub unsafe fn from_raw(raw: *const raw::git_transfer_progress)
-                           -> Progress<'a> {
-        Progress {
-            raw: ProgressState::Borrowed(raw),
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Number of objects in the packfile being downloaded
-    pub fn total_objects(&self) -> uint {
-        unsafe { (*self.raw()).total_objects as uint }
+    pub fn total_objects(&self) -> usize {
+        unsafe { (*self.raw()).total_objects as usize }
     }
     /// Received objects that have been hashed
-    pub fn indexed_objects(&self) -> uint {
-        unsafe { (*self.raw()).indexed_objects as uint }
+    pub fn indexed_objects(&self) -> usize {
+        unsafe { (*self.raw()).indexed_objects as usize }
     }
     /// Objects which have been downloaded
-    pub fn received_objects(&self) -> uint {
-        unsafe { (*self.raw()).received_objects as uint }
+    pub fn received_objects(&self) -> usize {
+        unsafe { (*self.raw()).received_objects as usize }
     }
     /// Locally-available objects that have been injected in order to fix a thin
     /// pack.
-    pub fn local_objects(&self) -> uint {
-        unsafe { (*self.raw()).local_objects as uint }
+    pub fn local_objects(&self) -> usize {
+        unsafe { (*self.raw()).local_objects as usize }
     }
     /// Number of deltas in the packfile being downloaded
-    pub fn total_deltas(&self) -> uint {
-        unsafe { (*self.raw()).total_deltas as uint }
+    pub fn total_deltas(&self) -> usize {
+        unsafe { (*self.raw()).total_deltas as usize }
     }
     /// Received deltas that have been hashed.
-    pub fn indexed_deltas(&self) -> uint {
-        unsafe { (*self.raw()).indexed_deltas as uint }
+    pub fn indexed_deltas(&self) -> usize {
+        unsafe { (*self.raw()).indexed_deltas as usize }
     }
     /// Size of the packfile received up to now
-    pub fn received_bytes(&self) -> uint {
-        unsafe { (*self.raw()).received_bytes as uint }
+    pub fn received_bytes(&self) -> usize {
+        unsafe { (*self.raw()).received_bytes as usize }
     }
 
     /// Convert this to an owned version of `Progress`.
     pub fn to_owned(&self) -> Progress<'static> {
         Progress {
             raw: ProgressState::Owned(unsafe { *self.raw() }),
+            marker: marker::ContravariantLifetime,
+        }
+    }
+}
+
+impl<'a> Binding for Progress<'a> {
+    type Raw = *const raw::git_transfer_progress;
+    unsafe fn from_raw(raw: *const raw::git_transfer_progress)
+                           -> Progress<'a> {
+        Progress {
+            raw: ProgressState::Borrowed(raw),
             marker: marker::ContravariantLifetime,
         }
     }
@@ -204,14 +209,14 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             None => return raw::GIT_PASSTHROUGH as c_int,
         };
         *ret = 0 as *mut raw::git_cred;
-        let url = match str::from_utf8(c_str_to_bytes(&url))  {
+        let url = match str::from_utf8(ffi::c_str_to_bytes(&url))  {
             Ok(url) => url,
             Err(_) => return raw::GIT_PASSTHROUGH as c_int,
         };
         let username_from_url = if username_from_url.is_null() {
             None
         } else {
-            Some(c_str_to_bytes(&username_from_url))
+            Some(ffi::c_str_to_bytes(&username_from_url))
         };
         let username_from_url = match username_from_url {
             Some(username) => match str::from_utf8(username) {
@@ -222,7 +227,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
         };
         let username_from_url = username_from_url.unwrap_or("");
 
-        let cred_type = CredentialType::from_bits_truncate(allowed_types as uint);
+        let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
         match panic::wrap(|| {
             callback(url, username_from_url, cred_type)
         }) {
@@ -250,7 +255,7 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let progress = Progress::from_raw(stats);
+        let progress = Binding::from_raw(stats);
         let ok = panic::wrap(move || {
             callback(progress)
         }).unwrap_or(false);
@@ -268,7 +273,7 @@ extern fn sideband_progress_cb(str: *const c_char,
             None => return 0,
         };
         let ptr = str as *const u8;
-        let buf = slice::from_raw_buf(&ptr, len as uint);
+        let buf = slice::from_raw_buf(&ptr, len as usize);
         let ok = panic::wrap(|| {
             callback(buf)
         }).unwrap_or(false);
@@ -286,9 +291,9 @@ extern fn update_tips_cb(refname: *const c_char,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let refname = str::from_utf8(c_str_to_bytes(&refname)).ok().unwrap();
-        let a = Oid::from_raw(a);
-        let b = Oid::from_raw(b);
+        let refname = str::from_utf8(ffi::c_str_to_bytes(&refname)).ok().unwrap();
+        let a = Binding::from_raw(a);
+        let b = Binding::from_raw(b);
         let ok = panic::wrap(|| {
             callback(refname, a, b)
         }).unwrap_or(false);

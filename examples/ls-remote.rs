@@ -12,8 +12,8 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![deny(warnings)]
 #![allow(unstable)]
+#![deny(warnings)]
 
 extern crate git2;
 extern crate docopt;

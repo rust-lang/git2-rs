@@ -1,12 +1,15 @@
 use std::ffi::CString;
+use std::iter::Range;
 use std::marker;
 use std::mem;
+use std::path::BytesContainer;
 use std::slice;
 use std::str;
 use libc;
 
 use {raw, Direction, Error, Refspec, Oid};
 use {Signature, Push, RemoteCallbacks, Progress};
+use util::Binding;
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -22,8 +25,7 @@ pub struct Remote<'repo, 'cb> {
 
 /// An iterator over the refspecs that a remote contains.
 pub struct Refspecs<'remote, 'cb: 'remote> {
-    cur: uint,
-    cnt: uint,
+    range: Range<usize>,
     remote: &'remote Remote<'remote, 'cb>,
 }
 
@@ -35,18 +37,6 @@ pub struct RemoteHead<'remote> {
 }
 
 impl<'repo, 'cb> Remote<'repo, 'cb> {
-    /// Creates a new remote from its raw pointer.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is valid or
-    /// that no other remote is using it.
-    pub unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo, 'cb> {
-        Remote {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-            callbacks: None,
-        }
-    }
-
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
         ::init();
@@ -122,16 +112,18 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Add a fetch refspec to the remote
     pub fn add_fetch(&mut self, spec: &str) -> Result<(), Error> {
+        let spec = CString::from_slice(spec.as_bytes());
         unsafe {
-            try_call!(raw::git_remote_add_fetch(self.raw, CString::from_slice(spec.as_bytes())));
+            try_call!(raw::git_remote_add_fetch(self.raw, spec));
         }
         Ok(())
     }
 
     /// Add a push refspec to the remote
     pub fn add_push(&mut self, spec: &str) -> Result<(), Error> {
+        let spec = CString::from_slice(spec.as_bytes());
         unsafe {
-            try_call!(raw::git_remote_add_push(self.raw, CString::from_slice(spec.as_bytes())));
+            try_call!(raw::git_remote_add_push(self.raw, spec));
         }
         Ok(())
     }
@@ -140,9 +132,8 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// Existing connections will not be updated.
     pub fn set_url(&mut self, url: &str) -> Result<(), Error> {
-        unsafe {
-            try_call!(raw::git_remote_set_url(self.raw, CString::from_slice(url.as_bytes())));
-        }
+        let url = CString::from_slice(url.as_bytes());
+        unsafe { try_call!(raw::git_remote_set_url(self.raw, url)); }
         Ok(())
     }
 
@@ -168,16 +159,10 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 
     /// Set the remote's list of fetch refspecs
-    pub fn set_fetch_refspecs<T: Str, I: Iterator<Item=T>>(&mut self, i: I)
-                                                              -> Result<(), Error> {
-        let v = i.map(|t| CString::from_slice(t.as_slice().as_bytes()))
-                 .collect::<Vec<CString>>();
-        let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const libc::c_char>>();
-        let mut arr = raw::git_strarray {
-            strings: v2.as_ptr() as *mut _,
-            count: v2.len() as libc::size_t,
-        };
-
+    pub fn set_fetch_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
+        where T: BytesContainer, I: Iterator<Item=T>
+    {
+        let (_a, _b, mut arr) = ::util::iter2cstrs(i);
         unsafe {
             try_call!(raw::git_remote_set_fetch_refspecs(self.raw, &mut arr));
         }
@@ -185,16 +170,10 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 
     /// Set the remote's list of push refspecs
-    pub fn set_push_refspecs<T: Str, I: Iterator<Item=T>>(&mut self, i: I)
-                                                             -> Result<(), Error> {
-        let v = i.map(|t| CString::from_slice(t.as_slice().as_bytes()))
-                 .collect::<Vec<CString>>();
-        let v2 = v.iter().map(|v| v.as_ptr()).collect::<Vec<*const libc::c_char>>();
-        let mut arr = raw::git_strarray {
-            strings: v2.as_ptr() as *mut _,
-            count: v2.len() as libc::size_t,
-        };
-
+    pub fn set_push_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
+        where T: BytesContainer, I: Iterator<Item=T>
+    {
+        let (_a, _b, mut arr) = ::util::iter2cstrs(i);
         unsafe {
             try_call!(raw::git_remote_set_push_refspecs(self.raw, &mut arr));
         }
@@ -218,7 +197,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     pub fn download(&mut self) -> Result<(), Error> {
         unsafe {
             try!(self.set_raw_callbacks());
-            // FIXME expose refspec array at the API level
+            // TODO expose refspec array at the API level
             try_call!(raw::git_remote_download(self.raw, 0 as *const _));
         }
         Ok(())
@@ -226,8 +205,23 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Get the number of refspecs for a remote
     pub fn refspecs<'a>(&'a self) -> Refspecs<'a, 'cb> {
-        let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as uint };
-        Refspecs { cur: 0, cnt: cnt, remote: self }
+        let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
+        Refspecs { range: range(0, cnt), remote: self }
+    }
+
+    /// Get the `nth` refspec from this remote.
+    ///
+    /// The `refspecs` iterator can be used to iterate over all refspecs.
+    pub fn get_refspec(&self, i: usize) -> Option<Refspec<'repo>> {
+        unsafe {
+            let ptr = raw::git_remote_get_refspec(&*self.raw,
+                                                  i as libc::size_t);
+            if ptr.is_null() {
+                None
+            } else {
+                Some(Binding::from_raw(ptr))
+            }
+        }
     }
 
     /// Download new data and update tips
@@ -238,19 +232,14 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
                  refspecs: &[&str],
                  signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
-        let refspecs = refspecs.iter().map(|s| CString::from_slice(s.as_bytes())).collect::<Vec<_>>();
-        let ptrs = refspecs.iter().map(|s| s.as_ptr()).collect::<Vec<_>>();
-        let arr = raw::git_strarray {
-            strings: ptrs.as_ptr() as *mut _,
-            count: ptrs.len() as libc::size_t,
-        };
+        let (_a, _b, arr) = ::util::iter2cstrs(refspecs.iter());
+        let msg = msg.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
             try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_fetch(self.raw,
                                             &arr,
-                                            &*signature.map(|s| s.raw())
-                                                       .unwrap_or(0 as *mut _),
-                                            msg.map(|s| CString::from_slice(s.as_bytes()))));
+                                            signature.map(|s| s.raw()),
+                                            msg));
         }
         Ok(())
     }
@@ -258,11 +247,11 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Update the tips to the new state
     pub fn update_tips(&mut self, signature: Option<&Signature>,
                        msg: Option<&str>) -> Result<(), Error> {
+        let msg = msg.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
             try_call!(raw::git_remote_update_tips(self.raw,
-                                                  &*signature.map(|s| s.raw())
-                                                             .unwrap_or(0 as *mut _),
-                                                  msg.map(|s| CString::from_slice(s.as_bytes()))));
+                                                  signature.map(|s| s.raw()),
+                                                  msg));
         }
         Ok(())
     }
@@ -279,7 +268,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         try!(self.set_raw_callbacks());
         unsafe {
             try_call!(raw::git_push_new(&mut ret, self.raw));
-            Ok(Push::from_raw(ret))
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -304,7 +293,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Get the statistics structure that is filled in by the fetch operation.
     pub fn stats(&self) -> Progress {
         unsafe {
-            Progress::from_raw(raw::git_remote_stats(self.raw))
+            Binding::from_raw(raw::git_remote_stats(self.raw))
         }
     }
 
@@ -324,25 +313,10 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
             assert_eq!(mem::size_of::<RemoteHead>(),
                        mem::size_of::<*const raw::git_remote_head>());
             let base = base as *const _;
-            let slice = slice::from_raw_buf(&base, size as uint);
+            let slice = slice::from_raw_buf(&base, size as usize);
             Ok(mem::transmute::<&[*const raw::git_remote_head],
                                 &[RemoteHead]>(slice))
         }
-    }
-}
-
-impl<'a, 'b> Iterator for Refspecs<'a, 'b> {
-    type Item = Refspec<'a>;
-    fn next(&mut self) -> Option<Refspec<'a>> {
-        if self.cur == self.cnt { return None }
-        let ret = unsafe {
-            let ptr = raw::git_remote_get_refspec(&*self.remote.raw,
-                                                  self.cur as libc::size_t);
-            assert!(!ptr.is_null());
-            Refspec::from_raw(ptr)
-        };
-        self.cur += 1;
-        Some(ret)
     }
 }
 
@@ -359,12 +333,39 @@ impl<'a, 'b> Clone for Remote<'a, 'b> {
     }
 }
 
+impl<'repo, 'cb> Binding for Remote<'repo, 'cb> {
+    type Raw = *mut raw::git_remote;
+
+    unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo, 'cb> {
+        Remote {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+            callbacks: None,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_remote { self.raw }
+}
+
 #[unsafe_destructor]
 impl<'a, 'b> Drop for Remote<'a, 'b> {
     fn drop(&mut self) {
         unsafe { raw::git_remote_free(self.raw) }
     }
 }
+
+impl<'repo, 'cb> Iterator for Refspecs<'repo, 'cb> {
+    type Item = Refspec<'repo>;
+    fn next(&mut self) -> Option<Refspec<'repo>> {
+        self.range.next().and_then(|i| self.remote.get_refspec(i))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+}
+impl<'repo, 'cb> DoubleEndedIterator for Refspecs<'repo, 'cb> {
+    fn next_back(&mut self) -> Option<Refspec<'repo>> {
+        self.range.next_back().and_then(|i| self.remote.get_refspec(i))
+    }
+}
+impl<'repo, 'cb> ExactSizeIterator for Refspecs<'repo, 'cb> {}
 
 #[allow(missing_docs)] // not documented in libgit2 :(
 impl<'remote> RemoteHead<'remote> {
@@ -373,9 +374,12 @@ impl<'remote> RemoteHead<'remote> {
         unsafe { (*self.raw).local != 0 }
     }
 
-
-    pub fn oid(&self) -> Oid { unsafe { Oid::from_raw(&(*self.raw).oid) } }
-    pub fn loid(&self) -> Oid { unsafe { Oid::from_raw(&(*self.raw).loid) } }
+    pub fn oid(&self) -> Oid {
+        unsafe { Binding::from_raw(&(*self.raw).oid as *const _) }
+    }
+    pub fn loid(&self) -> Oid {
+        unsafe { Binding::from_raw(&(*self.raw).loid as *const _) }
+    }
 
     pub fn name(&self) -> &str {
         let b = unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() };

@@ -1,9 +1,10 @@
-use std::ffi::{CString, c_str_to_bytes};
+use std::ffi::{self, CString};
 use std::marker;
 use std::str;
 use libc;
 
 use {raw, Error, Signature};
+use util::Binding;
 
 /// A structure to represent a pending push operation to a remote.
 ///
@@ -24,24 +25,11 @@ pub struct PushStatus {
 }
 
 impl<'remote> Push<'remote> {
-    /// Create a new push from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_push) -> Push<'remote> {
-        Push {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
-    /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_push { self.raw }
-
     /// Add a refspec to be pushed
     pub fn add_refspec(&mut self, refspec: &str) -> Result<(), Error> {
+        let refspec = CString::from_slice(refspec.as_bytes());
         unsafe {
-            try_call!(raw::git_push_add_refspec(self.raw, CString::from_slice(refspec.as_bytes())));
+            try_call!(raw::git_push_add_refspec(self.raw, refspec));
             Ok(())
         }
     }
@@ -62,10 +50,11 @@ impl<'remote> Push<'remote> {
     /// Update remote tips after a push
     pub fn update_tips(&mut self, signature: Option<&Signature>,
                        reflog_message: Option<&str>) -> Result<(), Error> {
+        let msg = reflog_message.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
             try_call!(raw::git_push_update_tips(self.raw,
-                                                signature.map(|s| &*s.raw()),
-                                                reflog_message.map(|s| CString::from_slice(s.as_bytes()))));
+                                                signature.map(|s| s.raw()),
+                                                msg));
             Ok(())
         }
     }
@@ -84,12 +73,12 @@ impl<'remote> Push<'remote> {
                      msg: *const libc::c_char,
                      data: *mut libc::c_void) -> libc::c_int {
             unsafe {
-                let git_ref = match str::from_utf8(c_str_to_bytes(&git_ref)) {
+                let git_ref = match str::from_utf8(ffi::c_str_to_bytes(&git_ref)) {
                     Ok(s) => s.to_string(),
                     Err(_) => return 0,
                 };
                 let msg = if !msg.is_null() {
-                    match str::from_utf8(c_str_to_bytes(&msg)) {
+                    match str::from_utf8(ffi::c_str_to_bytes(&msg)) {
                         Ok(s) => Some(s.to_string()),
                         Err(_) => return 0,
                     }
@@ -103,6 +92,17 @@ impl<'remote> Push<'remote> {
             }
         }
     }
+}
+
+impl<'remote> Binding for Push<'remote> {
+    type Raw = *mut raw::git_push;
+    unsafe fn from_raw(raw: *mut raw::git_push) -> Push<'remote> {
+        Push {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_push { self.raw }
 }
 
 #[unsafe_destructor]

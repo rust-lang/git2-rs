@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types, missing_copy_implementations)]
+#![allow(raw_pointer_derive)]
 
+#[allow(unstable)]
 extern crate libc;
 extern crate "libssh2-sys" as libssh2;
 #[cfg(unix)] extern crate "openssl-sys" as openssl;
@@ -36,8 +38,8 @@ pub use git_diff_stats_format_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
-pub const GIT_OID_RAWSZ: uint = 20;
-pub const GIT_OID_HEXSZ: uint = GIT_OID_RAWSZ * 2;
+pub const GIT_OID_RAWSZ: usize = 20;
+pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;
 pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
@@ -77,19 +79,19 @@ pub struct git_revspec {
 }
 
 #[repr(C)]
-#[derive(Show)]
 pub struct git_error {
     pub message: *mut c_char,
     pub klass: c_int,
 }
 
 #[repr(C)]
-#[derive(Copy,Show)]
+#[derive(Copy)]
 pub struct git_oid {
     pub id: [u8; GIT_OID_RAWSZ],
 }
 
 #[repr(C)]
+#[derive(Copy)]
 pub struct git_strarray {
     pub strings: *mut *mut c_char,
     pub count: size_t,
@@ -103,7 +105,7 @@ pub struct git_signature {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct git_time {
     pub time: git_time_t,
     pub offset: c_int,
@@ -118,7 +120,7 @@ pub const GIT_REVPARSE_RANGE: c_int = 1 << 1;
 pub const GIT_REVPARSE_MERGE_BASE: c_int = 1 << 2;
 
 #[repr(C)]
-#[derive(PartialEq, Eq, Clone, Show, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum git_error_code {
     GIT_OK = 0,
 
@@ -465,7 +467,7 @@ pub enum git_ref_t {
     GIT_REF_INVALID = 0,
     GIT_REF_OID = 1,
     GIT_REF_SYMBOLIC = 2,
-    GIT_REF_LISTALL = GIT_REF_OID as int | GIT_REF_SYMBOLIC as int,
+    GIT_REF_LISTALL = GIT_REF_OID as isize | GIT_REF_SYMBOLIC as isize,
 }
 
 #[repr(C)]
@@ -490,6 +492,7 @@ pub type git_treewalk_cb = extern fn(*const c_char, *const git_tree_entry,
                                      *mut c_void) -> c_int;
 
 #[repr(C)]
+#[derive(Copy)]
 pub struct git_buf {
     pub ptr: *mut c_char,
     pub asize: size_t,
@@ -501,13 +504,14 @@ pub struct git_buf {
 pub enum git_branch_t {
     GIT_BRANCH_LOCAL = 1,
     GIT_BRANCH_REMOTE = 2,
-    GIT_BRANCH_ALL = GIT_BRANCH_LOCAL as int | GIT_BRANCH_REMOTE as int,
+    GIT_BRANCH_ALL = GIT_BRANCH_LOCAL as isize | GIT_BRANCH_REMOTE as isize,
 }
 
 pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
                                                *mut c_void) -> c_int;
 
 #[repr(C)]
+#[derive(Copy)]
 pub struct git_index_entry {
     pub ctime: git_index_time,
     pub mtime: git_index_time,
@@ -524,7 +528,7 @@ pub struct git_index_entry {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct git_index_time {
     pub seconds: git_time_t,
     pub nanoseconds: c_uint,

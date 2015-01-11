@@ -1,7 +1,6 @@
 use std::marker;
-use std::mem;
-
 use {raw, Oid, ObjectType, Error, Buf};
+use util::Binding;
 
 /// A structure to represent a git [object][1]
 ///
@@ -12,26 +11,12 @@ pub struct Object<'repo> {
 }
 
 impl<'repo> Object<'repo> {
-    /// Create a new object from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
-        Object {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
         unsafe {
-            Oid::from_raw(raw::git_object_id(&*self.raw))
+            Binding::from_raw(raw::git_object_id(&*self.raw))
         }
     }
-
-    /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_object { self.raw }
 
     /// Get the object type of an object.
     ///
@@ -49,11 +34,8 @@ impl<'repo> Object<'repo> {
         let mut raw = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_object_peel(&mut raw, &*self.raw(), kind));
+            Ok(Binding::from_raw(raw))
         }
-        Ok(Object {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        })
     }
 
     /// Get a short abbreviated OID string for the object
@@ -64,15 +46,15 @@ impl<'repo> Object<'repo> {
     /// repository).
     pub fn short_id(&self) -> Result<Buf, Error> {
         unsafe {
-            let mut raw: raw::git_buf = mem::zeroed();
-            try_call!(raw::git_object_short_id(&mut raw, &*self.raw()));
-            Ok(Buf::from_raw(raw))
+            let buf = Buf::new();
+            try_call!(raw::git_object_short_id(buf.raw(), &*self.raw()));
+            Ok(buf)
         }
     }
 }
 
-impl<'a> Clone for Object<'a> {
-    fn clone(&self) -> Object<'a> {
+impl<'repo> Clone for Object<'repo> {
+    fn clone(&self) -> Object<'repo> {
         let mut raw = 0 as *mut raw::git_object;
         let rc = unsafe { raw::git_object_dup(&mut raw, self.raw) };
         assert_eq!(rc, 0);
@@ -83,8 +65,20 @@ impl<'a> Clone for Object<'a> {
     }
 }
 
+impl<'repo> Binding for Object<'repo> {
+    type Raw = *mut raw::git_object;
+
+    unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
+        Object {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_object { self.raw }
+}
+
 #[unsafe_destructor]
-impl<'a> Drop for Object<'a> {
+impl<'repo> Drop for Object<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_object_free(self.raw) }
     }

@@ -5,22 +5,15 @@ use std::str;
 use libc;
 
 use {raw, Error};
+use util::Binding;
 
 /// Unique identity of any object (commit, tree, blob, tag).
-#[derive(Copy,Show)]
+#[derive(Copy)]
 pub struct Oid {
     raw: raw::git_oid,
 }
 
 impl Oid {
-    /// Create a new Oid from a raw libgit2 oid structure.
-    ///
-    /// This function is unsafe as it does not know if the memory pointed to by
-    /// `oid` is valid or not.
-    pub unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
-        Oid { raw: *oid }
-    }
-
     /// Parse a hex-formatted object id into an Oid structure.
     ///
     /// If the string is not a valid 40-character hex string, an error is
@@ -51,15 +44,27 @@ impl Oid {
         }
     }
 
-    /// Gain access to the underlying raw oid pointer
-    pub fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
-
     /// View this OID as a byte-slice 20 bytes in length.
     pub fn as_bytes(&self) -> &[u8] { self.raw.id.as_slice() }
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {
         unsafe { raw::git_oid_iszero(&self.raw) == 1 }
+    }
+}
+
+impl Binding for Oid {
+    type Raw = *const raw::git_oid;
+
+    unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
+        Oid { raw: *oid }
+    }
+    fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
+}
+
+impl fmt::Show for Oid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::String::fmt(self, f)
     }
 }
 
