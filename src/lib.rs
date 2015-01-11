@@ -570,6 +570,18 @@ pub enum DiffFormat {
     NameStatus,
 }
 
+bitflags! {
+    /// Formatting options for diff stats
+    flags DiffStatsFormat: u32 {
+        const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE as u32,
+        const DIFF_STATS_FULL = raw::GIT_DIFF_STATS_FULL as u32,
+        const DIFF_STATS_SHORT = raw::GIT_DIFF_STATS_SHORT as u32,
+        const DIFF_STATS_NUMBER = raw::GIT_DIFF_STATS_NUMBER as u32,
+        const DIFF_STATS_INCLUDE_SUMMARY =
+            raw::GIT_DIFF_STATS_INCLUDE_SUMMARY as u32,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::ObjectType;

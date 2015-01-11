@@ -1812,7 +1812,7 @@ extern {
     pub fn git_diff_stats_insertions(stats: *const git_diff_stats) -> size_t;
     pub fn git_diff_stats_to_buf(out: *mut git_buf,
                                  stats: *const git_diff_stats,
-                                 format: git_diff_stats_format_t,
+                                 format: u32, // git_diff_stats_format_t
                                  width: size_t) -> c_int;
     pub fn git_diff_status_char(status: git_delta_t) -> c_char;
     pub fn git_diff_tree_to_index(diff: *mut *mut git_diff,

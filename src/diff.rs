@@ -6,7 +6,8 @@ use std::path::BytesContainer;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
-use {raw, panic, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+use {DiffStatsFormat};
 use util::Binding;
 
 /// The diff object that contains all individual file deltas.
@@ -782,7 +783,17 @@ impl DiffStats {
         unsafe { raw::git_diff_stats_deletions(&*self.raw) as usize }
     }
 
-    // TODO: expose to_buf
+    /// Print diff statistics to a Buf
+    pub fn to_buf(&self, format: DiffStatsFormat, width: usize)
+                  -> Result<Buf, Error> {
+        let buf = Buf::new();
+        unsafe {
+            try_call!(raw::git_diff_stats_to_buf(buf.raw(), self.raw,
+                                                 format.bits(),
+                                                 width as size_t));
+        }
+        Ok(buf)
+    }
 }
 
 impl Binding for DiffStats {
