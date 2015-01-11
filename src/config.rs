@@ -220,7 +220,7 @@ impl Config {
     /// let cfg = Config::new().unwrap();
     ///
     /// for entry in &cfg.entries(None).unwrap() {
-    ///     println!("{} => {}", entry.name(), entry.value());
+    ///     println!("{} => {:?}", entry.name(), entry.value());
     /// }
     /// ```
     pub fn entries(&self, glob: Option<&str>) -> Result<ConfigEntries, Error> {
