@@ -89,7 +89,7 @@ pub use commit::{Commit, Parents};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
-pub use diff::{DiffLine, DiffHunk, DiffStats};
+pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
 pub use error::Error;
 pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use note::{Note, Notes};

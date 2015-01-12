@@ -43,6 +43,11 @@ pub struct DiffOptions {
     raw: raw::git_diff_options,
 }
 
+/// Control behavior of rename and copy detection
+pub struct DiffFindOptions {
+    raw: raw::git_diff_find_options,
+}
+
 /// An iterator over the diffs in a delta
 pub struct Deltas<'diff> {
     range: Range<usize>,
@@ -268,6 +273,19 @@ impl Diff {
             try_call!(raw::git_diff_get_stats(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
         }
+    }
+
+    /// Transform a diff marking file renames, copies, etc.
+    ///
+    /// This modifies a diff in place, replacing old entries that look like
+    /// renames or copies with new entries reflecting those changes. This also
+    /// will, if requested, break modified files into add/remove pairs if the
+    /// amount of change is above a threshold.
+    pub fn find_similar(&mut self, opts: Option<&mut DiffFindOptions>)
+                        -> Result<(), Error> {
+        let opts = opts.map(|opts| &opts.raw);
+        unsafe { try_call!(raw::git_diff_find_similar(self.raw, opts)); }
+        Ok(())
     }
 
     // TODO: num_deltas_of_type, foreach, format_email, find_similar
@@ -810,6 +828,168 @@ impl Drop for DiffStats {
     fn drop(&mut self) {
         unsafe { raw::git_diff_stats_free(self.raw) }
     }
+}
+
+impl DiffFindOptions {
+    /// Creates a new set of empty diff find options.
+    ///
+    /// All flags and other options are defaulted to false or their otherwise
+    /// zero equivalents.
+    pub fn new() -> DiffFindOptions {
+        let mut opts = DiffFindOptions {
+            raw: unsafe { mem::zeroed() },
+        };
+        assert_eq!(unsafe {
+            raw::git_diff_find_init_options(&mut opts.raw, 1)
+        }, 0);
+        opts
+    }
+
+    fn flag(&mut self, opt: u32, val: bool) -> &mut DiffFindOptions {
+        if val {
+            self.raw.flags |= opt;
+        } else {
+            self.raw.flags &= !opt;
+        }
+        self
+    }
+
+    /// Reset all flags back to their unset state, indicating that
+    /// `diff.renames` should be used instead. This is overridden once any flag
+    /// is set.
+    pub fn by_config(&mut self) -> &mut DiffFindOptions {
+        self.flag(0xffffffff, false)
+    }
+
+    /// Look for renames?
+    pub fn renames(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_RENAMES, find)
+    }
+
+    /// Consider old side of modified for renames?
+    pub fn renames_from_rewrites(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_RENAMES_FROM_REWRITES, find)
+    }
+
+    /// Look for copies?
+    pub fn copies(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_COPIES, find)
+    }
+
+    /// Consider unmodified as copy sources?
+    ///
+    /// For this to work correctly, use `include_unmodified` when the initial
+    /// diff is being generated.
+    pub fn copies_from_unmodified(&mut self, find: bool)
+                                  -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED, find)
+    }
+
+    /// Mark significant rewrites for split.
+    pub fn rewrites(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_REWRITES, find)
+    }
+
+    /// Actually split large rewrites into delete/add pairs
+    pub fn break_rewries(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_BREAK_REWRITES, find)
+    }
+
+    /// Find renames/copies for untracked items in working directory.
+    ///
+    /// For this to work correctly use the `include_untracked` option when the
+    /// initial diff is being generated.
+    pub fn for_untracked(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_FOR_UNTRACKED, find)
+    }
+
+    /// Turn on all finding features.
+    pub fn all(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_ALL, find)
+    }
+
+    /// Measure similarity ignoring leading whitespace (default)
+    pub fn ignore_leading_whitespace(&mut self, ignore: bool)
+                                     -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_IGNORE_LEADING_WHITESPACE, ignore)
+    }
+
+    /// Measure similarity ignoring all whitespace
+    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_IGNORE_WHITESPACE, ignore)
+    }
+
+    /// Measure similarity including all data
+    pub fn dont_ignore_whitespace(&mut self, dont: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE, dont)
+    }
+
+    /// Measure similarity only by comparing SHAs (fast and cheap)
+    pub fn exact_match_only(&mut self, exact: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_EXACT_MATCH_ONLY, exact)
+    }
+
+    /// Do not break rewrites unless they contribute to a rename.
+    ///
+    /// Normally, `break_rewrites` and `rewrites` will measure the
+    /// self-similarity of modified files and split the ones that have changed a
+    /// lot into a delete/add pair.  Then the sides of that pair will be
+    /// considered candidates for rename and copy detection
+    ///
+    /// If you add this flag in and the split pair is not used for an actual
+    /// rename or copy, then the modified record will be restored to a regular
+    /// modified record instead of being split.
+    pub fn break_rewrites_for_renames_only(&mut self, b: bool)
+                                           -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY, b)
+    }
+
+    /// Remove any unmodified deltas after find_similar is done.
+    ///
+    /// Using `copies_from_unmodified` to emulate the `--find-copies-harder`
+    /// behavior requires building a diff with the `include_unmodified` flag. If
+    /// you do not want unmodified records in the final result, pas this flag to
+    /// have them removed.
+    pub fn remove_unmodified(&mut self, remove: bool) -> &mut DiffFindOptions {
+        self.flag(raw::GIT_DIFF_FIND_REMOVE_UNMODIFIED, remove)
+    }
+
+    /// Similarity to consider a file renamed (default 50)
+    pub fn rename_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
+        self.raw.rename_threshold = thresh;
+        self
+    }
+
+    /// Similarity of modified to be glegible rename source (default 50)
+    pub fn rename_from_rewrite_threshold(&mut self, thresh: u16)
+                                         -> &mut DiffFindOptions {
+        self.raw.rename_from_rewrite_threshold = thresh;
+        self
+    }
+
+    /// Similarity to consider a file copy (default 50)
+    pub fn copy_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
+        self.raw.copy_threshold = thresh;
+        self
+    }
+
+    /// Similarity to split modify into delete/add pair (default 60)
+    pub fn break_rewrite_threshold(&mut self, thresh: u16)
+                                   -> &mut DiffFindOptions {
+        self.raw.break_rewrite_threshold = thresh;
+        self
+    }
+
+    /// Maximum similarity sources to examine for a file (somewhat like
+    /// git-diff's `-l` option or `diff.renameLimit` config)
+    ///
+    /// Defaults to 200
+    pub fn rename_limit(&mut self, limit: usize) -> &mut DiffFindOptions {
+        self.raw.rename_limit = limit as size_t;
+        self
+    }
+
+    // TODO: expose git_diff_similarity_metric
 }
 
 #[cfg(test)]

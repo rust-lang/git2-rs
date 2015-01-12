@@ -32,7 +32,7 @@ impl<'repo> Object<'repo> {
     /// If you pass `Any` as the target type, then the object will be
     /// peeled until the type changes (e.g. a tag will be chased until the
     /// referenced object is no longer a tag).
-    pub fn peel(&self, kind: ObjectType) -> Result<Object, Error> {
+    pub fn peel(&self, kind: ObjectType) -> Result<Object<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_object_peel(&mut raw, &*self.raw(), kind));

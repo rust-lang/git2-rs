@@ -824,6 +824,55 @@ pub const GIT_DIFF_PATIENCE: u32 = 1 << 28;
 pub const GIT_DIFF_MINIMAL: u32 = 1 << 29;
 pub const GIT_DIFF_SHOW_BINARY: u32 = 1 << 30;
 
+#[repr(C)]
+pub struct git_diff_find_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub rename_threshold: u16,
+    pub rename_from_rewrite_threshold: u16,
+    pub copy_threshold: u16,
+    pub break_rewrite_threshold: u16,
+    pub rename_limit: size_t,
+    pub metric: *mut git_diff_similarity_metric,
+}
+
+#[repr(C)]
+pub struct git_diff_similarity_metric {
+    pub file_signature: extern fn(*mut *mut c_void,
+                                  *const git_diff_file,
+                                  *const c_char,
+                                  *mut c_void) -> c_int,
+    pub buffer_signature: extern fn(*mut *mut c_void,
+                                    *const git_diff_file,
+                                    *const c_char,
+                                    size_t,
+                                    *mut c_void) -> c_int,
+    pub free_signature: extern fn(*mut c_void, *mut c_void),
+    pub similarity: extern fn(*mut c_int, *mut c_void, *mut c_void,
+                              *mut c_void) -> c_int,
+    pub payload: *mut c_void,
+}
+
+pub const GIT_DIFF_FIND_OPTIONS_VERSION: c_uint = 1;
+
+pub const GIT_DIFF_FIND_BY_CONFIG: u32 = 0;
+pub const GIT_DIFF_FIND_RENAMES: u32 = 1 << 0;
+pub const GIT_DIFF_FIND_RENAMES_FROM_REWRITES: u32 = 1 << 1;
+pub const GIT_DIFF_FIND_COPIES: u32 = 1 << 2;
+pub const GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED: u32 = 1 << 3;
+pub const GIT_DIFF_FIND_REWRITES: u32 = 1 << 4;
+pub const GIT_DIFF_BREAK_REWRITES: u32 = 1 << 5;
+pub const GIT_DIFF_FIND_AND_BREAK_REWRITES: u32 =
+        GIT_DIFF_FIND_REWRITES | GIT_DIFF_BREAK_REWRITES;
+pub const GIT_DIFF_FIND_FOR_UNTRACKED: u32 = 1 << 6;
+pub const GIT_DIFF_FIND_ALL: u32 = 0x0ff;
+pub const GIT_DIFF_FIND_IGNORE_LEADING_WHITESPACE: u32 = 0;
+pub const GIT_DIFF_FIND_IGNORE_WHITESPACE: u32 = 1 << 12;
+pub const GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE: u32 = 1 << 13;
+pub const GIT_DIFF_FIND_EXACT_MATCH_ONLY: u32 = 1 << 14;
+pub const GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY : u32 = 1 << 15;
+pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
+
 /// Initialize openssl for the libgit2 library
 #[cfg(unix)]
 pub fn openssl_init() {
@@ -1782,6 +1831,10 @@ extern {
                             hunk_cb: git_diff_hunk_cb,
                             line_cb: git_diff_line_cb,
                             payload: *mut c_void) -> c_int;
+    pub fn git_diff_find_similar(diff: *mut git_diff,
+                                 options: *const git_diff_find_options) -> c_int;
+    pub fn git_diff_find_init_options(opts: *mut git_diff_find_options,
+                                      version: c_uint) -> c_int;
     pub fn git_diff_foreach(diff: *mut git_diff,
                             file_cb: git_diff_file_cb,
                             hunk_cb: git_diff_hunk_cb,
