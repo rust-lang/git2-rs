@@ -805,8 +805,8 @@ impl Repository {
     /// Create a new tag in the repository from an object
     ///
     /// A new reference will also be created pointing to this tag object. If
-    /// `force` is true and a reference already exists with the given name, it'll
-    /// be replaced.
+    /// `force` is true and a reference already exists with the given name,
+    /// it'll be replaced.
     ///
     /// The message will not be cleaned up.
     ///
@@ -823,6 +823,24 @@ impl Repository {
             try_call!(raw::git_tag_create(&mut raw, self.raw, name,
                                           target.raw(), tagger.raw(),
                                           message, force));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
+    /// Create a new lightweight tag pointing at a target object
+    ///
+    /// A new direct reference will be created pointing to this target object.
+    /// If force is true and a reference already exists with the given name,
+    /// it'll be replaced.
+    pub fn tag_lightweight(&self,
+                           name: &str,
+                           target: &Object,
+                           force: bool) -> Result<Oid, Error> {
+        let name = CString::from_slice(name.as_bytes());
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_tag_create_lightweight(&mut raw, self.raw, name,
+                                                      target.raw(), force));
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
