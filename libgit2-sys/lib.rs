@@ -70,6 +70,8 @@ pub enum git_pathspec {}
 pub enum git_pathspec_match_list {}
 pub enum git_diff {}
 pub enum git_diff_stats {}
+pub enum git_reflog {}
+pub enum git_reflog_entry {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1843,6 +1845,36 @@ extern {
     pub fn git_graph_descendant_of(repo: *mut git_repository,
                                    commit: *const git_oid, ancestor: *const git_oid)
                                    -> c_int;
+
+    // reflog
+    pub fn git_reflog_append(reflog: *mut git_reflog,
+                             id: *const git_oid,
+                             committer: *const git_signature,
+                             msg: *const c_char) -> c_int;
+    pub fn git_reflog_delete(repo: *mut git_repository,
+                             name: *const c_char) -> c_int;
+    pub fn git_reflog_drop(reflog: *mut git_reflog,
+                           idx: size_t,
+                           rewrite_previous_entry: c_int) -> c_int;
+    pub fn git_reflog_entry_byindex(reflog: *const git_reflog,
+                                    idx: size_t) -> *const git_reflog_entry;
+    pub fn git_reflog_entry_committer(entry: *const git_reflog_entry)
+                                      -> *const git_signature;
+    pub fn git_reflog_entry_id_new(entry: *const git_reflog_entry)
+                                   -> *const git_oid;
+    pub fn git_reflog_entry_id_old(entry: *const git_reflog_entry)
+                                   -> *const git_oid;
+    pub fn git_reflog_entry_message(entry: *const git_reflog_entry)
+                                    -> *const c_char;
+    pub fn git_reflog_entrycount(reflog: *mut git_reflog) -> size_t;
+    pub fn git_reflog_free(reflog: *mut git_reflog);
+    pub fn git_reflog_read(out: *mut *mut git_reflog,
+                           repo: *mut git_repository,
+                           name: *const c_char) -> c_int;
+    pub fn git_reflog_rename(repo: *mut git_repository,
+                             old_name: *const c_char,
+                             name: *const c_char) -> c_int;
+    pub fn git_reflog_write(reflog: *mut git_reflog) -> c_int;
 }
 
 #[test]

@@ -8,7 +8,7 @@ use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
-use {RevparseMode, RepositoryInitMode};
+use {RevparseMode, RepositoryInitMode, Reflog};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
 use util::Binding;
@@ -1064,6 +1064,39 @@ impl Repository {
                                                             ancestor.raw()));
             Ok(rv != 0)
         }
+    }
+
+    /// Read the reflog for the given reference
+    ///
+    /// If there is no reflog file for the given reference yet, an empty reflog
+    /// object will be returned.
+    pub fn reflog(&self, name: &str) -> Result<Reflog, Error> {
+        let name = CString::from_slice(name.as_bytes());
+        let mut ret = 0 as *mut raw::git_reflog;
+        unsafe {
+            try_call!(raw::git_reflog_read(&mut ret, self.raw, name));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Delete the reflog for the given reference
+    pub fn reflog_delete(&self, name: &str) -> Result<(), Error> {
+        let name = CString::from_slice(name.as_bytes());
+        unsafe { try_call!(raw::git_reflog_delete(self.raw, name)); }
+        Ok(())
+    }
+
+    /// Rename a reflog
+    ///
+    /// The reflog to be renamed is expected to already exist.
+    pub fn reflog_rename(&self, old_name: &str, new_name: &str)
+                         -> Result<(), Error> {
+        let old_name = CString::from_slice(old_name.as_bytes());
+        let new_name = CString::from_slice(new_name.as_bytes());
+        unsafe {
+            try_call!(raw::git_reflog_rename(self.raw, old_name, new_name));
+        }
+        Ok(())
     }
 }
 
