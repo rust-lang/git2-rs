@@ -323,6 +323,8 @@ mod tests {
                                   Some("new message"), None).unwrap();
         let new_head = repo.find_commit(new_head).unwrap();
         assert_eq!(new_head.message(), Some("new message"));
+
+        repo.find_object(target, None).unwrap().as_commit().unwrap();
     }
 }
 

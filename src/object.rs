@@ -1,5 +1,7 @@
 use std::marker;
-use {raw, Oid, ObjectType, Error, Buf};
+use std::mem;
+
+use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree};
 use util::Binding;
 
 /// A structure to represent a git [object][1]
@@ -49,6 +51,43 @@ impl<'repo> Object<'repo> {
             let buf = Buf::new();
             try_call!(raw::git_object_short_id(buf.raw(), &*self.raw()));
             Ok(buf)
+        }
+    }
+
+    /// Attempt to view this object as a commit.
+    ///
+    /// Returns `None` if the object is not actually a commit.
+    pub fn as_commit(&self) -> Option<&Commit<'repo>> {
+        self.cast(ObjectType::Commit)
+    }
+
+    /// Attempt to view this object as a tag.
+    ///
+    /// Returns `None` if the object is not actually a tag.
+    pub fn as_tag(&self) -> Option<&Tag<'repo>> {
+        self.cast(ObjectType::Tag)
+    }
+
+    /// Attempt to view this object as a tree.
+    ///
+    /// Returns `None` if the object is not actually a tree.
+    pub fn as_tree(&self) -> Option<&Tree<'repo>> {
+        self.cast(ObjectType::Tree)
+    }
+
+    /// Attempt to view this object as a blob.
+    ///
+    /// Returns `None` if the object is not actually a blob.
+    pub fn as_blob(&self) -> Option<&Blob<'repo>> {
+        self.cast(ObjectType::Blob)
+    }
+
+    fn cast<T>(&self, kind: ObjectType) -> Option<&T> {
+        assert_eq!(mem::size_of::<Object>(), mem::size_of::<T>());
+        if self.kind() == Some(kind) {
+            unsafe { Some(&*(self as *const _ as *const T)) }
+        } else {
+            None
         }
     }
 }

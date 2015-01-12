@@ -68,6 +68,8 @@ mod tests {
 
         assert_eq!(blob.id(), id);
         assert_eq!(blob.content(), [5, 4, 6].as_slice());
+
+        repo.find_object(id, None).unwrap().as_blob().unwrap();
     }
 
     #[test]

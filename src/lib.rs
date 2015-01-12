@@ -112,7 +112,7 @@ pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
 pub use submodule::Submodule;
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
-pub use tree::{Tree, TreeEntry};
+pub use tree::{Tree, TreeEntry, TreeIter};
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.

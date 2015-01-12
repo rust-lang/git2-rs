@@ -136,6 +136,8 @@ mod tests {
         assert_eq!(tag.tagger().unwrap().name(), sig.name());
         tag.target().unwrap();
 
+        repo.find_object(tag_id, None).unwrap().as_tag().unwrap();
+
         repo.tag_delete("foo").unwrap();
     }
 }

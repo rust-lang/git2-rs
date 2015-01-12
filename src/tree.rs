@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::ffi::CString;
 use std::io;
+use std::iter::Range;
 use std::marker;
 use std::str;
 use libc;
@@ -24,6 +25,12 @@ pub struct TreeEntry<'tree> {
     marker: marker::ContravariantLifetime<'tree>,
 }
 
+/// An iterator over the entries in a tree.
+pub struct TreeIter<'tree> {
+    range: Range<usize>,
+    tree: &'tree Tree<'tree>,
+}
+
 impl<'repo> Tree<'repo> {
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
@@ -33,6 +40,11 @@ impl<'repo> Tree<'repo> {
     /// Get the number of entries listed in this tree.
     pub fn len(&self) -> usize {
         unsafe { raw::git_tree_entrycount(&*self.raw) as usize }
+    }
+
+    /// Returns an iterator over the entries in this tree.
+    pub fn iter(&self) -> TreeIter {
+        TreeIter { range: range(0, self.len()), tree: self }
     }
 
     /// Lookup a tree entry by SHA value.
@@ -219,6 +231,20 @@ impl<'a> Drop for TreeEntry<'a> {
     }
 }
 
+impl<'tree> Iterator for TreeIter<'tree> {
+    type Item = TreeEntry<'tree>;
+    fn next(&mut self) -> Option<TreeEntry<'tree>> {
+        self.range.next().and_then(|i| self.tree.get(i))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+}
+impl<'tree> DoubleEndedIterator for TreeIter<'tree> {
+    fn next_back(&mut self) -> Option<TreeEntry<'tree>> {
+        self.range.next_back().and_then(|i| self.tree.get(i))
+    }
+}
+impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
+
 #[cfg(test)]
 mod tests {
     use std::io::File;
@@ -251,5 +277,7 @@ mod tests {
         assert!(e1 == tree.get_path(&Path::new("foo")).unwrap());
         assert_eq!(e1.name(), Some("foo"));
         e1.to_object(&repo).unwrap();
+
+        repo.find_object(commit.tree_id(), None).unwrap().as_tree().unwrap();
     }
 }
