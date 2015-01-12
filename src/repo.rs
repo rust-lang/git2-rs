@@ -335,16 +335,27 @@ impl Repository {
     /// A hard reset will trigger a mixed reset and the working directory will
     /// be replaced with the content of the index. (Untracked and ignored files
     /// will be left alone, however.)
-    pub fn reset(&self, target: &Object, kind: ResetType,
-                 sig: Option<&Signature>, msg: Option<&str>)
+    ///
+    /// The `target` is a commit-ish to which the head should be moved to. The
+    /// object can either be a commit or a tag, but tags must be derefernceable
+    /// to a commit.
+    ///
+    /// The `checkout` options will only be used for a hard reset.
+    pub fn reset(&self,
+                 target: &Object,
+                 kind: ResetType,
+                 checkout: Option<&mut CheckoutBuilder>,
+                 signature: Option<&Signature>,
+                 log_message: Option<&str>)
                  -> Result<(), Error> {
-        let msg = msg.map(|s| CString::from_slice(s.as_bytes()));
+        let msg = log_message.map(|s| CString::from_slice(s.as_bytes()));
         unsafe {
+            let mut opts: raw::git_checkout_options = mem::zeroed();
+            let opts = checkout.map(|c| {
+                c.configure(&mut opts); &mut opts
+            });
             try_call!(raw::git_reset(self.raw, target.raw(), kind,
-                                     // TODO: expose git_checkout_options_t
-                                     0 as *mut _,
-                                     sig.map(|s| s.raw()),
-                                     msg));
+                                     opts, signature.map(|s| s.raw()), msg));
         }
         Ok(())
     }
@@ -1292,8 +1303,8 @@ mod tests {
         obj.peel(ObjectType::Any).unwrap();
         obj.short_id().unwrap();
         let sig = repo.signature().unwrap();
-        repo.reset(&obj, ResetType::Hard, None, None).unwrap();
-        repo.reset(&obj, ResetType::Soft, Some(&sig), Some("foo")).unwrap();
+        repo.reset(&obj, ResetType::Hard, None, None, None).unwrap();
+        repo.reset(&obj, ResetType::Soft, None, Some(&sig), Some("foo")).unwrap();
     }
 
     #[test]
