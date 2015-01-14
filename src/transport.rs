@@ -31,7 +31,7 @@ pub struct Transport {
 /// A smart subtransport is contained within an instance of a smart transport
 /// and is delegated to in order to actually conduct network activity to push or
 /// pull data from a remote.
-pub trait SmartSubtransport: Send + Sync {
+pub trait SmartSubtransport: Send {
     /// Indicates that this subtransport will be performing the specified action
     /// on the specified URL.
     ///
@@ -39,7 +39,7 @@ pub trait SmartSubtransport: Send + Sync {
     /// returns a stream which can be read and written from in order to
     /// negotiate the git protocol.
     fn action(&self, url: &str, action: Service)
-              -> Result<Box<SmartSubtransportStream + Send>, Error>;
+              -> Result<Box<SmartSubtransportStream>, Error>;
 
     /// Terminates a connection with the remote.
     ///
@@ -68,9 +68,9 @@ pub enum Service {
 /// Currently this only requires the standard `Reader` and `Writer` traits. This
 /// trait also does not need to be implemented manually as long as the `Reader`
 /// and `Writer` traits are implemented.
-pub trait SmartSubtransportStream: Reader + Writer {}
+pub trait SmartSubtransportStream: Reader + Writer + Send {}
 
-impl<T: Reader + Writer> SmartSubtransportStream for T {}
+impl<T: Reader + Writer + Send> SmartSubtransportStream for T {}
 
 type TransportFactory = Fn(&Remote) -> Result<Transport, Error> + Send + Sync;
 
@@ -86,7 +86,7 @@ struct TransportData {
 #[repr(C)]
 struct RawSmartSubtransport {
     raw: raw::git_smart_subtransport,
-    obj: Box<SmartSubtransport + Send>,
+    obj: Box<SmartSubtransport>,
 }
 
 /// Instance of a `git_smart_subtransport_stream`, must use `#[repr(C)]` to
@@ -94,7 +94,7 @@ struct RawSmartSubtransport {
 #[repr(C)]
 struct RawSmartSubtransportStream {
     raw: raw::git_smart_subtransport_stream,
-    obj: Box<SmartSubtransportStream + Send>,
+    obj: Box<SmartSubtransportStream>,
 }
 
 /// Add a custom transport definition, to be used in addition to the built-in
