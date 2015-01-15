@@ -239,11 +239,7 @@ impl<'repo> Statuses<'repo> {
     pub fn get(&self, index: usize) -> Option<StatusEntry> {
         unsafe {
             let p = raw::git_status_byindex(self.raw, index as size_t);
-            if p.is_null() {
-                None
-            } else {
-                Some(StatusEntry::from_raw(p))
-            }
+            Binding::from_raw_opt(p)
         }
     }
 
@@ -297,18 +293,6 @@ impl<'a> DoubleEndedIterator for StatusIter<'a> {
 impl<'a> ExactSizeIterator for StatusIter<'a> {}
 
 impl<'statuses> StatusEntry<'statuses> {
-    /// Create a new status entry from its raw component.
-    ///
-    /// This method is unsafe as there is no guarantee that `raw` is a valid
-    /// pointer.
-    pub unsafe fn from_raw(raw: *const raw::git_status_entry)
-                           -> StatusEntry<'statuses> {
-        StatusEntry {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
-    }
-
     /// Access the bytes for this entry's corresponding pathname
     pub fn path_bytes(&self) -> &[u8] {
         unsafe {
@@ -334,12 +318,7 @@ impl<'statuses> StatusEntry<'statuses> {
     /// HEAD and the file in the index.
     pub fn head_to_index(&self) -> Option<DiffDelta<'statuses>> {
         unsafe {
-            let p = (*self.raw).head_to_index;
-            if p.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(p))
-            }
+            Binding::from_raw_opt((*self.raw).head_to_index)
         }
     }
 
@@ -347,14 +326,22 @@ impl<'statuses> StatusEntry<'statuses> {
     /// the index and the file in the working directory.
     pub fn index_to_workdir(&self) -> Option<DiffDelta<'statuses>> {
         unsafe {
-            let p = (*self.raw).index_to_workdir;
-            if p.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(p))
-            }
+            Binding::from_raw_opt((*self.raw).index_to_workdir)
         }
     }
+}
+
+impl<'statuses> Binding for StatusEntry<'statuses> {
+    type Raw = *const raw::git_status_entry;
+
+    unsafe fn from_raw(raw: *const raw::git_status_entry)
+                           -> StatusEntry<'statuses> {
+        StatusEntry {
+            raw: raw,
+            marker: marker::ContravariantLifetime,
+        }
+    }
+    fn raw(&self) -> *const raw::git_status_entry { self.raw }
 }
 
 #[cfg(test)]

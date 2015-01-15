@@ -219,11 +219,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         unsafe {
             let ptr = raw::git_remote_get_refspec(&*self.raw,
                                                   i as libc::size_t);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr))
-            }
+            Binding::from_raw_opt(ptr)
         }
     }
 

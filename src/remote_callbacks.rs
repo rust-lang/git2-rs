@@ -212,12 +212,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             Ok(url) => url,
             Err(_) => return raw::GIT_PASSTHROUGH as c_int,
         };
-        let username_from_url = if username_from_url.is_null() {
-            None
-        } else {
-            Some(ffi::c_str_to_bytes(&username_from_url))
-        };
-        let username_from_url = match username_from_url {
+        let username_from_url = match ::opt_bytes(&url, username_from_url) {
             Some(username) => match str::from_utf8(username) {
                 Ok(s) => Some(s),
                 Err(_) => return raw::GIT_PASSTHROUGH as c_int,

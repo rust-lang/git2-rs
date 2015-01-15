@@ -124,20 +124,11 @@ impl Repository {
         let spec = CString::from_slice(spec.as_bytes());
         unsafe {
             try_call!(raw::git_revparse(&mut raw, self.raw, spec));
+            let to = Binding::from_raw_opt(raw.to);
+            let from = Binding::from_raw_opt(raw.from);
+            let mode = RevparseMode::from_bits_truncate(raw.flags as u32);
+            Ok(Revspec::from_objects(from, to, mode))
         }
-
-        let to = if raw.to.is_null() {
-            None
-        } else {
-            Some(unsafe { Binding::from_raw(raw.to) })
-        };
-        let from = if raw.from.is_null() {
-            None
-        } else {
-            Some(unsafe { Binding::from_raw(raw.from) })
-        };
-        let mode = RevparseMode::from_bits_truncate(raw.flags as u32);
-        Ok(Revspec::from_objects(from, to, mode))
     }
 
     /// Find a single object, as specified by a revision string.

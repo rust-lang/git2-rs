@@ -102,8 +102,9 @@ impl<'repo> Reference<'repo> {
     /// Only available if the reference is direct (i.e. an object id reference,
     /// not a symbolic one).
     pub fn target(&self) -> Option<Oid> {
-        let ptr = unsafe { raw::git_reference_target(&*self.raw) };
-        if ptr.is_null() {None} else {Some(unsafe { Binding::from_raw(ptr) })}
+        unsafe {
+            Binding::from_raw_opt(raw::git_reference_target(&*self.raw))
+        }
     }
 
     /// Return the peeled OID target of this reference.
@@ -111,8 +112,9 @@ impl<'repo> Reference<'repo> {
     /// This peeled OID only applies to direct references that point to a hard
     /// Tag object: it is the result of peeling such Tag.
     pub fn target_peel(&self) -> Option<Oid> {
-        let ptr = unsafe { raw::git_reference_target_peel(&*self.raw) };
-        if ptr.is_null() {None} else {Some(unsafe { Binding::from_raw(ptr) })}
+        unsafe {
+            Binding::from_raw_opt(raw::git_reference_target_peel(&*self.raw))
+        }
     }
 
     /// Get full name to the reference pointed to by a symbolic reference.

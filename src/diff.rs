@@ -223,11 +223,7 @@ impl Diff {
     pub fn get_delta(&self, i: usize) -> Option<DiffDelta> {
         unsafe {
             let ptr = raw::git_diff_get_delta(&*self.raw, i as size_t);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr as *mut _))
-            }
+            Binding::from_raw_opt(ptr as *mut _)
         }
     }
 

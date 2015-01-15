@@ -65,24 +65,14 @@ impl<'repo> Submodule<'repo> {
     /// Get the OID for the submodule in the current HEAD tree.
     pub fn head_id(&self) -> Option<Oid> {
         unsafe {
-            let ptr = raw::git_submodule_head_id(self.raw);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr))
-            }
+            Binding::from_raw_opt(raw::git_submodule_head_id(self.raw))
         }
     }
 
     /// Get the OID for the submodule in the index.
     pub fn index_id(&self) -> Option<Oid> {
         unsafe {
-            let ptr = raw::git_submodule_index_id(self.raw);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr))
-            }
+            Binding::from_raw_opt(raw::git_submodule_index_id(self.raw))
         }
     }
 
@@ -93,12 +83,7 @@ impl<'repo> Submodule<'repo> {
     /// anything else, this won't notice that.
     pub fn workdir_id(&self) -> Option<Oid> {
         unsafe {
-            let ptr = raw::git_submodule_wd_id(self.raw);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr))
-            }
+            Binding::from_raw_opt(raw::git_submodule_wd_id(self.raw))
         }
     }
 

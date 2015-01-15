@@ -176,11 +176,7 @@ impl<'ps> PathspecMatchList<'ps> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_diff_entry(&*self.raw,
                                                               i as size_t);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr as *mut _))
-            }
+            Binding::from_raw_opt(ptr as *mut _)
         }
     }
 

@@ -58,11 +58,7 @@ impl Reflog {
     pub fn get(&self, i: usize) -> Option<ReflogEntry> {
         unsafe {
             let ptr = raw::git_reflog_entry_byindex(self.raw, i as size_t);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(ptr))
-            }
+            Binding::from_raw_opt(ptr)
         }
     }
 

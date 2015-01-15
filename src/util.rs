@@ -5,11 +5,21 @@ use libc::{c_char, size_t};
 use raw;
 
 #[doc(hidden)]
-pub trait Binding {
+pub trait Binding: Sized {
     type Raw;
 
     unsafe fn from_raw(raw: Self::Raw) -> Self;
     fn raw(&self) -> Self::Raw;
+
+    unsafe fn from_raw_opt<T>(raw: T) -> Option<Self>
+        where T: PtrExt + Copy, Self: Binding<Raw=T>
+    {
+        if raw.is_null() {
+            None
+        } else {
+            Some(Binding::from_raw(raw))
+        }
+    }
 }
 
 pub fn iter2cstrs<T, I>(iter: I) -> (Vec<CString>, Vec<*const c_char>,
