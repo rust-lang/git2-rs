@@ -36,6 +36,7 @@ pub use git_sort::*;
 pub use git_diff_format_t::*;
 pub use git_diff_stats_format_t::*;
 pub use git_smart_service_t::*;
+pub use git_cert_ssh_t::*;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void, c_ushort};
 
@@ -269,7 +270,7 @@ pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
                                                         *mut c_void) -> c_int;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, PartialEq)]
 pub enum git_cert_t {
     GIT_CERT_X509,
     GIT_CERT_HOSTKEY_LIBSSH2,
@@ -278,6 +279,28 @@ pub enum git_cert_t {
 #[repr(C)]
 pub struct git_cert {
     pub cert_type: git_cert_t,
+}
+
+#[repr(C)]
+pub struct git_cert_hostkey {
+    pub cert_type: git_cert_t,
+    pub kind: git_cert_ssh_t,
+    pub hash_md5: [u8; 16],
+    pub hash_sha1: [u8; 20],
+}
+
+#[repr(C)]
+pub struct git_cert_x509 {
+    pub cert_type: git_cert_t,
+    pub data: *mut c_void,
+    pub len: size_t,
+}
+
+#[repr(C)]
+#[derive(Copy)]
+pub enum git_cert_ssh_t {
+    GIT_CERT_SSH_MD5 = 1 << 0,
+    GIT_CERT_SSH_SHA1 = 1 << 1,
 }
 
 #[repr(C)]

@@ -6,6 +6,7 @@ use std::str;
 use libc::{c_void, c_int, c_char, c_uint};
 
 use {raw, panic, Error, Cred, CredentialType, Oid};
+use cert::Cert;
 use util::Binding;
 
 /// A structure to contain the callbacks which are invoked when a repository is
@@ -18,6 +19,7 @@ pub struct RemoteCallbacks<'a> {
     credentials: Option<Box<Credentials<'a>>>,
     sideband_progress: Option<Box<TransportMessage<'a>>>,
     update_tips: Option<Box<UpdateTips<'a>>>,
+    certificate_check: Option<Box<CertificateCheck<'a>>>,
 }
 
 /// Struct representing the progress by an in-flight transfer.
@@ -57,6 +59,15 @@ pub type TransportMessage<'a> = FnMut(&[u8]) -> bool + 'a;
 /// Callback for whenever a reference is updated locally.
 pub type UpdateTips<'a> = FnMut(&str, Oid, Oid) -> bool + 'a;
 
+/// Callback for a custom certificate check.
+///
+/// The first argument is the certificate receved on the connection.
+/// Certificates are typically either an SSH or X509 certificate.
+///
+/// The second argument is the hostname for the connection is passed as the last
+/// argument.
+pub type CertificateCheck<'a> = FnMut(&Cert, &str) -> bool + 'a;
+
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
     pub fn new() -> RemoteCallbacks<'a> {
@@ -65,6 +76,7 @@ impl<'a> RemoteCallbacks<'a> {
             progress: None,
             sideband_progress: None,
             update_tips: None,
+            certificate_check: None,
         }
     }
 
@@ -101,6 +113,16 @@ impl<'a> RemoteCallbacks<'a> {
         self.update_tips = Some(Box::new(cb) as Box<UpdateTips<'a>>);
         self
     }
+
+    /// If certificate verification fails, then this callback will be invoked to
+    /// let the caller make the final decision of whether to allow the
+    /// connection to proceed.
+    pub fn certificate_check<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+        where F: FnMut(&Cert, &str) -> bool + 'a
+    {
+        self.certificate_check = Some(Box::new(cb) as Box<CertificateCheck<'a>>);
+        self
+    }
 }
 
 impl<'a> Binding for RemoteCallbacks<'a> {
@@ -125,6 +147,11 @@ impl<'a> Binding for RemoteCallbacks<'a> {
             if self.sideband_progress.is_some() {
                 let f: raw::git_transport_message_cb = sideband_progress_cb;
                 callbacks.sideband_progress = Some(f);
+            }
+            if self.certificate_check.is_some() {
+                let f: raw::git_transport_certificate_check_cb =
+                        certificate_check_cb;
+                callbacks.certificate_check = Some(f);
             }
             if self.update_tips.is_some() {
                 let f: extern fn(*const c_char, *const raw::git_oid,
@@ -289,6 +316,25 @@ extern fn update_tips_cb(refname: *const c_char,
         let b = Binding::from_raw(b);
         let ok = panic::wrap(|| {
             callback(refname, a, b)
+        }).unwrap_or(false);
+        if ok {0} else {-1}
+    }
+}
+
+extern fn certificate_check_cb(cert: *mut raw::git_cert,
+                               _valid: c_int,
+                               hostname: *const c_char,
+                               data: *mut c_void) -> c_int {
+    unsafe {
+        let payload: &mut RemoteCallbacks = &mut *(data as *mut RemoteCallbacks);
+        let callback = match payload.certificate_check {
+            Some(ref mut c) => c,
+            None => return -1,
+        };
+        let hostname = str::from_utf8(ffi::c_str_to_bytes(&hostname)).unwrap();
+        let cert = Binding::from_raw(cert);
+        let ok = panic::wrap(|| {
+            callback(&cert, hostname)
         }).unwrap_or(false);
         if ok {0} else {-1}
     }
