@@ -11,7 +11,7 @@ fn main() {
     register_dep("OPENSSL");
 
     let mut opts = pkg_config::default_options("libgit2");
-    opts.atleast_version = Some("0.21.0".to_string());
+    opts.atleast_version = Some("0.22.0".to_string());
     match pkg_config::find_library_opts("libgit2", &opts) {
         Ok(()) => return,
         Err(..) => {}
