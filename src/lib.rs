@@ -75,6 +75,7 @@
 extern crate libc;
 extern crate url;
 extern crate "libgit2-sys" as raw;
+#[macro_use] extern crate bitflags;
 
 use std::ffi::{self, CString};
 use std::fmt;

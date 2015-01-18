@@ -1,7 +1,7 @@
 [package]
 
 name = "git2"
-version = "0.1.10"
+version = "0.1.11"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
@@ -17,6 +17,7 @@ repositories.
 
 [dependencies]
 url = "0.2"
+bitflags = "0.1"
 
 [dependencies.libgit2-sys]
 path = "libgit2-sys"
