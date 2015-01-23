@@ -187,7 +187,7 @@ pub enum ResetType {
 }
 
 /// An enumeration all possible kinds objects may have.
-#[derive(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy, Debug)]
 pub enum ObjectType {
     /// An object which corresponds to a any git object
     Any,
@@ -384,7 +384,7 @@ impl ObjectType {
     }
 }
 
-impl fmt::Debug for ObjectType {
+impl fmt::Display for ObjectType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.str().fmt(f)
     }

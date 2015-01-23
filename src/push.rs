@@ -125,7 +125,7 @@ mod tests {
         Repository::init_bare(&remote).unwrap();
 
         let (_td, repo) = ::test::repo_init();
-        let url = Url::from_file_path(&remote).unwrap();
+        let url = Url::from_file_path(&remote).ok().unwrap();
         let url = url.to_string();
         let mut remote = repo.remote("origin", url.as_slice()).unwrap();
 

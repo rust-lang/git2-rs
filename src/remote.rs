@@ -499,7 +499,7 @@ mod tests {
     fn transfer_cb() {
         let (td, _repo) = ::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
-        let url = Url::from_file_path(td.path()).unwrap();
+        let url = Url::from_file_path(td.path()).ok().unwrap();
         let url = url.to_string();
 
         let repo = Repository::init(td2.path()).unwrap();

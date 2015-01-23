@@ -76,7 +76,7 @@ impl fmt::Display for Oid {
             raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
                                dst.len() as libc::size_t, &self.raw);
         }
-        let s = dst.slice_to(dst.iter().position(|&a| a == 0).unwrap());
+        let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
         str::from_utf8(s).unwrap().fmt(f)
     }
 }

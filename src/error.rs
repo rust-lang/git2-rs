@@ -7,6 +7,7 @@ use libc::c_int;
 use {raw, ErrorCode};
 
 /// A structure to represent errors coming out of libgit2.
+#[derive(Debug)]
 pub struct Error {
     klass: c_int,
     message: String,
@@ -96,12 +97,6 @@ impl Error {
 
 impl error::Error for Error {
     fn description(&self) -> &str { self.message.as_slice() }
-}
-
-impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(self, f)
-    }
 }
 
 impl fmt::Display for Error {

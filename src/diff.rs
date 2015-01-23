@@ -766,7 +766,7 @@ impl<'a> DiffHunk<'a> {
 
     /// Header text
     pub fn header(&self) -> &[u8] {
-        unsafe { (*self.raw).header.slice_to((*self.raw).header_len as usize) }
+        unsafe { &(*self.raw).header[..(*self.raw).header_len as usize] }
     }
 }
 

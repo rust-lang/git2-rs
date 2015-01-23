@@ -62,7 +62,7 @@ fn run(args: &Args) -> Result<(), Error> {
     });
     for commit in args.arg_commit.iter() {
         if commit.starts_with("^") {
-            let obj = try!(repo.revparse_single(commit.slice_from(1)));
+            let obj = try!(repo.revparse_single(&commit[1..]));
             try!(revwalk.hide(obj.id()));
             continue
         }
