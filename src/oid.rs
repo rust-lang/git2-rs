@@ -62,13 +62,13 @@ impl Binding for Oid {
     fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
 }
 
-impl fmt::Show for Oid {
+impl fmt::Debug for Oid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::String::fmt(self, f)
+        fmt::Display::fmt(self, f)
     }
 }
 
-impl fmt::String for Oid {
+impl fmt::Display for Oid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];

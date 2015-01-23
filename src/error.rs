@@ -98,13 +98,13 @@ impl error::Error for Error {
     fn description(&self) -> &str { self.message.as_slice() }
 }
 
-impl fmt::Show for Error {
+impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::String::fmt(self, f)
+        fmt::Display::fmt(self, f)
     }
 }
 
-impl fmt::String for Error {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "[{}] ", self.klass));
         f.write_str(self.message.as_slice())

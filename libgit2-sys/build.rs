@@ -78,7 +78,7 @@ fn main() {
 }
 
 fn run(cmd: &mut Command) {
-    println!("running: {}", cmd);
+    println!("running: {:?}", cmd);
     assert!(cmd.stdout(InheritFd(1))
                .stderr(InheritFd(2))
                .status()

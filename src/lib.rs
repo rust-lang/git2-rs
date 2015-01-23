@@ -117,7 +117,7 @@ pub use tree::{Tree, TreeEntry, TreeIter};
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
-#[derive(PartialEq, Eq, Clone, Show, Copy)]
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub enum ErrorCode {
     /// Generic error
     GenericError,
@@ -150,7 +150,7 @@ pub enum ErrorCode {
 }
 
 /// A listing of the possible states that a repository can be in.
-#[derive(PartialEq, Eq, Clone, Show, Copy)]
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
 #[allow(missing_docs)]
 pub enum RepositoryState {
     Clean,
@@ -202,7 +202,7 @@ pub enum ObjectType {
 }
 
 /// An enumeration for the possible types of branches
-#[derive(PartialEq, Eq, Show, Copy)]
+#[derive(PartialEq, Eq, Debug, Copy)]
 pub enum BranchType {
     /// A local branch not on a remote.
     Local,
@@ -214,7 +214,7 @@ pub enum BranchType {
 ///
 /// The levels corresponding to the escalation logic (higher to lower) when
 /// searching for config entries.
-#[derive(PartialEq, Eq, Show, Copy)]
+#[derive(PartialEq, Eq, Debug, Copy)]
 pub enum ConfigLevel {
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
@@ -384,7 +384,7 @@ impl ObjectType {
     }
 }
 
-impl fmt::Show for ObjectType {
+impl fmt::Debug for ObjectType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.str().fmt(f)
     }
