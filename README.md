@@ -7,11 +7,14 @@
 libgit2 bindings for Rust
 
 ```toml
-[dependencies.git2]
-git = "https://github.com/alexcrichton/git2-rs"
+[dependencies]
+git2 = "0.1"
 ```
 
 ## Building git2-rs
+
+First, you'll need to install CMake if you don't already have libgit2 installed
+elsewhere on the system. Afterwards, just run:
 
 ```sh
 $ git clone --recursive https://github.com/alexcrichton/git2-rs
