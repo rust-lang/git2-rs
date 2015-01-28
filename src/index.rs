@@ -467,7 +467,7 @@ impl Binding for IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{self, fs, File, TempDir};
+    use std::old_io::{self, fs, File, TempDir};
     use url::Url;
 
     use {Index, Repository, ResetType};
@@ -503,7 +503,7 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().dir_path();
-        fs::mkdir(&root.join("foo"), io::USER_DIR).unwrap();
+        fs::mkdir(&root.join("foo"), old_io::USER_DIR).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
         index.add_all(["foo"].iter(), ::ADD_DEFAULT,
@@ -533,7 +533,7 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().dir_path();
-        fs::mkdir(&root.join("foo"), io::USER_DIR).unwrap();
+        fs::mkdir(&root.join("foo"), old_io::USER_DIR).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         index.add_path(&Path::new("foo/bar")).unwrap();
         index.write().unwrap();

@@ -1,5 +1,5 @@
-use std::io::TempDir;
-use std::io::{self, fs};
+use std::old_io::TempDir;
+use std::old_io::{self, fs};
 use std::os;
 use Repository;
 
@@ -22,7 +22,7 @@ pub fn repo_init() -> (TempDir, Repository) {
 }
 
 // Copied from rustc
-pub fn realpath(original: &Path) -> io::IoResult<Path> {
+pub fn realpath(original: &Path) -> old_io::IoResult<Path> {
     static MAX_LINKS_FOLLOWED: u32 = 256;
     let original = os::make_absolute(original).unwrap();
     // Right now lstat on windows doesn't work quite well
@@ -36,11 +36,11 @@ pub fn realpath(original: &Path) -> io::IoResult<Path> {
         result.push(part);
         loop {
             if followed == MAX_LINKS_FOLLOWED {
-                return Err(io::standard_error(io::InvalidInput))
+                return Err(old_io::standard_error(old_io::InvalidInput))
             }
             match fs::lstat(&result) {
                 Err(..) => break,
-                Ok(ref stat) if stat.kind != io::FileType::Symlink => break,
+                Ok(ref stat) if stat.kind != old_io::FileType::Symlink => break,
                 Ok(..) => {
                     followed += 1;
                     let path = try!(fs::readlink(&result));

@@ -1,7 +1,7 @@
 //! Builder-pattern objects for configuration various git operations.
 
 use std::ffi::{self, CString};
-use std::io;
+use std::old_io;
 use std::mem;
 use std::path::BytesContainer;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
@@ -29,8 +29,8 @@ pub struct CheckoutBuilder<'cb> {
     target_dir: Option<CString>,
     paths: Vec<CString>,
     path_ptrs: Vec<*const c_char>,
-    file_perm: Option<io::FilePermission>,
-    dir_perm: Option<io::FilePermission>,
+    file_perm: Option<old_io::FilePermission>,
+    dir_perm: Option<old_io::FilePermission>,
     disable_filters: bool,
     checkout_opts: u32,
     progress: Option<Box<Progress<'cb>>>,
@@ -325,7 +325,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Set the mode with which new directories are created.
     ///
     /// Default is 0755
-    pub fn dir_perm(&mut self, perm: io::FilePermission)
+    pub fn dir_perm(&mut self, perm: old_io::FilePermission)
                     -> &mut CheckoutBuilder<'cb> {
         self.dir_perm = Some(perm);
         self
@@ -334,7 +334,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Set the mode with which new files are created.
     ///
     /// The default is 0644 or 0755 as dictated by the blob.
-    pub fn file_perm(&mut self, perm: io::FilePermission)
+    pub fn file_perm(&mut self, perm: old_io::FilePermission)
                      -> &mut CheckoutBuilder<'cb> {
         self.file_perm = Some(perm);
         self
@@ -442,7 +442,7 @@ extern fn progress_cb(path: *const c_char,
 
 #[cfg(test)]
 mod tests {
-    use std::io::{fs, TempDir};
+    use std::old_io::{fs, TempDir};
     use super::RepoBuilder;
     use Repository;
 

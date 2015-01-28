@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::ffi::CString;
-use std::io;
+use std::old_io;
 use std::iter::Range;
 use std::marker;
 use std::str;
@@ -166,8 +166,8 @@ impl<'tree> TreeEntry<'tree> {
     }
 
     /// Get the UNIX file attributes of a tree entry
-    pub fn filemode(&self) -> io::FilePermission {
-        io::FilePermission::from_bits_truncate(unsafe {
+    pub fn filemode(&self) -> old_io::FilePermission {
+        old_io::FilePermission::from_bits_truncate(unsafe {
             raw::git_tree_entry_filemode(&*self.raw) as u32
         })
     }
@@ -247,7 +247,7 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
 mod tests {
-    use std::io::File;
+    use std::old_io::File;
 
     #[test]
     fn smoke() {

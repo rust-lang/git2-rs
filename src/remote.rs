@@ -393,7 +393,7 @@ impl<'remote> RemoteHead<'remote> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::TempDir;
+    use std::old_io::TempDir;
     use std::cell::Cell;
     use url::Url;
     use {Repository, Remote, RemoteCallbacks, Direction};
@@ -503,16 +503,18 @@ mod tests {
         let url = url.to_string();
 
         let repo = Repository::init(td2.path()).unwrap();
-        let mut origin = repo.remote("origin", url.as_slice()).unwrap();
-
         let progress_hit = Cell::new(false);
-        let mut callbacks = RemoteCallbacks::new();
-        callbacks.transfer_progress(|_progress| {
-            progress_hit.set(true);
-            true
-        });
-        origin.set_callbacks(&mut callbacks);
-        origin.fetch(&[], None, None).unwrap();
+        {
+            let mut callbacks = RemoteCallbacks::new();
+            let mut origin = repo.remote("origin", url.as_slice()).unwrap();
+
+            callbacks.transfer_progress(|_progress| {
+                progress_hit.set(true);
+                true
+            });
+            origin.set_callbacks(&mut callbacks);
+            origin.fetch(&[], None, None).unwrap();
+        }
         assert!(progress_hit.get());
     }
 }

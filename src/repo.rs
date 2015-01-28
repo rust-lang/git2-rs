@@ -1278,7 +1278,7 @@ impl RepositoryInitOptions {
 
 #[cfg(test)]
 mod tests {
-    use std::io::TempDir;
+    use std::old_io::TempDir;
     use {Repository, ObjectType, ResetType};
 
     #[test]

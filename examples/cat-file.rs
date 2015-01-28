@@ -19,7 +19,7 @@ extern crate git2;
 extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;
 
-use std::io::stdio;
+use std::old_io::stdio;
 
 use docopt::Docopt;
 use git2::{Repository, ObjectType, Blob, Commit, Signature, Tag, Tree};
@@ -74,7 +74,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn show_blob(blob: &Blob) {
-    stdio::stdout().write(blob.content()).unwrap();
+    stdio::stdout().write_all(blob.content()).unwrap();
 }
 
 fn show_commit(commit: &Commit) {

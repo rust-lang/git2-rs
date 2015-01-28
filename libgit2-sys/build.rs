@@ -3,8 +3,8 @@
 extern crate "pkg-config" as pkg_config;
 
 use std::os;
-use std::io::{self, fs, Command};
-use std::io::process::InheritFd;
+use std::old_io::{self, fs, Command};
+use std::old_io::process::InheritFd;
 
 fn main() {
     register_dep("SSH2");
@@ -33,7 +33,7 @@ fn main() {
 
     let src = Path::new(os::getenv("CARGO_MANIFEST_DIR").unwrap());
     let dst = Path::new(os::getenv("OUT_DIR").unwrap());
-    let _ = fs::mkdir(&dst.join("build"), io::USER_DIR);
+    let _ = fs::mkdir(&dst.join("build"), old_io::USER_DIR);
 
     let mut cmd = Command::new("cmake");
     cmd.arg(src.join("libgit2"))

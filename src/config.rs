@@ -417,7 +417,7 @@ impl<'cfg> Drop for ConfigEntries<'cfg> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
+    use std::old_io::{TempDir, File};
     use Config;
 
     #[test]

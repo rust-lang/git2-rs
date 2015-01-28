@@ -1,7 +1,7 @@
 //! Interfaces for adding custom transports to libgit2
 
 use std::ffi::{self, CString};
-use std::io;
+use std::old_io;
 use std::mem;
 use std::slice;
 use std::str;
@@ -282,7 +282,7 @@ extern fn stream_read(stream: *mut raw::git_smart_subtransport_stream,
         let buf = slice::from_raw_mut_buf(&buffer, buf_size as usize);
         match panic::wrap(|| transport.obj.read(buf)) {
             Some(Ok(n)) => { *bytes_read = n as size_t; 0 }
-            Some(Err(ref e)) if e.kind == io::EndOfFile => {
+            Some(Err(ref e)) if e.kind == old_io::EndOfFile => {
                 *bytes_read = 0; 0
             }
             Some(Err(..)) => -2, // TODO: can this error be preserved?
@@ -300,7 +300,7 @@ extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
         let transport = &mut *(stream as *mut RawSmartSubtransportStream);
         let buffer = buffer as *const u8;
         let buf = slice::from_raw_buf(&buffer, len as usize);
-        match panic::wrap(|| transport.obj.write(buf)) {
+        match panic::wrap(|| transport.obj.write_all(buf)) {
             Some(Ok(())) => 0,
             Some(Err(..)) => -2, // TODO: can this error be preserved?
             None => -1,

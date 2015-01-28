@@ -206,7 +206,7 @@ impl<'repo> Drop for Submodule<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::TempDir;
+    use std::old_io::TempDir;
     use Repository;
 
     #[test]

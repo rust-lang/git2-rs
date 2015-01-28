@@ -346,7 +346,7 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::File;
+    use std::old_io::File;
 
     #[test]
     fn smoke() {

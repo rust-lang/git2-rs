@@ -1,6 +1,6 @@
 use std::ffi::CString;
 use std::mem;
-use std::io::Command;
+use std::old_io::Command;
 use url::{self, UrlParser};
 
 use {raw, Error, Config};
@@ -336,7 +336,7 @@ impl CredentialHelper {
 
 #[cfg(test)]
 mod test {
-    use std::io::{self, TempDir, File, fs};
+    use std::old_io::{self, TempDir, File, fs};
     use std::os;
 
     use {Cred, Config, CredentialHelper, ConfigLevel};
@@ -396,7 +396,7 @@ mod test {
 #!/bin/sh
 echo username=c
 ").unwrap();
-        fs::chmod(&path, io::USER_EXEC).unwrap();
+        fs::chmod(&path, old_io::USER_EXEC).unwrap();
         let cfg = cfg! {
             "credential.https://example.com.helper" =>
                     path.display().to_string().as_slice(),
@@ -417,7 +417,7 @@ echo username=c
 #!/bin/sh
 echo username=c
 ").unwrap();
-        fs::chmod(&path, io::USER_EXEC).unwrap();
+        fs::chmod(&path, old_io::USER_EXEC).unwrap();
 
         let mut paths = os::split_paths(os::getenv("PATH").unwrap().as_slice());
         paths.push(path.dir_path());

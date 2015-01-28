@@ -21,7 +21,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 
 use docopt::Docopt;
 use git2::{Repository, RemoteCallbacks, Direction};
-use std::io::stdio;
+use std::old_io::stdio;
 use std::str;
 
 #[derive(RustcDecodable)]
@@ -36,10 +36,10 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     // Figure out whether it's a named remote or a URL
     println!("Fetcing {} for repo", remote);
+    let mut cb = RemoteCallbacks::new();
     let mut remote = try!(repo.find_remote(remote).or_else(|_| {
         repo.remote_anonymous(remote, None)
     }));
-    let mut cb = RemoteCallbacks::new();
     cb.sideband_progress(|data| {
         print!("remote: {}", str::from_utf8(data).unwrap());
         stdio::flush();

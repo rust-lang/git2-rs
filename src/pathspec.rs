@@ -263,7 +263,7 @@ impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 mod tests {
     use PATHSPEC_DEFAULT;
     use super::Pathspec;
-    use std::io::File;
+    use std::old_io::File;
 
     #[test]
     fn smoke() {

@@ -23,7 +23,7 @@ use docopt::Docopt;
 use git2::{RemoteCallbacks, Progress};
 use git2::build::{RepoBuilder, CheckoutBuilder};
 use std::cell::RefCell;
-use std::io::stdio;
+use std::old_io::stdio;
 
 #[derive(RustcDecodable)]
 struct Args {

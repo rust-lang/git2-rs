@@ -56,7 +56,7 @@ impl<'repo> Drop for Blob<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{TempDir, File};
+    use std::old_io::{TempDir, File};
     use Repository;
 
     #[test]
@@ -76,7 +76,7 @@ mod tests {
     fn path() {
         let td = TempDir::new("test").unwrap();
         let path = td.path().join("foo");
-        File::create(&path).write(&[7, 8, 9]).unwrap();
+        File::create(&path).write_all(&[7, 8, 9]).unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let id = repo.blob_path(&path).unwrap();
         let blob = repo.find_blob(id).unwrap();
