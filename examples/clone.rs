@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![allow(unstable)]
+#![feature(path, core, io)]
 
 extern crate git2;
 extern crate docopt;

@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types, missing_copy_implementations)]
 #![allow(raw_pointer_derive)]
+#![feature(libc)]
 
-#[allow(unstable)]
 extern crate libc;
 extern crate "libssh2-sys" as libssh2;
 #[cfg(unix)] extern crate "openssl-sys" as openssl;

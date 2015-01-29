@@ -12,7 +12,8 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![allow(unstable)]
+#![feature(core, path)]
+#![deny(warnings)]
 
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate docopt;

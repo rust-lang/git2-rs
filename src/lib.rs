@@ -67,9 +67,10 @@
 //! itself.
 
 #![feature(unsafe_destructor, hash, std_misc, core, collections, path)]
-#![feature(io)]
+#![feature(io, libc)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
+#![cfg_attr(test, feature(os))]
 
 extern crate libc;
 extern crate url;
