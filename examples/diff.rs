@@ -12,7 +12,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(core, path, collections)]
+#![feature(path, collections)]
 #![deny(warnings)]
 
 extern crate git2;
