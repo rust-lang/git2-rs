@@ -446,7 +446,7 @@ Mode options for RepositoryInitOptions
 }
 
 /// What type of change is described by a `DiffDelta`?
-#[derive(Copy)]
+#[derive(Copy, Debug)]
 pub enum Delta {
     /// No changes
     Unmodified,
