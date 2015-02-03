@@ -95,11 +95,10 @@ impl<'repo> Object<'repo> {
 impl<'repo> Clone for Object<'repo> {
     fn clone(&self) -> Object<'repo> {
         let mut raw = 0 as *mut raw::git_object;
-        let rc = unsafe { raw::git_object_dup(&mut raw, self.raw) };
-        assert_eq!(rc, 0);
-        Object {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
+        unsafe {
+            let rc = raw::git_object_dup(&mut raw, self.raw);
+            assert_eq!(rc, 0);
+            Binding::from_raw(raw)
         }
     }
 }
