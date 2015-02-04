@@ -4,13 +4,13 @@ script:
   - cargo build --verbose
   - cargo test --verbose
   - cargo test --verbose --manifest-path=git2-curl/Cargo.toml
-  - cargo doc
+  - cargo doc --manifest-path=git2-curl/Cargo.toml
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
-  echo '<meta http-equiv=refresh content=0;url=git2/index.html>' > target/doc/index.html &&
+  echo '<meta http-equiv=refresh content=0;url=git2/index.html>' > git2-curl/target/doc/index.html &&
   pip install ghp-import --user $USER &&
-  $HOME/.local/bin/ghp-import -n target/doc &&
+  $HOME/.local/bin/ghp-import -n git2-curl/target/doc &&
   git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
 env:
   global:
