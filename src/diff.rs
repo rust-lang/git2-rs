@@ -717,8 +717,17 @@ impl<'a> DiffLine<'a> {
         }
     }
 
-    // ?
-    #[allow(missing_docs)]
+    /// Sigil showing the origin of this `DiffLine`.
+    ///
+    ///  * ` ` - Line context
+    ///  * `+` - Line addition
+    ///  * `-` - Line deletion
+    ///  * `=` - Context (End of file)
+    ///  * `>` - Add (End of file)
+    ///  * `<` - Remove (End of file)
+    ///  * `F` - File header
+    ///  * `H` - Hunk header
+    ///  * `B` - Line binary
     pub fn origin(&self) -> char {
         match unsafe { (*self.raw).origin } {
             raw::GIT_DIFF_LINE_CONTEXT => ' ',
