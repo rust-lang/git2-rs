@@ -6,7 +6,17 @@ authors = ["Alex Crichton <alex@alexcrichton.com>"]
 
 [dependencies]
 curl = "0.1"
+url = "0.2"
 
 [dependencies.git2]
 path = ".."
 version = "0.1"
+
+[dev-dependencies]
+civet = "0.1"
+conduit = "0.6"
+conduit-git-http-backend = "0.6"
+
+[[test]]
+name = "all"
+harness = false

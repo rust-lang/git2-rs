@@ -3,6 +3,7 @@ sudo: false
 script:
   - cargo build --verbose
   - cargo test --verbose
+  - cargo test --verbose --manifest-path=git2-curl/Cargo.toml
   - cargo doc
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&

@@ -1,8 +1,8 @@
 //! Interfaces for adding custom transports to libgit2
 
 use std::ffi::{self, CString};
-use std::old_io;
 use std::mem;
+use std::old_io::IoError;
 use std::slice;
 use std::str;
 use std::sync::{StaticMutex, MUTEX_INIT};
@@ -282,10 +282,7 @@ extern fn stream_read(stream: *mut raw::git_smart_subtransport_stream,
         let buf = slice::from_raw_mut_buf(&buffer, buf_size as usize);
         match panic::wrap(|| transport.obj.read(buf)) {
             Some(Ok(n)) => { *bytes_read = n as size_t; 0 }
-            Some(Err(ref e)) if e.kind == old_io::EndOfFile => {
-                *bytes_read = 0; 0
-            }
-            Some(Err(..)) => -2, // TODO: can this error be preserved?
+            Some(Err(e)) => { set_err(e); -2 }
             None => -1,
         }
     }
@@ -302,10 +299,15 @@ extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
         let buf = slice::from_raw_buf(&buffer, len as usize);
         match panic::wrap(|| transport.obj.write_all(buf)) {
             Some(Ok(())) => 0,
-            Some(Err(..)) => -2, // TODO: can this error be preserved?
+            Some(Err(e)) => { set_err(e); -2 }
             None => -1,
         }
     }
+}
+
+unsafe fn set_err(e: IoError) {
+    let s = CString::from_slice(e.to_string().as_bytes());
+    raw::giterr_set_str(raw::GITERR_NET as c_int, s.as_ptr())
 }
 
 // callback used by smart transports to free a `SmartSubtransportStream`

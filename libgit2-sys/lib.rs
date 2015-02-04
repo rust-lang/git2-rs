@@ -148,6 +148,42 @@ pub enum git_error_code {
 
 #[repr(C)]
 #[derive(Copy)]
+pub enum git_error_t {
+    GITERR_NONE = 0,
+    GITERR_NOMEMORY,
+    GITERR_OS,
+    GITERR_INVALID,
+    GITERR_REFERENCE,
+    GITERR_ZLIB,
+    GITERR_REPOSITORY,
+    GITERR_CONFIG,
+    GITERR_REGEX,
+    GITERR_ODB,
+    GITERR_INDEX,
+    GITERR_OBJECT,
+    GITERR_NET,
+    GITERR_TAG,
+    GITERR_TREE,
+    GITERR_INDEXER,
+    GITERR_SSL,
+    GITERR_SUBMODULE,
+    GITERR_THREAD,
+    GITERR_STASH,
+    GITERR_CHECKOUT,
+    GITERR_FETCHHEAD,
+    GITERR_MERGE,
+    GITERR_SSH,
+    GITERR_FILTER,
+    GITERR_REVERT,
+    GITERR_CALLBACK,
+    GITERR_CHERRYPICK,
+    GITERR_DESCRIBE,
+    GITERR_REBASE,
+}
+pub use git_error_t::*;
+
+#[repr(C)]
+#[derive(Copy)]
 pub enum git_repository_state_t {
     GIT_REPOSITORY_STATE_NONE,
     GIT_REPOSITORY_STATE_MERGE,
@@ -1177,6 +1213,7 @@ extern {
     pub fn giterr_last() -> *const git_error;
     pub fn giterr_clear();
     pub fn giterr_detach(cpy: *mut git_error) -> c_int;
+    pub fn giterr_set_str(error_class: c_int, string: *const c_char);
 
     // remote
     pub fn git_remote_create(out: *mut *mut git_remote,
