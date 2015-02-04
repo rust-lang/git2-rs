@@ -237,7 +237,9 @@ impl Diff {
     /// Returning `false` from the callback will terminate the iteration and
     /// return an error from this function.
     pub fn print<F>(&self, format: DiffFormat, mut cb: F) -> Result<(), Error>
-                    where F: FnMut(DiffDelta, DiffHunk, DiffLine) -> bool {
+                    where F: FnMut(DiffDelta,
+                                   Option<DiffHunk>,
+                                   DiffLine) -> bool {
         unsafe {
             try_call!(raw::git_diff_print(self.raw, format, print::<F>,
                                           &mut cb as *mut _ as *mut _));
@@ -247,11 +249,12 @@ impl Diff {
                            hunk: *const raw::git_diff_hunk,
                            line: *const raw::git_diff_line,
                            data: *mut c_void) -> c_int
-                           where F: FnMut(DiffDelta, DiffHunk, DiffLine) -> bool
+                           where F: FnMut(DiffDelta, Option<DiffHunk>,
+                                          DiffLine) -> bool
         {
             unsafe {
                 let delta = Binding::from_raw(delta as *mut _);
-                let hunk = Binding::from_raw(hunk);
+                let hunk = Binding::from_raw_opt(hunk);
                 let line = Binding::from_raw(line);
                 let data = data as *mut F;
                 let ok = panic::wrap(move || {
