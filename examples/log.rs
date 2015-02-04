@@ -98,7 +98,7 @@ fn run(args: &Args) -> Result<(), Error> {
     macro_rules! filter_try {
         ($e:expr) => (match $e { Ok(t) => t, Err(e) => return Some(Err(e)) })
     }
-    let mut revwalk = revwalk.filter_map(|id| {
+    let revwalk = revwalk.filter_map(|id| {
         let commit = filter_try!(repo.find_commit(id));
         let parents = commit.parents().len();
         if parents < args.min_parents() { return None }
