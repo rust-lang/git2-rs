@@ -19,3 +19,6 @@ env:
 notifications:
   email:
     on_success: never
+os:
+  - linux
+  - osx
