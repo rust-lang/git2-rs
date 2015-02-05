@@ -1,11 +1,11 @@
 use std::ffi::{self, CString};
 use std::iter::Range;
-use std::path::BytesContainer;
-use std::path::PosixPath;
+use std::old_path::PosixPath;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char, c_ushort};
 
 use {raw, panic, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
+use IntoCString;
 use util::Binding;
 
 /// A structure to represent a git [index][1]
@@ -157,7 +157,7 @@ impl Index {
                          flag: IndexAddOption,
                          mut cb: Option<&mut IndexMatchedPath>)
                          -> Result<(), Error>
-        where T: BytesContainer, I: Iterator<Item=T>,
+        where T: IntoCString, I: Iterator<Item=T>,
     {
         let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
         let ptr = cb.as_mut();
@@ -290,7 +290,7 @@ impl Index {
                             pathspecs: I,
                             mut cb: Option<&mut IndexMatchedPath>)
                             -> Result<(), Error>
-        where T: BytesContainer, I: Iterator<Item=T>,
+        where T: IntoCString, I: Iterator<Item=T>,
     {
         let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
         let ptr = cb.as_mut();
@@ -325,7 +325,7 @@ impl Index {
                             pathspecs: I,
                             mut cb: Option<&mut IndexMatchedPath>)
                             -> Result<(), Error>
-        where T: BytesContainer, I: Iterator<Item=T>,
+        where T: IntoCString, I: Iterator<Item=T>,
     {
         let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
         let ptr = cb.as_mut();

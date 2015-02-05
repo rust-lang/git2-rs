@@ -1,8 +1,8 @@
-#![feature(path, io, os, core)]
+#![feature(path, io, env, core)]
 
 extern crate "pkg-config" as pkg_config;
 
-use std::os;
+use std::env;
 use std::old_io::{self, fs, Command};
 use std::old_io::process::InheritFd;
 
@@ -17,8 +17,8 @@ fn main() {
         Err(..) => {}
     }
 
-    let mut cflags = os::getenv("CFLAGS").unwrap_or(String::new());
-    let target = os::getenv("TARGET").unwrap();
+    let mut cflags = env::var_string("CFLAGS").unwrap_or(String::new());
+    let target = env::var_string("TARGET").unwrap();
     let mingw = target.contains("windows-gnu");
     cflags.push_str(" -ffunction-sections -fdata-sections");
 
@@ -31,8 +31,8 @@ fn main() {
         cflags.push_str(" -fPIC");
     }
 
-    let src = Path::new(os::getenv("CARGO_MANIFEST_DIR").unwrap());
-    let dst = Path::new(os::getenv("OUT_DIR").unwrap());
+    let src = Path::new(env::var_string("CARGO_MANIFEST_DIR").unwrap());
+    let dst = Path::new(env::var_string("OUT_DIR").unwrap());
     let _ = fs::mkdir(&dst.join("build"), old_io::USER_DIR);
 
     let mut cmd = Command::new("cmake");
@@ -41,7 +41,7 @@ fn main() {
     if mingw {
         cmd.arg("-G").arg("Unix Makefiles");
     }
-    let profile = match os::getenv("PROFILE").unwrap().as_slice() {
+    let profile = match env::var_string("PROFILE").unwrap().as_slice() {
         "bench" | "release" => "Release",
         _ => "Debug",
     };
@@ -63,7 +63,7 @@ fn main() {
                                     -l ws2_32 -l bcrypt -l crypt32 \
                                     -l git2:static -L {}",
                  dst.join("lib").display());
-    } else if os::getenv("HOST") == os::getenv("TARGET") {
+    } else if env::var("HOST") == env::var("TARGET") {
         opts.statik = true;
         opts.atleast_version = None;
         append("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
@@ -88,18 +88,18 @@ fn run(cmd: &mut Command) {
 }
 
 fn register_dep(dep: &str) {
-    match os::getenv(format!("DEP_{}_ROOT", dep).as_slice()) {
-        Some(s) => {
+    match env::var_string(format!("DEP_{}_ROOT", dep).as_slice()) {
+        Ok(s) => {
             append("CMAKE_PREFIX_PATH", Path::new(s.as_slice()));
             append("PKG_CONFIG_PATH", Path::new(s.as_slice()).join("lib/pkgconfig"));
         }
-        None => {}
+        Err(..) => {}
     }
 }
 
 fn append(var: &str, val: Path) {
-    let prefix = os::getenv(var).unwrap_or(String::new());
-    let mut v = os::split_paths(prefix.as_slice());
-    v.push(val);
-    os::setenv(var, os::join_paths(v.as_slice()).unwrap());
+    let prefix = env::var_string(var).unwrap_or(String::new());
+    let val = env::join_paths(env::split_paths(&prefix)
+                                  .chain(Some(val).into_iter())).unwrap();
+    env::set_var(var, &val);
 }

@@ -2,12 +2,11 @@ use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
 use std::mem;
-use std::path::BytesContainer;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
 use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
-use {DiffStatsFormat};
+use {DiffStatsFormat, IntoCString};
 use util::Binding;
 
 /// The diff object that contains all individual file deltas.
@@ -629,23 +628,23 @@ impl DiffOptions {
     /// The virtual "directory" to prefix old file names with in hunk headers.
     ///
     /// The default value for this is "a".
-    pub fn old_prefix<T: BytesContainer>(&mut self, t: T) -> &mut DiffOptions {
-        self.old_prefix = Some(CString::from_slice(t.container_as_bytes()));
+    pub fn old_prefix<T: IntoCString>(&mut self, t: T) -> &mut DiffOptions {
+        self.old_prefix = Some(t.into_c_string());
         self
     }
 
     /// The virtual "directory" to prefix new file names with in hunk headers.
     ///
     /// The default value for this is "b".
-    pub fn new_prefix<T: BytesContainer>(&mut self, t: T) -> &mut DiffOptions {
-        self.new_prefix = Some(CString::from_slice(t.container_as_bytes()));
+    pub fn new_prefix<T: IntoCString>(&mut self, t: T) -> &mut DiffOptions {
+        self.new_prefix = Some(t.into_c_string());
         self
     }
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
-    pub fn pathspec<T: BytesContainer>(&mut self, pathspec: T)
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
                                        -> &mut DiffOptions {
-        let s = CString::from_slice(pathspec.container_as_bytes());
+        let s = pathspec.into_c_string();
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

@@ -1,6 +1,6 @@
 use std::old_io::TempDir;
 use std::old_io::{self, fs};
-use std::os;
+use std::env;
 use Repository;
 
 pub fn repo_init() -> (TempDir, Repository) {
@@ -24,7 +24,7 @@ pub fn repo_init() -> (TempDir, Repository) {
 // Copied from rustc
 pub fn realpath(original: &Path) -> old_io::IoResult<Path> {
     static MAX_LINKS_FOLLOWED: u32 = 256;
-    let original = os::make_absolute(original).unwrap();
+    let original = env::current_dir().unwrap().join(original);
     // Right now lstat on windows doesn't work quite well
     if cfg!(windows) {
         return Ok(original)

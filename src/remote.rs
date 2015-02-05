@@ -2,12 +2,11 @@ use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
 use std::mem;
-use std::path::BytesContainer;
 use std::slice;
 use std::str;
 use libc;
 
-use {raw, Direction, Error, Refspec, Oid};
+use {raw, Direction, Error, Refspec, Oid, IntoCString};
 use {Signature, Push, RemoteCallbacks, Progress};
 use util::Binding;
 
@@ -160,7 +159,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Set the remote's list of fetch refspecs
     pub fn set_fetch_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
-        where T: BytesContainer, I: Iterator<Item=T>
+        where T: IntoCString, I: Iterator<Item=T>
     {
         let (_a, _b, mut arr) = ::util::iter2cstrs(i);
         unsafe {
@@ -171,7 +170,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Set the remote's list of push refspecs
     pub fn set_push_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
-        where T: BytesContainer, I: Iterator<Item=T>
+        where T: IntoCString, I: Iterator<Item=T>
     {
         let (_a, _b, mut arr) = ::util::iter2cstrs(i);
         unsafe {

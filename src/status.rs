@@ -2,11 +2,10 @@ use std::ffi::CString;
 use std::iter::{range, Range};
 use std::marker;
 use std::mem;
-use std::path::BytesContainer;
 use std::str;
 use libc::{c_char, size_t, c_uint};
 
-use {raw, Status, DiffDelta};
+use {raw, Status, DiffDelta, IntoCString};
 use util::Binding;
 
 /// Options that can be provided to `repo.statuses()` to control how the status
@@ -91,9 +90,9 @@ impl StatusOptions {
     /// If the `disable_pathspec_match` option is given, then this is a literal
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
-    pub fn pathspec<T: BytesContainer>(&mut self, pathspec: T)
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
                                        -> &mut StatusOptions {
-        let s = CString::from_slice(pathspec.container_as_bytes());
+        let s = pathspec.into_c_string();
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

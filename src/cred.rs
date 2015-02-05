@@ -337,7 +337,7 @@ impl CredentialHelper {
 #[cfg(test)]
 mod test {
     use std::old_io::{self, TempDir, File, fs};
-    use std::os;
+    use std::env;
 
     use {Cred, Config, CredentialHelper, ConfigLevel};
 
@@ -419,10 +419,10 @@ echo username=c
 ").unwrap();
         fs::chmod(&path, old_io::USER_EXEC).unwrap();
 
-        let mut paths = os::split_paths(os::getenv("PATH").unwrap().as_slice());
-        paths.push(path.dir_path());
-        let path = os::join_paths(paths.as_slice()).unwrap();
-        os::setenv("PATH", path);
+        let path = env::join_paths(env::split_paths(&env::var("PATH").unwrap())
+                                       .chain(Some(path.dir_path()).into_iter()))
+                       .unwrap();
+        env::set_var("PATH", &path);
 
         let cfg = cfg! {
             "credential.https://example.com.helper" => "script",

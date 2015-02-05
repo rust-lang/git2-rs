@@ -66,11 +66,11 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(unsafe_destructor, hash, std_misc, core, path)]
+#![feature(unsafe_destructor, hash, std_misc, core, path, os)]
 #![feature(io, libc)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(os))]
+#![cfg_attr(test, feature(env))]
 
 extern crate libc;
 extern crate url;
@@ -114,6 +114,7 @@ pub use submodule::Submodule;
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry, TreeIter};
+pub use util::IntoCString;
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.

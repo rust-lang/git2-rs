@@ -3,10 +3,9 @@
 use std::ffi::{self, CString};
 use std::old_io;
 use std::mem;
-use std::path::BytesContainer;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, Signature, Error, Repository, RemoteCallbacks, panic};
+use {raw, Signature, Error, Repository, RemoteCallbacks, panic, IntoCString};
 use util::Binding;
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -344,9 +343,9 @@ impl<'cb> CheckoutBuilder<'cb> {
     ///
     /// If no paths are specified, then all files are checked out. Otherwise
     /// only these specified paths are checked out.
-    pub fn path<T: BytesContainer>(&mut self, path: T)
+    pub fn path<T: IntoCString>(&mut self, path: T)
                                    -> &mut CheckoutBuilder<'cb> {
-        let path = CString::from_slice(path.container_as_bytes());
+        let path = path.into_c_string();
         self.path_ptrs.push(path.as_ptr());
         self.paths.push(path);
         self

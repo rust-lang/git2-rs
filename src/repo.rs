@@ -1,6 +1,5 @@
 use std::ffi::{self, CString};
 use std::mem;
-use std::path::BytesContainer;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
@@ -8,7 +7,7 @@ use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {ResetType, Signature, Reference, References, Submodule};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
-use {RevparseMode, RepositoryInitMode, Reflog};
+use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
 use util::Binding;
@@ -361,7 +360,7 @@ impl Repository {
     pub fn reset_default<T, I>(&self,
                                target: Option<&Object>,
                                paths: I) -> Result<(), Error>
-        where T: BytesContainer, I: Iterator<Item=T>,
+        where T: IntoCString, I: Iterator<Item=T>,
     {
         let (_a, _b, mut arr) = ::util::iter2cstrs(paths);
         let target = target.map(|t| t.raw());

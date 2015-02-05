@@ -1,10 +1,9 @@
 use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
-use std::path::BytesContainer;
 use libc::size_t;
 
-use {raw, Error, Tree, PathspecFlags, Index, Repository, DiffDelta};
+use {raw, Error, Tree, PathspecFlags, Index, Repository, DiffDelta, IntoCString};
 use util::Binding;
 
 /// Structure representing a compiled pathspec used for matching against various
@@ -40,7 +39,7 @@ pub struct PathspecFailedEntries<'list> {
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
-                     where T: BytesContainer, I: Iterator<Item=T> {
+                     where T: IntoCString, I: Iterator<Item=T> {
         let (_a, _b, arr) = ::util::iter2cstrs(specs);
         unsafe {
             let mut ret = 0 as *mut raw::git_pathspec;
