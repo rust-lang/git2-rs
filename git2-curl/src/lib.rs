@@ -20,6 +20,7 @@
 extern crate git2;
 extern crate curl;
 extern crate url;
+#[macro_use] extern crate log;
 
 use std::old_io::{self, IoError, IoResult, MemReader, BufReader};
 use std::sync::{Once, ONCE_INIT, Arc, Mutex};
@@ -102,6 +103,7 @@ impl SmartSubtransport for CurlTransport {
                 ("receive-pack", "/git-receive-pack", Method::Post)
             }
         };
+        info!("action {} {}", service, path);
         Ok(Box::new(CurlSubtransport {
             handle: self.handle.clone(),
             service: service,
@@ -140,6 +142,7 @@ impl CurlSubtransport {
         })).to_string();
 
         // Prep the request
+        debug!("request to {}", url);
         let mut h = self.handle.lock().unwrap();
         let mut req = Request::new(&mut h.0, self.method)
                               .uri(url)
@@ -162,6 +165,7 @@ impl CurlSubtransport {
         let resp = try!(req.exec().map_err(|e| {
             self.err("failed to complete HTTP request", Some(e.to_string()))
         }));
+        debug!("response: {}", resp);
         if resp.get_code() != 200 {
             return Err(self.err("failed to receive HTTP 200 response",
                                 Some(format!("got {}", resp.get_code()))))
