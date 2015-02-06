@@ -507,23 +507,23 @@ mod tests {
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
         index.add_all(["foo"].iter(), ::ADD_DEFAULT,
-                      Some((&mut |&mut: a: &[u8], b: &[u8]| {
+                      Some(&mut |a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b"foo");
             assert_eq!(a, b"foo/bar");
             0
-        }) as &mut super::IndexMatchedPath)).unwrap();
+        })).unwrap();
         assert!(called);
 
         called = false;
-        index.remove_all(["."].iter(), Some((&mut |&mut: a: &[u8], b: &[u8]| {
+        index.remove_all(["."].iter(), Some(&mut |a: &[u8], b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b".");
             assert_eq!(a, b"foo/bar");
             0
-        }) as &mut super::IndexMatchedPath)).unwrap();
+        })).unwrap();
         assert!(called);
     }
 
