@@ -87,7 +87,7 @@ impl IntoCString for OsString {
         use std::os::unix::OsStrExt;
         CString::from_slice(self.as_os_str().as_byte_slice())
     }
-    #[cfg(widnows)]
+    #[cfg(windows)]
     fn into_c_string(self) -> CString {
         CString::from_slice(self.to_str().expect("only valid unicode paths \
                                                   are accepted on windows")
