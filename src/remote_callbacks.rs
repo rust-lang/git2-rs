@@ -292,8 +292,7 @@ extern fn sideband_progress_cb(str: *const c_char,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let ptr = str as *const u8;
-        let buf = slice::from_raw_buf(&ptr, len as usize);
+        let buf = slice::from_raw_parts(str as *const u8, len as usize);
         let ok = panic::wrap(|| {
             callback(buf)
         }).unwrap_or(false);

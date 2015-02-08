@@ -82,9 +82,8 @@ impl<'a> CertX509<'a> {
     /// Return the X.509 certificate data as a byte slice
     pub fn data(&self) -> &[u8] {
         unsafe {
-            let ptr = (*self.raw).data as *const u8;
-            let len = (*self.raw).len as usize;
-            slice::from_raw_buf(mem::copy_lifetime(self, &ptr), len)
+            slice::from_raw_parts((*self.raw).data as *const u8,
+                                  (*self.raw).len as usize)
         }
     }
 }

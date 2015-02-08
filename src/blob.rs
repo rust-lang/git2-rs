@@ -1,5 +1,4 @@
 use std::marker;
-use std::mem;
 use std::slice;
 
 use {raw, Oid};
@@ -29,7 +28,7 @@ impl<'repo> Blob<'repo> {
         unsafe {
             let data = raw::git_blob_rawcontent(&*self.raw) as *const u8;
             let len = raw::git_blob_rawsize(&*self.raw) as usize;
-            slice::from_raw_buf(mem::copy_lifetime(self, &data), len)
+            slice::from_raw_parts(data, len)
         }
     }
 }

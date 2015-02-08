@@ -310,8 +310,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
             try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
             assert_eq!(mem::size_of::<RemoteHead>(),
                        mem::size_of::<*const raw::git_remote_head>());
-            let base = base as *const _;
-            let slice = slice::from_raw_buf(&base, size as usize);
+            let slice = slice::from_raw_parts(base as *const _, size as usize);
             Ok(mem::transmute::<&[*const raw::git_remote_head],
                                 &[RemoteHead]>(slice))
         }

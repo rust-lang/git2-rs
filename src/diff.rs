@@ -711,8 +711,8 @@ impl<'a> DiffLine<'a> {
     /// Content of this line as bytes.
     pub fn content(&self) -> &[u8] {
         unsafe {
-            slice::from_raw_buf(&(*self.raw).content,
-                                (*self.raw).content_len as usize)
+            slice::from_raw_parts((*self.raw).content,
+                                  (*self.raw).content_len as usize)
         }
     }
 

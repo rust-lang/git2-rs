@@ -1,4 +1,3 @@
-use std::mem;
 use std::slice;
 use std::str;
 use std::ops::{Deref, DerefMut};
@@ -38,9 +37,8 @@ impl Deref for Buf {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
         unsafe {
-            let ptr = self.raw.ptr as *const u8;
-            slice::from_raw_buf(mem::copy_lifetime(self, &ptr),
-                                self.raw.size as usize)
+            slice::from_raw_parts(self.raw.ptr as *const u8,
+                                  self.raw.size as usize)
         }
     }
 }
@@ -48,9 +46,8 @@ impl Deref for Buf {
 impl DerefMut for Buf {
     fn deref_mut(&mut self) -> &mut [u8] {
         unsafe {
-            let ptr = self.raw.ptr as *mut u8;
-            slice::from_raw_mut_buf(mem::copy_lifetime(self, &ptr),
-                                    self.raw.size as usize)
+            slice::from_raw_parts_mut(self.raw.ptr as *mut u8,
+                                      self.raw.size as usize)
         }
     }
 }

@@ -278,8 +278,7 @@ extern fn stream_read(stream: *mut raw::git_smart_subtransport_stream,
                       bytes_read: *mut size_t) -> c_int {
     unsafe {
         let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-        let buffer = buffer as *mut u8;
-        let buf = slice::from_raw_mut_buf(&buffer, buf_size as usize);
+        let buf = slice::from_raw_parts_mut(buffer as *mut u8, buf_size as usize);
         match panic::wrap(|| transport.obj.read(buf)) {
             Some(Ok(n)) => { *bytes_read = n as size_t; 0 }
             Some(Err(e)) => { set_err(e); -2 }
@@ -295,8 +294,7 @@ extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
                        len: size_t) -> c_int {
     unsafe {
         let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-        let buffer = buffer as *const u8;
-        let buf = slice::from_raw_buf(&buffer, len as usize);
+        let buf = slice::from_raw_parts(buffer as *const u8, len as usize);
         match panic::wrap(|| transport.obj.write_all(buf)) {
             Some(Ok(())) => 0,
             Some(Err(e)) => { set_err(e); -2 }
