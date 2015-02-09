@@ -63,17 +63,22 @@ fn main() {
                                     -l ws2_32 -l bcrypt -l crypt32 \
                                     -l git2:static -L {}",
                  dst.join("lib").display());
-    } else if env::var("HOST") == env::var("TARGET") {
+        return
+    }
+
+    if env::var("HOST") == env::var("TARGET") {
         opts.statik = true;
         opts.atleast_version = None;
         append("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
-        pkg_config::find_library_opts("libgit2", &opts).unwrap();
-    } else {
-        println!("cargo:rustc-flags=-l git2:static");
-        println!("cargo:rustc-flags=-L {}", dst.join("lib").display());
-        if target.contains("apple") {
-            println!("cargo:rustc-flags:-l iconv");
+        if pkg_config::find_library_opts("libgit2", &opts).is_ok() {
+            return
         }
+    }
+
+    println!("cargo:rustc-flags=-l git2:static");
+    println!("cargo:rustc-flags=-L {}", dst.join("lib").display());
+    if target.contains("apple") {
+        println!("cargo:rustc-flags:-l iconv");
     }
 }
 
