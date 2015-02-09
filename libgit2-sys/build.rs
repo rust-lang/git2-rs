@@ -51,11 +51,11 @@ fn main() {
            .arg(format!("-DCMAKE_BUILD_TYPE={}", profile))
            .arg(format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
            .arg("-DBUILD_EXAMPLES=OFF")
-           .arg(format!("-DCMAKE_C_FLAGS={}", cflags)));
+           .arg(format!("-DCMAKE_C_FLAGS={}", cflags)), "cmake");
     run(Command::new("cmake")
                 .arg("--build").arg(".")
                 .arg("--target").arg("install")
-                .cwd(&dst.join("build")));
+                .cwd(&dst.join("build")), "cmake");
 
     println!("cargo:root={}", dst.display());
     if mingw || target.contains("windows") {
@@ -77,14 +77,19 @@ fn main() {
     }
 }
 
-fn run(cmd: &mut Command) {
+fn run(cmd: &mut Command, program: &str) {
     println!("running: {:?}", cmd);
-    assert!(cmd.stdout(InheritFd(1))
-               .stderr(InheritFd(2))
-               .status()
-               .unwrap()
-               .success());
-
+    let status = match cmd.stdout(InheritFd(1)).stderr(InheritFd(2)).status() {
+        Ok(status) => status,
+        Err(ref e) if e.kind == old_io::FileNotFound => {
+            fail(&format!("failed to execute command: {}\nis `{}` not installed?",
+                          e, program));
+        }
+        Err(e) => fail(&format!("failed to execute command: {}", e)),
+    };
+    if !status.success() {
+        fail(&format!("command did not execute successfully, got: {}", status));
+    }
 }
 
 fn register_dep(dep: &str) {
@@ -102,4 +107,11 @@ fn append(var: &str, val: Path) {
     let val = env::join_paths(env::split_paths(&prefix)
                                   .chain(Some(val).into_iter())).unwrap();
     env::set_var(var, &val);
+}
+
+fn fail(s: &str) -> ! {
+    println!("{}", s);
+    env::set_exit_status(1);
+    old_io::stdio::set_stderr(Box::new(old_io::util::NullWriter));
+    panic!()
 }
