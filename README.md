@@ -13,8 +13,8 @@ git2 = "0.1"
 
 ## Building git2-rs
 
-First, you'll need to install CMake if you don't already have libgit2 installed
-elsewhere on the system. Afterwards, just run:
+First, you'll need to install _CMake_ and _pkg-config_ if you don't already
+have libgit2 installed elsewhere on the system. Afterwards, just run:
 
 ```sh
 $ git clone --recursive https://github.com/alexcrichton/git2-rs
