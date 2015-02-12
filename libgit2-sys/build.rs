@@ -10,15 +10,13 @@ fn main() {
     register_dep("SSH2");
     register_dep("OPENSSL");
 
-    let mut opts = pkg_config::default_options("libgit2");
-    opts.atleast_version = Some("0.22.0".to_string());
-    match pkg_config::find_library_opts("libgit2", &opts) {
-        Ok(()) => return,
+    match pkg_config::Config::new().atleast_version("0.22.0").find("libgit2") {
+        Ok(_) => return,
         Err(..) => {}
     }
 
-    let mut cflags = env::var_string("CFLAGS").unwrap_or(String::new());
-    let target = env::var_string("TARGET").unwrap();
+    let mut cflags = env::var("CFLAGS").unwrap_or(String::new());
+    let target = env::var("TARGET").unwrap();
     let mingw = target.contains("windows-gnu");
     cflags.push_str(" -ffunction-sections -fdata-sections");
 
@@ -31,8 +29,8 @@ fn main() {
         cflags.push_str(" -fPIC");
     }
 
-    let src = Path::new(env::var_string("CARGO_MANIFEST_DIR").unwrap());
-    let dst = Path::new(env::var_string("OUT_DIR").unwrap());
+    let src = Path::new(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let dst = Path::new(env::var("OUT_DIR").unwrap());
     let _ = fs::mkdir(&dst.join("build"), old_io::USER_DIR);
 
     let mut cmd = Command::new("cmake");
@@ -41,7 +39,7 @@ fn main() {
     if mingw {
         cmd.arg("-G").arg("Unix Makefiles");
     }
-    let profile = match env::var_string("PROFILE").unwrap().as_slice() {
+    let profile = match env::var("PROFILE").unwrap().as_slice() {
         "bench" | "release" => "Release",
         _ => "Debug",
     };
@@ -67,10 +65,8 @@ fn main() {
     }
 
     if env::var("HOST") == env::var("TARGET") {
-        opts.statik = true;
-        opts.atleast_version = None;
         append("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
-        if pkg_config::find_library_opts("libgit2", &opts).is_ok() {
+        if pkg_config::Config::new().statik(true).find("libgit2").is_ok() {
             return
         }
     }
@@ -98,7 +94,7 @@ fn run(cmd: &mut Command, program: &str) {
 }
 
 fn register_dep(dep: &str) {
-    match env::var_string(format!("DEP_{}_ROOT", dep).as_slice()) {
+    match env::var(format!("DEP_{}_ROOT", dep).as_slice()) {
         Ok(s) => {
             append("CMAKE_PREFIX_PATH", Path::new(s.as_slice()));
             append("PKG_CONFIG_PATH", Path::new(s.as_slice()).join("lib/pkgconfig"));
@@ -108,7 +104,7 @@ fn register_dep(dep: &str) {
 }
 
 fn append(var: &str, val: Path) {
-    let prefix = env::var_string(var).unwrap_or(String::new());
+    let prefix = env::var(var).unwrap_or(String::new());
     let val = env::join_paths(env::split_paths(&prefix)
                                   .chain(Some(val).into_iter())).unwrap();
     env::set_var(var, &val);
