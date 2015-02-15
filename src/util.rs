@@ -85,7 +85,7 @@ impl IntoCString for OsString {
     #[cfg(unix)]
     fn into_c_string(self) -> CString {
         use std::os::unix::OsStrExt;
-        CString::from_slice(self.as_os_str().as_byte_slice())
+        CString::from_slice(self.as_os_str().as_bytes())
     }
     #[cfg(windows)]
     fn into_c_string(self) -> CString {
