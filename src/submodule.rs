@@ -9,7 +9,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Tools-Submodules
 pub struct Submodule<'repo> {
     raw: *mut raw::git_submodule,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 impl<'repo> Submodule<'repo> {
@@ -189,10 +189,7 @@ impl<'repo> Submodule<'repo> {
 impl<'repo> Binding for Submodule<'repo> {
     type Raw = *mut raw::git_submodule;
     unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
-        Submodule {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Submodule { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_submodule { self.raw }
 }

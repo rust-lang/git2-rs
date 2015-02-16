@@ -1,7 +1,7 @@
 use std::marker;
 use std::slice;
 
-use {raw, Oid};
+use {raw, Oid, Object};
 use util::Binding;
 
 /// A structure to represent a git [blob][1]
@@ -9,7 +9,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Blob<'repo> {
     raw: *mut raw::git_blob,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<Object<'repo>>,
 }
 
 impl<'repo> Blob<'repo> {
@@ -39,7 +39,7 @@ impl<'repo> Binding for Blob<'repo> {
     unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
         Blob {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *mut raw::git_blob { self.raw }

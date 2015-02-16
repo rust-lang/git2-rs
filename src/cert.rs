@@ -12,19 +12,19 @@ use util::Binding;
 /// `CertX509` currently.
 pub struct Cert<'a> {
     raw: *mut raw::git_cert,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_cert>,
 }
 
 /// Hostkey information taken from libssh2
 pub struct CertHostkey<'a> {
     raw: *mut raw::git_cert_hostkey,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_cert>,
 }
 
 /// X.509 certificate information
 pub struct CertX509<'a> {
     raw: *mut raw::git_cert_x509,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_cert>,
 }
 
 impl<'a> Cert<'a> {
@@ -91,7 +91,7 @@ impl<'a> CertX509<'a> {
 impl<'a> Binding for Cert<'a> {
     type Raw = *mut raw::git_cert;
     fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
-        Cert { raw: raw, marker: marker::ContravariantLifetime }
+        Cert { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_cert { self.raw }
 }

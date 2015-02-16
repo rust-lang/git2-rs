@@ -14,7 +14,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Tree<'repo> {
     raw: *mut raw::git_tree,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<Object<'repo>>,
 }
 
 /// A structure representing an entry inside of a tree. An entry is borrowed
@@ -22,7 +22,7 @@ pub struct Tree<'repo> {
 pub struct TreeEntry<'tree> {
     raw: *mut raw::git_tree_entry,
     owned: bool,
-    marker: marker::ContravariantLifetime<'tree>,
+    _marker: marker::PhantomData<&'tree raw::git_tree_entry>,
 }
 
 /// An iterator over the entries in a tree.
@@ -101,10 +101,7 @@ impl<'repo> Binding for Tree<'repo> {
     type Raw = *mut raw::git_tree;
 
     unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
-        Tree {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Tree { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_tree { self.raw }
 }
@@ -126,7 +123,7 @@ impl<'tree> TreeEntry<'tree> {
         TreeEntry {
             raw: raw as *mut raw::git_tree_entry,
             owned: false,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
 
@@ -184,7 +181,7 @@ impl<'a> Binding for TreeEntry<'a> {
         TreeEntry {
             raw: raw,
             owned: true,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *mut raw::git_tree_entry { self.raw }

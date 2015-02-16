@@ -12,7 +12,7 @@ use util::Binding;
 /// repository.
 pub struct Push<'remote> {
     raw: *mut raw::git_push,
-    marker: marker::ContravariantLifetime<'remote>,
+    _marker: marker::PhantomData<&'remote raw::git_remote>,
 }
 
 /// A status representing the result of updating a remote reference.
@@ -97,10 +97,7 @@ impl<'remote> Push<'remote> {
 impl<'remote> Binding for Push<'remote> {
     type Raw = *mut raw::git_push;
     unsafe fn from_raw(raw: *mut raw::git_push) -> Push<'remote> {
-        Push {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Push { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_push { self.raw }
 }

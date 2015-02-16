@@ -5,7 +5,7 @@ use std::mem;
 use std::str;
 use libc::{c_char, size_t, c_uint};
 
-use {raw, Status, DiffDelta, IntoCString};
+use {raw, Status, DiffDelta, IntoCString, Repository};
 use util::Binding;
 
 /// Options that can be provided to `repo.statuses()` to control how the status
@@ -39,7 +39,9 @@ pub enum StatusShow {
 /// allowing indexing as well as provding an iterator.
 pub struct Statuses<'repo> {
     raw: *mut raw::git_status_list,
-    marker: marker::ContravariantLifetime<'repo>,
+
+    // Hm, not currently present, but can't hurt?
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 /// An iterator over the statuses in a `Statuses` instance.
@@ -53,7 +55,7 @@ pub struct StatusIter<'statuses> {
 /// Instances are created through the `.iter()` method or the `.get()` method.
 pub struct StatusEntry<'statuses> {
     raw: *const raw::git_status_entry,
-    marker: marker::ContravariantLifetime<'statuses>,
+    _marker: marker::PhantomData<&'statuses DiffDelta<'statuses>>,
 }
 
 impl StatusOptions {
@@ -262,10 +264,7 @@ impl<'repo> Statuses<'repo> {
 impl<'repo> Binding for Statuses<'repo> {
     type Raw = *mut raw::git_status_list;
     unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
-        Statuses {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Statuses { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_status_list { self.raw }
 }
@@ -335,10 +334,7 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 
     unsafe fn from_raw(raw: *const raw::git_status_entry)
                            -> StatusEntry<'statuses> {
-        StatusEntry {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        StatusEntry { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *const raw::git_status_entry { self.raw }
 }

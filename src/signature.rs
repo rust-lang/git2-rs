@@ -15,7 +15,7 @@ use util::Binding;
 /// constructor reads configuration from the given repository.
 pub struct Signature<'a> {
     raw: *mut raw::git_signature,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a str>,
     owned: bool,
 }
 
@@ -98,7 +98,7 @@ impl<'a> Binding for Signature<'a> {
     unsafe fn from_raw(raw: *mut raw::git_signature) -> Signature<'a> {
         Signature {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
             owned: true,
         }
     }
@@ -115,7 +115,7 @@ pub unsafe fn from_raw_const<'b, T>(_lt: &'b T,
                                     -> Signature<'b> {
     Signature {
         raw: raw as *mut raw::git_signature,
-        marker: marker::ContravariantLifetime,
+        _marker: marker::PhantomData,
         owned: false,
     }
 }

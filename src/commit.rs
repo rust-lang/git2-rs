@@ -4,7 +4,7 @@ use std::marker;
 use std::str;
 use libc;
 
-use {raw, signature, Oid, Error, Signature, Tree, Time};
+use {raw, signature, Oid, Error, Signature, Tree, Time, Object};
 use util::Binding;
 
 /// A structure to represent a git [commit][1]
@@ -12,7 +12,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Commit<'repo> {
     raw: *mut raw::git_commit,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<Object<'repo>>,
 }
 
 /// An iterator over the parent commits of a commit.
@@ -244,7 +244,7 @@ impl<'repo> Binding for Commit<'repo> {
     unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
         Commit {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *mut raw::git_commit { self.raw }

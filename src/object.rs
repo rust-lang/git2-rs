@@ -1,7 +1,7 @@
 use std::marker;
 use std::mem;
 
-use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree};
+use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree, Repository};
 use util::Binding;
 
 /// A structure to represent a git [object][1]
@@ -9,7 +9,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-Objects
 pub struct Object<'repo> {
     raw: *mut raw::git_object,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 impl<'repo> Object<'repo> {
@@ -107,10 +107,7 @@ impl<'repo> Binding for Object<'repo> {
     type Raw = *mut raw::git_object;
 
     unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
-        Object {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Object { raw: raw, _marker: marker::PhantomData, }
     }
     fn raw(&self) -> *mut raw::git_object { self.raw }
 }

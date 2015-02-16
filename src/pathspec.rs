@@ -15,7 +15,7 @@ pub struct Pathspec {
 /// List of filenames matching a pathspec.
 pub struct PathspecMatchList<'ps> {
     raw: *mut raw::git_pathspec_match_list,
-    marker: marker::ContravariantLifetime<'ps>,
+    _marker: marker::PhantomData<&'ps Pathspec>,
 }
 
 /// Iterator over the matched paths in a pathspec.
@@ -201,10 +201,7 @@ impl<'ps> Binding for PathspecMatchList<'ps> {
 
     unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list)
                        -> PathspecMatchList<'ps> {
-        PathspecMatchList {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        PathspecMatchList { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_pathspec_match_list { self.raw }
 }

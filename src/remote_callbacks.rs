@@ -25,7 +25,7 @@ pub struct RemoteCallbacks<'a> {
 /// Struct representing the progress by an in-flight transfer.
 pub struct Progress<'a> {
     raw: ProgressState,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_transfer_progress>,
 }
 
 enum ProgressState {
@@ -200,7 +200,7 @@ impl<'a> Progress<'a> {
     pub fn to_owned(&self) -> Progress<'static> {
         Progress {
             raw: ProgressState::Owned(unsafe { *self.raw() }),
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
 }
@@ -211,7 +211,7 @@ impl<'a> Binding for Progress<'a> {
                            -> Progress<'a> {
         Progress {
             raw: ProgressState::Borrowed(raw),
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
 

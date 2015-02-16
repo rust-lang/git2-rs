@@ -3,7 +3,7 @@ use std::marker;
 use std::str;
 use libc;
 
-use {raw, Error, Reference, Signature, BranchType};
+use {raw, Error, Reference, Signature, BranchType, References};
 use util::Binding;
 
 /// A structure to represent a git [branch][1]
@@ -19,7 +19,7 @@ pub struct Branch<'repo> {
 /// An iterator over the branches inside of a repository.
 pub struct Branches<'repo> {
     raw: *mut raw::git_branch_iterator,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<References<'repo>>,
 }
 
 impl<'repo> Branch<'repo> {
@@ -109,7 +109,7 @@ impl<'repo> Branches<'repo> {
                            -> Branches<'repo> {
         Branches {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
 }

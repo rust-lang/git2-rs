@@ -16,13 +16,13 @@ pub struct Config {
 /// An entry has a name, a value, and a level it applies to.
 pub struct ConfigEntry<'cfg> {
     raw: *const raw::git_config_entry,
-    marker: marker::ContravariantLifetime<'cfg>,
+    _marker: marker::PhantomData<&'cfg Config>,
 }
 
 /// An iterator over the `ConfigEntry` values of a `Config` structure.
 pub struct ConfigEntries<'cfg> {
     raw: *mut raw::git_config_iterator,
-    marker: marker::ContravariantLifetime<'cfg>,
+    _marker: marker::PhantomData<&'cfg Config>,
 }
 
 impl Config {
@@ -370,7 +370,7 @@ impl<'cfg> Binding for ConfigEntry<'cfg> {
                            -> ConfigEntry<'cfg> {
         ConfigEntry {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *const raw::git_config_entry { self.raw }
@@ -383,7 +383,7 @@ impl<'cfg> Binding for ConfigEntries<'cfg> {
                            -> ConfigEntries<'cfg> {
         ConfigEntries {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *mut raw::git_config_iterator { self.raw }

@@ -2,14 +2,14 @@ use std::marker;
 use std::ffi::CString;
 use libc::c_uint;
 
-use {raw, Error, Sort, Oid};
+use {raw, Error, Sort, Oid, Repository};
 use util::Binding;
 
 /// A revwalk allows traversal of the commit graph defined by including one or
 /// more leaves and excluding one or more roots.
 pub struct Revwalk<'repo> {
     raw: *mut raw::git_revwalk,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 impl<'repo> Revwalk<'repo> {
@@ -152,10 +152,7 @@ impl<'repo> Revwalk<'repo> {
 impl<'repo> Binding for Revwalk<'repo> {
     type Raw = *mut raw::git_revwalk;
     unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
-        Revwalk {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Revwalk { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_revwalk { self.raw }
 }

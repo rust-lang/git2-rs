@@ -5,21 +5,23 @@ use std::mem;
 use std::str;
 use libc;
 
-use {raw, Error, Oid, Signature};
+use {raw, Error, Oid, Signature, Repository};
 use util::Binding;
+
+struct Refdb<'repo>(&'repo Repository);
 
 /// A structure to represent a git [reference][1].
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-References
 pub struct Reference<'repo> {
     raw: *mut raw::git_reference,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<Refdb<'repo>>,
 }
 
 /// An iterator over the references in a repository.
 pub struct References<'repo> {
     raw: *mut raw::git_reference_iterator,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<Refdb<'repo>>,
 }
 
 /// An iterator over the names of references in a repository.
@@ -141,11 +143,10 @@ impl<'repo> Reference<'repo> {
     /// reference is returned.
     pub fn resolve(&self) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        unsafe { try_call!(raw::git_reference_resolve(&mut raw, &*self.raw)); }
-        Ok(Reference {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        })
+        unsafe {
+            try_call!(raw::git_reference_resolve(&mut raw, &*self.raw));
+            Ok(Binding::from_raw(raw))
+        }
     }
 
     /// Rename an existing reference.
@@ -164,11 +165,8 @@ impl<'repo> Reference<'repo> {
             try_call!(raw::git_reference_rename(&mut raw, self.raw, new_name,
                                                 force, sig.map(|s| s.raw()),
                                                 msg));
+            Ok(Binding::from_raw(raw))
         }
-        Ok(Reference {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        })
     }
 
 }
@@ -200,10 +198,7 @@ impl<'repo> Eq for Reference<'repo> {}
 impl<'repo> Binding for Reference<'repo> {
     type Raw = *mut raw::git_reference;
     unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
-        Reference {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Reference { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_reference { self.raw }
 }
@@ -232,10 +227,7 @@ impl<'repo> Binding for References<'repo> {
     type Raw = *mut raw::git_reference_iterator;
     unsafe fn from_raw(raw: *mut raw::git_reference_iterator)
                        -> References<'repo> {
-        References {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        References { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_reference_iterator { self.raw }
 }

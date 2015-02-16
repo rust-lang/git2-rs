@@ -9,7 +9,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Basics-Tagging
 pub struct Tag<'repo> {
     raw: *mut raw::git_tag,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<Object<'repo>>,
 }
 
 impl<'repo> Tag<'repo> {
@@ -93,10 +93,7 @@ impl<'repo> Tag<'repo> {
 impl<'repo> Binding for Tag<'repo> {
     type Raw = *mut raw::git_tag;
     unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
-        Tag {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Tag { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_tag { self.raw }
 }

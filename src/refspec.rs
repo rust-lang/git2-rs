@@ -12,7 +12,7 @@ use util::Binding;
 /// [1]: http://git-scm.com/book/en/Git-Internals-The-Refspec
 pub struct Refspec<'remote> {
     raw: *const raw::git_refspec,
-    marker: marker::ContravariantLifetime<'remote>,
+    _marker: marker::PhantomData<&'remote raw::git_remote>,
 }
 
 impl<'remote> Refspec<'remote> {
@@ -82,10 +82,7 @@ impl<'remote> Binding for Refspec<'remote> {
     type Raw = *const raw::git_refspec;
 
     unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
-        Refspec {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Refspec { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *const raw::git_refspec { self.raw }
 }

@@ -20,7 +20,7 @@ pub struct Diff {
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
     raw: *mut raw::git_diff_delta,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_diff_delta>,
 }
 
 /// Description of one side of a delta.
@@ -30,7 +30,7 @@ pub struct DiffDelta<'a> {
 /// you are tracking type changes or ignored/untracked directories).
 pub struct DiffFile<'a> {
     raw: *const raw::git_diff_file,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_diff_file>,
 }
 
 /// Structure describing options about how the diff should be executed.
@@ -56,13 +56,13 @@ pub struct Deltas<'diff> {
 /// Structure describing a line (or data span) of a diff.
 pub struct DiffLine<'a> {
     raw: *const raw::git_diff_line,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_diff_line>,
 }
 
 /// Structure describing a hunk of a diff.
 pub struct DiffHunk<'a> {
     raw: *const raw::git_diff_hunk,
-    marker: marker::ContravariantLifetime<'a>,
+    _marker: marker::PhantomData<&'a raw::git_diff_hunk>,
 }
 
 /// Structure describing a hunk of a diff.
@@ -355,7 +355,7 @@ impl<'a> Binding for DiffDelta<'a> {
     unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
         DiffDelta {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *mut raw::git_diff_delta { self.raw }
@@ -393,7 +393,7 @@ impl<'a> Binding for DiffFile<'a> {
     unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
         DiffFile {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *const raw::git_diff_file { self.raw }
@@ -748,7 +748,7 @@ impl<'a> Binding for DiffLine<'a> {
     unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
         DiffLine {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *const raw::git_diff_line { self.raw }
@@ -786,7 +786,7 @@ impl<'a> Binding for DiffHunk<'a> {
     unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
         DiffHunk {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *const raw::git_diff_hunk { self.raw }

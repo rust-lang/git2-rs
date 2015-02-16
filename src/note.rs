@@ -1,7 +1,7 @@
 use std::marker;
 use std::str;
 
-use {raw, signature, Signature, Oid};
+use {raw, signature, Signature, Oid, Repository};
 use util::Binding;
 
 /// A structure representing a [note][note] in git.
@@ -9,13 +9,17 @@ use util::Binding;
 /// [note]: http://git-scm.com/blog/2010/08/25/notes.html
 pub struct Note<'repo> {
     raw: *mut raw::git_note,
-    marker: marker::ContravariantLifetime<'repo>,
+
+    // Hmm, the current libgit2 version does not have this inside of it, but
+    // perhaps it's a good idea to keep it around? Can always remove it later I
+    // suppose...
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 /// An iterator over all of the notes within a repository.
 pub struct Notes<'repo> {
     raw: *mut raw::git_note_iterator,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 impl<'repo> Note<'repo> {
@@ -52,10 +56,7 @@ impl<'repo> Note<'repo> {
 impl<'repo> Binding for Note<'repo> {
     type Raw = *mut raw::git_note;
     unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
-        Note {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Note { raw: raw, _marker: marker::PhantomData, }
     }
     fn raw(&self) -> *mut raw::git_note { self.raw }
 }
@@ -71,10 +72,7 @@ impl<'repo> Drop for Note<'repo> {
 impl<'repo> Binding for Notes<'repo> {
     type Raw = *mut raw::git_note_iterator;
     unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
-        Notes {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        Notes { raw: raw, _marker: marker::PhantomData, }
     }
     fn raw(&self) -> *mut raw::git_note_iterator { self.raw }
 }

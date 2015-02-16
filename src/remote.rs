@@ -7,7 +7,7 @@ use std::str;
 use libc;
 
 use {raw, Direction, Error, Refspec, Oid, IntoCString};
-use {Signature, Push, RemoteCallbacks, Progress};
+use {Signature, Push, RemoteCallbacks, Progress, Repository};
 use util::Binding;
 
 /// A structure representing a [remote][1] of a git repository.
@@ -18,7 +18,7 @@ use util::Binding;
 /// remote is used to manage fetches and pushes as well as refspecs.
 pub struct Remote<'repo, 'cb> {
     raw: *mut raw::git_remote,
-    marker: marker::ContravariantLifetime<'repo>,
+    _marker: marker::PhantomData<&'repo Repository>,
     callbacks: Option<&'cb mut RemoteCallbacks<'cb>>,
 }
 
@@ -32,7 +32,7 @@ pub struct Refspecs<'remote, 'cb: 'remote> {
 /// to `list`.
 pub struct RemoteHead<'remote> {
     raw: *const raw::git_remote_head,
-    marker: marker::ContravariantLifetime<'remote>,
+    _marker: marker::PhantomData<&'remote str>,
 }
 
 impl<'repo, 'cb> Remote<'repo, 'cb> {
@@ -324,7 +324,7 @@ impl<'a, 'b> Clone for Remote<'a, 'b> {
         assert_eq!(rc, 0);
         Remote {
             raw: ret,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
             callbacks: None,
         }
     }
@@ -336,7 +336,7 @@ impl<'repo, 'cb> Binding for Remote<'repo, 'cb> {
     unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo, 'cb> {
         Remote {
             raw: raw,
-            marker: marker::ContravariantLifetime,
+            _marker: marker::PhantomData,
             callbacks: None,
         }
     }

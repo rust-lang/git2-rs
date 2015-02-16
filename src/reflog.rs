@@ -15,7 +15,7 @@ pub struct Reflog {
 /// An entry inside the reflog of a repository
 pub struct ReflogEntry<'reflog> {
     raw: *const raw::git_reflog_entry,
-    marker: marker::ContravariantLifetime<'reflog>,
+    _marker: marker::PhantomData<&'reflog Reflog>,
 }
 
 /// An iterator over the entries inside of a reflog.
@@ -132,10 +132,7 @@ impl<'reflog> Binding for ReflogEntry<'reflog> {
     type Raw = *const raw::git_reflog_entry;
 
     unsafe fn from_raw(raw: *const raw::git_reflog_entry) -> ReflogEntry<'reflog> {
-        ReflogEntry {
-            raw: raw,
-            marker: marker::ContravariantLifetime,
-        }
+        ReflogEntry { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *const raw::git_reflog_entry { self.raw }
 }
