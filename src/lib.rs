@@ -66,8 +66,8 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(unsafe_destructor, hash, std_misc, core, path, os)]
-#![feature(io, libc)]
+#![feature(unsafe_destructor, hash, std_misc, core, old_path, path, os)]
+#![feature(old_io, libc)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
 #![cfg_attr(test, feature(env))]

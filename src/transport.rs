@@ -31,7 +31,7 @@ pub struct Transport {
 /// A smart subtransport is contained within an instance of a smart transport
 /// and is delegated to in order to actually conduct network activity to push or
 /// pull data from a remote.
-pub trait SmartSubtransport: Send {
+pub trait SmartSubtransport: Send + 'static {
     /// Indicates that this subtransport will be performing the specified action
     /// on the specified URL.
     ///
@@ -68,11 +68,12 @@ pub enum Service {
 /// Currently this only requires the standard `Reader` and `Writer` traits. This
 /// trait also does not need to be implemented manually as long as the `Reader`
 /// and `Writer` traits are implemented.
-pub trait SmartSubtransportStream: Reader + Writer + Send {}
+pub trait SmartSubtransportStream: Reader + Writer + Send + 'static {}
 
-impl<T: Reader + Writer + Send> SmartSubtransportStream for T {}
+impl<T: Reader + Writer + Send + 'static> SmartSubtransportStream for T {}
 
-type TransportFactory = Fn(&Remote) -> Result<Transport, Error> + Send + Sync;
+type TransportFactory = Fn(&Remote) -> Result<Transport, Error> + Send + Sync +
+                                        'static;
 
 /// Boxed data payload used for registering new transports.
 ///
@@ -103,7 +104,7 @@ struct RawSmartSubtransportStream {
 /// This function is unsafe as it needs to be externally synchronized with calls
 /// to creation of other transports.
 pub unsafe fn register<F>(prefix: &str, factory: F) -> Result<(), Error>
-    where F: Fn(&Remote) -> Result<Transport, Error> + Send + Sync
+    where F: Fn(&Remote) -> Result<Transport, Error> + Send + Sync + 'static
 {
     let mut data = Box::new(TransportData {
         factory: Box::new(factory),
