@@ -73,7 +73,7 @@ const CYAN: &'static str = "\u{1b}[36m";
 enum Cache { Normal, Only, None }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let path = args.flag_git_dir.as_ref().map(|s| &s[]).unwrap_or(".");
+    let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
     let repo = try!(Repository::open(&Path::new(path)));
 
     // Prepare our diff options based on the arguments given
@@ -90,9 +90,9 @@ fn run(args: &Args) -> Result<(), Error> {
     if let Some(amt) = args.flag_unified { opts.context_lines(amt); }
     if let Some(amt) = args.flag_inter_hunk_context { opts.interhunk_lines(amt); }
     if let Some(amt) = args.flag_abbrev { opts.id_abbrev(amt); }
-    if let Some(ref s) = args.flag_src_prefix { opts.old_prefix(&s[]); }
-    if let Some(ref s) = args.flag_dst_prefix { opts.new_prefix(&s[]); }
-    if let Some("diff-index") = args.flag_format.as_ref().map(|s| &s[]) {
+    if let Some(ref s) = args.flag_src_prefix { opts.old_prefix(&s); }
+    if let Some(ref s) = args.flag_dst_prefix { opts.new_prefix(&s); }
+    if let Some("diff-index") = args.flag_format.as_ref().map(|s| &s[..]) {
         opts.id_abbrev(40);
     }
 
@@ -205,7 +205,7 @@ fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
 
 fn tree_to_treeish<'a>(repo: &'a Repository, arg: Option<&String>)
                        -> Result<Option<Object<'a>>, Error> {
-    let arg = match arg { Some(s) => &s[], None => return Ok(None) };
+    let arg = match arg { Some(s) => s, None => return Ok(None) };
     let obj = try!(repo.revparse_single(arg));
     let tree = try!(obj.peel(ObjectType::Tree));
     Ok(Some(tree))
@@ -224,7 +224,7 @@ impl Args {
         else if self.flag_name_status {DiffFormat::NameStatus}
         else if self.flag_raw {DiffFormat::Raw}
         else {
-            match self.flag_format.as_ref().map(|s| &s[]) {
+            match self.flag_format.as_ref().map(|s| &s[..]) {
                 Some("name") => DiffFormat::NameOnly,
                 Some("name-status") => DiffFormat::NameStatus,
                 Some("raw") => DiffFormat::Raw,

@@ -37,10 +37,10 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let path = args.flag_git_dir.as_ref().map(|s| &s[]).unwrap_or(".");
+    let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
     let repo = try!(Repository::open(&Path::new(path)));
 
-    let obj = try!(repo.revparse_single(&args.arg_object[]));
+    let obj = try!(repo.revparse_single(&args.arg_object));
     if args.flag_v && !args.flag_q {
         println!("{} {}\n--", obj.kind().unwrap().str(), obj.id());
     }

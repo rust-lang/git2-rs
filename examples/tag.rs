@@ -39,18 +39,17 @@ fn run(args: &Args) -> Result<(), Error> {
     let repo = try!(Repository::open(&Path::new(".")));
 
     if let Some(ref name) = args.arg_tagname {
-        let target = args.arg_object.as_ref().map(|s| &s[]).unwrap_or("HEAD");
+        let target = args.arg_object.as_ref().map(|s| &s[..]).unwrap_or("HEAD");
         let obj = try!(repo.revparse_single(target));
 
         if let Some(ref message) = args.flag_message {
             let sig = try!(repo.signature());
-            try!(repo.tag(&name[], &obj, &sig, &message[], args.flag_force));
+            try!(repo.tag(&name, &obj, &sig, &message, args.flag_force));
         } else {
-            try!(repo.tag_lightweight(&name[], &obj, args.flag_force));
+            try!(repo.tag_lightweight(&name, &obj, args.flag_force));
         }
 
     } else if let Some(ref name) = args.flag_delete {
-        let name = &name[];
         let obj = try!(repo.revparse_single(name));
         let id = try!(obj.short_id());
         try!(repo.tag_delete(name));
@@ -58,7 +57,7 @@ fn run(args: &Args) -> Result<(), Error> {
                  str::from_utf8(&*id).unwrap());
 
     } else if args.flag_list {
-        let pattern = args.arg_pattern.as_ref().map(|s| &s[]).unwrap_or("*");
+        let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
         for name in try!(repo.tag_names(Some(pattern))).iter() {
             let name = name.unwrap();
             let obj = try!(repo.revparse_single(name));
