@@ -26,8 +26,8 @@ impl<'a> Signature<'a> {
     pub fn now(name: &str, email: &str) -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
-        let name = CString::from_slice(name.as_bytes());
-        let email = CString::from_slice(email.as_bytes());
+        let name = try!(CString::new(name));
+        let email = try!(CString::new(email));
         unsafe {
             try_call!(raw::git_signature_now(&mut ret, name, email));
             Ok(Binding::from_raw(ret))
@@ -44,8 +44,8 @@ impl<'a> Signature<'a> {
                -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = 0 as *mut raw::git_signature;
-        let name = CString::from_slice(name.as_bytes());
-        let email = CString::from_slice(email.as_bytes());
+        let name = try!(CString::new(name));
+        let email = try!(CString::new(email));
         unsafe {
             try_call!(raw::git_signature_new(&mut ret, name, email,
                                              time.seconds() as raw::git_time_t,

@@ -1,4 +1,4 @@
-use std::ffi::{self, CString};
+use std::ffi::{CStr, CString};
 use std::mem;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
@@ -46,7 +46,7 @@ impl Repository {
     /// The path can point to either a normal or bare repository.
     pub fn open(path: &Path) -> Result<Repository, Error> {
         init();
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_repository_open(&mut ret, path));
@@ -62,7 +62,7 @@ impl Repository {
         // TODO: this diverges significantly from the libgit2 API
         init();
         let buf = Buf::new();
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_repository_discover(buf.raw(), path, 1,
                                                    0 as *const _));
@@ -92,7 +92,7 @@ impl Repository {
     pub fn init_opts(path: &Path, opts: &RepositoryInitOptions)
                      -> Result<Repository, Error> {
         init();
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             let mut opts = opts.raw();
@@ -120,7 +120,7 @@ impl Repository {
             to: 0 as *mut _,
             flags: 0,
         };
-        let spec = CString::from_slice(spec.as_bytes());
+        let spec = try!(CString::new(spec));
         unsafe {
             try_call!(raw::git_revparse(&mut raw, self.raw, spec));
             let to = Binding::from_raw_opt(raw.to);
@@ -132,7 +132,7 @@ impl Repository {
 
     /// Find a single object, as specified by a revision string.
     pub fn revparse_single(&self, spec: &str) -> Result<Object, Error> {
-        let spec = CString::from_slice(spec.as_bytes());
+        let spec = try!(CString::new(spec));
         let mut obj = 0 as *mut raw::git_object;
         unsafe {
             try_call!(raw::git_revparse_single(&mut obj, self.raw, spec));
@@ -165,7 +165,7 @@ impl Repository {
         unsafe {
             let ptr = raw::git_repository_path(self.raw);
             assert!(!ptr.is_null());
-            Path::new(ffi::c_str_to_bytes(&ptr))
+            Path::new(CStr::from_ptr(ptr).to_bytes())
         }
     }
 
@@ -204,7 +204,7 @@ impl Repository {
             if ptr.is_null() {
                 None
             } else {
-                Some(Path::new(ffi::c_str_to_bytes(&ptr)))
+                Some(Path::new(CStr::from_ptr(ptr).to_bytes()))
             }
         }
     }
@@ -239,7 +239,7 @@ impl Repository {
     /// Get the information for a particular remote
     pub fn find_remote(&self, name: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_remote_lookup(&mut ret, self.raw, name));
             Ok(Binding::from_raw(ret))
@@ -250,8 +250,8 @@ impl Repository {
     /// configuration.
     pub fn remote(&self, name: &str, url: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let name = CString::from_slice(name.as_bytes());
-        let url = CString::from_slice(url.as_bytes());
+        let name = try!(CString::new(name));
+        let url = try!(CString::new(url));
         unsafe {
             try_call!(raw::git_remote_create(&mut ret, self.raw, name, url));
             Ok(Binding::from_raw(ret))
@@ -267,8 +267,11 @@ impl Repository {
                             url: &str,
                             fetch: Option<&str>) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
-        let url = CString::from_slice(url.as_bytes());
-        let fetch = fetch.map(|t| CString::from_slice(t.as_bytes()));
+        let url = try!(CString::new(url));
+        let fetch = match fetch {
+            Some(t) => Some(try!(CString::new(t))),
+            None => None,
+        };
         unsafe {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw, url,
                                                        fetch));
@@ -291,8 +294,8 @@ impl Repository {
     /// caller.
     pub fn remote_rename(&self, name: &str,
                          new_name: &str) -> Result<StringArray, Error> {
-        let name = CString::from_slice(name.as_bytes());
-        let new_name = CString::from_slice(new_name.as_bytes());
+        let name = try!(CString::new(name));
+        let new_name = try!(CString::new(new_name));
         let mut problems = raw::git_strarray {
             count: 0,
             strings: 0 as *mut *mut c_char,
@@ -309,7 +312,7 @@ impl Repository {
     /// All remote-tracking branches and configuration settings for the remote
     /// will be removed.
     pub fn remote_delete(&self, name: &str) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe { try_call!(raw::git_remote_delete(self.raw, name)); }
         Ok(())
     }
@@ -338,7 +341,10 @@ impl Repository {
                  signature: Option<&Signature>,
                  log_message: Option<&str>)
                  -> Result<(), Error> {
-        let msg = log_message.map(|s| CString::from_slice(s.as_bytes()));
+        let msg = match log_message {
+            Some(s) => Some(try!(CString::new(s))),
+            None => None,
+        };
         unsafe {
             let mut opts: raw::git_checkout_options = mem::zeroed();
             let opts = checkout.map(|c| {
@@ -362,7 +368,7 @@ impl Repository {
                                paths: I) -> Result<(), Error>
         where T: IntoCString, I: Iterator<Item=T>,
     {
-        let (_a, _b, mut arr) = ::util::iter2cstrs(paths);
+        let (_a, _b, mut arr) = try!(::util::iter2cstrs(paths));
         let target = target.map(|t| t.raw());
         unsafe {
             try_call!(raw::git_reset_default(self.raw, target, &mut arr));
@@ -392,7 +398,7 @@ impl Repository {
     /// glob
     pub fn references_glob(&self, glob: &str) -> Result<References, Error> {
         let mut ret = 0 as *mut raw::git_reference_iterator;
-        let glob = CString::from_slice(glob.as_bytes());
+        let glob = try!(CString::new(glob));
         unsafe {
             try_call!(raw::git_reference_iterator_glob_new(&mut ret, self.raw,
                                                            glob));
@@ -463,7 +469,7 @@ impl Repository {
     /// directory containing the file, would it be added or not?
     pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
         let mut ret = 0 as c_int;
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_status_should_ignore(&mut ret, self.raw,
                                                     path));
@@ -489,7 +495,7 @@ impl Repository {
     /// through looking for the path that you are interested in.
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
         let mut ret = 0 as c_uint;
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_status_file(&mut ret, self.raw,
                                            path));
@@ -553,7 +559,7 @@ impl Repository {
     /// The Oid returned can in turn be passed to `find_blob` to get a handle to
     /// the blob.
     pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
@@ -582,8 +588,11 @@ impl Repository {
                   force: bool,
                   signature: Option<&Signature>,
                   log_message: Option<&str>) -> Result<Branch, Error> {
-        let branch_name = CString::from_slice(branch_name.as_bytes());
-        let log_message = log_message.map(|s| CString::from_slice(s.as_bytes()));
+        let branch_name = try!(CString::new(branch_name));
+        let log_message = match log_message {
+            Some(s) => Some(try!(CString::new(s))),
+            None => None,
+        };
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_create(&mut raw,
@@ -600,7 +609,7 @@ impl Repository {
     /// Lookup a branch by its name in a repository.
     pub fn find_branch(&self, name: &str, branch_type: BranchType)
                        -> Result<Branch, Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         let mut ret = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_lookup(&mut ret, self.raw(), name,
@@ -624,11 +633,11 @@ impl Repository {
                   message: &str,
                   tree: &Tree,
                   parents: &[&Commit]) -> Result<Oid, Error> {
-        let update_ref = update_ref.map(|s| CString::from_slice(s.as_bytes()));
+        let update_ref = try!(::opt_cstr(update_ref));
         let parent_ptrs: Vec<*const raw::git_commit> =  parents.iter().map(|p| {
             p.raw() as *const raw::git_commit
         }).collect();
-        let message = CString::from_slice(message.as_bytes());
+        let message = try!(CString::new(message));
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_commit_create(&mut raw,
@@ -674,8 +683,8 @@ impl Repository {
     pub fn reference(&self, name: &str, id: Oid, force: bool,
                      sig: Option<&Signature>,
                      log_message: &str) -> Result<Reference, Error> {
-        let name = CString::from_slice(name.as_bytes());
-        let log_message = CString::from_slice(log_message.as_bytes());
+        let name = try!(CString::new(name));
+        let log_message = try!(CString::new(log_message));
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_create(&mut raw, self.raw(), name,
@@ -695,9 +704,9 @@ impl Repository {
                               force: bool, sig: Option<&Signature>,
                               log_message: &str)
                               -> Result<Reference, Error> {
-        let name = CString::from_slice(name.as_bytes());
-        let target = CString::from_slice(target.as_bytes());
-        let log_message = CString::from_slice(log_message.as_bytes());
+        let name = try!(CString::new(name));
+        let target = try!(CString::new(target));
+        let log_message = try!(CString::new(log_message));
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_symbolic_create(&mut raw, self.raw(),
@@ -710,7 +719,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_reference(&self, name: &str) -> Result<Reference, Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_reference_lookup(&mut raw, self.raw(), name));
@@ -724,7 +733,7 @@ impl Repository {
     /// through to the object id that it refers to. This avoids having to
     /// allocate or free any `Reference` objects for simple situations.
     pub fn refname_to_id(&self, name: &str) -> Result<Oid, Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         let mut ret = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_reference_name_to_id(&mut ret, self.raw(), name));
@@ -760,8 +769,8 @@ impl Repository {
     /// the index to be ready to commit.
     pub fn submodule(&self, url: &str, path: &Path,
                      use_gitlink: bool) -> Result<Submodule, Error> {
-        let url = CString::from_slice(url.as_bytes());
-        let path = CString::from_slice(path.as_vec());
+        let url = try!(CString::new(url));
+        let path = try!(CString::new(path.as_vec()));
         let mut raw = 0 as *mut raw::git_submodule;
         unsafe {
             try_call!(raw::git_submodule_add_setup(&mut raw, self.raw(),
@@ -775,7 +784,7 @@ impl Repository {
     /// Given either the submodule name or path (they are usually the same),
     /// this returns a structure describing the submodule.
     pub fn find_submodule(&self, name: &str) -> Result<Submodule, Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         let mut raw = 0 as *mut raw::git_submodule;
         unsafe {
             try_call!(raw::git_submodule_lookup(&mut raw, self.raw(), name));
@@ -806,8 +815,8 @@ impl Repository {
     pub fn tag(&self, name: &str, target: &Object,
                tagger: &Signature, message: &str,
                force: bool) -> Result<Oid, Error> {
-        let name = CString::from_slice(name.as_bytes());
-        let message = CString::from_slice(message.as_bytes());
+        let name = try!(CString::new(name));
+        let message = try!(CString::new(message));
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_tag_create(&mut raw, self.raw, name,
@@ -826,7 +835,7 @@ impl Repository {
                            name: &str,
                            target: &Object,
                            force: bool) -> Result<Oid, Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_tag_create_lightweight(&mut raw, self.raw, name,
@@ -849,7 +858,7 @@ impl Repository {
     /// The tag name will be checked for validity, see `tag` for some rules
     /// about valid names.
     pub fn tag_delete(&self, name: &str) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_tag_delete(self.raw, name));
             Ok(())
@@ -867,7 +876,7 @@ impl Repository {
         unsafe {
             match pattern {
                 Some(s) => {
-                    let s = CString::from_slice(s.as_bytes());
+                    let s = try!(CString::new(s));
                     try_call!(raw::git_tag_list_match(&mut arr, s, self.raw));
                 }
                 None => { try_call!(raw::git_tag_list(&mut arr, self.raw)); }
@@ -948,8 +957,8 @@ impl Repository {
                 oid: Oid,
                 note: &str,
                 force: bool) -> Result<Oid, Error> {
-        let notes_ref = notes_ref.map(|s| CString::from_slice(s.as_bytes()));
-        let note = CString::from_slice(note.as_bytes());
+        let notes_ref = try!(::opt_cstr(notes_ref));
+        let note = try!(CString::new(note));
         let mut ret = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_note_create(&mut ret,
@@ -982,7 +991,7 @@ impl Repository {
     /// is the id of the note and the second id is the id the note is
     /// annotating.
     pub fn notes(&self, notes_ref: Option<&str>) -> Result<Notes, Error> {
-        let notes_ref = notes_ref.map(|s| CString::from_slice(s.as_bytes()));
+        let notes_ref = try!(::opt_cstr(notes_ref));
         let mut ret = 0 as *mut raw::git_note_iterator;
         unsafe {
             try_call!(raw::git_note_iterator_new(&mut ret, self.raw, notes_ref));
@@ -998,7 +1007,7 @@ impl Repository {
     /// The id specified is the Oid of the git object to read the note from.
     pub fn find_note(&self, notes_ref: Option<&str>, id: Oid)
                      -> Result<Note, Error> {
-        let notes_ref = notes_ref.map(|s| CString::from_slice(s.as_bytes()));
+        let notes_ref = try!(::opt_cstr(notes_ref));
         let mut ret = 0 as *mut raw::git_note;
         unsafe {
             try_call!(raw::git_note_read(&mut ret, self.raw, notes_ref,
@@ -1018,7 +1027,7 @@ impl Repository {
                        notes_ref: Option<&str>,
                        author: &Signature,
                        committer: &Signature) -> Result<(), Error> {
-        let notes_ref = notes_ref.map(|s| CString::from_slice(s.as_bytes()));
+        let notes_ref = try!(::opt_cstr(notes_ref));
         unsafe {
             try_call!(raw::git_note_remove(self.raw, notes_ref, author.raw(),
                                            committer.raw(), id.raw()));
@@ -1079,7 +1088,7 @@ impl Repository {
     /// If there is no reflog file for the given reference yet, an empty reflog
     /// object will be returned.
     pub fn reflog(&self, name: &str) -> Result<Reflog, Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         let mut ret = 0 as *mut raw::git_reflog;
         unsafe {
             try_call!(raw::git_reflog_read(&mut ret, self.raw, name));
@@ -1089,7 +1098,7 @@ impl Repository {
 
     /// Delete the reflog for the given reference
     pub fn reflog_delete(&self, name: &str) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe { try_call!(raw::git_reflog_delete(self.raw, name)); }
         Ok(())
     }
@@ -1099,8 +1108,8 @@ impl Repository {
     /// The reflog to be renamed is expected to already exist.
     pub fn reflog_rename(&self, old_name: &str, new_name: &str)
                          -> Result<(), Error> {
-        let old_name = CString::from_slice(old_name.as_bytes());
-        let new_name = CString::from_slice(new_name.as_bytes());
+        let old_name = try!(CString::new(old_name));
+        let new_name = try!(CString::new(new_name));
         unsafe {
             try_call!(raw::git_reflog_rename(self.raw, old_name, new_name));
         }
@@ -1217,14 +1226,14 @@ impl RepositoryInitOptions {
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
     pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
-        self.workdir_path = Some(CString::from_slice(path.as_vec()));
+        self.workdir_path = Some(CString::new(path.as_vec()).unwrap());
         self
     }
 
     /// If set, this will be used to initialize the "description" file in the
     /// repository instead of using the template content.
     pub fn description(&mut self, desc: &str) -> &mut RepositoryInitOptions {
-        self.description = Some(CString::from_slice(desc.as_bytes()));
+        self.description = Some(CString::new(desc).unwrap());
         self
     }
 
@@ -1234,7 +1243,7 @@ impl RepositoryInitOptions {
     /// If this is not configured, then the default locations will be searched
     /// instead.
     pub fn template_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
-        self.template_path = Some(CString::from_slice(path.as_vec()));
+        self.template_path = Some(CString::new(path.as_vec()).unwrap());
         self
     }
 
@@ -1244,14 +1253,14 @@ impl RepositoryInitOptions {
     /// will be set to `refs/heads/master`. If this begins with `refs/` it will
     /// be used verbatim; otherwise `refs/heads/` will be prefixed
     pub fn initial_head(&mut self, head: &str) -> &mut RepositoryInitOptions {
-        self.initial_head = Some(CString::from_slice(head.as_bytes()));
+        self.initial_head = Some(CString::new(head).unwrap());
         self
     }
 
     /// If set, then after the rest of the repository initialization is
     /// completed an `origin` remote will be added pointing to this URL.
     pub fn origin_url(&mut self, url: &str) -> &mut RepositoryInitOptions {
-        self.origin_url = Some(CString::from_slice(url.as_bytes()));
+        self.origin_url = Some(CString::new(url).unwrap());
         self
     }
 

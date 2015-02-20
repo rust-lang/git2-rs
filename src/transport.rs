@@ -1,6 +1,6 @@
 //! Interfaces for adding custom transports to libgit2
 
-use std::ffi::{self, CString};
+use std::ffi::{CStr, CString};
 use std::mem;
 use std::old_io::IoError;
 use std::slice;
@@ -109,7 +109,7 @@ pub unsafe fn register<F>(prefix: &str, factory: F) -> Result<(), Error>
     let mut data = Box::new(TransportData {
         factory: Box::new(factory),
     });
-    let prefix = CString::from_slice(prefix.as_bytes());
+    let prefix = try!(CString::new(prefix));
     let datap = (&mut *data) as *mut TransportData as *mut c_void;
     try_call!(raw::git_transport_register(prefix,
                                           transport_factory,
@@ -219,7 +219,7 @@ extern fn subtransport_action(stream: *mut *mut raw::git_smart_subtransport_stre
                               url: *const c_char,
                               action: raw::git_smart_service_t) -> c_int {
     unsafe {
-        let url = ffi::c_str_to_bytes(&url);
+        let url = CStr::from_ptr(url).to_bytes();
         let url = match str::from_utf8(url).ok() {
             Some(s) => s,
             None => return -1,
@@ -305,7 +305,7 @@ extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
 }
 
 unsafe fn set_err(e: IoError) {
-    let s = CString::from_slice(e.to_string().as_bytes());
+    let s = CString::new(e.to_string()).unwrap();
     raw::giterr_set_str(raw::GITERR_NET as c_int, s.as_ptr())
 }
 

@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
 use std::str;
@@ -193,9 +192,9 @@ impl<'repo> Commit<'repo> {
                  message: Option<&str>,
                  tree: Option<&Tree<'repo>>) -> Result<Oid, Error> {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
-        let update_ref = update_ref.map(|s| CString::from_slice(s.as_bytes()));
-        let encoding = message_encoding.map(|s| CString::from_slice(s.as_bytes()));
-        let message = message.map(|s| CString::from_slice(s.as_bytes()));
+        let update_ref = try!(::opt_cstr(update_ref));
+        let encoding = try!(::opt_cstr(message_encoding));
+        let message = try!(::opt_cstr(message));
         unsafe {
             try_call!(raw::git_commit_amend(&mut raw,
                                             self.raw(),

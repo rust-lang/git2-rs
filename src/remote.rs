@@ -39,7 +39,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
         ::init();
-        let remote_name = CString::from_slice(remote_name.as_bytes());
+        let remote_name = CString::new(remote_name).unwrap();
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
     }
 
@@ -111,7 +111,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Add a fetch refspec to the remote
     pub fn add_fetch(&mut self, spec: &str) -> Result<(), Error> {
-        let spec = CString::from_slice(spec.as_bytes());
+        let spec = try!(CString::new(spec));
         unsafe {
             try_call!(raw::git_remote_add_fetch(self.raw, spec));
         }
@@ -120,7 +120,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Add a push refspec to the remote
     pub fn add_push(&mut self, spec: &str) -> Result<(), Error> {
-        let spec = CString::from_slice(spec.as_bytes());
+        let spec = try!(CString::new(spec));
         unsafe {
             try_call!(raw::git_remote_add_push(self.raw, spec));
         }
@@ -131,7 +131,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// Existing connections will not be updated.
     pub fn set_url(&mut self, url: &str) -> Result<(), Error> {
-        let url = CString::from_slice(url.as_bytes());
+        let url = try!(CString::new(url));
         unsafe { try_call!(raw::git_remote_set_url(self.raw, url)); }
         Ok(())
     }
@@ -142,7 +142,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// Existing connections will not be updated.
     pub fn set_pushurl(&mut self, pushurl: Option<&str>) -> Result<(), Error> {
-        let pushurl = pushurl.map(|s| CString::from_slice(s.as_bytes()));
+        let pushurl = try!(::opt_cstr(pushurl));
         unsafe {
             try_call!(raw::git_remote_set_pushurl(self.raw, pushurl));
         }
@@ -161,7 +161,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     pub fn set_fetch_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
         where T: IntoCString, I: Iterator<Item=T>
     {
-        let (_a, _b, mut arr) = ::util::iter2cstrs(i);
+        let (_a, _b, mut arr) = try!(::util::iter2cstrs(i));
         unsafe {
             try_call!(raw::git_remote_set_fetch_refspecs(self.raw, &mut arr));
         }
@@ -172,7 +172,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     pub fn set_push_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
         where T: IntoCString, I: Iterator<Item=T>
     {
-        let (_a, _b, mut arr) = ::util::iter2cstrs(i);
+        let (_a, _b, mut arr) = try!(::util::iter2cstrs(i));
         unsafe {
             try_call!(raw::git_remote_set_push_refspecs(self.raw, &mut arr));
         }
@@ -197,7 +197,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// The `specs` argument is a list of refspecs to use for this negotiation
     /// and download. Use an empty array to use the base refspecs.
     pub fn download(&mut self, specs: &[&str]) -> Result<(), Error> {
-        let (_a, _b, arr) = ::util::iter2cstrs(specs.iter());
+        let (_a, _b, arr) = try!(::util::iter2cstrs(specs.iter()));
         unsafe {
             try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_download(self.raw, &arr));
@@ -230,8 +230,8 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
                  refspecs: &[&str],
                  signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
-        let (_a, _b, arr) = ::util::iter2cstrs(refspecs.iter());
-        let msg = msg.map(|s| CString::from_slice(s.as_bytes()));
+        let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
+        let msg = try!(::opt_cstr(msg));
         unsafe {
             try!(self.set_raw_callbacks());
             try_call!(raw::git_remote_fetch(self.raw,
@@ -245,7 +245,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Update the tips to the new state
     pub fn update_tips(&mut self, signature: Option<&Signature>,
                        msg: Option<&str>) -> Result<(), Error> {
-        let msg = msg.map(|s| CString::from_slice(s.as_bytes()));
+        let msg = try!(::opt_cstr(msg));
         unsafe {
             try_call!(raw::git_remote_update_tips(self.raw,
                                                   signature.map(|s| s.raw()),

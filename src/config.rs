@@ -43,7 +43,7 @@ impl Config {
     pub fn open(path: &Path) -> Result<Config, Error> {
         ::init();
         let mut raw = 0 as *mut raw::git_config;
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_config_open_ondisk(&mut raw, path));
             Ok(Binding::from_raw(raw))
@@ -114,7 +114,7 @@ impl Config {
     /// accessed first).
     pub fn add_file(&mut self, path: &Path, level: ConfigLevel,
                     force: bool) -> Result<(), Error> {
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_config_add_file_ondisk(self.raw, path, level,
                                                       force));
@@ -125,7 +125,7 @@ impl Config {
     /// Delete a config variable from the config file with the highest level
     /// (usually the local one).
     pub fn remove(&mut self, name: &str) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_delete_entry(self.raw, name));
             Ok(())
@@ -139,7 +139,7 @@ impl Config {
     /// the variable will be returned here.
     pub fn get_bool(&self, name: &str) -> Result<bool, Error> {
         let mut out = 0 as libc::c_int;
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw, name));
 
@@ -154,7 +154,7 @@ impl Config {
     /// the variable will be returned here.
     pub fn get_i32(&self, name: &str) -> Result<i32, Error> {
         let mut out = 0i32;
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_int32(&mut out, &*self.raw, name));
 
@@ -169,7 +169,7 @@ impl Config {
     /// the variable will be returned here.
     pub fn get_i64(&self, name: &str) -> Result<i64, Error> {
         let mut out = 0i64;
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_int64(&mut out, &*self.raw, name));
         }
@@ -189,7 +189,7 @@ impl Config {
     /// Get the value of a string config variable as a byte slice.
     pub fn get_bytes(&self, name: &str) -> Result<&[u8], Error> {
         let mut ret = 0 as *const libc::c_char;
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_string(&mut ret, &*self.raw, name));
             Ok(::opt_bytes(self, ret).unwrap())
@@ -199,7 +199,7 @@ impl Config {
     /// Get the ConfigEntry for a config variable.
     pub fn get_entry(&self, name: &str) -> Result<ConfigEntry, Error> {
         let mut ret = 0 as *const raw::git_config_entry;
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_entry(&mut ret, &*self.raw, name));
             Ok(Binding::from_raw(ret))
@@ -228,7 +228,7 @@ impl Config {
         unsafe {
             match glob {
                 Some(s) => {
-                    let s = CString::from_slice(s.as_bytes());
+                    let s = try!(CString::new(s));
                     try_call!(raw::git_config_iterator_glob_new(&mut ret,
                                                                 &*self.raw,
                                                                 s));
@@ -270,7 +270,7 @@ impl Config {
     /// Set the value of a boolean config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_bool(&mut self, name: &str, value: bool) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_set_bool(self.raw, name, value));
         }
@@ -280,7 +280,7 @@ impl Config {
     /// Set the value of an integer config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_i32(&mut self, name: &str, value: i32) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_set_int32(self.raw, name, value));
         }
@@ -290,7 +290,7 @@ impl Config {
     /// Set the value of an integer config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_i64(&mut self, name: &str, value: i64) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
+        let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_set_int64(self.raw, name, value));
         }
@@ -300,8 +300,8 @@ impl Config {
     /// Set the value of a string config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_str(&mut self, name: &str, value: &str) -> Result<(), Error> {
-        let name = CString::from_slice(name.as_bytes());
-        let value = CString::from_slice(value.as_bytes());
+        let name = try!(CString::new(name));
+        let value = try!(CString::new(value));
         unsafe {
             try_call!(raw::git_config_set_string(self.raw, name, value));
         }

@@ -1,4 +1,4 @@
-use std::ffi::{self, CString};
+use std::ffi::{CStr, CString};
 use std::iter::Range;
 use std::old_path::PosixPath;
 
@@ -73,7 +73,7 @@ impl Index {
     pub fn open(index_path: &Path) -> Result<Index, Error> {
         ::init();
         let mut raw = 0 as *mut raw::git_index;
-        let index_path = CString::from_slice(index_path.as_vec());
+        let index_path = try!(CString::new(index_path.as_vec()));
         unsafe {
             try_call!(raw::git_index_open(&mut raw, index_path));
             Ok(Binding::from_raw(raw))
@@ -112,7 +112,7 @@ impl Index {
         for comp in path.components() {
             posix_path.push(comp);
         }
-        let posix_path = CString::from_slice(posix_path.as_vec());
+        let posix_path = try!(CString::new(posix_path.as_vec()));
         unsafe {
             try_call!(raw::git_index_add_bypath(self.raw, posix_path));
             Ok(())
@@ -159,7 +159,7 @@ impl Index {
                          -> Result<(), Error>
         where T: IntoCString, I: Iterator<Item=T>,
     {
-        let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
+        let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
         let ptr = cb.as_mut();
         let callback = ptr.as_ref().map(|_| {
             index_matched_path_cb as raw::git_index_matched_path_cb
@@ -205,7 +205,7 @@ impl Index {
 
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
-        let path = CString::from_slice(path.as_vec());
+        let path = CString::new(path.as_vec()).unwrap();
         unsafe {
             let ptr = call!(raw::git_index_get_bypath(self.raw, path,
                                                       stage as c_int));
@@ -248,7 +248,7 @@ impl Index {
 
     /// Remove an entry from the index
     pub fn remove(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_index_remove(self.raw, path, stage as c_int));
         }
@@ -264,7 +264,7 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn remove_path(&mut self, path: &Path) -> Result<(), Error> {
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_index_remove_bypath(self.raw, path));
         }
@@ -273,7 +273,7 @@ impl Index {
 
     /// Remove all entries from the index under a given directory.
     pub fn remove_dir(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         unsafe {
             try_call!(raw::git_index_remove_directory(self.raw, path,
                                                       stage as c_int));
@@ -292,7 +292,7 @@ impl Index {
                             -> Result<(), Error>
         where T: IntoCString, I: Iterator<Item=T>,
     {
-        let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
+        let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
         let ptr = cb.as_mut();
         let callback = ptr.as_ref().map(|_| {
             index_matched_path_cb as raw::git_index_matched_path_cb
@@ -327,7 +327,7 @@ impl Index {
                             -> Result<(), Error>
         where T: IntoCString, I: Iterator<Item=T>,
     {
-        let (_a, _b, raw_strarray) = ::util::iter2cstrs(pathspecs);
+        let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
         let ptr = cb.as_mut();
         let callback = ptr.as_ref().map(|_| {
             index_matched_path_cb as raw::git_index_matched_path_cb
@@ -395,8 +395,8 @@ extern fn index_matched_path_cb(path: *const c_char,
                                 matched_pathspec: *const c_char,
                                 payload: *mut c_void) -> c_int {
     unsafe {
-        let path = ffi::c_str_to_bytes(&path);
-        let matched_pathspec = ffi::c_str_to_bytes(&matched_pathspec);
+        let path = CStr::from_ptr(path).to_bytes();
+        let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
         let payload = payload as *mut &mut IndexMatchedPath;
         panic::wrap(|| {
             (*payload)(path, matched_pathspec) as c_int
@@ -435,7 +435,7 @@ impl Binding for IndexEntry {
             id: Binding::from_raw(&id as *const _),
             flags: flags as u16,
             flags_extended: flags_extended as u16,
-            path: ffi::c_str_to_bytes(&path).to_vec(),
+            path: CStr::from_ptr(path).to_bytes().to_vec(),
             mtime: Binding::from_raw(mtime),
             ctime: Binding::from_raw(ctime),
         }

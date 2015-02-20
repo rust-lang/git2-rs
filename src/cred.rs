@@ -40,7 +40,7 @@ impl Cred {
     pub fn ssh_key_from_agent(username: &str) -> Result<Cred, Error> {
         ::init();
         let mut out = 0 as *mut raw::git_cred;
-        let username = CString::from_slice(username.as_bytes());
+        let username = try!(CString::new(username));
         unsafe {
             try_call!(raw::git_cred_ssh_key_from_agent(&mut out, username));
             Ok(Binding::from_raw(out))
@@ -53,10 +53,10 @@ impl Cred {
                    privatekey: &Path,
                    passphrase: Option<&str>) -> Result<Cred, Error> {
         ::init();
-        let username = CString::from_slice(username.as_bytes());
-        let publickey = publickey.map(|s| CString::from_slice(s.as_vec()));
-        let privatekey = CString::from_slice(privatekey.as_vec());
-        let passphrase = passphrase.map(|s| CString::from_slice(s.as_bytes()));
+        let username = try!(CString::new(username));
+        let publickey = try!(::opt_cstr(publickey.map(|s| s.as_vec())));
+        let privatekey = try!(CString::new(privatekey.as_vec()));
+        let passphrase = try!(::opt_cstr(passphrase));
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
             try_call!(raw::git_cred_ssh_key_new(&mut out, username, publickey,
@@ -69,8 +69,8 @@ impl Cred {
     pub fn userpass_plaintext(username: &str,
                               password: &str) -> Result<Cred, Error> {
         ::init();
-        let username = CString::from_slice(username.as_bytes());
-        let password = CString::from_slice(password.as_bytes());
+        let username = try!(CString::new(username));
+        let password = try!(CString::new(password));
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
             try_call!(raw::git_cred_userpass_plaintext_new(&mut out, username,

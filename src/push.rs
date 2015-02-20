@@ -1,4 +1,4 @@
-use std::ffi::{self, CString};
+use std::ffi::{CStr, CString};
 use std::marker;
 use std::str;
 use libc;
@@ -27,7 +27,7 @@ pub struct PushStatus {
 impl<'remote> Push<'remote> {
     /// Add a refspec to be pushed
     pub fn add_refspec(&mut self, refspec: &str) -> Result<(), Error> {
-        let refspec = CString::from_slice(refspec.as_bytes());
+        let refspec = try!(CString::new(refspec));
         unsafe {
             try_call!(raw::git_push_add_refspec(self.raw, refspec));
             Ok(())
@@ -50,7 +50,7 @@ impl<'remote> Push<'remote> {
     /// Update remote tips after a push
     pub fn update_tips(&mut self, signature: Option<&Signature>,
                        reflog_message: Option<&str>) -> Result<(), Error> {
-        let msg = reflog_message.map(|s| CString::from_slice(s.as_bytes()));
+        let msg = try!(::opt_cstr(reflog_message));
         unsafe {
             try_call!(raw::git_push_update_tips(self.raw,
                                                 signature.map(|s| s.raw()),
@@ -73,12 +73,12 @@ impl<'remote> Push<'remote> {
                      msg: *const libc::c_char,
                      data: *mut libc::c_void) -> libc::c_int {
             unsafe {
-                let git_ref = match str::from_utf8(ffi::c_str_to_bytes(&git_ref)) {
+                let git_ref = match str::from_utf8(CStr::from_ptr(git_ref).to_bytes()) {
                     Ok(s) => s.to_string(),
                     Err(_) => return 0,
                 };
                 let msg = if !msg.is_null() {
-                    match str::from_utf8(ffi::c_str_to_bytes(&msg)) {
+                    match str::from_utf8(CStr::from_ptr(msg).to_bytes()) {
                         Ok(s) => Some(s.to_string()),
                         Err(_) => return 0,
                     }

@@ -74,7 +74,7 @@ impl<'repo> Tree<'repo> {
 
     /// Lookup a tree entry by its filename
     pub fn get_name(&self, filename: &str) -> Option<TreeEntry> {
-        let filename = CString::from_slice(filename.as_bytes());
+        let filename = CString::new(filename).unwrap();
         unsafe {
             let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
             if ptr.is_null() {
@@ -88,7 +88,7 @@ impl<'repo> Tree<'repo> {
     /// Retrieve a tree entry contained in a tree or in any of its subtrees,
     /// given its relative path.
     pub fn get_path(&self, path: &Path) -> Result<TreeEntry<'static>, Error> {
-        let path = CString::from_slice(path.as_vec());
+        let path = try!(CString::new(path.as_vec()));
         let mut ret = 0 as *mut raw::git_tree_entry;
         unsafe {
             try_call!(raw::git_tree_entry_bypath(&mut ret, &*self.raw(), path));

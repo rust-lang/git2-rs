@@ -38,7 +38,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's destination descriptor matches a reference
     pub fn dst_matches(&self, refname: &str) -> bool {
-        let refname = CString::from_slice(refname.as_bytes());
+        let refname = CString::new(refname).unwrap();
         unsafe { raw::git_refspec_dst_matches(self.raw, refname.as_ptr()) == 1 }
     }
 
@@ -56,7 +56,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's source descriptor matches a reference
     pub fn src_matches(&self, refname: &str) -> bool {
-        let refname = CString::from_slice(refname.as_bytes());
+        let refname = CString::new(refname).unwrap();
         unsafe { raw::git_refspec_src_matches(self.raw, refname.as_ptr()) == 1 }
     }
 

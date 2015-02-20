@@ -70,7 +70,7 @@ impl<'repo> Revwalk<'repo> {
     /// Any references matching this glob which do not point to a committish
     /// will be ignored.
     pub fn push_glob(&mut self, glob: &str) -> Result<(), Error> {
-        let glob = CString::from_slice(glob.as_bytes());
+        let glob = try!(CString::new(glob));
         unsafe {
             try_call!(raw::git_revwalk_push_glob(self.raw, glob));
         }
@@ -83,7 +83,7 @@ impl<'repo> Revwalk<'repo> {
     /// `<commit>` is in the form accepted by `revparse_single`. The left-hand
     /// commit will be hidden and the right-hand commit pushed.
     pub fn push_range(&mut self, range: &str) -> Result<(), Error> {
-        let range = CString::from_slice(range.as_bytes());
+        let range = try!(CString::new(range));
         unsafe {
             try_call!(raw::git_revwalk_push_range(self.raw, range));
         }
@@ -94,7 +94,7 @@ impl<'repo> Revwalk<'repo> {
     ///
     /// The reference must point to a committish.
     pub fn push_ref(&mut self, reference: &str) -> Result<(), Error> {
-        let reference = CString::from_slice(reference.as_bytes());
+        let reference = try!(CString::new(reference));
         unsafe {
             try_call!(raw::git_revwalk_push_ref(self.raw, reference));
         }
@@ -130,7 +130,7 @@ impl<'repo> Revwalk<'repo> {
     /// Any references matching this glob which do not point to a committish
     /// will be ignored.
     pub fn hide_glob(&mut self, glob: &str) -> Result<(), Error> {
-        let glob = CString::from_slice(glob.as_bytes());
+        let glob = try!(CString::new(glob));
         unsafe {
             try_call!(raw::git_revwalk_hide_glob(self.raw, glob));
         }
@@ -141,7 +141,7 @@ impl<'repo> Revwalk<'repo> {
     ///
     /// The reference must point to a committish.
     pub fn hide_ref(&mut self, reference: &str) -> Result<(), Error> {
-        let reference = CString::from_slice(reference.as_bytes());
+        let reference = try!(CString::new(reference));
         unsafe {
             try_call!(raw::git_revwalk_hide_ref(self.raw, reference));
         }

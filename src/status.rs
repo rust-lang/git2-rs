@@ -94,7 +94,7 @@ impl StatusOptions {
     /// match and the entire directory will be used.
     pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
                                        -> &mut StatusOptions {
-        let s = pathspec.into_c_string();
+        let s = pathspec.into_c_string().unwrap();
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

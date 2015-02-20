@@ -1,6 +1,6 @@
 use std::fmt;
 use std::cmp::Ordering;
-use std::hash::{Hasher, Writer, Hash};
+use std::hash::{Hasher, Hash};
 use std::str;
 use libc;
 
@@ -108,8 +108,8 @@ impl Clone for Oid {
     fn clone(&self) -> Oid { *self }
 }
 
-impl<S: Hasher + Writer> Hash<S> for Oid {
-    fn hash(&self, into: &mut S) {
+impl Hash for Oid {
+    fn hash<H: Hasher>(&self, into: &mut H) {
         self.raw.id.as_slice().hash(into)
     }
 }

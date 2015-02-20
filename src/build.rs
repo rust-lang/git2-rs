@@ -1,6 +1,6 @@
 //! Builder-pattern objects for configuration various git operations.
 
-use std::ffi::{self, CString};
+use std::ffi::{CStr, CString};
 use std::old_io;
 use std::mem;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
@@ -70,7 +70,7 @@ impl<'cb> RepoBuilder<'cb> {
     ///
     /// If not specified, the remote's default branch will be used.
     pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder<'cb> {
-        self.branch = Some(CString::from_slice(branch.as_bytes()));
+        self.branch = Some(CString::new(branch).unwrap());
         self
     }
 
@@ -152,8 +152,8 @@ impl<'cb> RepoBuilder<'cb> {
             None => {}
         }
 
-        let url = CString::from_slice(url.as_bytes());
-        let into = CString::from_slice(into.as_vec());
+        let url = try!(CString::new(url));
+        let into = try!(CString::new(into.as_vec()));
         let mut raw = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
@@ -345,7 +345,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// only these specified paths are checked out.
     pub fn path<T: IntoCString>(&mut self, path: T)
                                    -> &mut CheckoutBuilder<'cb> {
-        let path = path.into_c_string();
+        let path = path.into_c_string().unwrap();
         self.path_ptrs.push(path.as_ptr());
         self.paths.push(path);
         self
@@ -353,25 +353,25 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set the directory to check out to
     pub fn target_dir(&mut self, dst: Path) -> &mut CheckoutBuilder<'cb> {
-        self.target_dir = Some(CString::from_slice(dst.as_vec()));
+        self.target_dir = Some(CString::new(dst.as_vec()).unwrap());
         self
     }
 
     /// The name of the common ancestor side of conflicts
     pub fn ancestor_label(&mut self, label: &str) -> &mut CheckoutBuilder<'cb> {
-        self.ancestor_label = Some(CString::from_slice(label.as_bytes()));
+        self.ancestor_label = Some(CString::new(label).unwrap());
         self
     }
 
     /// The name of the common our side of conflicts
     pub fn our_label(&mut self, label: &str) -> &mut CheckoutBuilder<'cb> {
-        self.our_label = Some(CString::from_slice(label.as_bytes()));
+        self.our_label = Some(CString::new(label).unwrap());
         self
     }
 
     /// The name of the common their side of conflicts
     pub fn their_label(&mut self, label: &str) -> &mut CheckoutBuilder<'cb> {
-        self.their_label = Some(CString::from_slice(label.as_bytes()));
+        self.their_label = Some(CString::new(label).unwrap());
         self
     }
 
@@ -432,7 +432,7 @@ extern fn progress_cb(path: *const c_char,
             Some(ref mut c) => c,
             None => return,
         };
-        let path = ffi::c_str_to_bytes(&path);
+        let path = CStr::from_ptr(path).to_bytes();
         panic::wrap(|| {
             callback(path, completed as usize, total as usize);
         });

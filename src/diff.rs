@@ -629,7 +629,7 @@ impl DiffOptions {
     ///
     /// The default value for this is "a".
     pub fn old_prefix<T: IntoCString>(&mut self, t: T) -> &mut DiffOptions {
-        self.old_prefix = Some(t.into_c_string());
+        self.old_prefix = Some(t.into_c_string().unwrap());
         self
     }
 
@@ -637,14 +637,14 @@ impl DiffOptions {
     ///
     /// The default value for this is "b".
     pub fn new_prefix<T: IntoCString>(&mut self, t: T) -> &mut DiffOptions {
-        self.new_prefix = Some(t.into_c_string());
+        self.new_prefix = Some(t.into_c_string().unwrap());
         self
     }
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
     pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
                                        -> &mut DiffOptions {
-        let s = pathspec.into_c_string();
+        let s = pathspec.into_c_string().unwrap();
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

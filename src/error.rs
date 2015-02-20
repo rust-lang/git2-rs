@@ -1,5 +1,5 @@
-use std::ffi;
-use std::error;
+use std::ffi::{CStr, NulError};
+use std::error::{self, FromError};
 use std::fmt;
 use std::str;
 use libc::c_int;
@@ -28,8 +28,7 @@ impl Error {
     }
 
     unsafe fn from_raw(ptr: *const raw::git_error) -> Error {
-        let msg = (*ptr).message as *const _;
-        let msg = ffi::c_str_to_bytes(&msg);
+        let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
         let msg = str::from_utf8(msg).unwrap();
         Error { klass: (*ptr).klass, message: msg.to_string() }
     }
@@ -103,5 +102,12 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "[{}] ", self.klass));
         f.write_str(self.message.as_slice())
+    }
+}
+
+impl FromError<NulError> for Error {
+    fn from_error(_: NulError) -> Error {
+        Error::from_str("data contained a nul byte that could not be \
+                         represented as a string")
     }
 }

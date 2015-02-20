@@ -66,7 +66,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(unsafe_destructor, hash, std_misc, core, old_path, path, os)]
+#![feature(unsafe_destructor, std_misc, core, old_path, path, os)]
 #![feature(old_io, libc)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
@@ -77,9 +77,8 @@ extern crate url;
 extern crate "libgit2-sys" as raw;
 #[macro_use] extern crate bitflags;
 
-use std::ffi::{self, CString};
+use std::ffi::{CStr, CString};
 use std::fmt;
-use std::mem;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
 
@@ -332,12 +331,19 @@ fn init() {
     extern fn shutdown() { unsafe { raw::git_libgit2_shutdown() } }
 }
 
-unsafe fn opt_bytes<'a, T>(anchor: &'a T,
+unsafe fn opt_bytes<'a, T>(_anchor: &'a T,
                            c: *const libc::c_char) -> Option<&'a [u8]> {
     if c.is_null() {
         None
     } else {
-        Some(ffi::c_str_to_bytes(mem::copy_lifetime(anchor, &c)))
+        Some(CStr::from_ptr(c).to_bytes())
+    }
+}
+
+fn opt_cstr<T: IntoCString>(o: Option<T>) -> Result<Option<CString>, Error> {
+    match o {
+        Some(s) => s.into_c_string().map(Some),
+        None => Ok(None)
     }
 }
 
@@ -345,9 +351,8 @@ impl ObjectType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         unsafe {
-            static STATIC: () = ();
             let ptr = call!(raw::git_object_type2string(*self)) as *const _;
-            let data = ffi::c_str_to_bytes(mem::copy_lifetime(&STATIC, &ptr));
+            let data = CStr::from_ptr(ptr).to_bytes();
             str::from_utf8(data).unwrap()
         }
     }
@@ -380,7 +385,7 @@ impl ObjectType {
 
     /// Convert a string object type representation to its object type.
     pub fn from_str(s: &str) -> Option<ObjectType> {
-        let raw = unsafe { call!(raw::git_object_string2type(CString::from_slice(s.as_bytes()))) };
+        let raw = unsafe { call!(raw::git_object_string2type(CString::new(s).unwrap())) };
         ObjectType::from_raw(raw)
     }
 }

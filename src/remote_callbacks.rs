@@ -1,4 +1,4 @@
-use std::ffi;
+use std::ffi::CStr;
 use std::marker;
 use std::mem;
 use std::slice;
@@ -235,7 +235,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             None => return raw::GIT_PASSTHROUGH as c_int,
         };
         *ret = 0 as *mut raw::git_cred;
-        let url = match str::from_utf8(ffi::c_str_to_bytes(&url))  {
+        let url = match str::from_utf8(CStr::from_ptr(url).to_bytes())  {
             Ok(url) => url,
             Err(_) => return raw::GIT_PASSTHROUGH as c_int,
         };
@@ -310,7 +310,7 @@ extern fn update_tips_cb(refname: *const c_char,
             Some(ref mut c) => c,
             None => return 0,
         };
-        let refname = str::from_utf8(ffi::c_str_to_bytes(&refname)).ok().unwrap();
+        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes()).unwrap();
         let a = Binding::from_raw(a);
         let b = Binding::from_raw(b);
         let ok = panic::wrap(|| {
@@ -330,7 +330,7 @@ extern fn certificate_check_cb(cert: *mut raw::git_cert,
             Some(ref mut c) => c,
             None => return -1,
         };
-        let hostname = str::from_utf8(ffi::c_str_to_bytes(&hostname)).unwrap();
+        let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes()).unwrap();
         let cert = Binding::from_raw(cert);
         let ok = panic::wrap(|| {
             callback(&cert, hostname)

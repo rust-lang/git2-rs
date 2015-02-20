@@ -48,8 +48,8 @@ impl<'repo> Branch<'repo> {
                   signature: Option<&Signature>,
                   log_message: &str) -> Result<Branch<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_reference;
-        let new_branch_name = CString::from_slice(new_branch_name.as_bytes());
-        let log_message = CString::from_slice(log_message.as_bytes());
+        let new_branch_name = try!(CString::new(new_branch_name));
+        let log_message = try!(CString::new(log_message));
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
                                            new_branch_name, force,
@@ -91,7 +91,7 @@ impl<'repo> Branch<'repo> {
     /// provided is the name of the branch to set as upstream.
     pub fn set_upstream(&mut self,
                         upstream_name: Option<&str>) -> Result<(), Error> {
-        let upstream_name = upstream_name.map(|s| CString::from_slice(s.as_bytes()));
+        let upstream_name = try!(::opt_cstr(upstream_name));
         unsafe {
             try_call!(raw::git_branch_set_upstream(self.get().raw(),
                                                    upstream_name));

@@ -33,7 +33,7 @@ impl<'repo> Reference<'repo> {
     /// Ensure the reference name is well-formed.
     pub fn is_valid_name(refname: &str) -> bool {
         ::init();
-        let refname = CString::from_slice(refname.as_bytes());
+        let refname = CString::new(refname).unwrap();
         unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
     }
 
@@ -159,8 +159,8 @@ impl<'repo> Reference<'repo> {
                   sig: Option<&Signature>,
                   msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        let new_name = CString::from_slice(new_name.as_bytes());
-        let msg = CString::from_slice(msg.as_bytes());
+        let new_name = try!(CString::new(new_name));
+        let msg = try!(CString::new(msg));
         unsafe {
             try_call!(raw::git_reference_rename(&mut raw, self.raw, new_name,
                                                 force, sig.map(|s| s.raw()),

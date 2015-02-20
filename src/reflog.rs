@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
 use std::str;
@@ -28,7 +27,7 @@ impl Reflog {
     /// Add a new entry to the in-memory reflog.
     pub fn append(&mut self, new_oid: Oid, committer: &Signature,
                   msg: Option<&str>) -> Result<(), Error> {
-        let msg = msg.map(|s| CString::from_slice(s.as_bytes()));
+        let msg = try!(::opt_cstr(msg));
         unsafe {
             try_call!(raw::git_reflog_append(self.raw, new_oid.raw(),
                                              committer.raw(), msg));

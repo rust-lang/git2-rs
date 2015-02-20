@@ -40,7 +40,7 @@ impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
                      where T: IntoCString, I: Iterator<Item=T> {
-        let (_a, _b, arr) = ::util::iter2cstrs(specs);
+        let (_a, _b, arr) = try!(::util::iter2cstrs(specs));
         unsafe {
             let mut ret = 0 as *mut raw::git_pathspec;
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
@@ -109,7 +109,7 @@ impl Pathspec {
     /// explicitly pass flags to control case sensitivity or else this will fall
     /// back on being case sensitive.
     pub fn matches_path(&self, path: &Path, flags: PathspecFlags) -> bool {
-        let path = CString::from_slice(path.as_vec());
+        let path = CString::new(path.as_vec()).unwrap();
         unsafe {
             raw::git_pathspec_matches_path(&*self.raw, flags.bits(),
                                            path.as_ptr()) == 1
