@@ -15,7 +15,7 @@
 //! > **NOTE**: At this time this crate likely does not support a `git push`
 //! >           operation, only clones.
 
-#![feature(io, core)]
+#![feature(old_io, core)]
 
 extern crate git2;
 extern crate curl;
