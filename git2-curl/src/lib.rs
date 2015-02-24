@@ -15,14 +15,15 @@
 //! > **NOTE**: At this time this crate likely does not support a `git push`
 //! >           operation, only clones.
 
-#![feature(old_io, core)]
+#![feature(core, io)]
 
 extern crate git2;
 extern crate curl;
 extern crate url;
 #[macro_use] extern crate log;
 
-use std::old_io::{self, IoError, IoResult, MemReader, BufReader};
+use std::io::prelude::*;
+use std::io::{self, Cursor};
 use std::sync::{Once, ONCE_INIT, Arc, Mutex};
 
 use curl::http::handle::Method;
@@ -42,7 +43,7 @@ struct CurlSubtransport {
     url_path: &'static str,
     base_url: String,
     method: Method,
-    reader: Option<MemReader>,
+    reader: Option<Cursor<Vec<u8>>>,
     sent_request: bool,
 }
 
@@ -121,15 +122,14 @@ impl SmartSubtransport for CurlTransport {
 }
 
 impl CurlSubtransport {
-    fn err(&self, desc: &'static str, detail: Option<String>) -> IoError {
-        IoError { kind: old_io::OtherIoError, desc: desc, detail: detail }
+    fn err(&self, desc: &'static str, detail: Option<String>) -> io::Error {
+        io::Error::new(io::ErrorKind::Other, desc, detail)
     }
 
-    fn execute(&mut self, data: &[u8]) -> IoResult<()> {
+    fn execute(&mut self, mut data: &[u8]) -> io::Result<()> {
         if self.sent_request {
             return Err(self.err("already sent HTTP request", None))
         }
-        let mut rdr = BufReader::new(data);
         let agent = format!("git/1.0 (git2-curl {})", env!("CARGO_PKG_VERSION"));
 
         // Parse our input URL to figure out the host
@@ -150,7 +150,7 @@ impl CurlSubtransport {
                               .header("Host", &host)
                               .follow_redirects(true);
         if data.len() > 0 {
-            req = req.body(&mut rdr)
+            req = req.body(&mut data)
                      .content_length(data.len())
                      .header("Accept", &format!("application/x-git-{}-result",
                                                 self.service))
@@ -185,14 +185,14 @@ impl CurlSubtransport {
         }
 
         // Ok, time to read off some data.
-        let rdr = MemReader::new(resp.move_body());
+        let rdr = Cursor::new(resp.move_body());
         self.reader = Some(rdr);
         Ok(())
     }
 }
 
-impl Reader for CurlSubtransport {
-    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+impl Read for CurlSubtransport {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.reader.is_none() {
             try!(self.execute(&[]));
         }
@@ -200,11 +200,12 @@ impl Reader for CurlSubtransport {
     }
 }
 
-impl Writer for CurlSubtransport {
-    fn write_all(&mut self, data: &[u8]) -> IoResult<()> {
+impl Write for CurlSubtransport {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         if self.reader.is_none() {
             try!(self.execute(data));
         }
-        Ok(())
+        Ok(data.len())
     }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
 }

@@ -1,4 +1,4 @@
-#![feature(old_io, old_path)]
+#![feature(path, io, fs, old_io, old_path)]
 
 extern crate civet;
 extern crate conduit;
@@ -8,7 +8,11 @@ extern crate "git2-curl" as git2_curl;
 extern crate "conduit-git-http-backend" as git_backend;
 
 use civet::{Server, Config};
-use std::old_io::{TempDir, File};
+use std::fs::File;
+use std::path::Path;
+use tempdir::TempDir;
+
+mod tempdir;
 
 const PORT: u16 = 7848;
 
@@ -21,7 +25,7 @@ fn main() {
     // Spin up a server for git-http-backend
     let td = TempDir::new("wut").unwrap();
     let _a = Server::start(Config { port: PORT, threads: 1 },
-                           git_backend::Serve(td.path().clone()));
+                           git_backend::Serve(td.path().to_path_buf()));
 
     // Prep a repo with one file called `foo`
     let sig = git2::Signature::now("foo", "bar").unwrap();
@@ -30,7 +34,7 @@ fn main() {
     {
         let mut index = r1.index().unwrap();
         File::create(&td.path().join("foo")).unwrap();
-        index.add_path(&Path::new("foo")).unwrap();
+        index.add_path(Path::new("foo")).unwrap();
         index.write().unwrap();
         let tree_id = index.write_tree().unwrap();
         r1.commit(Some("HEAD"), &sig, &sig, "test",
