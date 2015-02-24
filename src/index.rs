@@ -1,12 +1,12 @@
-use std::ffi::{CStr, CString};
-use std::iter::Range;
-use std::old_path::PosixPath;
+use std::ffi::{CStr, OsString, OsStr};
+use std::iter::{Range, IntoIterator};
+use std::path::Path;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char, c_ushort};
 
 use {raw, panic, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
 use IntoCString;
-use util::Binding;
+use util::{self, Binding};
 
 /// A structure to represent a git [index][1]
 ///
@@ -26,7 +26,7 @@ pub struct IndexEntries<'index> {
 /// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
 /// path, and the second is the patchspec that matched it.  Return 0 to confirm
 /// the operation on the item, > 0 to skip the item, and < 0 to abort the scan.
-pub type IndexMatchedPath<'a> = FnMut(&[u8], &[u8]) -> i32 + 'a;
+pub type IndexMatchedPath<'a> = FnMut(&Path, &[u8]) -> i32 + 'a;
 
 /// A structure to represent an entry or a file inside of an index.
 ///
@@ -73,7 +73,7 @@ impl Index {
     pub fn open(index_path: &Path) -> Result<Index, Error> {
         ::init();
         let mut raw = 0 as *mut raw::git_index;
-        let index_path = try!(CString::new(index_path.as_vec()));
+        let index_path = try!(index_path.into_c_string());
         unsafe {
             try_call!(raw::git_index_open(&mut raw, index_path));
             Ok(Binding::from_raw(raw))
@@ -108,11 +108,12 @@ impl Index {
     /// moved to the "resolve undo" (REUC) section.
     pub fn add_path(&mut self, path: &Path) -> Result<(), Error> {
         // Git apparently expects '/' to be separators for paths
-        let mut posix_path = PosixPath::new(".");
-        for comp in path.components() {
-            posix_path.push(comp);
+        let mut posix_path = OsString::new();
+        for (i, comp) in path.components().enumerate() {
+            if i != 0 { posix_path.push_os_str(OsStr::from_str("/")); }
+            posix_path.push_os_str(comp.as_os_str());
         }
-        let posix_path = try!(CString::new(posix_path.as_vec()));
+        let posix_path = try!(posix_path.into_c_string());
         unsafe {
             try_call!(raw::git_index_add_bypath(self.raw, posix_path));
             Ok(())
@@ -157,7 +158,7 @@ impl Index {
                          flag: IndexAddOption,
                          mut cb: Option<&mut IndexMatchedPath>)
                          -> Result<(), Error>
-        where T: IntoCString, I: Iterator<Item=T>,
+        where T: IntoCString, I: IntoIterator<Item=T>,
     {
         let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
         let ptr = cb.as_mut();
@@ -205,7 +206,7 @@ impl Index {
 
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
-        let path = CString::new(path.as_vec()).unwrap();
+        let path = path.into_c_string().unwrap();
         unsafe {
             let ptr = call!(raw::git_index_get_bypath(self.raw, path,
                                                       stage as c_int));
@@ -216,9 +217,9 @@ impl Index {
     /// Get the full path to the index file on disk.
     ///
     /// Returns `None` if this is an in-memory index.
-    pub fn path(&self) -> Option<Path> {
+    pub fn path(&self) -> Option<&Path> {
         unsafe {
-            ::opt_bytes(self, raw::git_index_path(&*self.raw)).map(Path::new)
+            ::opt_bytes(self, raw::git_index_path(&*self.raw)).map(util::bytes2path)
         }
     }
 
@@ -248,7 +249,7 @@ impl Index {
 
     /// Remove an entry from the index
     pub fn remove(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_index_remove(self.raw, path, stage as c_int));
         }
@@ -264,7 +265,7 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn remove_path(&mut self, path: &Path) -> Result<(), Error> {
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_index_remove_bypath(self.raw, path));
         }
@@ -273,7 +274,7 @@ impl Index {
 
     /// Remove all entries from the index under a given directory.
     pub fn remove_dir(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_index_remove_directory(self.raw, path,
                                                       stage as c_int));
@@ -290,7 +291,7 @@ impl Index {
                             pathspecs: I,
                             mut cb: Option<&mut IndexMatchedPath>)
                             -> Result<(), Error>
-        where T: IntoCString, I: Iterator<Item=T>,
+        where T: IntoCString, I: IntoIterator<Item=T>,
     {
         let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
         let ptr = cb.as_mut();
@@ -325,7 +326,7 @@ impl Index {
                             pathspecs: I,
                             mut cb: Option<&mut IndexMatchedPath>)
                             -> Result<(), Error>
-        where T: IntoCString, I: Iterator<Item=T>,
+        where T: IntoCString, I: IntoIterator<Item=T>,
     {
         let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
         let ptr = cb.as_mut();
@@ -399,7 +400,7 @@ extern fn index_matched_path_cb(path: *const c_char,
         let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
         let payload = payload as *mut &mut IndexMatchedPath;
         panic::wrap(|| {
-            (*payload)(path, matched_pathspec) as c_int
+            (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         }).unwrap_or(-1)
     }
 }
@@ -467,9 +468,10 @@ impl Binding for IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::{self, fs, File, TempDir};
-    use url::Url;
+    use std::fs::{self, File};
+    use std::path::Path;
 
+    use tempdir::TempDir;
     use {Index, Repository, ResetType};
 
     #[test]
@@ -487,7 +489,8 @@ mod tests {
     fn smoke_from_repo() {
         let (_td, repo) = ::test::repo_init();
         let mut index = repo.index().unwrap();
-        assert!(index.path() == Some(repo.path().join("index")));
+        assert_eq!(index.path().map(|s| s.to_path_buf()),
+                   Some(repo.path().join("index")));
         Index::open(&repo.path().join("index")).unwrap();
 
         index.clear().unwrap();
@@ -502,26 +505,26 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let mut index = repo.index().unwrap();
 
-        let root = repo.path().dir_path();
-        fs::mkdir(&root.join("foo"), old_io::USER_DIR).unwrap();
+        let root = repo.path().parent().unwrap().parent().unwrap();
+        fs::create_dir(&root.join("foo")).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
         index.add_all(["foo"].iter(), ::ADD_DEFAULT,
-                      Some(&mut |a: &[u8], b: &[u8]| {
+                      Some(&mut |a: &Path, b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b"foo");
-            assert_eq!(a, b"foo/bar");
+            assert_eq!(a, Path::new("foo/bar"));
             0
         })).unwrap();
         assert!(called);
 
         called = false;
-        index.remove_all(["."].iter(), Some(&mut |a: &[u8], b: &[u8]| {
+        index.remove_all(["."].iter(), Some(&mut |a: &Path, b: &[u8]| {
             assert!(!called);
             called = true;
             assert_eq!(b, b".");
-            assert_eq!(a, b"foo/bar");
+            assert_eq!(a, Path::new("foo/bar"));
             0
         })).unwrap();
         assert!(called);
@@ -532,10 +535,10 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let mut index = repo.index().unwrap();
 
-        let root = repo.path().dir_path();
-        fs::mkdir(&root.join("foo"), old_io::USER_DIR).unwrap();
+        let root = repo.path().parent().unwrap().parent().unwrap();
+        fs::create_dir(&root.join("foo")).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
-        index.add_path(&Path::new("foo/bar")).unwrap();
+        index.add_path(Path::new("foo/bar")).unwrap();
         index.write().unwrap();
         assert_eq!(index.iter().count(), 1);
 
@@ -551,8 +554,7 @@ mod tests {
         repo.reset(&obj, ResetType::Hard, None, None, None).unwrap();
 
         let td2 = TempDir::new("git").unwrap();
-        let url = Url::from_file_path(&root).ok().unwrap();
-        let url = url.to_string();
+        let url = ::test::path2url(&root);
         let repo = Repository::clone(url.as_slice(), td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None, None, None).unwrap();

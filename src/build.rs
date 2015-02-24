@@ -1,12 +1,12 @@
 //! Builder-pattern objects for configuration various git operations.
 
 use std::ffi::{CStr, CString};
-use std::old_io;
 use std::mem;
+use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
 use {raw, Signature, Error, Repository, RemoteCallbacks, panic, IntoCString};
-use util::Binding;
+use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
@@ -28,8 +28,8 @@ pub struct CheckoutBuilder<'cb> {
     target_dir: Option<CString>,
     paths: Vec<CString>,
     path_ptrs: Vec<*const c_char>,
-    file_perm: Option<old_io::FilePermission>,
-    dir_perm: Option<old_io::FilePermission>,
+    file_perm: Option<i32>,
+    dir_perm: Option<i32>,
     disable_filters: bool,
     checkout_opts: u32,
     progress: Option<Box<Progress<'cb>>>,
@@ -39,7 +39,7 @@ pub struct CheckoutBuilder<'cb> {
 ///
 /// The first argument is the path for the notification, the next is the numver
 /// of completed steps so far, and the final is the total number of steps.
-pub type Progress<'a> = FnMut(&[u8], usize, usize) + 'a;
+pub type Progress<'a> = FnMut(&Path, usize, usize) + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -153,7 +153,7 @@ impl<'cb> RepoBuilder<'cb> {
         }
 
         let url = try!(CString::new(url));
-        let into = try!(CString::new(into.as_vec()));
+        let into = try!(into.into_c_string());
         let mut raw = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
@@ -324,8 +324,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Set the mode with which new directories are created.
     ///
     /// Default is 0755
-    pub fn dir_perm(&mut self, perm: old_io::FilePermission)
-                    -> &mut CheckoutBuilder<'cb> {
+    pub fn dir_perm(&mut self, perm: i32) -> &mut CheckoutBuilder<'cb> {
         self.dir_perm = Some(perm);
         self
     }
@@ -333,8 +332,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Set the mode with which new files are created.
     ///
     /// The default is 0644 or 0755 as dictated by the blob.
-    pub fn file_perm(&mut self, perm: old_io::FilePermission)
-                     -> &mut CheckoutBuilder<'cb> {
+    pub fn file_perm(&mut self, perm: i32) -> &mut CheckoutBuilder<'cb> {
         self.file_perm = Some(perm);
         self
     }
@@ -352,8 +350,8 @@ impl<'cb> CheckoutBuilder<'cb> {
     }
 
     /// Set the directory to check out to
-    pub fn target_dir(&mut self, dst: Path) -> &mut CheckoutBuilder<'cb> {
-        self.target_dir = Some(CString::new(dst.as_vec()).unwrap());
+    pub fn target_dir(&mut self, dst: &Path) -> &mut CheckoutBuilder<'cb> {
+        self.target_dir = Some(dst.into_c_string().unwrap());
         self
     }
 
@@ -377,7 +375,7 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set a callback to receive notifications of checkout progress.
     pub fn progress<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-                       where F: FnMut(&[u8], usize, usize) + 'cb {
+                       where F: FnMut(&Path, usize, usize) + 'cb {
         self.progress = Some(Box::new(cb) as Box<Progress<'cb>>);
         self
     }
@@ -389,8 +387,8 @@ impl<'cb> CheckoutBuilder<'cb> {
     pub unsafe fn configure(&mut self, opts: &mut raw::git_checkout_options) {
         opts.version = raw::GIT_CHECKOUT_OPTIONS_VERSION;
         opts.disable_filters = self.disable_filters as c_int;
-        opts.dir_mode = self.dir_perm.map(|p| p.bits()).unwrap_or(0) as c_uint;
-        opts.file_mode = self.file_perm.map(|p| p.bits()).unwrap_or(0) as c_uint;
+        opts.dir_mode = self.dir_perm.unwrap_or(0) as c_uint;
+        opts.file_mode = self.file_perm.unwrap_or(0) as c_uint;
 
         if self.path_ptrs.len() > 0 {
             opts.paths.strings = self.path_ptrs.as_ptr() as *mut _;
@@ -434,20 +432,22 @@ extern fn progress_cb(path: *const c_char,
         };
         let path = CStr::from_ptr(path).to_bytes();
         panic::wrap(|| {
-            callback(path, completed as usize, total as usize);
+            callback(util::bytes2path(path), completed as usize, total as usize);
         });
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::{fs, TempDir};
+    use std::fs;
+    use std::path::Path;
+    use tempdir::TempDir;
     use super::RepoBuilder;
     use Repository;
 
     #[test]
     fn smoke() {
-        let r = RepoBuilder::new().clone("/path/to/nowhere", &Path::new("foo"));
+        let r = RepoBuilder::new().clone("/path/to/nowhere", Path::new("foo"));
         assert!(r.is_err());
     }
 
@@ -464,12 +464,12 @@ mod tests {
 
         let dst = td.path().join("foo");
         RepoBuilder::new().clone(url.as_slice(), &dst).unwrap();
-        fs::rmdir_recursive(&dst).unwrap();
+        fs::remove_dir_all(&dst).unwrap();
         RepoBuilder::new().local(false).clone(url.as_slice(), &dst).unwrap();
-        fs::rmdir_recursive(&dst).unwrap();
+        fs::remove_dir_all(&dst).unwrap();
         RepoBuilder::new().local(false).hardlinks(false).bare(true)
                           .clone(url.as_slice(), &dst).unwrap();
-        fs::rmdir_recursive(&dst).unwrap();
+        fs::remove_dir_all(&dst).unwrap();
         assert!(RepoBuilder::new().branch("foo")
                                   .clone(url.as_slice(), &dst).is_err());
     }

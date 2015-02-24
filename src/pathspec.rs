@@ -1,6 +1,6 @@
-use std::ffi::CString;
-use std::iter::Range;
+use std::iter::{Range, IntoIterator};
 use std::marker;
+use std::path::Path;
 use libc::size_t;
 
 use {raw, Error, Tree, PathspecFlags, Index, Repository, DiffDelta, IntoCString};
@@ -39,7 +39,7 @@ pub struct PathspecFailedEntries<'list> {
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
-                     where T: IntoCString, I: Iterator<Item=T> {
+                     where T: IntoCString, I: IntoIterator<Item=T> {
         let (_a, _b, arr) = try!(::util::iter2cstrs(specs));
         unsafe {
             let mut ret = 0 as *mut raw::git_pathspec;
@@ -109,7 +109,7 @@ impl Pathspec {
     /// explicitly pass flags to control case sensitivity or else this will fall
     /// back on being case sensitive.
     pub fn matches_path(&self, path: &Path, flags: PathspecFlags) -> bool {
-        let path = CString::new(path.as_vec()).unwrap();
+        let path = path.into_c_string().unwrap();
         unsafe {
             raw::git_pathspec_matches_path(&*self.raw, flags.bits(),
                                            path.as_ptr()) == 1
@@ -259,15 +259,16 @@ impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 mod tests {
     use PATHSPEC_DEFAULT;
     use super::Pathspec;
-    use std::old_io::File;
+    use std::fs::File;
+    use std::path::Path;
 
     #[test]
     fn smoke() {
         let ps = Pathspec::new(["a"].iter()).unwrap();
-        assert!(ps.matches_path(&Path::new("a"), PATHSPEC_DEFAULT));
-        assert!(ps.matches_path(&Path::new("a/b"), PATHSPEC_DEFAULT));
-        assert!(!ps.matches_path(&Path::new("b"), PATHSPEC_DEFAULT));
-        assert!(!ps.matches_path(&Path::new("ab/c"), PATHSPEC_DEFAULT));
+        assert!(ps.matches_path(Path::new("a"), PATHSPEC_DEFAULT));
+        assert!(ps.matches_path(Path::new("a/b"), PATHSPEC_DEFAULT));
+        assert!(!ps.matches_path(Path::new("b"), PATHSPEC_DEFAULT));
+        assert!(!ps.matches_path(Path::new("ab/c"), PATHSPEC_DEFAULT));
 
         let (td, repo) = ::test::repo_init();
         let list = ps.match_workdir(&repo, PATHSPEC_DEFAULT).unwrap();

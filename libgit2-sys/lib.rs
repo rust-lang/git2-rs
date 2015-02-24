@@ -1,6 +1,5 @@
 #![allow(non_camel_case_types, missing_copy_implementations)]
 #![allow(raw_pointer_derive)]
-#![feature(libc)]
 
 extern crate libc;
 extern crate "libssh2-sys" as libssh2;

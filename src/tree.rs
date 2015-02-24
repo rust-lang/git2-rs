@@ -1,13 +1,13 @@
 use std::cmp::Ordering;
 use std::ffi::CString;
-use std::old_io;
 use std::iter::Range;
 use std::marker;
+use std::path::Path;
 use std::str;
 use libc;
 
 use {raw, Oid, Repository, Error, Object, ObjectType};
-use util::Binding;
+use util::{Binding, IntoCString};
 
 /// A structure to represent a git [tree][1]
 ///
@@ -88,7 +88,7 @@ impl<'repo> Tree<'repo> {
     /// Retrieve a tree entry contained in a tree or in any of its subtrees,
     /// given its relative path.
     pub fn get_path(&self, path: &Path) -> Result<TreeEntry<'static>, Error> {
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         let mut ret = 0 as *mut raw::git_tree_entry;
         unsafe {
             try_call!(raw::git_tree_entry_bypath(&mut ret, &*self.raw(), path));
@@ -163,10 +163,8 @@ impl<'tree> TreeEntry<'tree> {
     }
 
     /// Get the UNIX file attributes of a tree entry
-    pub fn filemode(&self) -> old_io::FilePermission {
-        old_io::FilePermission::from_bits_truncate(unsafe {
-            raw::git_tree_entry_filemode(&*self.raw) as u32
-        })
+    pub fn filemode(&self) -> i32 {
+        unsafe { raw::git_tree_entry_filemode(&*self.raw) as i32 }
     }
 
     /// Get the raw UNIX file attributes of a tree entry
@@ -244,15 +242,17 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::File;
+    use std::fs::File;
+    use std::io::prelude::*;
+    use std::path::Path;
 
     #[test]
     fn smoke() {
         let (td, repo) = ::test::repo_init();
         {
             let mut index = repo.index().unwrap();
-            File::create(&td.path().join("foo")).write_str("foo").unwrap();
-            index.add_path(&Path::new("foo")).unwrap();
+            File::create(&td.path().join("foo")).unwrap().write_all(b"foo").unwrap();
+            index.add_path(Path::new("foo")).unwrap();
             let id = index.write_tree().unwrap();
             let sig = repo.signature().unwrap();
             let tree = repo.find_tree(id).unwrap();
@@ -271,7 +271,7 @@ mod tests {
         let e1 = tree.get(0).unwrap();
         assert!(e1 == tree.get_id(e1.id()).unwrap());
         assert!(e1 == tree.get_name("foo").unwrap());
-        assert!(e1 == tree.get_path(&Path::new("foo")).unwrap());
+        assert!(e1 == tree.get_path(Path::new("foo")).unwrap());
         assert_eq!(e1.name(), Some("foo"));
         e1.to_object(&repo).unwrap();
 

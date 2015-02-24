@@ -110,7 +110,7 @@ impl Clone for Oid {
 
 impl Hash for Oid {
     fn hash<H: Hasher>(&self, into: &mut H) {
-        self.raw.id.as_slice().hash(into)
+        self.raw.id.hash(into)
     }
 }
 

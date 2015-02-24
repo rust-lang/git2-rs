@@ -26,10 +26,9 @@
 //! # #![allow(unstable)]
 //! use git2::Repository;
 //!
-//! let path = Path::new("/path/to/a/repo");
-//! let repo = match Repository::init(&path) {
+//! let repo = match Repository::init("/path/to/a/repo") {
 //!     Ok(repo) => repo,
-//!     Err(e) => panic!("failed to init `{}`: {}", path.display(), e),
+//!     Err(e) => panic!("failed to init: {}", e),
 //! };
 //! ```
 //!
@@ -39,10 +38,9 @@
 //! # #![allow(unstable)]
 //! use git2::Repository;
 //!
-//! let path = Path::new("/path/to/a/repo");
-//! let repo = match Repository::open(&path) {
+//! let repo = match Repository::open("/path/to/a/repo") {
 //!     Ok(repo) => repo,
-//!     Err(e) => panic!("failed to open `{}`: {}", path.display(), e),
+//!     Err(e) => panic!("failed to open: {}", e),
 //! };
 //! ```
 //!
@@ -53,10 +51,9 @@
 //! use git2::Repository;
 //!
 //! let url = "https://github.com/alexcrichton/git2-rs";
-//! let path = Path::new("/path/to/a/repo");
-//! let repo = match Repository::clone(url, &path) {
+//! let repo = match Repository::clone(url, "/path/to/a/repo") {
 //!     Ok(repo) => repo,
-//!     Err(e) => panic!("failed to clone `{}`: {}", path.display(), e),
+//!     Err(e) => panic!("failed to clone: {}", e),
 //! };
 //! ```
 //!
@@ -66,11 +63,11 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(unsafe_destructor, std_misc, core, old_path, path, os)]
-#![feature(old_io, libc)]
+#![feature(unsafe_destructor, std_misc, core, path, path, os, process)]
+#![feature(io)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(env))]
+#![cfg_attr(test, feature(env, fs, old_io, old_path))]
 
 extern crate libc;
 extern crate url;
@@ -287,6 +284,8 @@ pub mod build;
 pub mod cert;
 pub mod string_array;
 pub mod transport;
+
+#[cfg(test)] mod tempdir;
 
 mod blob;
 mod branch;

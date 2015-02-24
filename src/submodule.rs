@@ -1,8 +1,9 @@
 use std::marker;
 use std::str;
+use std::path::Path;
 
 use {raw, Oid, Repository, Error, SubmoduleStatus};
-use util::Binding;
+use util::{self, Binding};
 
 /// A structure to represent a git [submodule][1]
 ///
@@ -55,11 +56,10 @@ impl<'repo> Submodule<'repo> {
     }
 
     /// Get the path for the submodule.
-    pub fn path(&self) -> Path {
-        let bytes = unsafe {
+    pub fn path(&self) -> &Path {
+        util::bytes2path(unsafe {
             ::opt_bytes(self, raw::git_submodule_path(self.raw)).unwrap()
-        };
-        Path::new(bytes)
+        })
     }
 
     /// Get the OID for the submodule in the current HEAD tree.
@@ -203,7 +203,9 @@ impl<'repo> Drop for Submodule<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::TempDir;
+    use tempdir::TempDir;
+    use std::path::Path;
+
     use Repository;
 
     #[test]
@@ -211,10 +213,10 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let mut s1 = repo.submodule("/path/to/nowhere",
-                                    &Path::new("foo"), true).unwrap();
+                                    Path::new("foo"), true).unwrap();
         s1.init(false).unwrap();
         let s2 = repo.submodule("/path/to/nowhere",
-                                &Path::new("bar"), true).unwrap();
+                                Path::new("bar"), true).unwrap();
         drop((s1, s2));
 
         let mut submodules = repo.submodules().unwrap();

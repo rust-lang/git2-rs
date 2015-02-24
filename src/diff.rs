@@ -2,12 +2,13 @@ use std::ffi::CString;
 use std::iter::Range;
 use std::marker;
 use std::mem;
+use std::path::Path;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
 use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
 use {DiffStatsFormat, IntoCString};
-use util::Binding;
+use util::{self, Binding};
 
 /// The diff object that contains all individual file deltas.
 ///
@@ -372,14 +373,15 @@ impl<'a> DiffFile<'a> {
 
     /// Returns the path, in bytes, of the entry relative to the working
     /// directory of the repository.
-    pub fn path_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, (*self.raw).path) }
+    pub fn path_bytes(&self) -> Option<&'a [u8]> {
+        static FOO: () = ();
+        unsafe { ::opt_bytes(&FOO, (*self.raw).path) }
     }
 
     /// Returns the path of the entry relative to the working directory of the
     /// repository.
-    pub fn path(&self) -> Option<Path> {
-        self.path_bytes().map(Path::new)
+    pub fn path(&self) -> Option<&'a Path> {
+        self.path_bytes().map(util::bytes2path)
     }
 
     /// Returns the size of this entry, in bytes

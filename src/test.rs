@@ -1,6 +1,8 @@
-use std::old_io::TempDir;
-use std::old_io::{self, fs};
-use std::env;
+use std::path::{Path, PathBuf};
+use std::io;
+use url::Url;
+
+use tempdir::TempDir;
 use Repository;
 
 pub fn repo_init() -> (TempDir, Repository) {
@@ -21,34 +23,12 @@ pub fn repo_init() -> (TempDir, Repository) {
     (td, repo)
 }
 
-// Copied from rustc
-pub fn realpath(original: &Path) -> old_io::IoResult<Path> {
-    static MAX_LINKS_FOLLOWED: u32 = 256;
-    let original = env::current_dir().unwrap().join(original);
-    // Right now lstat on windows doesn't work quite well
-    if cfg!(windows) {
-        return Ok(original)
-    }
-    let result = original.root_path();
-    let mut result = result.expect("make_absolute has no root_path");
-    let mut followed = 0;
-    for part in original.components() {
-        result.push(part);
-        loop {
-            if followed == MAX_LINKS_FOLLOWED {
-                return Err(old_io::standard_error(old_io::InvalidInput))
-            }
-            match fs::lstat(&result) {
-                Err(..) => break,
-                Ok(ref stat) if stat.kind != old_io::FileType::Symlink => break,
-                Ok(..) => {
-                    followed += 1;
-                    let path = try!(fs::readlink(&result));
-                    result.pop();
-                    result.push(path);
-                }
-            }
-        }
-    }
-    return Ok(result);
+pub fn path2url(path: &Path) -> String {
+    let path = ::std::old_path::Path::new(path.to_str().unwrap());
+    Url::from_file_path(&path).unwrap().to_string()
+}
+
+pub fn realpath(original: &Path) -> io::Result<PathBuf> {
+    // TODO: implement this
+    Ok(original.to_path_buf())
 }

@@ -1,9 +1,11 @@
 use std::ffi::CString;
+use std::io::Write;
 use std::mem;
-use std::old_io::Command;
+use std::path::Path;
+use std::process::{Command, Stdio};
 use url::{self, UrlParser};
 
-use {raw, Error, Config};
+use {raw, Error, Config, IntoCString};
 use util::Binding;
 
 /// A structure to represent git credentials in libgit2.
@@ -54,8 +56,8 @@ impl Cred {
                    passphrase: Option<&str>) -> Result<Cred, Error> {
         ::init();
         let username = try!(CString::new(username));
-        let publickey = try!(::opt_cstr(publickey.map(|s| s.as_vec())));
-        let privatekey = try!(CString::new(privatekey.as_vec()));
+        let publickey = try!(::opt_cstr(publickey));
+        let privatekey = try!(privatekey.into_c_string());
         let passphrase = try!(::opt_cstr(passphrase));
         let mut out = 0 as *mut raw::git_cred;
         unsafe {
@@ -287,7 +289,10 @@ impl CredentialHelper {
         ) );
 
         let mut p = my_try!(Command::new("sh").arg("-c")
-                                              .arg(format!("{} get", cmd))
+                                              .arg(&format!("{} get", cmd))
+                                              .stdin(Stdio::capture())
+                                              .stdout(Stdio::capture())
+                                              .stderr(Stdio::capture())
                                               .spawn());
         // Ignore write errors as the command may not actually be listening for
         // stdin
@@ -308,7 +313,7 @@ impl CredentialHelper {
         }
         let output = my_try!(p.wait_with_output());
         if !output.status.success() { return (None, None) }
-        return self.parse_output(output.output)
+        return self.parse_output(output.stdout)
     }
 
     // Parse the output of a command into the username/password found
@@ -316,7 +321,7 @@ impl CredentialHelper {
         // Parse the output of the command, looking for username/password
         let mut username = None;
         let mut password = None;
-        for line in output.as_slice().split(|t| *t == b'\n') {
+        for line in output.split(|t| *t == b'\n') {
             let mut parts = line.splitn(1, |t| *t == b'=');
             let key = parts.next().unwrap();
             let value = match parts.next() { Some(s) => s, None => continue };
@@ -336,9 +341,12 @@ impl CredentialHelper {
 
 #[cfg(test)]
 mod test {
-    use std::old_io::{self, TempDir, File, fs};
     use std::env;
+    use std::fs::{self, File};
+    use std::io::prelude::*;
+    use std::path::Path;
 
+    use tempdir::TempDir;
     use {Cred, Config, CredentialHelper, ConfigLevel};
 
     macro_rules! cfg( ($($k:expr => $v:expr),*) => ({
@@ -392,11 +400,11 @@ mod test {
     fn credential_helper4() {
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("script");
-        File::create(&path).write_str(r"\
+        File::create(&path).unwrap().write(br"\
 #!/bin/sh
 echo username=c
 ").unwrap();
-        fs::chmod(&path, old_io::USER_EXEC).unwrap();
+        chmod(&path);
         let cfg = cfg! {
             "credential.https://example.com.helper" =>
                     path.display().to_string().as_slice(),
@@ -413,16 +421,18 @@ echo username=c
     fn credential_helper5() {
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("git-credential-script");
-        File::create(&path).write_str(r"\
+        File::create(&path).unwrap().write(br"\
 #!/bin/sh
 echo username=c
 ").unwrap();
-        fs::chmod(&path, old_io::USER_EXEC).unwrap();
+        chmod(&path);
 
-        let path = env::join_paths(env::split_paths(&env::var("PATH").unwrap())
-                                       .chain(Some(path.dir_path()).into_iter()))
-                       .unwrap();
-        env::set_var("PATH", &path);
+        let paths = env::var("PATH").unwrap();
+        let paths = env::split_paths(&paths)
+                        .chain(path.parent().map(|p| {
+                            ::std::old_path::Path::new(p.to_str().unwrap())
+                        }).into_iter());
+        env::set_var("PATH", &env::join_paths(paths).unwrap());
 
         let cfg = cfg! {
             "credential.https://example.com.helper" => "script",
@@ -434,4 +444,14 @@ echo username=c
         assert_eq!(u.as_slice(), "c");
         assert_eq!(p.as_slice(), "b");
     }
+
+    #[cfg(unix)]
+    fn chmod(path: &Path) {
+        use std::os::unix::prelude::*;
+        let mut perms = path.metadata().unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(path, perms).unwrap();
+    }
+    #[cfg(windows)]
+    fn chmod(_path: &Path) {}
 }

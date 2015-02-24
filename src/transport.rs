@@ -1,8 +1,9 @@
 //! Interfaces for adding custom transports to libgit2
 
 use std::ffi::{CStr, CString};
+use std::io::prelude::*;
+use std::io;
 use std::mem;
-use std::old_io::IoError;
 use std::slice;
 use std::str;
 use std::sync::{StaticMutex, MUTEX_INIT};
@@ -65,12 +66,12 @@ pub enum Service {
 /// An instance of a stream over which a smart transport will communicate with a
 /// remote.
 ///
-/// Currently this only requires the standard `Reader` and `Writer` traits. This
-/// trait also does not need to be implemented manually as long as the `Reader`
-/// and `Writer` traits are implemented.
-pub trait SmartSubtransportStream: Reader + Writer + Send + 'static {}
+/// Currently this only requires the standard `Read` and `Write` traits. This
+/// trait also does not need to be implemented manually as long as the `Read`
+/// and `Write` traits are implemented.
+pub trait SmartSubtransportStream: Read + Write + Send + 'static {}
 
-impl<T: Reader + Writer + Send + 'static> SmartSubtransportStream for T {}
+impl<T: Read + Write + Send + 'static> SmartSubtransportStream for T {}
 
 type TransportFactory = Fn(&Remote) -> Result<Transport, Error> + Send + Sync +
                                         'static;
@@ -304,7 +305,7 @@ extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
     }
 }
 
-unsafe fn set_err(e: IoError) {
+unsafe fn set_err(e: io::Error) {
     let s = CString::new(e.to_string()).unwrap();
     raw::giterr_set_str(raw::GITERR_NET as c_int, s.as_ptr())
 }

@@ -1,10 +1,11 @@
 use std::ffi::CString;
 use std::marker;
+use std::path::{Path, PathBuf};
 use std::str;
 use libc;
 
-use {raw, Error, ConfigLevel, Buf};
-use util::Binding;
+use {raw, Error, ConfigLevel, Buf, IntoCString};
+use util::{self, Binding};
 
 /// A structure representing a git configuration key/value store
 pub struct Config {
@@ -43,7 +44,7 @@ impl Config {
     pub fn open(path: &Path) -> Result<Config, Error> {
         ::init();
         let mut raw = 0 as *mut raw::git_config;
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_config_open_ondisk(&mut raw, path));
             Ok(Binding::from_raw(raw))
@@ -75,32 +76,32 @@ impl Config {
     ///
     /// This method will not guess the path to the xdg compatible config file
     /// (`.config/git/config`).
-    pub fn find_global() -> Result<Path, Error> {
+    pub fn find_global() -> Result<PathBuf, Error> {
         ::init();
         let buf = Buf::new();
         unsafe { try_call!(raw::git_config_find_global(buf.raw())); }
-        Ok(Path::new(&*buf))
+        Ok(util::bytes2path(&buf).to_path_buf())
     }
 
     /// Locate the path to the system configuration file
     ///
     /// If /etc/gitconfig doesn't exist, it will look for %PROGRAMFILES%
-    pub fn find_system() -> Result<Path, Error> {
+    pub fn find_system() -> Result<PathBuf, Error> {
         ::init();
         let buf = Buf::new();
         unsafe { try_call!(raw::git_config_find_system(buf.raw())); }
-        Ok(Path::new(&*buf))
+        Ok(util::bytes2path(&buf).to_path_buf())
     }
 
     /// Locate the path to the global xdg compatible configuration file
     ///
     /// The xdg compatible configuration file is usually located in
     /// `$HOME/.config/git/config`.
-    pub fn find_xdg() -> Result<Path, Error> {
+    pub fn find_xdg() -> Result<PathBuf, Error> {
         ::init();
         let buf = Buf::new();
         unsafe { try_call!(raw::git_config_find_xdg(buf.raw())); }
-        Ok(Path::new(&*buf))
+        Ok(util::bytes2path(&buf).to_path_buf())
     }
 
     /// Add an on-disk config file instance to an existing config
@@ -114,7 +115,7 @@ impl Config {
     /// accessed first).
     pub fn add_file(&mut self, path: &Path, level: ConfigLevel,
                     force: bool) -> Result<(), Error> {
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_config_add_file_ondisk(self.raw, path, level,
                                                       force));
@@ -417,7 +418,9 @@ impl<'cfg> Drop for ConfigEntries<'cfg> {
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::{TempDir, File};
+    use std::fs::File;
+
+    use tempdir::TempDir;
     use Config;
 
     #[test]

@@ -1,5 +1,7 @@
 use std::ffi::{CStr, CString};
+use std::iter::IntoIterator;
 use std::mem;
+use std::path::{Path, AsPath};
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
@@ -10,7 +12,7 @@ use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
-use util::Binding;
+use util::{self, Binding};
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -44,9 +46,9 @@ impl Repository {
     /// Attempt to open an already-existing repository at `path`.
     ///
     /// The path can point to either a normal or bare repository.
-    pub fn open(path: &Path) -> Result<Repository, Error> {
+    pub fn open<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
         init();
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.as_path().into_c_string());
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_repository_open(&mut ret, path));
@@ -58,16 +60,16 @@ impl Repository {
     ///
     /// This starts at `path` and looks up the filesystem hierarchy
     /// until it finds a repository.
-    pub fn discover(path: &Path) -> Result<Repository, Error> {
+    pub fn discover<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
         // TODO: this diverges significantly from the libgit2 API
         init();
         let buf = Buf::new();
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.as_path().into_c_string());
         unsafe {
             try_call!(raw::git_repository_discover(buf.raw(), path, 1,
                                                    0 as *const _));
         }
-        Repository::open(&Path::new(&*buf))
+        Repository::open(util::bytes2path(&*buf))
     }
 
     /// Creates a new repository in the specified folder.
@@ -75,24 +77,24 @@ impl Repository {
     /// This by default will create any necessary directories to create the
     /// repository, and it will read any user-specified templates when creating
     /// the repository. This behavior can be configured through `init_opts`.
-    pub fn init(path: &Path) -> Result<Repository, Error> {
+    pub fn init<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
         Repository::init_opts(path, &RepositoryInitOptions::new())
     }
 
     /// Creates a new `--bare` repository in the specified folder.
     ///
     /// The folder must exist prior to invoking this function.
-    pub fn init_bare(path: &Path) -> Result<Repository, Error> {
+    pub fn init_bare<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
         Repository::init_opts(path, RepositoryInitOptions::new().bare(true))
     }
 
     /// Creates a new `--bare` repository in the specified folder.
     ///
     /// The folder must exist prior to invoking this function.
-    pub fn init_opts(path: &Path, opts: &RepositoryInitOptions)
+    pub fn init_opts<P: AsPath + ?Sized>(path: &P, opts: &RepositoryInitOptions)
                      -> Result<Repository, Error> {
         init();
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.as_path().into_c_string());
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             let mut opts = opts.raw();
@@ -105,9 +107,10 @@ impl Repository {
     ///
     /// See the `RepoBuilder` struct for more information. This function will
     /// delegate to a fresh `RepoBuilder`
-    pub fn clone(url: &str, into: &Path) -> Result<Repository, Error> {
+    pub fn clone<P: AsPath + ?Sized>(url: &str, into: &P)
+                                     -> Result<Repository, Error> {
         ::init();
-        RepoBuilder::new().clone(url, into)
+        RepoBuilder::new().clone(url, into.as_path())
     }
 
     /// Execute a rev-parse operation against the `spec` listed.
@@ -161,11 +164,10 @@ impl Repository {
 
     /// Returns the path to the `.git` folder for normal repositories or the
     /// repository itself for bare repositories.
-    pub fn path(&self) -> Path {
+    pub fn path(&self) -> &Path {
         unsafe {
             let ptr = raw::git_repository_path(self.raw);
-            assert!(!ptr.is_null());
-            Path::new(CStr::from_ptr(ptr).to_bytes())
+            util::bytes2path(::opt_bytes(self, ptr).unwrap())
         }
     }
 
@@ -198,13 +200,13 @@ impl Repository {
     /// Get the path of the working directory for this repository.
     ///
     /// If this repository is bare, then `None` is returned.
-    pub fn workdir(&self) -> Option<Path> {
+    pub fn workdir(&self) -> Option<&Path> {
         unsafe {
             let ptr = raw::git_repository_workdir(self.raw);
             if ptr.is_null() {
                 None
             } else {
-                Some(Path::new(CStr::from_ptr(ptr).to_bytes()))
+                Some(util::bytes2path(CStr::from_ptr(ptr).to_bytes()))
             }
         }
     }
@@ -366,7 +368,7 @@ impl Repository {
     pub fn reset_default<T, I>(&self,
                                target: Option<&Object>,
                                paths: I) -> Result<(), Error>
-        where T: IntoCString, I: Iterator<Item=T>,
+        where T: IntoCString, I: IntoIterator<Item=T>,
     {
         let (_a, _b, mut arr) = try!(::util::iter2cstrs(paths));
         let target = target.map(|t| t.raw());
@@ -469,7 +471,7 @@ impl Repository {
     /// directory containing the file, would it be added or not?
     pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
         let mut ret = 0 as c_int;
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_status_should_ignore(&mut ret, self.raw,
                                                     path));
@@ -495,7 +497,7 @@ impl Repository {
     /// through looking for the path that you are interested in.
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
         let mut ret = 0 as c_uint;
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_status_file(&mut ret, self.raw,
                                            path));
@@ -559,7 +561,7 @@ impl Repository {
     /// The Oid returned can in turn be passed to `find_blob` to get a handle to
     /// the blob.
     pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
@@ -770,7 +772,7 @@ impl Repository {
     pub fn submodule(&self, url: &str, path: &Path,
                      use_gitlink: bool) -> Result<Submodule, Error> {
         let url = try!(CString::new(url));
-        let path = try!(CString::new(path.as_vec()));
+        let path = try!(path.into_c_string());
         let mut raw = 0 as *mut raw::git_submodule;
         unsafe {
             try_call!(raw::git_submodule_add_setup(&mut raw, self.raw(),
@@ -1226,7 +1228,7 @@ impl RepositoryInitOptions {
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
     pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
-        self.workdir_path = Some(CString::new(path.as_vec()).unwrap());
+        self.workdir_path = Some(path.into_c_string().unwrap());
         self
     }
 
@@ -1243,7 +1245,7 @@ impl RepositoryInitOptions {
     /// If this is not configured, then the default locations will be searched
     /// instead.
     pub fn template_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
-        self.template_path = Some(CString::new(path.as_vec()).unwrap());
+        self.template_path = Some(path.into_c_string().unwrap());
         self
     }
 
@@ -1286,7 +1288,8 @@ impl RepositoryInitOptions {
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::TempDir;
+    use std::fs;
+    use tempdir::TempDir;
     use {Repository, ObjectType, ResetType};
 
     #[test]
@@ -1318,7 +1321,7 @@ mod tests {
         assert!(!repo.is_shallow());
         assert!(repo.is_empty().unwrap());
         assert_eq!(::test::realpath(&repo.path()),
-                   ::test::realpath(&td.path().join(".git")));
+                   ::test::realpath(&td.path().join(".git/")));
         assert_eq!(repo.state(), ::RepositoryState::Clean);
     }
 
@@ -1331,7 +1334,7 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert_eq!(::test::realpath(&repo.path()),
-                   ::test::realpath(td.path()));
+                   ::test::realpath(&td.path().join("")));
     }
 
     #[test]
@@ -1366,11 +1369,12 @@ mod tests {
     #[test]
     fn smoke_discover() {
         let td = TempDir::new("test").unwrap();
-        let subdir = TempDir::new_in(td.path(), "subdir").unwrap();
+        let subdir = td.path().join("subdi");
+        fs::create_dir(&subdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
-        let repo = Repository::discover(subdir.path()).unwrap();
+        let repo = Repository::discover(&subdir).unwrap();
         assert_eq!(::test::realpath(&repo.path()),
-                   ::test::realpath(td.path()));
+                   ::test::realpath(&td.path().join("")));
     }
 
     fn graph_repo_init() -> (TempDir, Repository) {

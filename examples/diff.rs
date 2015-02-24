@@ -12,7 +12,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(old_path)]
 #![deny(warnings)]
 
 extern crate git2;
@@ -74,7 +73,7 @@ enum Cache { Normal, Only, None }
 
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(&Path::new(path)));
+    let repo = try!(Repository::open(path));
 
     // Prepare our diff options based on the arguments given
     let mut opts = DiffOptions::new();

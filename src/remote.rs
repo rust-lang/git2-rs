@@ -391,9 +391,8 @@ impl<'remote> RemoteHead<'remote> {
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::TempDir;
     use std::cell::Cell;
-    use url::Url;
+    use tempdir::TempDir;
     use {Repository, Remote, RemoteCallbacks, Direction};
 
     #[test]
@@ -497,8 +496,7 @@ mod tests {
     fn transfer_cb() {
         let (td, _repo) = ::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
-        let url = Url::from_file_path(td.path()).ok().unwrap();
-        let url = url.to_string();
+        let url = ::test::path2url(&td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let progress_hit = Cell::new(false);

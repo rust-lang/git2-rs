@@ -103,7 +103,7 @@ fn show_tag(tag: &Tag) {
 fn show_tree(tree: &Tree) {
     for entry in tree.iter() {
         println!("{:06o} {} {}\t{}",
-                 entry.filemode().bits(),
+                 entry.filemode(),
                  entry.kind().unwrap().str(),
                  entry.id(),
                  entry.name().unwrap());

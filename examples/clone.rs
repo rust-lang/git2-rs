@@ -13,17 +13,18 @@
  */
 
 #![deny(warnings)]
-#![feature(old_path, core, old_io)]
+#![feature(path, core, old_io)]
 
 extern crate git2;
 extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;
 
 use docopt::Docopt;
-use git2::{RemoteCallbacks, Progress};
 use git2::build::{RepoBuilder, CheckoutBuilder};
+use git2::{RemoteCallbacks, Progress};
 use std::cell::RefCell;
 use std::old_io::stdio;
+use std::path::{Path, PathBuf};
 
 #[derive(RustcDecodable)]
 struct Args {
@@ -35,7 +36,7 @@ struct State {
     progress: Option<Progress<'static>>,
     total: usize,
     current: usize,
-    path: Path,
+    path: PathBuf,
     newline: bool,
 }
 
@@ -72,7 +73,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         progress: None,
         total: 0,
         current: 0,
-        path: Path::new("."),
+        path: PathBuf::new("."),
         newline: false,
     });
     let mut cb = RemoteCallbacks::new();
@@ -86,7 +87,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let mut co = CheckoutBuilder::new();
     co.progress(|path, cur, total| {
         let mut state = state.borrow_mut();
-        state.path = Path::new(path);
+        state.path = path.to_path_buf();
         state.current = cur;
         state.total = total;
         print(&mut *state);
@@ -94,7 +95,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     try!(RepoBuilder::new().remote_callbacks(cb).with_checkout(co)
                            .clone(args.arg_url.as_slice(),
-                                  &Path::new(&args.arg_path)));
+                                  Path::new(&args.arg_path)));
     println!("");
 
     Ok(())

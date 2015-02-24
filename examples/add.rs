@@ -13,12 +13,13 @@
  */
 
 #![deny(warnings)]
-#![feature(old_path)]
+#![feature(path)]
 
 extern crate git2;
 extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;
 
+use std::path::Path;
 use docopt::Docopt;
 use git2::Repository;
 
@@ -34,9 +35,8 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open(&Path::new(".")));
     let mut index = try!(repo.index());
 
-    let cb = &mut |path: &[u8], _matched_spec: &[u8]| -> i32 {
-        let path = Path::new(path);
-        let status = repo.status_file(&path).unwrap();
+    let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
+        let status = repo.status_file(path).unwrap();
 
         let ret = if status.contains(git2::STATUS_WT_MODIFIED) ||
                      status.contains(git2::STATUS_WT_NEW) {

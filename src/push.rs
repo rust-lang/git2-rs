@@ -111,8 +111,7 @@ impl<'a> Drop for Push<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::old_io::TempDir;
-    use url::Url;
+    use tempdir::TempDir;
     use Repository;
 
     #[test]
@@ -122,8 +121,7 @@ mod tests {
         Repository::init_bare(&remote).unwrap();
 
         let (_td, repo) = ::test::repo_init();
-        let url = Url::from_file_path(&remote).ok().unwrap();
-        let url = url.to_string();
+        let url = ::test::path2url(&remote);
         let mut remote = repo.remote("origin", url.as_slice()).unwrap();
 
         let mut push = remote.push().unwrap();
