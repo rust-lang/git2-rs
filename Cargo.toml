@@ -22,7 +22,7 @@ libc = "0.1"
 
 [dependencies.libgit2-sys]
 path = "libgit2-sys"
-version = "0.1.0"
+version = "0.2"
 
 [dev-dependencies]
 docopt = "0.6"
