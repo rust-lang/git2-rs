@@ -106,8 +106,8 @@ impl IntoCString for OsString {
     fn into_c_string(self) -> Result<CString, Error> {
         match self.to_str() {
             Some(s) => s.into_c_string(),
-            None => Error::from_str("only valid unicode paths are accepted \
-                                     on windows"),
+            None => Err(Error::from_str("only valid unicode paths are accepted \
+                                         on windows")),
         }
     }
 }
