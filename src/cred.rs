@@ -342,11 +342,10 @@ impl CredentialHelper {
 #[cfg(test)]
 mod test {
     use std::env;
-    use std::fs::{self, File};
+    use std::fs::{self, File, TempDir};
     use std::io::prelude::*;
     use std::path::Path;
 
-    use tempdir::TempDir;
     use {Cred, Config, CredentialHelper, ConfigLevel};
 
     macro_rules! cfg( ($($k:expr => $v:expr),*) => ({
@@ -429,9 +428,7 @@ echo username=c
 
         let paths = env::var("PATH").unwrap();
         let paths = env::split_paths(&paths)
-                        .chain(path.parent().map(|p| {
-                            ::std::path::PathBuf::new(p.to_str().unwrap())
-                        }).into_iter());
+                        .chain(path.parent().map(|p| p.to_path_buf()).into_iter());
         env::set_var("PATH", &env::join_paths(paths).unwrap());
 
         let cfg = cfg! {

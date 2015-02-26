@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
+use std::fs::TempDir;
 use std::io;
 use url::Url;
 
-use tempdir::TempDir;
 use Repository;
 
 pub fn repo_init() -> (TempDir, Repository) {

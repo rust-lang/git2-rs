@@ -468,10 +468,9 @@ impl Binding for IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, File};
+    use std::fs::{self, File, TempDir};
     use std::path::Path;
 
-    use tempdir::TempDir;
     use {Index, Repository, ResetType};
 
     #[test]

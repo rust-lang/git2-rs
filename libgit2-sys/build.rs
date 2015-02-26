@@ -107,9 +107,8 @@ fn register_dep(dep: &str) {
 
 fn append(var: &str, val: PathBuf) {
     let prefix = env::var(var).unwrap_or(String::new());
-    let val = env::join_paths(env::split_paths(&prefix).map(|p| {
-        PathBuf::new(p.to_str().unwrap())
-    }).chain(Some(val).into_iter())).unwrap();
+    let val = env::join_paths(env::split_paths(&prefix)
+                                  .chain(Some(val).into_iter())).unwrap();
     env::set_var(var, &val);
 }
 

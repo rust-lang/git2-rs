@@ -111,7 +111,7 @@ impl<'a> Drop for Push<'a> {
 
 #[cfg(test)]
 mod tests {
-    use tempdir::TempDir;
+    use std::fs::TempDir;
     use Repository;
 
     #[test]

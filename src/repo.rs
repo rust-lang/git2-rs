@@ -1288,8 +1288,7 @@ impl RepositoryInitOptions {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use tempdir::TempDir;
+    use std::fs::{self, TempDir};
     use {Repository, ObjectType, ResetType};
 
     #[test]

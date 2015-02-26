@@ -67,7 +67,7 @@
 #![feature(io)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(env, fs, old_io, old_path))]
+#![cfg_attr(test, feature(env, fs))]
 
 extern crate libc;
 extern crate url;
@@ -284,8 +284,6 @@ pub mod build;
 pub mod cert;
 pub mod string_array;
 pub mod transport;
-
-#[cfg(test)] mod tempdir;
 
 mod blob;
 mod branch;

@@ -418,9 +418,8 @@ impl<'cfg> Drop for ConfigEntries<'cfg> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::fs::{File, TempDir};
 
-    use tempdir::TempDir;
     use Config;
 
     #[test]

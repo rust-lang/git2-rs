@@ -439,9 +439,8 @@ extern fn progress_cb(path: *const c_char,
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::fs::{self, TempDir};
     use std::path::Path;
-    use tempdir::TempDir;
     use super::RepoBuilder;
     use Repository;
 
