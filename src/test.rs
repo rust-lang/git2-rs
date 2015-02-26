@@ -24,8 +24,7 @@ pub fn repo_init() -> (TempDir, Repository) {
 }
 
 pub fn path2url(path: &Path) -> String {
-    let path = ::std::old_path::Path::new(path.to_str().unwrap());
-    Url::from_file_path(&path).unwrap().to_string()
+    Url::from_file_path(path).unwrap().to_string()
 }
 
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {

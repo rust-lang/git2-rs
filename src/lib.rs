@@ -63,11 +63,11 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![feature(unsafe_destructor, std_misc, core, path, path, os, process)]
+#![feature(unsafe_destructor, std_misc, core, path, os, process)]
 #![feature(io)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(env, fs))]
+#![cfg_attr(test, feature(env, fs, tempdir))]
 
 extern crate libc;
 extern crate url;
