@@ -1,4 +1,4 @@
-#![feature(path, io, env, core, process, old_io, fs, old_path)]
+#![feature(path, io, env, core, process, old_io, fs)]
 
 extern crate "pkg-config" as pkg_config;
 
@@ -108,7 +108,7 @@ fn register_dep(dep: &str) {
 fn append(var: &str, val: PathBuf) {
     let prefix = env::var(var).unwrap_or(String::new());
     let val = env::join_paths(env::split_paths(&prefix).map(|p| {
-        PathBuf::new(p.as_str().unwrap())
+        PathBuf::new(p.to_str().unwrap())
     }).chain(Some(val).into_iter())).unwrap();
     env::set_var(var, &val);
 }

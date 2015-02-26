@@ -430,7 +430,7 @@ echo username=c
         let paths = env::var("PATH").unwrap();
         let paths = env::split_paths(&paths)
                         .chain(path.parent().map(|p| {
-                            ::std::old_path::Path::new(p.to_str().unwrap())
+                            ::std::path::PathBuf::new(p.to_str().unwrap())
                         }).into_iter());
         env::set_var("PATH", &env::join_paths(paths).unwrap());
 
