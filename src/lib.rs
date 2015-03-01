@@ -67,7 +67,7 @@
 #![feature(io)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(env, fs, tempdir))]
+#![cfg_attr(test, feature(fs, tempdir))]
 
 extern crate libc;
 extern crate url;

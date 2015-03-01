@@ -1,4 +1,4 @@
-#![feature(path, io, env, core, process, old_io, fs)]
+#![feature(path, io, exit_status, core, process, old_io, fs)]
 
 extern crate "pkg-config" as pkg_config;
 
