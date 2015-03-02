@@ -8,7 +8,7 @@ libgit2 bindings for Rust
 
 ```toml
 [dependencies]
-git2 = "0.1"
+git2 = "0.2"
 ```
 
 ## Building git2-rs
