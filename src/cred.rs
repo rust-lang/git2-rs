@@ -290,9 +290,9 @@ impl CredentialHelper {
 
         let mut p = my_try!(Command::new("sh").arg("-c")
                                               .arg(&format!("{} get", cmd))
-                                              .stdin(Stdio::capture())
-                                              .stdout(Stdio::capture())
-                                              .stderr(Stdio::capture())
+                                              .stdin(Stdio::piped())
+                                              .stdout(Stdio::piped())
+                                              .stderr(Stdio::piped())
                                               .spawn());
         // Ignore write errors as the command may not actually be listening for
         // stdin
