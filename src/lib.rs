@@ -63,6 +63,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
+#![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
 #![feature(unsafe_destructor, std_misc, core, path, os)]
 #![feature(io)]
 #![deny(missing_docs)]

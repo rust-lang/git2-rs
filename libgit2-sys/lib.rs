@@ -1,4 +1,5 @@
-#![allow(non_camel_case_types, missing_copy_implementations)]
+#![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
+#![allow(non_camel_case_types)]
 #![allow(raw_pointer_derive)]
 
 extern crate libc;

@@ -16,6 +16,7 @@
 //! >           operation, only clones.
 
 #![feature(core, io)]
+#![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
 
 extern crate git2;
 extern crate curl;
