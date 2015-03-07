@@ -64,16 +64,17 @@
 //! itself.
 
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
-#![feature(unsafe_destructor, std_misc, core, path, os)]
+#![feature(unsafe_destructor, std_misc, core, path)]
 #![feature(io)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(fs, tempdir))]
+#![cfg_attr(test, feature(fs))]
 
 extern crate libc;
 extern crate url;
 extern crate "libgit2-sys" as raw;
 #[macro_use] extern crate bitflags;
+#[cfg(test)] extern crate tempdir;
 
 use std::ffi::{CStr, CString};
 use std::fmt;

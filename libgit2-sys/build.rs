@@ -1,4 +1,4 @@
-#![feature(path, io, exit_status, core, old_io, fs)]
+#![feature(path, io)]
 
 extern crate "pkg-config" as pkg_config;
 
@@ -24,7 +24,7 @@ fn main() {
 
     if target.contains("i686") {
         cflags.push_str(" -m32");
-    } else if target.as_slice().contains("x86_64") {
+    } else if target.contains("x86_64") {
         cflags.push_str(" -m64");
     }
     if !target.contains("i686") {
@@ -41,7 +41,7 @@ fn main() {
     if mingw {
         cmd.arg("-G").arg("Unix Makefiles");
     }
-    let profile = match env::var("PROFILE").unwrap().as_slice() {
+    let profile = match &env::var("PROFILE").unwrap()[..] {
         "bench" | "release" => "Release",
         _ => "Debug",
     };
@@ -96,7 +96,7 @@ fn run(cmd: &mut Command, program: &str) {
 }
 
 fn register_dep(dep: &str) {
-    match env::var(format!("DEP_{}_ROOT", dep).as_slice()) {
+    match env::var(&format!("DEP_{}_ROOT", dep)) {
         Ok(s) => {
             append("CMAKE_PREFIX_PATH", PathBuf::new(&s));
             append("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
@@ -113,9 +113,5 @@ fn append(var: &str, val: PathBuf) {
 }
 
 fn fail(s: &str) -> ! {
-    use std::old_io;
-    println!("{}", s);
-    env::set_exit_status(1);
-    old_io::stdio::set_stderr(Box::new(old_io::util::NullWriter));
-    panic!()
+    panic!("\n{}\n\nbuild script failed, must exit now", s)
 }

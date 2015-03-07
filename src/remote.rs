@@ -392,7 +392,7 @@ impl<'remote> RemoteHead<'remote> {
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
-    use std::fs::TempDir;
+    use tempdir::TempDir;
     use {Repository, Remote, RemoteCallbacks, Direction};
 
     #[test]

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
-use std::fs::TempDir;
 use std::io;
+use tempdir::TempDir;
 use url::Url;
 
 use Repository;

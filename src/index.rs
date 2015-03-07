@@ -1,4 +1,4 @@
-use std::ffi::{CStr, OsString, OsStr};
+use std::ffi::{CStr, OsString};
 use std::iter::{Range, IntoIterator};
 use std::path::Path;
 
@@ -110,8 +110,8 @@ impl Index {
         // Git apparently expects '/' to be separators for paths
         let mut posix_path = OsString::new();
         for (i, comp) in path.components().enumerate() {
-            if i != 0 { posix_path.push_os_str(OsStr::from_str("/")); }
-            posix_path.push_os_str(comp.as_os_str());
+            if i != 0 { posix_path.push("/"); }
+            posix_path.push(comp.as_os_str());
         }
         let posix_path = try!(posix_path.into_c_string());
         unsafe {
@@ -468,8 +468,9 @@ impl Binding for IndexEntry {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, File, TempDir};
+    use std::fs::{self, File};
     use std::path::Path;
+    use tempdir::TempDir;
 
     use {Index, Repository, ResetType};
 

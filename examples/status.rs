@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![feature(old_io, std_misc, core, old_path)]
+#![feature(old_io, std_misc, core, path)]
 
 extern crate git2;
 extern crate docopt;
@@ -43,7 +43,7 @@ struct Args {
 enum Format { Long, Short, Porcelain }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let path = args.flag_git_dir.as_ref().map(Path::new).unwrap_or(Path::new("."));
+    let path = args.flag_git_dir.clone().unwrap_or(".".to_string());
     let repo = try!(Repository::open(&path));
     if repo.is_bare() {
         return Err(Error::from_str("cannot report status on bare repository"))

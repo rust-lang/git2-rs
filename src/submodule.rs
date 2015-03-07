@@ -203,8 +203,8 @@ impl<'repo> Drop for Submodule<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::TempDir;
     use std::path::Path;
+    use tempdir::TempDir;
 
     use Repository;
 

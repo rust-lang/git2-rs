@@ -56,7 +56,8 @@ impl<'repo> Drop for Blob<'repo> {
 #[cfg(test)]
 mod tests {
     use std::io::prelude::*;
-    use std::fs::{File, TempDir};
+    use std::fs::File;
+    use tempdir::TempDir;
     use Repository;
 
     #[test]
