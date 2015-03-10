@@ -18,6 +18,8 @@ pub struct Diff {
     raw: *mut raw::git_diff,
 }
 
+unsafe impl Send for Diff {}
+
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
     raw: *mut raw::git_diff_delta,
