@@ -1,5 +1,5 @@
-use std::iter::Range;
 use std::marker;
+use std::ops::Range;
 use std::str;
 use libc;
 
@@ -146,19 +146,13 @@ impl<'repo> Commit<'repo> {
     /// Creates a new iterator over the parents of this commit.
     pub fn parents<'a>(&'a self) -> Parents<'a, 'repo> {
         let max = unsafe { raw::git_commit_parentcount(&*self.raw) as usize };
-        Parents {
-            range: range(0, max),
-            commit: self,
-        }
+        Parents { range: 0..max, commit: self }
     }
 
     /// Creates a new iterator over the parents of this commit.
     pub fn parent_ids(&self) -> ParentIds {
         let max = unsafe { raw::git_commit_parentcount(&*self.raw) as usize };
-        ParentIds {
-            range: range(0, max),
-            commit: self,
-        }
+        ParentIds { range: 0..max, commit: self }
     }
 
     /// Get the author of this commit.

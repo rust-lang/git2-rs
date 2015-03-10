@@ -1,7 +1,7 @@
 //! Bindings to libgit2's raw git_strarray type
 
 use std::str;
-use std::iter::Range;
+use std::ops::Range;
 
 use raw;
 use util::Binding;
@@ -50,13 +50,13 @@ impl StringArray {
     /// The iterator yields `Option<&str>` as it is unknown whether the contents
     /// are utf-8 or not.
     pub fn iter(&self) -> Iter {
-        Iter { range: range(0, self.len()), arr: self }
+        Iter { range: 0..self.len(), arr: self }
     }
 
     /// Returns an iterator over the strings contained within this array,
     /// yielding byte slices.
     pub fn iter_bytes(&self) -> IterBytes {
-        IterBytes { range: range(0, self.len()), arr: self }
+        IterBytes { range: 0..self.len(), arr: self }
     }
 
     /// Returns the number of strings in this array.

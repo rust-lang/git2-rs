@@ -1,5 +1,5 @@
 use std::ffi::CString;
-use std::iter::Range;
+use std::ops::Range;
 use std::marker;
 use std::mem;
 use std::slice;
@@ -208,7 +208,7 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Get the number of refspecs for a remote
     pub fn refspecs<'a>(&'a self) -> Refspecs<'a, 'cb> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
-        Refspecs { range: range(0, cnt), remote: self }
+        Refspecs { range: 0..cnt, remote: self }
     }
 
     /// Get the `nth` refspec from this remote.

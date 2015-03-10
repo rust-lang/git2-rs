@@ -39,7 +39,7 @@ pub fn iter2cstrs<T, I>(iter: I) -> Result<(Vec<CString>, Vec<*const c_char>,
 #[cfg(unix)]
 pub fn bytes2path(b: &[u8]) -> &Path {
     use std::os::unix::prelude::*;
-    Path::new(<OsStr as OsStrExt>::from_bytes(b))
+    Path::new(OsStr::from_bytes(b))
 }
 #[cfg(windows)]
 pub fn bytes2path(b: &[u8]) -> &Path {

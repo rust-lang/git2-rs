@@ -45,7 +45,7 @@ impl Oid {
     }
 
     /// View this OID as a byte-slice 20 bytes in length.
-    pub fn as_bytes(&self) -> &[u8] { self.raw.id.as_slice() }
+    pub fn as_bytes(&self) -> &[u8] { &self.raw.id }
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {

@@ -1,5 +1,5 @@
 use std::ffi::CString;
-use std::iter::{range, Range};
+use std::ops::Range;
 use std::marker;
 use std::mem;
 use std::str;
@@ -256,7 +256,7 @@ impl<'repo> Statuses<'repo> {
     pub fn iter(&self) -> StatusIter {
         StatusIter {
             statuses: self,
-            range: range(0, self.len()),
+            range: 0..self.len(),
         }
     }
 }

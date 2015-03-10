@@ -98,8 +98,7 @@ impl Cred {
         match CredentialHelper::new(url).config(config).username(username)
                                .execute() {
             Some((username, password)) => {
-                Cred::userpass_plaintext(username.as_slice(),
-                                         password.as_slice())
+                Cred::userpass_plaintext(&username, &password)
             }
             None => Err(Error::from_str("failed to acquire username/password \
                                          from local configuration"))
@@ -203,9 +202,9 @@ impl CredentialHelper {
     // Configure the queried username from `config`
     fn config_username(&mut self, config: &Config) {
         let key = self.exact_key("username");
-        self.username = config.get_str(key.as_slice()).ok().or_else(|| {
+        self.username = config.get_str(&key).ok().or_else(|| {
             self.url_key("username").and_then(|s| {
-                config.get_str(s.as_slice()).ok()
+                config.get_str(&s).ok()
             })
         }).or_else(|| {
             config.get_str("credential.username").ok()
@@ -214,11 +213,11 @@ impl CredentialHelper {
 
     // Discover all `helper` directives from `config`
     fn config_helper(&mut self, config: &Config) {
-        let exact = config.get_str(self.exact_key("helper").as_slice());
+        let exact = config.get_str(&self.exact_key("helper"));
         self.add_command(exact.ok());
         match self.url_key("helper") {
             Some(key) => {
-                let url = config.get_str(key.as_slice());
+                let url = config.get_str(&key);
                 self.add_command(url.ok());
             }
             None => {}
@@ -264,7 +263,7 @@ impl CredentialHelper {
         let mut username = self.username.clone();
         let mut password = None;
         for cmd in self.commands.iter() {
-            let (u, p) = self.execute_cmd(cmd.as_slice(), &username);
+            let (u, p) = self.execute_cmd(&cmd, &username);
             if u.is_some() && username.is_none() {
                 username = u;
             }
@@ -370,8 +369,8 @@ mod test {
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
                                       .config(&cfg)
                                       .execute().unwrap();
-        assert_eq!(u.as_slice(), "a");
-        assert_eq!(p.as_slice(), "b");
+        assert_eq!(u, "a");
+        assert_eq!(p, "b");
     }
 
     #[test]
@@ -392,8 +391,8 @@ mod test {
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
                                       .config(&cfg)
                                       .execute().unwrap();
-        assert_eq!(u.as_slice(), "c");
-        assert_eq!(p.as_slice(), "b");
+        assert_eq!(u, "c");
+        assert_eq!(p, "b");
     }
 
     #[test]
@@ -407,14 +406,14 @@ echo username=c
         chmod(&path);
         let cfg = cfg! {
             "credential.https://example.com.helper" =>
-                    path.display().to_string().as_slice(),
+                    &path.display().to_string()[..],
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
                                       .config(&cfg)
                                       .execute().unwrap();
-        assert_eq!(u.as_slice(), "c");
-        assert_eq!(p.as_slice(), "b");
+        assert_eq!(u, "c");
+        assert_eq!(p, "b");
     }
 
     #[test]
@@ -439,8 +438,8 @@ echo username=c
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
                                       .config(&cfg)
                                       .execute().unwrap();
-        assert_eq!(u.as_slice(), "c");
-        assert_eq!(p.as_slice(), "b");
+        assert_eq!(u, "c");
+        assert_eq!(p, "b");
     }
 
     #[cfg(unix)]

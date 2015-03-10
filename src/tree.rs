@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::ffi::CString;
-use std::iter::Range;
+use std::ops::Range;
 use std::marker;
 use std::path::Path;
 use std::str;
@@ -44,7 +44,7 @@ impl<'repo> Tree<'repo> {
 
     /// Returns an iterator over the entries in this tree.
     pub fn iter(&self) -> TreeIter {
-        TreeIter { range: range(0, self.len()), tree: self }
+        TreeIter { range: 0..self.len(), tree: self }
     }
 
     /// Lookup a tree entry by SHA value.

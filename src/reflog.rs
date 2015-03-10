@@ -1,4 +1,4 @@
-use std::iter::Range;
+use std::ops::Range;
 use std::marker;
 use std::str;
 use libc::size_t;
@@ -68,7 +68,7 @@ impl Reflog {
 
     /// Get an iterator to all entries inside of this reflog
     pub fn iter(&self) -> ReflogIter {
-        ReflogIter { range: range(0, self.len()), reflog: self }
+        ReflogIter { range: 0..self.len(), reflog: self }
     }
 
     /// Write an existing in-memory reflog object back to disk using an atomic

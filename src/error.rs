@@ -91,17 +91,17 @@ impl Error {
     }
 
     /// Return the message associated with this error
-    pub fn message(&self) -> &str { self.message.as_slice() }
+    pub fn message(&self) -> &str { &self.message }
 }
 
 impl error::Error for Error {
-    fn description(&self) -> &str { self.message.as_slice() }
+    fn description(&self) -> &str { &self.message }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "[{}] ", self.klass));
-        f.write_str(self.message.as_slice())
+        f.write_str(&self.message)
     }
 }
 

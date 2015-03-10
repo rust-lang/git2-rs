@@ -1,5 +1,6 @@
-use std::iter::{Range, IntoIterator};
+use std::iter::IntoIterator;
 use std::marker;
+use std::ops::Range;
 use std::path::Path;
 use libc::size_t;
 
@@ -146,7 +147,7 @@ impl<'ps> PathspecMatchList<'ps> {
     pub fn entries(&self) -> PathspecEntries {
         let n = self.entrycount();
         let n = if n > 0 && self.entry(0).is_none() {0} else {n};
-        PathspecEntries { range: range(0, n), list: self }
+        PathspecEntries { range: 0..n, list: self }
     }
 
     /// Get a matching filename by position.
@@ -164,7 +165,7 @@ impl<'ps> PathspecMatchList<'ps> {
     pub fn diff_entries(&self) -> PathspecDiffEntries {
         let n = self.entrycount();
         let n = if n > 0 && self.diff_entry(0).is_none() {0} else {n};
-        PathspecDiffEntries { range: range(0, n), list: self }
+        PathspecDiffEntries { range: 0..n, list: self }
     }
 
     /// Get a matching diff delta by position.
@@ -183,7 +184,7 @@ impl<'ps> PathspecMatchList<'ps> {
     pub fn failed_entries(&self) -> PathspecFailedEntries {
         let n = self.failed_entrycount();
         let n = if n > 0 && self.failed_entry(0).is_none() {0} else {n};
-        PathspecFailedEntries { range: range(0, n), list: self }
+        PathspecFailedEntries { range: 0..n, list: self }
     }
 
     /// Get an original pathspec string that had no matches.

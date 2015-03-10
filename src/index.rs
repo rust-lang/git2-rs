@@ -1,5 +1,6 @@
 use std::ffi::{CStr, OsString};
-use std::iter::{Range, IntoIterator};
+use std::iter::IntoIterator;
+use std::ops::Range;
 use std::path::Path;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char, c_ushort};
@@ -201,7 +202,7 @@ impl Index {
 
     /// Get an iterator over the entries in this index.
     pub fn iter(&self) -> IndexEntries {
-        IndexEntries { range: range(0, self.len()), index: self }
+        IndexEntries { range: 0..self.len(), index: self }
     }
 
     /// Get one of the entries in the index by its path.

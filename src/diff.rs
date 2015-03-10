@@ -1,7 +1,7 @@
 use std::ffi::CString;
-use std::iter::Range;
 use std::marker;
 use std::mem;
+use std::ops::Range;
 use std::path::Path;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
@@ -218,7 +218,7 @@ impl Diff {
     /// Returns an iterator over the deltas in this diff.
     pub fn deltas(&self) -> Deltas {
         let num_deltas = unsafe { raw::git_diff_num_deltas(&*self.raw) };
-        Deltas { range: range(0, num_deltas as usize), diff: self }
+        Deltas { range: 0..(num_deltas as usize), diff: self }
     }
 
     /// Return the diff delta for an entry in the diff list.
