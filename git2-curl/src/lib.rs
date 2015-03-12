@@ -15,7 +15,7 @@
 //! > **NOTE**: At this time this crate likely does not support a `git push`
 //! >           operation, only clones.
 
-#![feature(core, io)]
+#![feature(io)]
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
 
 extern crate git2;
@@ -138,9 +138,10 @@ impl CurlSubtransport {
         let parsed = try!(Url::parse(&url).map_err(|_| {
             self.err("invalid url, failed to parse", None)
         }));
-        let host = try!(parsed.host().ok_or({
-            self.err("invalid url, did not have a host", None)
-        })).to_string();
+        let host = match parsed.host() {
+            Some(host) => host.to_string(),
+            None => return Err(self.err("invalid url, did not have a host", None)),
+        };
 
         // Prep the request
         debug!("request to {}", url);
