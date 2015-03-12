@@ -25,7 +25,7 @@ path = "libgit2-sys"
 version = "0.2"
 
 [dev-dependencies]
-docopt = "=0.6.40"
+docopt = "0.6"
 rustc-serialize = "0.3"
 time = "0.1"
 tempdir = "0.3"
