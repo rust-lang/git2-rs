@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![feature(old_path)]
 
 extern crate git2;
 extern crate docopt;
@@ -29,8 +28,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let path = args.flag_git_dir.as_ref().map(Path::new).unwrap_or(Path::new("."));
-    let repo = try!(Repository::open(&path));
+    let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
+    let repo = try!(Repository::open(path));
 
     let revspec = try!(repo.revparse(&args.arg_spec));
 

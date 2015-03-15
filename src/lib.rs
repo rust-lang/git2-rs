@@ -64,8 +64,7 @@
 //! itself.
 
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
-#![feature(unsafe_destructor, std_misc, core, path)]
-#![feature(io)]
+#![feature(unsafe_destructor, std_misc, core)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
 #![cfg_attr(test, feature(fs))]

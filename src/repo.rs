@@ -339,21 +339,14 @@ impl Repository {
     pub fn reset(&self,
                  target: &Object,
                  kind: ResetType,
-                 checkout: Option<&mut CheckoutBuilder>,
-                 signature: Option<&Signature>,
-                 log_message: Option<&str>)
+                 checkout: Option<&mut CheckoutBuilder>)
                  -> Result<(), Error> {
-        let msg = match log_message {
-            Some(s) => Some(try!(CString::new(s))),
-            None => None,
-        };
         unsafe {
             let mut opts: raw::git_checkout_options = mem::zeroed();
             let opts = checkout.map(|c| {
                 c.configure(&mut opts); &mut opts
             });
-            try_call!(raw::git_reset(self.raw, target.raw(), kind,
-                                     opts, signature.map(|s| s.raw()), msg));
+            try_call!(raw::git_reset(self.raw, target.raw(), kind, opts));
         }
         Ok(())
     }
@@ -587,23 +580,15 @@ impl Repository {
     pub fn branch(&self,
                   branch_name: &str,
                   target: &Commit,
-                  force: bool,
-                  signature: Option<&Signature>,
-                  log_message: Option<&str>) -> Result<Branch, Error> {
+                  force: bool) -> Result<Branch, Error> {
         let branch_name = try!(CString::new(branch_name));
-        let log_message = match log_message {
-            Some(s) => Some(try!(CString::new(s))),
-            None => None,
-        };
         let mut raw = 0 as *mut raw::git_reference;
         unsafe {
             try_call!(raw::git_branch_create(&mut raw,
                                              self.raw(),
                                              branch_name,
                                              target.raw(),
-                                             force,
-                                             signature.map(|s| s.raw()),
-                                             log_message));
+                                             force));
             Ok(Branch::wrap(Binding::from_raw(raw)))
         }
     }
@@ -683,7 +668,6 @@ impl Repository {
     /// the given name unless force is true, in which case it will be
     /// overwritten.
     pub fn reference(&self, name: &str, id: Oid, force: bool,
-                     sig: Option<&Signature>,
                      log_message: &str) -> Result<Reference, Error> {
         let name = try!(CString::new(name));
         let log_message = try!(CString::new(log_message));
@@ -691,7 +675,6 @@ impl Repository {
         unsafe {
             try_call!(raw::git_reference_create(&mut raw, self.raw(), name,
                                                 id.raw(), force,
-                                                sig.map(|s| s.raw()),
                                                 log_message));
             Ok(Binding::from_raw(raw))
         }
@@ -703,7 +686,7 @@ impl Repository {
     /// the given name unless force is true, in which case it will be
     /// overwritten.
     pub fn reference_symbolic(&self, name: &str, target: &str,
-                              force: bool, sig: Option<&Signature>,
+                              force: bool,
                               log_message: &str)
                               -> Result<Reference, Error> {
         let name = try!(CString::new(name));
@@ -713,7 +696,6 @@ impl Repository {
         unsafe {
             try_call!(raw::git_reference_symbolic_create(&mut raw, self.raw(),
                                                          name, target, force,
-                                                         sig.map(|s| s.raw()),
                                                          log_message));
             Ok(Binding::from_raw(raw))
         }
@@ -1355,9 +1337,8 @@ mod tests {
         let obj = repo.find_object(from.id(), None).unwrap().clone();
         obj.peel(ObjectType::Any).unwrap();
         obj.short_id().unwrap();
-        let sig = repo.signature().unwrap();
-        repo.reset(&obj, ResetType::Hard, None, None, None).unwrap();
-        repo.reset(&obj, ResetType::Soft, None, Some(&sig), Some("foo")).unwrap();
+        repo.reset(&obj, ResetType::Hard, None).unwrap();
+        repo.reset(&obj, ResetType::Soft, None).unwrap();
     }
 
     #[test]

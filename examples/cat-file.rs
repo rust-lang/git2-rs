@@ -13,13 +13,12 @@
  */
 
 #![deny(warnings)]
-#![feature(old_io, old_path)]
 
 extern crate git2;
 extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;
 
-use std::old_io::stdio;
+use std::io::{self, Write};
 
 use docopt::Docopt;
 use git2::{Repository, ObjectType, Blob, Commit, Signature, Tag, Tree};
@@ -38,7 +37,7 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), git2::Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(&Path::new(path)));
+    let repo = try!(Repository::open(path));
 
     let obj = try!(repo.revparse_single(&args.arg_object));
     if args.flag_v && !args.flag_q {
@@ -74,7 +73,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn show_blob(blob: &Blob) {
-    stdio::stdout().write_all(blob.content()).unwrap();
+    io::stdout().write_all(blob.content()).unwrap();
 }
 
 fn show_commit(commit: &Commit) {

@@ -7,7 +7,7 @@ use std::str;
 use libc;
 
 use {raw, Direction, Error, Refspec, Oid, IntoCString};
-use {Signature, Push, RemoteCallbacks, Progress, Repository};
+use {Push, RemoteCallbacks, Progress, Repository};
 use util::Binding;
 
 /// A structure representing a [remote][1] of a git repository.
@@ -228,28 +228,21 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// disconnect and update the remote-tracking branches.
     pub fn fetch(&mut self,
                  refspecs: &[&str],
-                 signature: Option<&Signature>,
                  msg: Option<&str>) -> Result<(), Error> {
         let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
         let msg = try!(::opt_cstr(msg));
         unsafe {
             try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_fetch(self.raw,
-                                            &arr,
-                                            signature.map(|s| s.raw()),
-                                            msg));
+            try_call!(raw::git_remote_fetch(self.raw, &arr, msg));
         }
         Ok(())
     }
 
     /// Update the tips to the new state
-    pub fn update_tips(&mut self, signature: Option<&Signature>,
-                       msg: Option<&str>) -> Result<(), Error> {
+    pub fn update_tips(&mut self, msg: Option<&str>) -> Result<(), Error> {
         let msg = try!(::opt_cstr(msg));
         unsafe {
-            try_call!(raw::git_remote_update_tips(self.raw,
-                                                  signature.map(|s| s.raw()),
-                                                  msg));
+            try_call!(raw::git_remote_update_tips(self.raw, msg));
         }
         Ok(())
     }
@@ -460,11 +453,10 @@ mod tests {
         origin.set_fetch_refspecs(["foo"].iter().map(|a| *a)).unwrap();
         origin.set_push_refspecs(["foo"].iter().map(|a| *a)).unwrap();
 
-        let sig = repo.signature().unwrap();
-        origin.fetch(&[], Some(&sig), None).unwrap();
-        origin.fetch(&[], None, Some("foo")).unwrap();
-        origin.update_tips(Some(&sig), None).unwrap();
-        origin.update_tips(None, Some("foo")).unwrap();
+        origin.fetch(&[], None).unwrap();
+        origin.fetch(&[], Some("foo")).unwrap();
+        origin.update_tips(None).unwrap();
+        origin.update_tips(Some("foo")).unwrap();
     }
 
     #[test]
@@ -509,7 +501,7 @@ mod tests {
                 true
             });
             origin.set_callbacks(&mut callbacks);
-            origin.fetch(&[], None, None).unwrap();
+            origin.fetch(&[], None).unwrap();
         }
         assert!(progress_hit.get());
     }

@@ -506,7 +506,7 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let mut index = repo.index().unwrap();
 
-        let root = repo.path().parent().unwrap().parent().unwrap();
+        let root = repo.path().parent().unwrap();
         fs::create_dir(&root.join("foo")).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
@@ -536,7 +536,7 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let mut index = repo.index().unwrap();
 
-        let root = repo.path().parent().unwrap().parent().unwrap();
+        let root = repo.path().parent().unwrap();
         fs::create_dir(&root.join("foo")).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         index.add_path(Path::new("foo/bar")).unwrap();
@@ -552,13 +552,13 @@ mod tests {
         let commit = repo.commit(Some("HEAD"), &sig, &sig, "commit",
                                  &tree, &[&parent]).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
-        repo.reset(&obj, ResetType::Hard, None, None, None).unwrap();
+        repo.reset(&obj, ResetType::Hard, None).unwrap();
 
         let td2 = TempDir::new("git").unwrap();
         let url = ::test::path2url(&root);
         let repo = Repository::clone(url.as_slice(), td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
-        repo.reset(&obj, ResetType::Hard, None, None, None).unwrap();
+        repo.reset(&obj, ResetType::Hard, None).unwrap();
     }
 }
 

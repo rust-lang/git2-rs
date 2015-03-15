@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![feature(old_io, core, old_path)]
+#![feature(io)]
 
 extern crate git2;
 extern crate docopt;
@@ -21,7 +21,7 @@ extern crate "rustc-serialize" as rustc_serialize;
 
 use docopt::Docopt;
 use git2::{Repository, RemoteCallbacks, Direction};
-use std::old_io::stdio;
+use std::io::{self, Write};
 use std::str;
 
 #[derive(RustcDecodable)]
@@ -30,9 +30,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open(&Path::new(".")));
-    let remote = args.arg_remote.as_ref().map(|s| s.as_slice())
-                     .unwrap_or("origin");
+    let repo = try!(Repository::open("."));
+    let remote = args.arg_remote.as_ref().map(|s| &s[..]).unwrap_or("origin");
 
     // Figure out whether it's a named remote or a URL
     println!("Fetcing {} for repo", remote);
@@ -42,7 +41,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     }));
     cb.sideband_progress(|data| {
         print!("remote: {}", str::from_utf8(data).unwrap());
-        stdio::flush();
+        io::stdout().flush().unwrap();
         true
     });
 
@@ -72,7 +71,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
                    stats.indexed_objects(),
                    stats.received_bytes());
         }
-        stdio::flush();
+        io::stdout().flush().unwrap();
         true
     });
 
@@ -110,7 +109,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // commits. This may be needed even if there was no packfile to download,
     // which can happen e.g. when the branches have been changed but all the
     // needed objects are available locally.
-    try!(remote.update_tips(None, None));
+    try!(remote.update_tips(None));
 
     Ok(())
 }

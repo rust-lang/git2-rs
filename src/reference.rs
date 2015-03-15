@@ -5,7 +5,7 @@ use std::mem;
 use std::str;
 use libc;
 
-use {raw, Error, Oid, Signature, Repository};
+use {raw, Error, Oid, Repository};
 use util::Binding;
 
 struct Refdb<'repo>(&'repo Repository);
@@ -156,15 +156,13 @@ impl<'repo> Reference<'repo> {
     /// If the force flag is not enabled, and there's already a reference with
     /// the given name, the renaming will fail.
     pub fn rename(&mut self, new_name: &str, force: bool,
-                  sig: Option<&Signature>,
                   msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         let new_name = try!(CString::new(new_name));
         let msg = try!(CString::new(msg));
         unsafe {
             try_call!(raw::git_reference_rename(&mut raw, self.raw, new_name,
-                                                force, sig.map(|s| s.raw()),
-                                                msg));
+                                                force, msg));
             Ok(Binding::from_raw(raw))
         }
     }
@@ -299,17 +297,15 @@ mod tests {
         assert_eq!(head.shorthand(), Some("master"));
         assert!(head.resolve().unwrap() == head);
 
-        let sig = repo.signature().unwrap();
         let mut tag1 = repo.reference("refs/tags/tag1",
                                       head.target().unwrap(),
-                                      false,
-                                      None, "test").unwrap();
+                                      false, "test").unwrap();
         assert!(tag1.is_tag());
         tag1.delete().unwrap();
 
         let mut sym1 = repo.reference_symbolic("refs/tags/tag1",
                                                "refs/heads/master", false,
-                                               Some(&sig), "test").unwrap();
+                                               "test").unwrap();
         sym1.delete().unwrap();
 
         {
@@ -322,7 +318,7 @@ mod tests {
             assert!(repo.references_glob("refs/heads/*").unwrap().count() == 1);
         }
 
-        let mut head = head.rename("refs/foo", true, None, "test").unwrap();
+        let mut head = head.rename("refs/foo", true, "test").unwrap();
         head.delete().unwrap();
 
     }

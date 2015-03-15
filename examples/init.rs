@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![feature(core, path)]
+#![feature(core)]
 
 extern crate git2;
 extern crate docopt;
@@ -57,7 +57,7 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if let Some(ref s) = args.flag_shared {
-            opts.mode(try!(parse_shared(s.as_slice())));
+            opts.mode(try!(parse_shared(&s)));
         }
         try!(Repository::init_opts(&path, &opts))
     };

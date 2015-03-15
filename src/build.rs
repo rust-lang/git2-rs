@@ -5,7 +5,7 @@ use std::mem;
 use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, Signature, Error, Repository, RemoteCallbacks, panic, IntoCString};
+use {raw, Error, Repository, RemoteCallbacks, panic, IntoCString};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -13,7 +13,6 @@ use util::{self, Binding};
 pub struct RepoBuilder<'cb> {
     bare: bool,
     branch: Option<CString>,
-    sig: Option<Signature<'static>>,
     local: bool,
     hardlinks: bool,
     checkout: Option<CheckoutBuilder<'cb>>,
@@ -51,7 +50,6 @@ impl<'cb> RepoBuilder<'cb> {
         RepoBuilder {
             bare: false,
             branch: None,
-            sig: None,
             local: true,
             hardlinks: true,
             checkout: None,
@@ -71,14 +69,6 @@ impl<'cb> RepoBuilder<'cb> {
     /// If not specified, the remote's default branch will be used.
     pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder<'cb> {
         self.branch = Some(CString::new(branch).unwrap());
-        self
-    }
-
-    /// Specify the identity that will be used when updating the reflog.
-    ///
-    /// If not specified, the default signature will be used.
-    pub fn signature(&mut self, sig: Signature<'static>) -> &mut RepoBuilder<'cb> {
-        self.sig = Some(sig);
         self
     }
 
@@ -128,9 +118,6 @@ impl<'cb> RepoBuilder<'cb> {
         opts.checkout_branch = self.branch.as_ref().map(|s| {
             s.as_ptr()
         }).unwrap_or(0 as *const _);
-        opts.signature = self.sig.as_ref().map(|s| {
-            s.raw()
-        }).unwrap_or(0 as *mut _);
 
         opts.local = match (self.local, self.hardlinks) {
             (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
@@ -138,7 +125,7 @@ impl<'cb> RepoBuilder<'cb> {
             (true, _) => raw::GIT_CLONE_LOCAL_AUTO,
         };
         opts.checkout_opts.checkout_strategy =
-            raw::GIT_CHECKOUT_SAFE_CREATE as c_uint;
+            raw::GIT_CHECKOUT_SAFE as c_uint;
 
         match self.callbacks {
             Some(ref mut cbs) => {
@@ -177,7 +164,7 @@ impl<'cb> CheckoutBuilder<'cb> {
             ancestor_label: None,
             our_label: None,
             their_label: None,
-            checkout_opts: raw::GIT_CHECKOUT_SAFE_CREATE as u32,
+            checkout_opts: raw::GIT_CHECKOUT_SAFE as u32,
             progress: None,
         }
     }
@@ -204,7 +191,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// This is the default.
     pub fn safe(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
-        self.checkout_opts |= raw::GIT_CHECKOUT_SAFE_CREATE as u32;
+        self.checkout_opts |= raw::GIT_CHECKOUT_SAFE as u32;
         self
     }
 

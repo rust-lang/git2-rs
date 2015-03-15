@@ -16,8 +16,9 @@ pub struct Config {
 ///
 /// An entry has a name, a value, and a level it applies to.
 pub struct ConfigEntry<'cfg> {
-    raw: *const raw::git_config_entry,
+    raw: *mut raw::git_config_entry,
     _marker: marker::PhantomData<&'cfg Config>,
+    owned: bool,
 }
 
 /// An iterator over the `ConfigEntry` values of a `Config` structure.
@@ -188,6 +189,8 @@ impl Config {
     }
 
     /// Get the value of a string config variable as a byte slice.
+    ///
+    /// This method will return an error if this `Config` is not a snapshot.
     pub fn get_bytes(&self, name: &str) -> Result<&[u8], Error> {
         let mut ret = 0 as *const libc::c_char;
         let name = try!(CString::new(name));
@@ -197,12 +200,36 @@ impl Config {
         }
     }
 
-    /// Get the ConfigEntry for a config variable.
-    pub fn get_entry(&self, name: &str) -> Result<ConfigEntry, Error> {
-        let mut ret = 0 as *const raw::git_config_entry;
+    /// Get the value of a string config variable as an owned string.
+    ///
+    /// An error will be returned if the config value is not valid utf-8.
+    pub fn get_string(&self, name: &str) -> Result<String, Error> {
+        let ret = Buf::new();
         let name = try!(CString::new(name));
         unsafe {
-            try_call!(raw::git_config_get_entry(&mut ret, &*self.raw, name));
+            try_call!(raw::git_config_get_string_buf(ret.raw(), self.raw, name));
+        }
+        str::from_utf8(&ret).map(|s| s.to_string()).map_err(|_| {
+            Error::from_str("configuration value is not valid utf8")
+        })
+    }
+
+    /// Get the value of a path config variable as an owned .
+    pub fn get_path(&self, name: &str) -> Result<PathBuf, Error> {
+        let ret = Buf::new();
+        let name = try!(CString::new(name));
+        unsafe {
+            try_call!(raw::git_config_get_path(ret.raw(), self.raw, name));
+        }
+        Ok(::util::bytes2path(&ret).to_path_buf())
+    }
+
+    /// Get the ConfigEntry for a config variable.
+    pub fn get_entry(&self, name: &str) -> Result<ConfigEntry, Error> {
+        let mut ret = 0 as *mut raw::git_config_entry;
+        let name = try!(CString::new(name));
+        unsafe {
+            try_call!(raw::git_config_get_entry(&mut ret, self.raw, name));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -365,16 +392,17 @@ impl<'cfg> ConfigEntry<'cfg> {
 }
 
 impl<'cfg> Binding for ConfigEntry<'cfg> {
-    type Raw = *const raw::git_config_entry;
+    type Raw = *mut raw::git_config_entry;
 
-    unsafe fn from_raw(raw: *const raw::git_config_entry)
+    unsafe fn from_raw(raw: *mut raw::git_config_entry)
                            -> ConfigEntry<'cfg> {
         ConfigEntry {
             raw: raw,
             _marker: marker::PhantomData,
+            owned: true,
         }
     }
-    fn raw(&self) -> *const raw::git_config_entry { self.raw }
+    fn raw(&self) -> *mut raw::git_config_entry { self.raw }
 }
 
 impl<'cfg> Binding for ConfigEntries<'cfg> {
@@ -401,7 +429,11 @@ impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
         let mut raw = 0 as *mut raw::git_config_entry;
         unsafe {
             if raw::git_config_next(&mut raw, self.raw) == 0 {
-                Some(Binding::from_raw(raw as *const _))
+                Some(ConfigEntry {
+                    owned: false,
+                    raw: raw,
+                    _marker: marker::PhantomData,
+                })
             } else {
                 None
             }
@@ -413,6 +445,15 @@ impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
 impl<'cfg> Drop for ConfigEntries<'cfg> {
     fn drop(&mut self) {
         unsafe { raw::git_config_iterator_free(self.raw) }
+    }
+}
+
+#[unsafe_destructor]
+impl<'cfg> Drop for ConfigEntry<'cfg> {
+    fn drop(&mut self) {
+        if self.owned {
+            unsafe { raw::git_config_entry_free(self.raw) }
+        }
     }
 }
 
@@ -446,7 +487,7 @@ mod tests {
         cfg.snapshot().unwrap();
         drop(cfg);
 
-        let cfg = Config::open(&path).unwrap();
+        let cfg = Config::open(&path).unwrap().snapshot().unwrap();
         assert_eq!(cfg.get_bool("foo.k1").unwrap(), true);
         assert_eq!(cfg.get_i32("foo.k2").unwrap(), 1);
         assert_eq!(cfg.get_i64("foo.k3").unwrap(), 2);

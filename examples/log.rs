@@ -12,7 +12,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![feature(core, old_path)]
 #![deny(warnings)]
 
 extern crate "rustc-serialize" as rustc_serialize;
@@ -48,8 +47,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let path = args.flag_git_dir.as_ref().map(|s| s.as_slice()).unwrap_or(".");
-    let repo = try!(Repository::open(&Path::new(path)));
+    let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
+    let repo = try!(Repository::open(path));
     let mut revwalk = try!(repo.revwalk());
 
     // Prepare the revwalk based on CLI parameters
@@ -67,7 +66,7 @@ fn run(args: &Args) -> Result<(), Error> {
             try!(revwalk.hide(obj.id()));
             continue
         }
-        let revspec = try!(repo.revparse(commit.as_slice()));
+        let revspec = try!(repo.revparse(&commit));
         if revspec.mode().contains(git2::REVPARSE_SINGLE) {
             try!(revwalk.push(revspec.from().unwrap().id()));
         } else {
@@ -157,8 +156,8 @@ fn run(args: &Args) -> Result<(), Error> {
 fn sig_matches(sig: Signature, arg: &Option<String>) -> bool {
     match *arg {
         Some(ref s) => {
-            sig.name().map(|n| n.contains(s.as_slice())).unwrap_or(false) ||
-                sig.email().map(|n| n.contains(s.as_slice())).unwrap_or(false)
+            sig.name().map(|n| n.contains(s)).unwrap_or(false) ||
+                sig.email().map(|n| n.contains(s)).unwrap_or(false)
         }
         None => true
     }
@@ -168,7 +167,7 @@ fn log_message_matches(msg: Option<&str>, grep: &Option<String>) -> bool {
     match (grep, msg) {
         (&None, _) => true,
         (&Some(_), None) => false,
-        (&Some(ref s), Some(msg)) => msg.contains(s.as_slice()),
+        (&Some(ref s), Some(msg)) => msg.contains(s),
     }
 }
 

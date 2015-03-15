@@ -14,7 +14,6 @@
  */
 
 #![deny(warnings)]
-#![feature(old_path)]
 
 extern crate git2;
 extern crate docopt;
@@ -33,7 +32,7 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open(&Path::new(".")));
+    let repo = try!(Repository::open("."));
     let mut revwalk = try!(repo.revwalk());
 
     let base = if args.flag_reverse {git2::SORT_REVERSE} else {git2::SORT_NONE};

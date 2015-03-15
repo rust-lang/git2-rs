@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![feature(path, core, old_io)]
+#![feature(io)]
 
 extern crate git2;
 extern crate docopt;
@@ -23,7 +23,7 @@ use docopt::Docopt;
 use git2::build::{RepoBuilder, CheckoutBuilder};
 use git2::{RemoteCallbacks, Progress};
 use std::cell::RefCell;
-use std::old_io::stdio;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(RustcDecodable)]
@@ -65,7 +65,7 @@ fn print(state: &mut State) {
                index_pct, stats.indexed_objects(), stats.total_objects(),
                co_pct, state.current, state.total, state.path.display());
     }
-    stdio::flush();
+    io::stdout().flush().unwrap();
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
@@ -94,8 +94,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     });
 
     try!(RepoBuilder::new().remote_callbacks(cb).with_checkout(co)
-                           .clone(args.arg_url.as_slice(),
-                                  Path::new(&args.arg_path)));
+                           .clone(&args.arg_url, Path::new(&args.arg_path)));
     println!("");
 
     Ok(())

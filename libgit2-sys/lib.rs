@@ -212,7 +212,6 @@ pub struct git_clone_options {
     pub bare: c_int,
     pub local: git_clone_local_t,
     pub checkout_branch: *const c_char,
-    pub signature: *mut git_signature,
     pub repository_cb: Option<git_repository_create_cb>,
     pub repository_cb_payload: *mut c_void,
     pub remote_cb: Option<git_remote_create_cb>,
@@ -247,6 +246,8 @@ pub struct git_checkout_options {
     pub ancestor_label: *const c_char,
     pub our_label: *const c_char,
     pub their_label: *const c_char,
+    pub perfdata_cb: Option<git_checkout_perfdata_cb>,
+    pub perdata_payload: *mut c_void,
 }
 
 pub type git_checkout_notify_cb = extern fn(git_checkout_notify_t,
@@ -259,6 +260,16 @@ pub type git_checkout_progress_cb = extern fn(*const c_char,
                                               size_t,
                                               size_t,
                                               *mut c_void);
+
+pub type git_checkout_perfdata_cb = extern fn(*const git_checkout_perfdata,
+                                              *mut c_void);
+
+#[repr(C)]
+pub struct git_checkout_perfdata {
+    pub mkdir_calls: size_t,
+    pub stat_calls: size_t,
+    pub chmod_calls: size_t,
+}
 
 #[repr(C)]
 pub struct git_remote_callbacks {
@@ -478,8 +489,7 @@ pub struct git_status_entry {
 pub enum git_checkout_strategy_t {
     GIT_CHECKOUT_NONE = 0,
     GIT_CHECKOUT_SAFE = (1 << 0),
-    GIT_CHECKOUT_SAFE_CREATE = (1 << 1),
-    GIT_CHECKOUT_FORCE = (1 << 2),
+    GIT_CHECKOUT_FORCE = (1 << 1),
     GIT_CHECKOUT_ALLOW_CONFLICTS = (1 << 4),
     GIT_CHECKOUT_REMOVE_UNTRACKED = (1 << 5),
     GIT_CHECKOUT_REMOVE_IGNORED = (1 << 6),
@@ -1262,10 +1272,8 @@ extern {
                              new_name: *const c_char) -> c_int;
     pub fn git_remote_fetch(remote: *mut git_remote,
                             refspecs: *const git_strarray,
-                            signature: *const git_signature,
                             reflog_message: *const c_char) -> c_int;
     pub fn git_remote_update_tips(remote: *mut git_remote,
-                                  signature: *const git_signature,
                                   reflog_message: *const c_char) -> c_int;
     pub fn git_remote_update_fetchhead(remote: *mut git_remote) -> c_int;
     pub fn git_remote_set_url(remote: *mut git_remote,
@@ -1347,9 +1355,7 @@ extern {
     pub fn git_reset(repo: *mut git_repository,
                      target: *mut git_object,
                      reset_type: git_reset_t,
-                     checkout_opts: *mut git_checkout_options,
-                     signature: *mut git_signature,
-                     log_message: *const c_char) -> c_int;
+                     checkout_opts: *mut git_checkout_options) -> c_int;
     pub fn git_reset_default(repo: *mut git_repository,
                              target: *mut git_object,
                              pathspecs: *mut git_strarray) -> c_int;
@@ -1375,7 +1381,6 @@ extern {
                                 r: *mut git_reference,
                                 new_name: *const c_char,
                                 force: c_int,
-                                sig: *const git_signature,
                                 log_message: *const c_char) -> c_int;
     pub fn git_reference_resolve(out: *mut *mut git_reference,
                                  r: *const git_reference) -> c_int;
@@ -1399,14 +1404,12 @@ extern {
                                 name: *const c_char,
                                 id: *const git_oid,
                                 force: c_int,
-                                sig: *const git_signature,
                                 log_message: *const c_char) -> c_int;
     pub fn git_reference_symbolic_create(out: *mut *mut git_reference,
                                          repo: *mut git_repository,
                                          name: *const c_char,
                                          target: *const c_char,
                                          force: c_int,
-                                         sig: *const git_signature,
                                          log_message: *const c_char) -> c_int;
 
     // submodules
@@ -1452,8 +1455,12 @@ extern {
     pub fn git_submodule_set_url(submodule: *mut git_submodule,
                                  url: *const c_char) -> c_int;
     pub fn git_submodule_sync(submodule: *mut git_submodule) -> c_int;
-    pub fn git_submodule_update(submodule: *mut git_submodule)
-                                -> git_submodule_update_t;
+    pub fn git_submodule_update_strategy(submodule: *mut git_submodule)
+                                         -> git_submodule_update_t;
+    // pub fn git_submodule_update(submodule: *mut git_submodule,
+    //                             init: c_int,
+    //                             options: *mut git_submodule_update_options)
+    //                             -> c_int;
     pub fn git_submodule_url(submodule: *mut git_submodule) -> *const c_char;
     pub fn git_submodule_wd_id(submodule: *mut git_submodule) -> *const git_oid;
     pub fn git_submodule_status(status: *mut c_uint,
@@ -1573,9 +1580,7 @@ extern {
                              repo: *mut git_repository,
                              branch_name: *const c_char,
                              target: *const git_commit,
-                             force: c_int,
-                             signature: *const git_signature,
-                             log_message: *const c_char) -> c_int;
+                             force: c_int) -> c_int;
     pub fn git_branch_delete(branch: *mut git_reference) -> c_int;
     pub fn git_branch_is_head(branch: *const git_reference) -> c_int;
     pub fn git_branch_iterator_free(iter: *mut git_branch_iterator);
@@ -1589,9 +1594,7 @@ extern {
     pub fn git_branch_move(out: *mut *mut git_reference,
                            branch: *mut git_reference,
                            new_branch_name: *const c_char,
-                           force: c_int,
-                           signature: *const git_signature,
-                           log_message: *const c_char) -> c_int;
+                           force: c_int) -> c_int;
     pub fn git_branch_name(out: *mut *const c_char,
                            branch: *const git_reference) -> c_int;
     pub fn git_branch_next(out: *mut *mut git_reference,
@@ -1671,7 +1674,7 @@ extern {
     pub fn git_config_get_bool(out: *mut c_int,
                                cfg: *const git_config,
                                name: *const c_char) -> c_int;
-    pub fn git_config_get_entry(out: *mut *const git_config_entry,
+    pub fn git_config_get_entry(out: *mut *mut git_config_entry,
                                 cfg: *const git_config,
                                 name: *const c_char) -> c_int;
     pub fn git_config_get_int32(out: *mut i32,
@@ -1683,6 +1686,12 @@ extern {
     pub fn git_config_get_string(out: *mut *const c_char,
                                  cfg: *const git_config,
                                  name: *const c_char) -> c_int;
+    pub fn git_config_get_string_buf(out: *mut git_buf,
+                                     cfg: *const git_config,
+                                     name: *const c_char) -> c_int;
+    pub fn git_config_get_path(out: *mut git_buf,
+                               cfg: *const git_config,
+                               name: *const c_char) -> c_int;
     pub fn git_config_iterator_free(iter: *mut git_config_iterator);
     pub fn git_config_iterator_glob_new(out: *mut *mut git_config_iterator,
                                         cfg: *const git_config,
@@ -1720,6 +1729,7 @@ extern {
                                  value: *const c_char) -> c_int;
     pub fn git_config_snapshot(out: *mut *mut git_config,
                                config: *mut git_config) -> c_int;
+    pub fn git_config_entry_free(entry: *mut git_config_entry);
 
     // cred
     pub fn git_cred_default_new(out: *mut *mut git_cred) -> c_int;

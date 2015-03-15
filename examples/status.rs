@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![feature(old_io, std_misc, core, path)]
+#![feature(old_io, std_misc)]
 
 extern crate git2;
 extern crate docopt;
@@ -51,7 +51,7 @@ fn run(args: &Args) -> Result<(), Error> {
 
     let mut opts = StatusOptions::new();
     opts.include_ignored(args.flag_ignored);
-    match args.flag_untracked_files.as_ref().map(|s| s.as_slice()) {
+    match args.flag_untracked_files.as_ref().map(|s| &s[..]) {
         Some("no") => { opts.include_untracked(false); }
         Some("normal") => { opts.include_untracked(true); }
         Some("all") => {
@@ -60,7 +60,7 @@ fn run(args: &Args) -> Result<(), Error> {
         Some(_) => return Err(Error::from_str("invalid untracked-files value")),
         None => {}
     }
-    match args.flag_ignore_submodules.as_ref().map(|s| s.as_slice()) {
+    match args.flag_ignore_submodules.as_ref().map(|s| &s[..]) {
         Some("all") => { opts.exclude_submodules(true); }
         Some(_) => return Err(Error::from_str("invalid ignore-submodules value")),
         None => {}
@@ -91,7 +91,11 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if args.flag_repeat {
-            std::old_io::timer::sleep(std::time::Duration::milliseconds(10000));
+            #[allow(deprecated)]
+            fn sleep() {
+                std::old_io::timer::sleep(std::time::Duration::milliseconds(10000));
+            }
+            sleep();
         } else {
             return Ok(())
         }

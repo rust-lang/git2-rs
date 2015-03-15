@@ -3,7 +3,7 @@ use std::marker;
 use std::str;
 use libc;
 
-use {raw, Error, Reference, Signature, BranchType, References};
+use {raw, Error, Reference, BranchType, References};
 use util::Binding;
 
 /// A structure to represent a git [branch][1]
@@ -44,17 +44,13 @@ impl<'repo> Branch<'repo> {
     }
 
     /// Move/rename an existing local branch reference.
-    pub fn rename(&mut self, new_branch_name: &str, force: bool,
-                  signature: Option<&Signature>,
-                  log_message: &str) -> Result<Branch<'repo>, Error> {
+    pub fn rename(&mut self, new_branch_name: &str, force: bool)
+                  -> Result<Branch<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_reference;
         let new_branch_name = try!(CString::new(new_branch_name));
-        let log_message = try!(CString::new(log_message));
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
-                                           new_branch_name, force,
-                                           signature.map(|s| s.raw()),
-                                           log_message));
+                                           new_branch_name, force));
             Ok(Branch::wrap(Binding::from_raw(ret)))
         }
     }
@@ -153,14 +149,13 @@ mod tests {
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();
 
-        let sig = repo.signature().unwrap();
-        let mut b1 = repo.branch("foo", &commit, false, None, Some("bar")).unwrap();
+        let mut b1 = repo.branch("foo", &commit, false).unwrap();
         assert!(!b1.is_head());
-        repo.branch("foo2", &commit, false, None, None).unwrap();
+        repo.branch("foo2", &commit, false).unwrap();
 
         assert_eq!(repo.branches(None).unwrap().count(), 3);
         repo.find_branch("foo", BranchType::Local).unwrap();
-        let mut b1 = b1.rename("bar", false, Some(&sig), "bar2").unwrap();
+        let mut b1 = b1.rename("bar", false).unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));
         assert!(b1.upstream().is_err());
         b1.set_upstream(Some("master")).unwrap();

@@ -10,8 +10,8 @@ macro_rules! call {
 }
 
 macro_rules! try_call {
-    ($($arg:tt)*) => ({
-        match ::call::try(call!($($arg)*)) {
+    (raw::$p:ident ($($e:expr),*)) => ({
+        match ::call::try(raw::$p($(::call::convert(&$e)),*)) {
             Ok(o) => o,
             Err(e) => { ::panic::check(); return Err(e) }
         }

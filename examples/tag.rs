@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![feature(old_path)]
 
 extern crate git2;
 extern crate docopt;
@@ -36,7 +35,7 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let repo = try!(Repository::open(&Path::new(".")));
+    let repo = try!(Repository::open("."));
 
     if let Some(ref name) = args.arg_tagname {
         let target = args.arg_object.as_ref().map(|s| &s[..]).unwrap_or("HEAD");

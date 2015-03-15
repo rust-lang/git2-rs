@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![feature(core, old_path)]
 
 extern crate git2;
 extern crate docopt;
@@ -28,8 +27,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open(&Path::new(".")));
-    let remote = args.arg_remote.as_slice();
+    let repo = try!(Repository::open("."));
+    let remote = &args.arg_remote;
     let mut remote = try!(repo.find_remote(remote).or_else(|_| {
         repo.remote_anonymous(remote, None)
     }));

@@ -202,28 +202,28 @@ impl CredentialHelper {
     // Configure the queried username from `config`
     fn config_username(&mut self, config: &Config) {
         let key = self.exact_key("username");
-        self.username = config.get_str(&key).ok().or_else(|| {
+        self.username = config.get_string(&key).ok().or_else(|| {
             self.url_key("username").and_then(|s| {
-                config.get_str(&s).ok()
+                config.get_string(&s).ok()
             })
         }).or_else(|| {
-            config.get_str("credential.username").ok()
-        }).map(|s| s.to_string());
+            config.get_string("credential.username").ok()
+        })
     }
 
     // Discover all `helper` directives from `config`
     fn config_helper(&mut self, config: &Config) {
-        let exact = config.get_str(&self.exact_key("helper"));
-        self.add_command(exact.ok());
+        let exact = config.get_string(&self.exact_key("helper"));
+        self.add_command(exact.as_ref().ok().map(|s| &s[..]));
         match self.url_key("helper") {
             Some(key) => {
-                let url = config.get_str(&key);
-                self.add_command(url.ok());
+                let url = config.get_string(&key);
+                self.add_command(url.as_ref().ok().map(|s| &s[..]));
             }
             None => {}
         }
-        let global = config.get_str("credential.helper");
-        self.add_command(global.ok());
+        let global = config.get_string("credential.helper");
+        self.add_command(global.as_ref().ok().map(|s| &s[..]));
     }
 
     // Add a `helper` configured command to the list of commands to execute.
