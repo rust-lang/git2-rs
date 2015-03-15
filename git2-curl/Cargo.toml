@@ -26,6 +26,7 @@ version = "0.2"
 civet = "0.7"
 conduit = "0.7"
 conduit-git-http-backend = "0.7"
+tempdir = "0.3"
 
 [[test]]
 name = "all"

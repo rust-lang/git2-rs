@@ -1,18 +1,15 @@
-#![feature(path, io, fs, old_io, old_path)]
-
+extern crate "conduit-git-http-backend" as git_backend;
+extern crate "git2-curl" as git2_curl;
 extern crate civet;
 extern crate conduit;
-extern crate git2;
 extern crate curl;
-extern crate "git2-curl" as git2_curl;
-extern crate "conduit-git-http-backend" as git_backend;
+extern crate git2;
+extern crate tempdir;
 
 use civet::{Server, Config};
 use std::fs::File;
 use std::path::Path;
 use tempdir::TempDir;
-
-mod tempdir;
 
 const PORT: u16 = 7848;
 
@@ -61,11 +58,11 @@ fn main() {
     }
 
     let mut remote = r.find_remote("origin").unwrap();
-    remote.fetch(&["refs/heads/*:refs/heads/*"], None, None).unwrap();
+    remote.fetch(&["refs/heads/*:refs/heads/*"], None).unwrap();
     let b = r.find_branch("master", git2::BranchType::Local).unwrap();
     let id = b.get().target().unwrap();
     let obj = r.find_object(id, None).unwrap();
-    r.reset(&obj, git2::ResetType::Hard, None, None, None).unwrap();;
+    r.reset(&obj, git2::ResetType::Hard, None).unwrap();;
 
     assert!(File::open(&td2.path().join("bar")).is_ok());
 }
