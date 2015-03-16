@@ -105,6 +105,20 @@ impl Cred {
         }
     }
 
+    /// Create a credential to specify a username.
+    ///
+    /// THis is used with ssh authentication to query for the username if non is
+    /// specified in the url.
+    pub fn username(username: &str) -> Result<Cred, Error> {
+        ::init();
+        let username = try!(CString::new(username));
+        let mut out = 0 as *mut raw::git_cred;
+        unsafe {
+            try_call!(raw::git_cred_username_new(&mut out, username));
+            Ok(Binding::from_raw(out))
+        }
+    }
+
     /// Check whether a credential object contains username information.
     pub fn has_username(&self) -> bool {
         unsafe { raw::git_cred_has_username(self.raw) == 1 }

@@ -250,6 +250,7 @@ Types of credentials that can be requested by a credential callback.
         const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32,
         const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32,
         const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32,
+        const USERNAME = raw::GIT_CREDTYPE_USERNAME as u32,
     }
 }
 

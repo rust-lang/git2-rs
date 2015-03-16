@@ -662,6 +662,7 @@ pub enum git_credtype_t {
     GIT_CREDTYPE_SSH_CUSTOM = 1 << 2,
     GIT_CREDTYPE_DEFAULT = 1 << 3,
     GIT_CREDTYPE_SSH_INTERACTIVE = 1 << 4,
+    GIT_CREDTYPE_USERNAME = 1 << 5,
 }
 
 pub type git_cred_ssh_interactive_callback = extern fn(
@@ -1759,6 +1760,8 @@ extern {
     pub fn git_cred_userpass_plaintext_new(out: *mut *mut git_cred,
                                            username: *const c_char,
                                            password: *const c_char) -> c_int;
+    pub fn git_cred_username_new(cred: *mut *mut git_cred,
+                                 username: *const c_char) -> c_int;
 
     // push
     pub fn git_push_add_refspec(push: *mut git_push,
