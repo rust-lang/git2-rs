@@ -1,5 +1,3 @@
-#![feature(io)]
-
 extern crate "pkg-config" as pkg_config;
 
 use std::io::ErrorKind;
@@ -84,7 +82,7 @@ fn run(cmd: &mut Command, program: &str) {
     println!("running: {:?}", cmd);
     let status = match cmd.status() {
         Ok(status) => status,
-        Err(ref e) if e.kind() == ErrorKind::FileNotFound => {
+        Err(ref e) if e.kind() == ErrorKind::NotFound => {
             fail(&format!("failed to execute command: {}\nis `{}` not installed?",
                           e, program));
         }

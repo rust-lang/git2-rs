@@ -281,6 +281,6 @@ mod tests {
 
         let list = ps.match_workdir(&repo, ::PATHSPEC_FIND_FAILURES).unwrap();
         assert_eq!(list.entries().len(), 1);
-        assert_eq!(list.entries().next(), Some(b"a"));
+        assert_eq!(list.entries().next(), Some("a".as_bytes()));
     }
 }

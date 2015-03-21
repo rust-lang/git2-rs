@@ -90,7 +90,7 @@ impl<'a> CertX509<'a> {
 
 impl<'a> Binding for Cert<'a> {
     type Raw = *mut raw::git_cert;
-    fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
         Cert { raw: raw, _marker: marker::PhantomData }
     }
     fn raw(&self) -> *mut raw::git_cert { self.raw }

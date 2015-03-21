@@ -67,7 +67,7 @@
 #![feature(unsafe_destructor, std_misc, core)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(fs))]
+#![cfg_attr(test, feature(fs, fs_ext))]
 
 extern crate libc;
 extern crate url;
