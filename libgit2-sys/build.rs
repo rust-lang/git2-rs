@@ -10,11 +10,6 @@ fn main() {
     register_dep("SSH2");
     register_dep("OPENSSL");
 
-    match pkg_config::Config::new().atleast_version("0.22.0").find("libgit2") {
-        Ok(_) => return,
-        Err(..) => {}
-    }
-
     let mut cflags = env::var("CFLAGS").unwrap_or(String::new());
     let target = env::var("TARGET").unwrap();
     let mingw = target.contains("windows-gnu");
