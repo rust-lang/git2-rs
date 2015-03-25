@@ -10,7 +10,7 @@ license = "MIT/Apache-2.0"
 description = "Native bindings to the libgit2 library"
 
 [lib]
-  name = "libgit2-sys"
+  name = "libgit2_sys"
   path = "lib.rs"
 
 [dependencies]

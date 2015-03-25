@@ -71,7 +71,7 @@
 
 extern crate libc;
 extern crate url;
-extern crate "libgit2-sys" as raw;
+extern crate libgit2_sys as raw;
 #[macro_use] extern crate bitflags;
 #[cfg(test)] extern crate tempdir;
 

@@ -3,9 +3,9 @@
 #![allow(raw_pointer_derive)]
 
 extern crate libc;
-extern crate "libssh2-sys" as libssh2;
-#[cfg(unix)] extern crate "openssl-sys" as openssl;
-#[cfg(unix)] extern crate "libz-sys" as libz;
+extern crate libssh2_sys as libssh2;
+#[cfg(unix)] extern crate openssl_sys as openssl;
+#[cfg(unix)] extern crate libz_sys as libz;
 
 pub use git_ref_t::*;
 pub use git_branch_t::*;
