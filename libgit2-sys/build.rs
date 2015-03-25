@@ -1,3 +1,5 @@
+#![feature(convert)]
+
 extern crate pkg_config;
 
 use std::io::ErrorKind;
@@ -24,8 +26,8 @@ fn main() {
         cflags.push_str(" -fPIC");
     }
 
-    let src = PathBuf::new(&env::var("CARGO_MANIFEST_DIR").unwrap());
-    let dst = PathBuf::new(&env::var("OUT_DIR").unwrap());
+    let src = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap());
+    let dst = PathBuf::from(&env::var("OUT_DIR").unwrap());
     let _ = fs::create_dir(&dst.join("build"));
 
     let mut cmd = Command::new("cmake");
@@ -91,7 +93,7 @@ fn run(cmd: &mut Command, program: &str) {
 fn register_dep(dep: &str) {
     match env::var(&format!("DEP_{}_ROOT", dep)) {
         Ok(s) => {
-            append("CMAKE_PREFIX_PATH", PathBuf::new(&s));
+            append("CMAKE_PREFIX_PATH", PathBuf::from(&s));
             append("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
         }
         Err(..) => {}
