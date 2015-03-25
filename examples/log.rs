@@ -14,7 +14,7 @@
 
 #![deny(warnings)]
 
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate docopt;
 extern crate git2;
 extern crate time;

@@ -68,7 +68,7 @@ mod tests {
         let blob = repo.find_blob(id).unwrap();
 
         assert_eq!(blob.id(), id);
-        assert_eq!(blob.content(), [5, 4, 6].as_slice());
+        assert_eq!(blob.content(), [5, 4, 6]);
 
         repo.find_object(id, None).unwrap().as_blob().unwrap();
     }
@@ -81,6 +81,6 @@ mod tests {
         let repo = Repository::init(td.path()).unwrap();
         let id = repo.blob_path(&path).unwrap();
         let blob = repo.find_blob(id).unwrap();
-        assert_eq!(blob.content(), [7, 8, 9].as_slice());
+        assert_eq!(blob.content(), [7, 8, 9]);
     }
 }

@@ -446,19 +446,19 @@ mod tests {
             format!("file://{}/bare", td.path().display())
         } else {
             format!("file:///{}/bare", td.path().display().to_string()
-                                         .as_slice().replace("\\", "/"))
+                                         .replace("\\", "/"))
         };
 
         let dst = td.path().join("foo");
-        RepoBuilder::new().clone(url.as_slice(), &dst).unwrap();
+        RepoBuilder::new().clone(&url, &dst).unwrap();
         fs::remove_dir_all(&dst).unwrap();
-        RepoBuilder::new().local(false).clone(url.as_slice(), &dst).unwrap();
+        RepoBuilder::new().local(false).clone(&url, &dst).unwrap();
         fs::remove_dir_all(&dst).unwrap();
         RepoBuilder::new().local(false).hardlinks(false).bare(true)
-                          .clone(url.as_slice(), &dst).unwrap();
+                          .clone(&url, &dst).unwrap();
         fs::remove_dir_all(&dst).unwrap();
         assert!(RepoBuilder::new().branch("foo")
-                                  .clone(url.as_slice(), &dst).is_err());
+                                  .clone(&url, &dst).is_err());
     }
 
 }

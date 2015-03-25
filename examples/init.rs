@@ -13,11 +13,11 @@
  */
 
 #![deny(warnings)]
-#![feature(core)]
+#![feature(core, convert)]
 
 extern crate git2;
 extern crate docopt;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 
 use docopt::Docopt;
 use git2::{Repository, RepositoryInitOptions, RepositoryInitMode, Error};
@@ -36,7 +36,7 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let mut path = PathBuf::new(&args.arg_directory);
+    let mut path = PathBuf::from(&args.arg_directory);
     let repo = if !args.flag_bare && args.flag_template.is_none() &&
                   args.flag_shared.is_none() &&
                   args.flag_separate_git_dir.is_none() {
@@ -53,7 +53,7 @@ fn run(args: &Args) -> Result<(), Error> {
         // working directory of the repository (with a git-link file)
         if let Some(ref s) = args.flag_separate_git_dir {
             opts.workdir_path(&path);
-            path = PathBuf::new(s);
+            path = PathBuf::from(s);
         }
 
         if let Some(ref s) = args.flag_shared {

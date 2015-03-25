@@ -12,11 +12,12 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![feature(convert)]
 #![deny(warnings)]
 
 extern crate git2;
 extern crate docopt;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 
 use docopt::Docopt;
 use git2::build::{RepoBuilder, CheckoutBuilder};
@@ -72,7 +73,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         progress: None,
         total: 0,
         current: 0,
-        path: PathBuf::new("."),
+        path: PathBuf::from("."),
         newline: false,
     });
     let mut cb = RemoteCallbacks::new();

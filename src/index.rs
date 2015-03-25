@@ -556,7 +556,7 @@ mod tests {
 
         let td2 = TempDir::new("git").unwrap();
         let url = ::test::path2url(&root);
-        let repo = Repository::clone(url.as_slice(), td2.path()).unwrap();
+        let repo = Repository::clone(&url, td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None).unwrap();
     }

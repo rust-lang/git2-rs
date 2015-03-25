@@ -122,7 +122,7 @@ mod tests {
 
         let (_td, repo) = ::test::repo_init();
         let url = ::test::path2url(&remote);
-        let mut remote = repo.remote("origin", url.as_slice()).unwrap();
+        let mut remote = repo.remote("origin", &url).unwrap();
 
         let mut push = remote.push().unwrap();
         push.add_refspec("refs/heads/master").unwrap();
@@ -130,7 +130,7 @@ mod tests {
         push.update_tips(None, None).unwrap();
         let v = push.statuses().unwrap();
         assert!(v.len() > 0);
-        assert_eq!(v[0].reference.as_slice(), "refs/heads/master");
+        assert_eq!(v[0].reference, "refs/heads/master");
         assert!(v[0].message.is_none());
     }
 }

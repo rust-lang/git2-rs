@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 use std::iter::IntoIterator;
 use std::mem;
-use std::path::{Path, AsPath};
+use std::path::Path;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
@@ -46,9 +46,9 @@ impl Repository {
     /// Attempt to open an already-existing repository at `path`.
     ///
     /// The path can point to either a normal or bare repository.
-    pub fn open<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         init();
-        let path = try!(path.as_path().into_c_string());
+        let path = try!(path.as_ref().into_c_string());
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_repository_open(&mut ret, path));
@@ -60,11 +60,11 @@ impl Repository {
     ///
     /// This starts at `path` and looks up the filesystem hierarchy
     /// until it finds a repository.
-    pub fn discover<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
+    pub fn discover<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         // TODO: this diverges significantly from the libgit2 API
         init();
         let buf = Buf::new();
-        let path = try!(path.as_path().into_c_string());
+        let path = try!(path.as_ref().into_c_string());
         unsafe {
             try_call!(raw::git_repository_discover(buf.raw(), path, 1,
                                                    0 as *const _));
@@ -77,24 +77,24 @@ impl Repository {
     /// This by default will create any necessary directories to create the
     /// repository, and it will read any user-specified templates when creating
     /// the repository. This behavior can be configured through `init_opts`.
-    pub fn init<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
+    pub fn init<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         Repository::init_opts(path, &RepositoryInitOptions::new())
     }
 
     /// Creates a new `--bare` repository in the specified folder.
     ///
     /// The folder must exist prior to invoking this function.
-    pub fn init_bare<P: AsPath + ?Sized>(path: &P) -> Result<Repository, Error> {
+    pub fn init_bare<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         Repository::init_opts(path, RepositoryInitOptions::new().bare(true))
     }
 
     /// Creates a new `--bare` repository in the specified folder.
     ///
     /// The folder must exist prior to invoking this function.
-    pub fn init_opts<P: AsPath + ?Sized>(path: &P, opts: &RepositoryInitOptions)
+    pub fn init_opts<P: AsRef<Path>>(path: P, opts: &RepositoryInitOptions)
                      -> Result<Repository, Error> {
         init();
-        let path = try!(path.as_path().into_c_string());
+        let path = try!(path.as_ref().into_c_string());
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             let mut opts = opts.raw();
@@ -107,10 +107,10 @@ impl Repository {
     ///
     /// See the `RepoBuilder` struct for more information. This function will
     /// delegate to a fresh `RepoBuilder`
-    pub fn clone<P: AsPath + ?Sized>(url: &str, into: &P)
-                                     -> Result<Repository, Error> {
+    pub fn clone<P: AsRef<Path>>(url: &str, into: P)
+                                 -> Result<Repository, Error> {
         ::init();
-        RepoBuilder::new().clone(url, into.as_path())
+        RepoBuilder::new().clone(url, into.as_ref())
     }
 
     /// Execute a rev-parse operation against the `spec` listed.

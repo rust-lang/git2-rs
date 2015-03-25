@@ -411,11 +411,11 @@ mod tests {
             format!("file://{}", remote.display())
         } else {
             format!("file:///{}", remote.display().to_string()
-                                        .as_slice().replace("\\", "/"))
+                                        .replace("\\", "/"))
         };
-        let mut origin = repo.remote("origin", url.as_slice()).unwrap();
+        let mut origin = repo.remote("origin", &url).unwrap();
         assert_eq!(origin.name(), Some("origin"));
-        assert_eq!(origin.url(), Some(url.as_slice()));
+        assert_eq!(origin.url(), Some(&url[..]));
         assert_eq!(origin.pushurl(), None);
 
         {
@@ -494,7 +494,7 @@ mod tests {
         let progress_hit = Cell::new(false);
         {
             let mut callbacks = RemoteCallbacks::new();
-            let mut origin = repo.remote("origin", url.as_slice()).unwrap();
+            let mut origin = repo.remote("origin", &url).unwrap();
 
             callbacks.transfer_progress(|_progress| {
                 progress_hit.set(true);

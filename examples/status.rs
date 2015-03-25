@@ -17,7 +17,7 @@
 
 extern crate git2;
 extern crate docopt;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 
 use std::str;
 use docopt::Docopt;
