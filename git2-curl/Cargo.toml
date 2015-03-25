@@ -16,7 +16,7 @@ Intended to be used with the git2 crate.
 [dependencies]
 curl = "0.2"
 url = "0.2"
-log = "0.2"
+log = "0.3"
 
 [dependencies.git2]
 path = ".."

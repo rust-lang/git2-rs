@@ -1,5 +1,5 @@
-extern crate "conduit-git-http-backend" as git_backend;
-extern crate "git2-curl" as git2_curl;
+extern crate conduit_git_http_backend as git_backend;
+extern crate git2_curl;
 extern crate civet;
 extern crate conduit;
 extern crate curl;
