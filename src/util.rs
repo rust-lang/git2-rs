@@ -1,4 +1,4 @@
-use std::ffi::{CString, AsOsStr, OsStr, OsString};
+use std::ffi::{CString, OsStr, OsString};
 use std::iter::IntoIterator;
 use std::path::{Path, PathBuf};
 use libc::{c_char, size_t};
@@ -95,13 +95,15 @@ impl IntoCString for CString {
 
 impl<'a> IntoCString for &'a Path {
     fn into_c_string(self) -> Result<CString, Error> {
-        self.as_os_str().into_c_string()
+        let s: &OsStr = self.as_ref();
+        s.into_c_string()
     }
 }
 
 impl IntoCString for PathBuf {
     fn into_c_string(self) -> Result<CString, Error> {
-        self.as_os_str().into_c_string()
+        let s: OsString = self.into();
+        s.into_c_string()
     }
 }
 
@@ -115,7 +117,8 @@ impl IntoCString for OsString {
     #[cfg(unix)]
     fn into_c_string(self) -> Result<CString, Error> {
         use std::os::unix::prelude::*;
-        Ok(try!(CString::new(self.as_os_str().as_bytes())))
+        let s: &OsStr = self.as_ref();
+        Ok(try!(CString::new(s.as_bytes())))
     }
     #[cfg(windows)]
     fn into_c_string(self) -> Result<CString, Error> {
