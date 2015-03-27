@@ -13,6 +13,7 @@
  */
 
 #![deny(warnings)]
+#![allow(trivial_casts)]
 
 extern crate git2;
 extern crate docopt;

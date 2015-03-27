@@ -63,7 +63,7 @@ impl<'a> Signature<'a> {
 
     /// Gets the name on the signature as a byte slice.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).name as *const _).unwrap() }
+        unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() }
     }
 
     /// Gets the email on the signature.
@@ -75,7 +75,7 @@ impl<'a> Signature<'a> {
 
     /// Gets the email on the signature as a byte slice.
     pub fn email_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).email as *const _).unwrap() }
+        unsafe { ::opt_bytes(self, (*self.raw).email).unwrap() }
     }
 
     /// Get the `when` of this signature.
