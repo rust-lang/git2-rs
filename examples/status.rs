@@ -13,7 +13,7 @@
  */
 
 #![deny(warnings)]
-#![feature(old_io, std_misc)]
+#![feature(thread_sleep, std_misc)]
 
 extern crate git2;
 extern crate docopt;
@@ -91,11 +91,7 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if args.flag_repeat {
-            #[allow(deprecated)]
-            fn sleep() {
-                std::old_io::timer::sleep(std::time::Duration::milliseconds(10000));
-            }
-            sleep();
+            std::thread::sleep(std::time::Duration::milliseconds(10000));
         } else {
             return Ok(())
         }
