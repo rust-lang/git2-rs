@@ -56,8 +56,8 @@ fn main() {
     if mingw || target.contains("windows") {
         println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
                                     -l ws2_32 -l bcrypt -l crypt32 \
-                                    -l git2:static -L {}",
-                 dst.join("lib").display());
+                                    -l static=git2");
+        println!("cargo:rustc-link-search=native={}/lib", dst.display());
         return
     }
 
