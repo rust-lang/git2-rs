@@ -276,7 +276,6 @@ impl<'commit> DoubleEndedIterator for ParentIds<'commit> {
 
 impl<'commit> ExactSizeIterator for ParentIds<'commit> {}
 
-#[unsafe_destructor]
 impl<'repo> Drop for Commit<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_commit_free(self.raw) }

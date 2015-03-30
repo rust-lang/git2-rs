@@ -201,7 +201,6 @@ impl<'repo> Binding for Reference<'repo> {
     fn raw(&self) -> *mut raw::git_reference { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Reference<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_reference_free(self.raw) }
@@ -242,7 +241,6 @@ impl<'repo> Iterator for References<'repo> {
     }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for References<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_reference_iterator_free(self.raw) }

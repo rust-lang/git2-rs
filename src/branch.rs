@@ -131,7 +131,6 @@ impl<'repo> Iterator for Branches<'repo> {
     }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Branches<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_branch_iterator_free(self.raw) }

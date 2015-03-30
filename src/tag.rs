@@ -98,7 +98,6 @@ impl<'repo> Binding for Tag<'repo> {
     fn raw(&self) -> *mut raw::git_tag { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Tag<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_tag_free(self.raw) }

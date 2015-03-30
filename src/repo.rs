@@ -1109,7 +1109,6 @@ impl Binding for Repository {
     fn raw(&self) -> *mut raw::git_repository { self.raw }
 }
 
-#[unsafe_destructor]
 impl Drop for Repository {
     fn drop(&mut self) {
         unsafe { raw::git_repository_free(self.raw) }

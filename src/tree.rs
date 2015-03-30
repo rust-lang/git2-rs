@@ -106,7 +106,6 @@ impl<'repo> Binding for Tree<'repo> {
     fn raw(&self) -> *mut raw::git_tree { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Tree<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_tree_free(self.raw) }
@@ -217,7 +216,6 @@ impl<'a> PartialEq for TreeEntry<'a> {
 }
 impl<'a> Eq for TreeEntry<'a> {}
 
-#[unsafe_destructor]
 impl<'a> Drop for TreeEntry<'a> {
     fn drop(&mut self) {
         if self.owned {

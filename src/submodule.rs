@@ -194,7 +194,6 @@ impl<'repo> Binding for Submodule<'repo> {
     fn raw(&self) -> *mut raw::git_submodule { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Submodule<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_submodule_free(self.raw) }

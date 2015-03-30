@@ -336,7 +336,6 @@ impl<'repo, 'cb> Binding for Remote<'repo, 'cb> {
     fn raw(&self) -> *mut raw::git_remote { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'a, 'b> Drop for Remote<'a, 'b> {
     fn drop(&mut self) {
         unsafe { raw::git_remote_free(self.raw) }

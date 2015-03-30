@@ -46,7 +46,6 @@ impl<'repo> Binding for Blob<'repo> {
 }
 
 
-#[unsafe_destructor]
 impl<'repo> Drop for Blob<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_blob_free(self.raw) }

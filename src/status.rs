@@ -269,7 +269,6 @@ impl<'repo> Binding for Statuses<'repo> {
     fn raw(&self) -> *mut raw::git_status_list { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Statuses<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_status_list_free(self.raw); }

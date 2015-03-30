@@ -131,7 +131,6 @@ impl Clone for Signature<'static> {
     }
 }
 
-#[unsafe_destructor]
 impl<'a> Drop for Signature<'a> {
     fn drop(&mut self) {
         if self.owned {

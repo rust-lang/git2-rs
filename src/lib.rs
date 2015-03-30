@@ -64,7 +64,7 @@
 //! itself.
 
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
-#![feature(unsafe_destructor, catch_panic, convert)]
+#![feature(catch_panic, convert)]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]

@@ -112,7 +112,6 @@ impl<'repo> Binding for Object<'repo> {
     fn raw(&self) -> *mut raw::git_object { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Object<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_object_free(self.raw) }

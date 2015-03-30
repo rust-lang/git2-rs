@@ -157,7 +157,6 @@ impl<'repo> Binding for Revwalk<'repo> {
     fn raw(&self) -> *mut raw::git_revwalk { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Revwalk<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_revwalk_free(self.raw) }

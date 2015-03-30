@@ -102,7 +102,6 @@ impl<'remote> Binding for Push<'remote> {
     fn raw(&self) -> *mut raw::git_push { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'a> Drop for Push<'a> {
     fn drop(&mut self) {
         unsafe { raw::git_push_free(self.raw) }

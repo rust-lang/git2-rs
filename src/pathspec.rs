@@ -127,7 +127,6 @@ impl Binding for Pathspec {
     fn raw(&self) -> *mut raw::git_pathspec { self.raw }
 }
 
-#[unsafe_destructor]
 impl Drop for Pathspec {
     fn drop(&mut self) {
         unsafe { raw::git_pathspec_free(self.raw) }
@@ -207,7 +206,6 @@ impl<'ps> Binding for PathspecMatchList<'ps> {
     fn raw(&self) -> *mut raw::git_pathspec_match_list { self.raw }
 }
 
-#[unsafe_destructor]
 impl<'ps> Drop for PathspecMatchList<'ps> {
     fn drop(&mut self) {
         unsafe { raw::git_pathspec_match_list_free(self.raw) }

@@ -441,14 +441,12 @@ impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
     }
 }
 
-#[unsafe_destructor]
 impl<'cfg> Drop for ConfigEntries<'cfg> {
     fn drop(&mut self) {
         unsafe { raw::git_config_iterator_free(self.raw) }
     }
 }
 
-#[unsafe_destructor]
 impl<'cfg> Drop for ConfigEntry<'cfg> {
     fn drop(&mut self) {
         if self.owned {

@@ -62,7 +62,6 @@ impl<'repo> Binding for Note<'repo> {
 }
 
 
-#[unsafe_destructor]
 impl<'repo> Drop for Note<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_note_free(self.raw); }
@@ -92,7 +91,6 @@ impl<'repo> Iterator for Notes<'repo> {
     }
 }
 
-#[unsafe_destructor]
 impl<'repo> Drop for Notes<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_note_iterator_free(self.raw); }

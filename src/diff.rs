@@ -302,7 +302,6 @@ impl Binding for Diff {
     fn raw(&self) -> *mut raw::git_diff { self.raw }
 }
 
-#[unsafe_destructor]
 impl Drop for Diff {
     fn drop(&mut self) {
         unsafe { raw::git_diff_free(self.raw) }
@@ -836,7 +835,6 @@ impl Binding for DiffStats {
     fn raw(&self) -> *mut raw::git_diff_stats { self.raw }
 }
 
-#[unsafe_destructor]
 impl Drop for DiffStats {
     fn drop(&mut self) {
         unsafe { raw::git_diff_stats_free(self.raw) }

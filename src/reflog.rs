@@ -88,7 +88,6 @@ impl Binding for Reflog {
     fn raw(&self) -> *mut raw::git_reflog { self.raw }
 }
 
-#[unsafe_destructor]
 impl Drop for Reflog {
     fn drop(&mut self) {
         unsafe { raw::git_reflog_free(self.raw) }
