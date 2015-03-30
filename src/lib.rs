@@ -64,7 +64,7 @@
 //! itself.
 
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
-#![feature(unsafe_destructor, std_misc, convert)]
+#![feature(unsafe_destructor, catch_panic, convert)]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
@@ -279,8 +279,8 @@ Flags for the return value of `Repository::revparse`
     }
 }
 
+#[macro_use] mod panic;
 mod call;
-mod panic;
 mod util;
 
 pub mod build;

@@ -5,7 +5,7 @@ use std::slice;
 use std::str;
 use libc::{c_void, c_int, c_char, c_uint};
 
-use {raw, panic, Error, Cred, CredentialType, Oid};
+use {raw, Error, Cred, CredentialType, Oid};
 use cert::Cert;
 use util::Binding;
 
@@ -223,34 +223,35 @@ impl<'a> Binding for Progress<'a> {
     }
 }
 
-extern fn credentials_cb(ret: *mut *mut raw::git_cred,
-                         url: *const c_char,
-                         username_from_url: *const c_char,
-                         allowed_types: c_uint,
-                         payload: *mut c_void) -> c_int {
-    unsafe {
-        let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
-        let callback = match payload.credentials {
-            Some(ref mut c) => c,
-            None => return raw::GIT_PASSTHROUGH as c_int,
-        };
-        *ret = 0 as *mut raw::git_cred;
-        let url = match str::from_utf8(CStr::from_ptr(url).to_bytes())  {
-            Ok(url) => url,
-            Err(_) => return raw::GIT_PASSTHROUGH as c_int,
-        };
-        let username_from_url = match ::opt_bytes(&url, username_from_url) {
-            Some(username) => match str::from_utf8(username) {
-                Ok(s) => Some(s),
-                Err(_) => return raw::GIT_PASSTHROUGH as c_int,
-            },
-            None => None,
-        };
+wrap_env! {
+    fn credentials_cb(ret: *mut *mut raw::git_cred,
+                      url: *const c_char,
+                      username_from_url: *const c_char,
+                      allowed_types: c_uint,
+                      payload: *mut c_void) -> c_int {
+        unsafe {
+            let payload = &mut *(payload as *mut RemoteCallbacks);
+            let callback = try!(payload.credentials.as_mut()
+                                       .ok_or(raw::GIT_PASSTHROUGH as c_int));
+            *ret = 0 as *mut raw::git_cred;
+            let url = try!(str::from_utf8(CStr::from_ptr(url).to_bytes())
+                              .map_err(|_| raw::GIT_PASSTHROUGH as c_int));
+            let username_from_url = match ::opt_bytes(&url, username_from_url) {
+                Some(username) => {
+                    Some(try!(str::from_utf8(username)
+                                 .map_err(|_| raw::GIT_PASSTHROUGH as c_int)))
+                }
+                None => None,
+            };
 
-        let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
-        match panic::wrap(|| {
-            callback(url, username_from_url, cred_type)
-        }) {
+            let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
+            callback(url, username_from_url, cred_type).map_err(|e| {
+                e.raw_code() as c_int
+            })
+        }
+    }
+    returning ok as unsafe {
+        match ok {
             Some(Ok(cred)) => {
                 // Turns out it's a memory safety issue if we pass through any
                 // and all credentials into libgit2
@@ -261,80 +262,82 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
                     raw::GIT_PASSTHROUGH as c_int
                 }
             }
-            Some(Err(e)) => e.raw_code() as c_int,
+            Some(Err(e)) => e,
             None => -1,
         }
     }
 }
 
-extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
-                               payload: *mut c_void) -> c_int {
-    unsafe {
-        let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
-        let callback = match payload.progress {
-            Some(ref mut c) => c,
-            None => return 0,
-        };
-        let progress = Binding::from_raw(stats);
-        let ok = panic::wrap(move || {
+wrap_env! {
+    fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
+                            payload: *mut c_void) -> c_int {
+        unsafe {
+            let payload = &mut *(payload as *mut RemoteCallbacks);
+            let callback = match payload.progress {
+                Some(ref mut c) => c,
+                None => return true,
+            };
+            let progress = Binding::from_raw(stats);
             callback(progress)
-        }).unwrap_or(false);
-        if ok {0} else {-1}
+        }
     }
+    returning ok as (if ok == Some(true) {0} else {-1})
 }
 
-extern fn sideband_progress_cb(str: *const c_char,
-                               len: c_int,
-                               payload: *mut c_void) -> c_int {
-    unsafe {
-        let payload: &mut RemoteCallbacks = &mut *(payload as *mut RemoteCallbacks);
-        let callback = match payload.sideband_progress {
-            Some(ref mut c) => c,
-            None => return 0,
-        };
-        let buf = slice::from_raw_parts(str as *const u8, len as usize);
-        let ok = panic::wrap(|| {
+wrap_env! {
+    fn sideband_progress_cb(str: *const c_char,
+                            len: c_int,
+                            payload: *mut c_void) -> c_int {
+        unsafe {
+            let payload = &mut *(payload as *mut RemoteCallbacks);
+            let callback = match payload.sideband_progress {
+                Some(ref mut c) => c,
+                None => return true,
+            };
+            let buf = slice::from_raw_parts(str as *const u8, len as usize);
             callback(buf)
-        }).unwrap_or(false);
-        if ok {0} else {-1}
+        }
     }
+    returning ok as (if ok == Some(true) {0} else {-1})
 }
 
-extern fn update_tips_cb(refname: *const c_char,
-                         a: *const raw::git_oid,
-                         b: *const raw::git_oid,
-                         data: *mut c_void) -> c_int {
-    unsafe {
-        let payload: &mut RemoteCallbacks = &mut *(data as *mut RemoteCallbacks);
-        let callback = match payload.update_tips {
-            Some(ref mut c) => c,
-            None => return 0,
-        };
-        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes()).unwrap();
-        let a = Binding::from_raw(a);
-        let b = Binding::from_raw(b);
-        let ok = panic::wrap(|| {
+wrap_env! {
+    fn update_tips_cb(refname: *const c_char,
+                      a: *const raw::git_oid,
+                      b: *const raw::git_oid,
+                      data: *mut c_void) -> c_int {
+        unsafe {
+            let payload = &mut *(data as *mut RemoteCallbacks);
+            let callback = match payload.update_tips {
+                Some(ref mut c) => c,
+                None => return true,
+            };
+            let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes())
+                              .unwrap();
+            let a = Binding::from_raw(a);
+            let b = Binding::from_raw(b);
             callback(refname, a, b)
-        }).unwrap_or(false);
-        if ok {0} else {-1}
+        }
     }
+    returning ok as (if ok == Some(true) {0} else {-1})
 }
 
-extern fn certificate_check_cb(cert: *mut raw::git_cert,
-                               _valid: c_int,
-                               hostname: *const c_char,
-                               data: *mut c_void) -> c_int {
-    unsafe {
-        let payload: &mut RemoteCallbacks = &mut *(data as *mut RemoteCallbacks);
-        let callback = match payload.certificate_check {
-            Some(ref mut c) => c,
-            None => return -1,
-        };
-        let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes()).unwrap();
-        let cert = Binding::from_raw(cert);
-        let ok = panic::wrap(|| {
+wrap_env! {
+    fn certificate_check_cb(cert: *mut raw::git_cert,
+                            _valid: c_int,
+                            hostname: *const c_char,
+                            data: *mut c_void) -> c_int {
+        unsafe {
+            let payload = &mut *(data as *mut RemoteCallbacks);
+            let callback = match payload.certificate_check {
+                Some(ref mut c) => c,
+                None => return true,
+            };
+            let cert = Binding::from_raw(cert);
+            let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes())
+                               .unwrap();
             callback(&cert, hostname)
-        }).unwrap_or(false);
-        if ok {0} else {-1}
+        }
     }
+    returning ok as (if ok == Some(true) {0} else {-1})
 }

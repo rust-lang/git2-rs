@@ -6,7 +6,7 @@ use std::path::Path;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
-use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+use {raw, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
 use {DiffStatsFormat, IntoCString};
 use util::{self, Binding};
 
@@ -72,6 +72,8 @@ pub struct DiffHunk<'a> {
 pub struct DiffStats {
     raw: *mut raw::git_diff_stats,
 }
+
+type PrintCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
 
 impl Diff {
     /// Create a diff with the difference between two tree objects.
@@ -242,28 +244,12 @@ impl Diff {
                     where F: FnMut(DiffDelta,
                                    Option<DiffHunk>,
                                    DiffLine) -> bool {
+        let mut cb: &mut PrintCb = &mut cb;
+        let ptr = &mut cb as *mut _;
         unsafe {
-            try_call!(raw::git_diff_print(self.raw, format, print::<F>,
-                                          &mut cb as *mut _ as *mut _));
+            try_call!(raw::git_diff_print(self.raw, format, print_cb,
+                                          ptr as *mut _));
             return Ok(())
-        }
-        extern fn print<F>(delta: *const raw::git_diff_delta,
-                           hunk: *const raw::git_diff_hunk,
-                           line: *const raw::git_diff_line,
-                           data: *mut c_void) -> c_int
-                           where F: FnMut(DiffDelta, Option<DiffHunk>,
-                                          DiffLine) -> bool
-        {
-            unsafe {
-                let delta = Binding::from_raw(delta as *mut _);
-                let hunk = Binding::from_raw_opt(hunk);
-                let line = Binding::from_raw(line);
-                let data = data as *mut F;
-                let ok = panic::wrap(move || {
-                    (*data)(delta, hunk, line)
-                }).unwrap_or(false);
-                if ok {0} else {-1}
-            }
         }
     }
 
@@ -290,6 +276,22 @@ impl Diff {
     }
 
     // TODO: num_deltas_of_type, foreach, format_email, find_similar
+}
+
+wrap_env! {
+    fn print_cb(delta: *const raw::git_diff_delta,
+                hunk: *const raw::git_diff_hunk,
+                line: *const raw::git_diff_line,
+                data: *mut c_void) -> c_int {
+        unsafe {
+            let delta = Binding::from_raw(delta as *mut _);
+            let hunk = Binding::from_raw_opt(hunk);
+            let line = Binding::from_raw(line);
+            let data = data as *mut &mut PrintCb;
+            (*data)(delta, hunk, line)
+        }
+    }
+    returning ok as if ok == Some(true) {0} else {-1}
 }
 
 impl Binding for Diff {
