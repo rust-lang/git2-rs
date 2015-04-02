@@ -15,7 +15,6 @@
 //! > **NOTE**: At this time this crate likely does not support a `git push`
 //! >           operation, only clones.
 
-#![feature(io)]
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
 
 extern crate git2;
@@ -26,6 +25,7 @@ extern crate url;
 use std::io::prelude::*;
 use std::io::{self, Cursor};
 use std::sync::{Once, ONCE_INIT, Arc, Mutex};
+use std::error;
 
 use curl::http::handle::Method;
 use curl::http::{Handle, Request};
@@ -123,24 +123,24 @@ impl SmartSubtransport for CurlTransport {
 }
 
 impl CurlSubtransport {
-    fn err(&self, desc: &'static str, detail: Option<String>) -> io::Error {
-        io::Error::new(io::ErrorKind::Other, desc, detail)
+    fn err<E: Into<Box<error::Error+Send>>>(&self, err: E) -> io::Error {
+        io::Error::new(io::ErrorKind::Other, err)
     }
 
     fn execute(&mut self, mut data: &[u8]) -> io::Result<()> {
         if self.sent_request {
-            return Err(self.err("already sent HTTP request", None))
+            return Err(self.err("already sent HTTP request"))
         }
         let agent = format!("git/1.0 (git2-curl {})", env!("CARGO_PKG_VERSION"));
 
         // Parse our input URL to figure out the host
         let url = format!("{}{}", self.base_url, self.url_path);
         let parsed = try!(Url::parse(&url).map_err(|_| {
-            self.err("invalid url, failed to parse", None)
+            self.err("invalid url, failed to parse")
         }));
         let host = match parsed.host() {
             Some(host) => host.to_string(),
-            None => return Err(self.err("invalid url, did not have a host", None)),
+            None => return Err(self.err("invalid url, did not have a host")),
         };
 
         // Prep the request
@@ -164,13 +164,11 @@ impl CurlSubtransport {
         }
 
         // Send the request
-        let resp = try!(req.exec().map_err(|e| {
-            self.err("failed to complete HTTP request", Some(e.to_string()))
-        }));
+        let resp = try!(req.exec().map_err(|e| self.err(e)));
         debug!("response: {}", resp);
         if resp.get_code() != 200 {
-            return Err(self.err("failed to receive HTTP 200 response",
-                                Some(format!("got {}", resp.get_code()))))
+            return Err(self.err(&format!("failed to receive HTTP 200 response: \
+                                          got {}", resp.get_code())[..]))
         }
 
         // Check returned headers
@@ -180,10 +178,10 @@ impl CurlSubtransport {
             _ => format!("application/x-git-{}-result", self.service),
         };
         if &resp.get_header("content-type") != &[expected.clone()] {
-            return Err(self.err("invalid Content-Type header",
-                                Some(format!("found `{:?}` expected `{}`",
-                                             resp.get_header("Content-Type"),
-                                             expected))))
+            return Err(self.err(&format!("invalid Content-Type header: \
+                                          found `{:?}` expected `{}`",
+                                         resp.get_header("Content-Type"),
+                                         expected)[..]))
         }
 
         // Ok, time to read off some data.

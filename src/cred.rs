@@ -335,7 +335,7 @@ impl CredentialHelper {
         let mut username = None;
         let mut password = None;
         for line in output.split(|t| *t == b'\n') {
-            let mut parts = line.splitn(1, |t| *t == b'=');
+            let mut parts = line.splitn(2, |t| *t == b'=');
             let key = parts.next().unwrap();
             let value = match parts.next() { Some(s) => s, None => continue };
             let value = match String::from_utf8(value.to_vec()) {

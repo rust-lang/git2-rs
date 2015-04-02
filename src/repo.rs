@@ -1301,8 +1301,8 @@ mod tests {
         assert!(!repo.is_bare());
         assert!(!repo.is_shallow());
         assert!(repo.is_empty().unwrap());
-        assert_eq!(::test::realpath(&repo.path()),
-                   ::test::realpath(&td.path().join(".git/")));
+        assert_eq!(::test::realpath(&repo.path()).unwrap(),
+                   ::test::realpath(&td.path().join(".git/")).unwrap());
         assert_eq!(repo.state(), ::RepositoryState::Clean);
     }
 
@@ -1314,8 +1314,8 @@ mod tests {
 
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
-        assert_eq!(::test::realpath(&repo.path()),
-                   ::test::realpath(&td.path().join("")));
+        assert_eq!(::test::realpath(&repo.path()).unwrap(),
+                   ::test::realpath(&td.path().join("")).unwrap());
     }
 
     #[test]
@@ -1353,8 +1353,8 @@ mod tests {
         fs::create_dir(&subdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
         let repo = Repository::discover(&subdir).unwrap();
-        assert_eq!(::test::realpath(&repo.path()),
-                   ::test::realpath(&td.path().join("")));
+        assert_eq!(::test::realpath(&repo.path()).unwrap(),
+                   ::test::realpath(&td.path().join("")).unwrap());
     }
 
     fn graph_repo_init() -> (TempDir, Repository) {

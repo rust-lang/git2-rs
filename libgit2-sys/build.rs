@@ -1,5 +1,3 @@
-#![feature(convert)]
-
 extern crate pkg_config;
 
 use std::io::ErrorKind;

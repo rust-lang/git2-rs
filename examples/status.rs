@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![feature(thread_sleep, std_misc)]
 
 extern crate git2;
 extern crate docopt;
@@ -91,7 +90,7 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if args.flag_repeat {
-            std::thread::sleep(std::time::Duration::milliseconds(10000));
+            std::thread::sleep_ms(10000);
         } else {
             return Ok(())
         }
