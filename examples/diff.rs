@@ -68,7 +68,7 @@ const RED: &'static str = "\u{1b}[31m";
 const GREEN: &'static str = "\u{1b}[32m";
 const CYAN: &'static str = "\u{1b}[36m";
 
-#[derive(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 enum Cache { Normal, Only, None }
 
 fn run(args: &Args) -> Result<(), Error> {
