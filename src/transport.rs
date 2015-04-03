@@ -54,7 +54,7 @@ pub trait SmartSubtransport: Send + 'static {
 }
 
 /// Actions that a smart transport can ask a subtransport to perform
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 #[allow(missing_docs)]
 pub enum Service {
     UploadPackLs,

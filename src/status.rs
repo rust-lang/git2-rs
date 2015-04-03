@@ -18,7 +18,7 @@ pub struct StatusOptions {
 
 /// Enumeration of possible methods of what can be shown through a status
 /// operation.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum StatusShow {
     /// Only gives status based on HEAD to index comparison, not looking at
     /// working directory changes.

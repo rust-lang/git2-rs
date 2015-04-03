@@ -89,7 +89,7 @@ pub struct git_error {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct git_oid {
     pub id: [u8; GIT_OID_RAWSZ],
 }
@@ -99,6 +99,9 @@ pub struct git_oid {
 pub struct git_strarray {
     pub strings: *mut *mut c_char,
     pub count: size_t,
+}
+impl Clone for git_strarray {
+    fn clone(&self) -> git_strarray { *self }
 }
 
 #[repr(C)]
@@ -147,7 +150,7 @@ pub enum git_error_code {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_error_t {
     GITERR_NONE = 0,
     GITERR_NOMEMORY,
@@ -183,7 +186,7 @@ pub enum git_error_t {
 pub use git_error_t::*;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_repository_state_t {
     GIT_REPOSITORY_STATE_NONE,
     GIT_REPOSITORY_STATE_MERGE,
@@ -198,7 +201,7 @@ pub enum git_repository_state_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_direction {
     GIT_DIRECTION_FETCH = 0,
     GIT_DIRECTION_PUSH = 1,
@@ -219,7 +222,7 @@ pub struct git_clone_options {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_clone_local_t {
     GIT_CLONE_LOCAL_AUTO,
     GIT_CLONE_LOCAL,
@@ -293,7 +296,7 @@ pub struct git_remote_callbacks {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_remote_completion_type {
     GIT_REMOTE_COMPLETION_DOWNLOAD,
     GIT_REMOTE_COMPLETION_INDEXING,
@@ -317,7 +320,7 @@ pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
                                                         *mut c_void) -> c_int;
 
 #[repr(C)]
-#[derive(Copy, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum git_cert_t {
     GIT_CERT_X509,
     GIT_CERT_HOSTKEY_LIBSSH2,
@@ -344,14 +347,14 @@ pub struct git_cert_x509 {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_cert_ssh_t {
     GIT_CERT_SSH_MD5 = 1 << 0,
     GIT_CERT_SSH_SHA1 = 1 << 1,
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct git_transfer_progress {
     pub total_objects: c_uint,
     pub indexed_objects: c_uint,
@@ -381,7 +384,7 @@ pub type git_remote_create_cb = extern fn(*mut *mut git_remote,
                                           *mut c_void) -> c_int;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_checkout_notify_t {
     GIT_CHECKOUT_NOTIFY_NONE = 0,
     GIT_CHECKOUT_NOTIFY_CONFLICT = (1 << 0),
@@ -394,7 +397,7 @@ pub enum git_checkout_notify_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_status_t {
     GIT_STATUS_CURRENT = 0,
 
@@ -415,7 +418,7 @@ pub enum git_status_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_status_opt_t {
     GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
     GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
@@ -437,7 +440,7 @@ pub enum git_status_opt_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_status_show_t {
     GIT_STATUS_SHOW_INDEX_AND_WORKDIR = 0,
     GIT_STATUS_SHOW_INDEX_ONLY = 1,
@@ -445,7 +448,7 @@ pub enum git_status_show_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_delta_t {
     GIT_DELTA_UNMODIFIED = 0,
     GIT_DELTA_ADDED = 1,
@@ -485,7 +488,7 @@ pub struct git_status_entry {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_checkout_strategy_t {
     GIT_CHECKOUT_NONE = 0,
     GIT_CHECKOUT_SAFE = (1 << 0),
@@ -511,7 +514,7 @@ pub enum git_checkout_strategy_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_reset_t {
     GIT_RESET_SOFT = 1,
     GIT_RESET_MIXED = 2,
@@ -519,7 +522,7 @@ pub enum git_reset_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_otype {
     GIT_OBJ_ANY = -2,
     GIT_OBJ_BAD = -1,
@@ -534,7 +537,7 @@ pub enum git_otype {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_ref_t {
     GIT_REF_INVALID = 0,
     GIT_REF_OID = 1,
@@ -543,7 +546,7 @@ pub enum git_ref_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_filemode_t {
     GIT_FILEMODE_UNREADABLE          = 0o000000,
     GIT_FILEMODE_TREE                = 0o040000,
@@ -554,7 +557,7 @@ pub enum git_filemode_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_treewalk_mode {
     GIT_TREEWALK_PRE = 0,
     GIT_TREEWALK_POST = 1,
@@ -564,7 +567,7 @@ pub type git_treewalk_cb = extern fn(*const c_char, *const git_tree_entry,
                                      *mut c_void) -> c_int;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct git_buf {
     pub ptr: *mut c_char,
     pub asize: size_t,
@@ -572,7 +575,7 @@ pub struct git_buf {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_branch_t {
     GIT_BRANCH_LOCAL = 1,
     GIT_BRANCH_REMOTE = 2,
@@ -583,7 +586,7 @@ pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
                                                *mut c_void) -> c_int;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct git_index_entry {
     pub ctime: git_index_time,
     pub mtime: git_index_time,
@@ -614,7 +617,7 @@ pub struct git_config_entry {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_config_level_t {
     GIT_CONFIG_LEVEL_SYSTEM = 1,
     GIT_CONFIG_LEVEL_XDG = 2,
@@ -625,7 +628,7 @@ pub enum git_config_level_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_submodule_update_t {
     GIT_SUBMODULE_UPDATE_RESET    = -1,
     GIT_SUBMODULE_UPDATE_CHECKOUT = 1,
@@ -636,7 +639,7 @@ pub enum git_submodule_update_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_submodule_ignore_t {
     GIT_SUBMODULE_IGNORE_RESET     = -1,
 
@@ -655,7 +658,7 @@ pub struct git_cred {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_credtype_t {
     GIT_CREDTYPE_USERPASS_PLAINTEXT = 1 << 0,
     GIT_CREDTYPE_SSH_KEY = 1 << 1,
@@ -690,7 +693,7 @@ pub enum LIBSSH2_USERAUTH_KBDINT_PROMPT {}
 pub enum LIBSSH2_USERAUTH_KBDINT_RESPONSE {}
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct git_push_options {
     pub version: c_uint,
     pub pb_parallelism: c_uint,
@@ -701,7 +704,7 @@ pub type git_tag_foreach_cb = extern fn(name: *const c_char,
                                         payload: *mut c_void) -> c_int;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_index_add_option_t {
     GIT_INDEX_ADD_DEFAULT = 0,
     GIT_INDEX_ADD_FORCE = 1 << 0,
@@ -724,7 +727,7 @@ pub struct git_repository_init_options {
 pub const GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_repository_init_flag_t {
     GIT_REPOSITORY_INIT_BARE              = (1 << 0),
     GIT_REPOSITORY_INIT_NO_REINIT         = (1 << 1),
@@ -735,7 +738,7 @@ pub enum git_repository_init_flag_t {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum git_repository_init_mode_t {
     GIT_REPOSITORY_INIT_SHARED_UMASK = 0,
     GIT_REPOSITORY_INIT_SHARED_GROUP = 0o002775,

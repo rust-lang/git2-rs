@@ -165,7 +165,7 @@ pub enum RepositoryState {
 }
 
 /// An enumeration of the possible directions for a remote.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum Direction {
     /// Data will be fetched (read) from this remote.
     Fetch,
@@ -175,7 +175,7 @@ pub enum Direction {
 
 /// An enumeration of the operations that can be performed for the `reset`
 /// method on a `Repository`.
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum ResetType {
     /// Move the head to the given commit.
     Soft,
@@ -186,7 +186,7 @@ pub enum ResetType {
 }
 
 /// An enumeration all possible kinds objects may have.
-#[derive(PartialEq, Eq, Copy, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ObjectType {
     /// An object which corresponds to a any git object
     Any,
@@ -201,7 +201,7 @@ pub enum ObjectType {
 }
 
 /// An enumeration for the possible types of branches
-#[derive(PartialEq, Eq, Debug, Copy)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum BranchType {
     /// A local branch not on a remote.
     Local,
@@ -213,7 +213,7 @@ pub enum BranchType {
 ///
 /// The levels corresponding to the escalation logic (higher to lower) when
 /// searching for config entries.
-#[derive(PartialEq, Eq, Debug, Copy)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
@@ -452,7 +452,7 @@ Mode options for RepositoryInitOptions
 }
 
 /// What type of change is described by a `DiffDelta`?
-#[derive(Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum Delta {
     /// No changes
     Unmodified,
@@ -567,7 +567,7 @@ bitflags! {
 }
 
 /// Possible output formats for diff data
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub enum DiffFormat {
     /// full git diff
     Patch,
