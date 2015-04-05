@@ -1016,12 +1016,14 @@ pub struct git_smart_subtransport {
 }
 
 pub type git_smart_subtransport_cb = extern fn(*mut *mut git_smart_subtransport,
-                                               *mut git_transport) -> c_int;
+                                               *mut git_transport,
+                                               *mut c_void) -> c_int;
 
 #[repr(C)]
 pub struct git_smart_subtransport_definition {
     pub callback: git_smart_subtransport_cb,
     pub rpc: c_uint,
+    pub param: *mut c_void,
 }
 
 /// Initialize openssl for the libgit2 library
@@ -1861,7 +1863,7 @@ extern {
                            oid: *const git_oid,
                            note: *const c_char,
                            force: c_int) -> c_int;
-    pub fn git_note_default_ref(out: *mut *const c_char,
+    pub fn git_note_default_ref(out: *mut git_buf,
                                 repo: *mut git_repository) -> c_int;
     pub fn git_note_free(note: *mut git_note);
     pub fn git_note_id(note: *const git_note) -> *const git_oid;

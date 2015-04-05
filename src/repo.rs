@@ -958,12 +958,12 @@ impl Repository {
     }
 
     /// Get the default notes reference for this repository
-    pub fn note_default_ref(&self) -> Result<&str, Error> {
-        let mut ret = 0 as *const c_char;
+    pub fn note_default_ref(&self) -> Result<String, Error> {
+        let ret = Buf::new();
         unsafe {
-            try_call!(raw::git_note_default_ref(&mut ret, self.raw));
-            Ok(str::from_utf8(::opt_bytes(self, ret).unwrap()).unwrap())
+            try_call!(raw::git_note_default_ref(ret.raw(), self.raw));
         }
+        Ok(str::from_utf8(&ret).unwrap().to_string())
     }
 
     /// Creates a new iterator for notes in this repository.

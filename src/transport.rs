@@ -6,7 +6,6 @@ use std::io;
 use std::mem;
 use std::slice;
 use std::str;
-use std::sync::{Once, ONCE_INIT, Mutex};
 use libc::{c_int, c_void, c_uint, c_char, size_t};
 
 use {raw, Error, Remote};
@@ -135,17 +134,9 @@ impl Transport {
                     subtransport: S) -> Result<Transport, Error>
         where S: SmartSubtransport
     {
-        static INIT: Once = ONCE_INIT;
-        static mut LOCK: *mut Mutex<()> = 0 as *mut _;
-        static mut PTR: usize = 0;
-
-        let mut defn = raw::git_smart_subtransport_definition {
-            callback: smart_factory,
-            rpc: rpc as c_uint,
-        };
         let mut ret = 0 as *mut _;
 
-        let raw = Box::new(RawSmartSubtransport {
+        let mut raw = Box::new(RawSmartSubtransport {
             raw: raw::git_smart_subtransport {
                 action: subtransport_action,
                 close: subtransport_close,
@@ -153,6 +144,11 @@ impl Transport {
             },
             obj: Box::new(subtransport),
         });
+        let mut defn = raw::git_smart_subtransport_definition {
+            callback: smart_factory,
+            rpc: rpc as c_uint,
+            param: &mut *raw as *mut _ as *mut _,
+        };
 
         // Currently there's no way to pass a paload via the
         // git_smart_subtransport_definition structure, but it's only used as a
@@ -162,31 +158,19 @@ impl Transport {
         // We, however, need some state (gotta pass in our
         // `RawSmartSubtransport`). This also means that this block must be
         // entirely synchronized with a lock (boo!)
-        INIT.call_once(init_lock);
         unsafe {
-            let _g = (*LOCK).lock();
-            assert!(PTR == 0);
-            PTR = &*raw as *const RawSmartSubtransport as usize;
             try_call!(raw::git_transport_smart(&mut ret, remote.raw(),
                                                &mut defn as *mut _ as *mut _));
             mem::forget(raw); // ownership transport to `ret`
-            PTR = 0;
         }
         return Ok(Transport { raw: ret, owned: true });
 
         extern fn smart_factory(out: *mut *mut raw::git_smart_subtransport,
-                                _owner: *mut raw::git_transport) -> c_int {
+                                _owner: *mut raw::git_transport,
+                                ptr: *mut c_void) -> c_int {
             unsafe {
-                assert!(PTR as usize != 0);
-                *out = PTR as *mut raw::git_smart_subtransport;
+                *out = ptr as *mut raw::git_smart_subtransport;
                 0
-            }
-        }
-
-        fn init_lock() {
-            unsafe {
-                assert!(LOCK.is_null());
-                LOCK = mem::transmute(Box::new(Mutex::new(())));
             }
         }
     }
