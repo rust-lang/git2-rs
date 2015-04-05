@@ -5,6 +5,13 @@ use url::Url;
 
 use Repository;
 
+macro_rules! t {
+    ($e:expr) => (match $e {
+        Ok(e) => e,
+        Err(e) => panic!("{} failed with {}", stringify!($e), e),
+    })
+}
+
 pub fn repo_init() -> (TempDir, Repository) {
     let td = TempDir::new("test").unwrap();
     let repo = Repository::init(td.path()).unwrap();

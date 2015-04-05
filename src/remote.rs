@@ -390,13 +390,23 @@ mod tests {
     #[test]
     fn smoke() {
         let (td, repo) = ::test::repo_init();
-        repo.remote("origin", "/path/to/nowhere").unwrap();
+        t!(repo.remote("origin", "/path/to/nowhere"));
         drop(repo);
 
-        let repo = Repository::init(td.path()).unwrap();
-        let origin = repo.find_remote("origin").unwrap();
+        let repo = t!(Repository::init(td.path()));
+        let mut origin = t!(repo.find_remote("origin"));
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some("/path/to/nowhere"));
+        assert_eq!(origin.pushurl(), None);
+
+        t!(origin.set_url("/path/to/elsewhere"));
+        assert_eq!(origin.url(), Some("/path/to/elsewhere"));
+        t!(origin.set_pushurl(Some("/path/to/elsewhere")));
+        assert_eq!(origin.pushurl(), Some("/path/to/elsewhere"));
+
+        origin.set_update_fetchhead(true);
+        let stats = origin.stats();
+        assert_eq!(stats.total_objects(), 0);
     }
 
     #[test]
@@ -426,6 +436,7 @@ mod tests {
             assert_eq!(spec.src(), Some("refs/heads/*"));
             assert!(spec.is_force());
         }
+        assert!(origin.refspecs().next_back().is_some());
         {
             let remotes = repo.remotes().unwrap();
             assert_eq!(remotes.len(), 1);
@@ -443,11 +454,12 @@ mod tests {
         origin.download(&[]).unwrap();
         origin.disconnect();
 
-        origin.save().unwrap();
+        t!(origin.save());
 
-        origin.add_fetch("foo").unwrap();
-        origin.add_fetch("bar").unwrap();
+        t!(origin.add_fetch("foo"));
+        t!(origin.add_fetch("bar"));
         origin.clear_refspecs();
+        t!(origin.update_fetchhead());
 
         origin.set_fetch_refspecs(["foo"].iter().map(|a| *a)).unwrap();
         origin.set_push_refspecs(["foo"].iter().map(|a| *a)).unwrap();
@@ -501,6 +513,13 @@ mod tests {
             });
             origin.set_callbacks(&mut callbacks);
             origin.fetch(&[], None).unwrap();
+
+            let list = t!(origin.list());
+            assert_eq!(list.len(), 2);
+            assert_eq!(list[0].name(), "HEAD");
+            assert!(!list[0].is_local());
+            assert_eq!(list[1].name(), "refs/heads/master");
+            assert!(!list[1].is_local());
         }
         assert!(progress_hit.get());
     }

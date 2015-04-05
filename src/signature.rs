@@ -155,5 +155,6 @@ mod tests {
         assert_eq!(s.email(), Some("bar"));
 
         drop(s.clone());
+        drop(s.to_owned());
     }
 }

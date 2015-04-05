@@ -68,7 +68,7 @@
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(test, feature(fs, fs_ext))]
+#![cfg_attr(all(test, unix), feature(fs, fs_ext))]
 
 extern crate libc;
 extern crate url;
@@ -279,6 +279,7 @@ Flags for the return value of `Repository::revparse`
     }
 }
 
+#[cfg(test)] #[macro_use] mod test;
 #[macro_use] mod panic;
 mod call;
 mod util;
@@ -316,8 +317,6 @@ mod submodule;
 mod tag;
 mod time;
 mod tree;
-
-#[cfg(test)] mod test;
 
 fn init() {
     static INIT: Once = ONCE_INIT;

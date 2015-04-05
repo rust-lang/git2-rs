@@ -93,7 +93,7 @@ impl StatusOptions {
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
     pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
-                                       -> &mut StatusOptions {
+                                    -> &mut StatusOptions {
         let s = pathspec.into_c_string().unwrap();
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
@@ -341,6 +341,9 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 #[cfg(test)]
 mod tests {
     use std::fs::File;
+    use std::path::Path;
+    use std::io::prelude::*;
+    use super::StatusOptions;
 
     #[test]
     fn smoke() {
@@ -357,5 +360,37 @@ mod tests {
         let diff = status.index_to_workdir().unwrap();
         assert_eq!(diff.old_file().path_bytes().unwrap(), b"foo");
         assert_eq!(diff.new_file().path_bytes().unwrap(), b"foo");
+    }
+
+    #[test]
+    fn filter() {
+        let (td, repo) = ::test::repo_init();
+        t!(File::create(&td.path().join("foo")));
+        t!(File::create(&td.path().join("bar")));
+        let mut opts = StatusOptions::new();
+        opts.include_untracked(true)
+            .pathspec("foo");
+
+        let statuses = t!(repo.statuses(Some(&mut opts)));
+        assert_eq!(statuses.iter().count(), 1);
+        let status = statuses.iter().next().unwrap();
+        assert_eq!(status.path(), Some("foo"));
+    }
+
+    #[test]
+    fn gitignore() {
+        let (td, repo) = ::test::repo_init();
+        t!(t!(File::create(td.path().join(".gitignore"))).write_all(b"foo\n"));
+        assert!(!t!(repo.status_should_ignore(Path::new("bar"))));
+        assert!(t!(repo.status_should_ignore(Path::new("foo"))));
+    }
+
+    #[test]
+    fn status_file() {
+        let (td, repo) = ::test::repo_init();
+        assert!(repo.status_file(Path::new("foo")).is_err());
+        t!(File::create(td.path().join("foo")));
+        let status = t!(repo.status_file(Path::new("foo")));
+        assert!(status.contains(::STATUS_WT_NEW));
     }
 }

@@ -136,4 +136,20 @@ mod tests {
 
         repo.tag_delete("foo").unwrap();
     }
+
+    #[test]
+    fn lite() {
+        let (_td, repo) = ::test::repo_init();
+        let head = t!(repo.head());
+        let id = head.target().unwrap();
+        let obj = t!(repo.find_object(id, None));
+        let tag_id = t!(repo.tag_lightweight("foo", &obj, false));
+        assert!(repo.find_tag(tag_id).is_err());
+        assert_eq!(t!(repo.refname_to_id("refs/tags/foo")), id);
+
+        let tags = t!(repo.tag_names(Some("f*")));
+        assert_eq!(tags.len(), 1);
+        let tags = t!(repo.tag_names(Some("b*")));
+        assert_eq!(tags.len(), 0);
+    }
 }

@@ -118,5 +118,9 @@ mod tests {
         assert_eq!(b, head);
 
         assert_eq!(repo.note_default_ref().unwrap(), "refs/notes/commits");
+
+        assert_eq!(sig.name(), note_obj.author().name());
+        assert_eq!(sig.name(), note_obj.committer().name());
+        assert!(sig.when() == note_obj.committer().when());
     }
 }

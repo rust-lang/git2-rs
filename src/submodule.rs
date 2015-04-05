@@ -203,7 +203,9 @@ impl<'repo> Drop for Submodule<'repo> {
 #[cfg(test)]
 mod tests {
     use std::path::Path;
+    use std::fs;
     use tempdir::TempDir;
+    use url::Url;
 
     use Repository;
 
@@ -214,6 +216,8 @@ mod tests {
         let mut s1 = repo.submodule("/path/to/nowhere",
                                     Path::new("foo"), true).unwrap();
         s1.init(false).unwrap();
+        s1.sync().unwrap();
+
         let s2 = repo.submodule("/path/to/nowhere",
                                 Path::new("bar"), true).unwrap();
         drop((s1, s2));
@@ -232,5 +236,20 @@ mod tests {
         s.open().unwrap();
         assert!(s.path() == Path::new("bar"));
         s.reload(true).unwrap();
+    }
+
+    #[test]
+    fn add_a_submodule() {
+        let (_td, repo1) = ::test::repo_init();
+        let (td, repo2) = ::test::repo_init();
+
+        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let mut s = repo2.submodule(&url.to_string(), Path::new("bar"),
+                                    true).unwrap();
+        t!(fs::remove_dir_all(td.path().join("bar")));
+        t!(Repository::clone(&url.to_string(),
+                             td.path().join("bar")));
+        t!(s.add_to_index(false));
+        t!(s.add_finalize());
     }
 }

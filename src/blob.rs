@@ -68,6 +68,7 @@ mod tests {
 
         assert_eq!(blob.id(), id);
         assert_eq!(blob.content(), [5, 4, 6]);
+        assert!(blob.is_binary());
 
         repo.find_object(id, None).unwrap().as_blob().unwrap();
     }

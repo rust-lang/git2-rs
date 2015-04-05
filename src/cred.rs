@@ -355,7 +355,7 @@ impl CredentialHelper {
 #[cfg(test)]
 mod test {
     use std::env;
-    use std::fs::{self, File};
+    use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
     use tempdir::TempDir;
@@ -459,6 +459,7 @@ echo username=c
     #[cfg(unix)]
     fn chmod(path: &Path) {
         use std::os::unix::prelude::*;
+        use std::fs;
         let mut perms = fs::metadata(path).unwrap().permissions();
         perms.set_mode(0o755);
         fs::set_permissions(path, perms).unwrap();

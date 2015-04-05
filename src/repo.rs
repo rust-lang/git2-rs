@@ -1272,6 +1272,7 @@ mod tests {
     use std::fs;
     use tempdir::TempDir;
     use {Repository, ObjectType, ResetType};
+    use build::CheckoutBuilder;
 
     #[test]
     fn smoke_init() {
@@ -1337,7 +1338,8 @@ mod tests {
         obj.peel(ObjectType::Any).unwrap();
         obj.short_id().unwrap();
         repo.reset(&obj, ResetType::Hard, None).unwrap();
-        repo.reset(&obj, ResetType::Soft, None).unwrap();
+        let mut opts = CheckoutBuilder::new();
+        t!(repo.reset(&obj, ResetType::Soft, Some(&mut opts)));
     }
 
     #[test]
