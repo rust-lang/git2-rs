@@ -66,7 +66,7 @@ fn main() {
         }
     }
 
-    println!("cargo:rustc-flags=-l git2:static");
+    println!("cargo:rustc-flags=-l static=git2");
     println!("cargo:rustc-flags=-L {}", dst.join("lib").display());
     if target.contains("apple") {
         println!("cargo:rustc-flags=-l iconv");
