@@ -75,17 +75,21 @@ fn main() {
 
 fn run(cmd: &mut Command, program: &str) {
     println!("running: {:?}", cmd);
-    let status = match cmd.status() {
-        Ok(status) => status,
+    match cmd.output() {
+        Ok(out) => {
+            if !out.status.success() {
+                fail(&format!("command did not execute successfully, got: {}\n --stdout: {}\n --stderr: {}\n"
+                    , out.status
+                    , String::from_utf8_lossy(&out.stdout)
+                    , String::from_utf8_lossy(&out.stderr)));
+            }
+        }
         Err(ref e) if e.kind() == ErrorKind::NotFound => {
             fail(&format!("failed to execute command: {}\nis `{}` not installed?",
                           e, program));
         }
         Err(e) => fail(&format!("failed to execute command: {}", e)),
     };
-    if !status.success() {
-        fail(&format!("command did not execute successfully, got: {}", status));
-    }
 }
 
 fn register_dep(dep: &str) {
