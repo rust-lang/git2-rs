@@ -123,7 +123,7 @@ impl SmartSubtransport for CurlTransport {
 }
 
 impl CurlSubtransport {
-    fn err<E: Into<Box<error::Error+Send>>>(&self, err: E) -> io::Error {
+    fn err<E: Into<Box<error::Error+Send+Sync>>>(&self, err: E) -> io::Error {
         io::Error::new(io::ErrorKind::Other, err)
     }
 
