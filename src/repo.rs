@@ -389,6 +389,15 @@ impl Repository {
         Ok(())
     }
 
+    /// Make the repository HEAD directly point to the Commit.
+    pub fn set_head_detached(&self, commitish: Oid) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_head_detached(self.raw,
+                                                            commitish.raw()));
+        }
+        Ok(())
+    }
+
     /// Create an iterator for the repo's references
     pub fn references(&self) -> Result<References, Error> {
         let mut ret = 0 as *mut raw::git_reference_iterator;
@@ -1280,7 +1289,7 @@ impl RepositoryInitOptions {
 mod tests {
     use std::fs;
     use tempdir::TempDir;
-    use {Repository, ObjectType, ResetType};
+    use {Repository, Oid, ObjectType, ResetType};
     use build::CheckoutBuilder;
 
     #[test]
@@ -1424,5 +1433,17 @@ mod tests {
         assert!(repo.head().is_ok());
 
         assert!(repo.set_head("*").is_err());
+    }
+
+    #[test]
+    fn smoke_set_head_detached() {
+        let (_td, repo) = ::test::repo_init();
+
+        let void_oid = Oid::from_bytes(b"00000000000000000000").unwrap();
+        assert!(repo.set_head_detached(void_oid).is_err());
+
+        let master_oid = repo.revparse_single("master").unwrap().id();
+        assert!(repo.set_head_detached(master_oid).is_ok());
+        assert_eq!(repo.head().unwrap().target().unwrap(), master_oid);
     }
 }
