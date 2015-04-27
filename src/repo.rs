@@ -380,6 +380,15 @@ impl Repository {
         }
     }
 
+    /// Make the repository HEAD point to the specified reference.
+    pub fn set_head(&self, refname: &str) -> Result<(), Error> {
+        let refname = try!(CString::new(refname));
+        unsafe {
+            try_call!(raw::git_repository_set_head(self.raw, refname));
+        }
+        Ok(())
+    }
+
     /// Create an iterator for the repo's references
     pub fn references(&self) -> Result<References, Error> {
         let mut ret = 0 as *mut raw::git_reference_iterator;
@@ -1402,5 +1411,18 @@ mod tests {
         let head_parent_id = head.parent(0).unwrap().id();
         assert!(repo.graph_descendant_of(head_id, head_parent_id).unwrap());
         assert!(!repo.graph_descendant_of(head_parent_id, head_id).unwrap());
+    }
+
+    #[test]
+    fn smoke_set_head() {
+        let (_td, repo) = ::test::repo_init();
+
+        assert!(repo.set_head("refs/heads/does-not-exist").is_ok());
+        assert!(repo.head().is_err());
+
+        assert!(repo.set_head("refs/heads/master").is_ok());
+        assert!(repo.head().is_ok());
+
+        assert!(repo.set_head("*").is_err());
     }
 }
