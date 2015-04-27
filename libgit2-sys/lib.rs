@@ -1170,6 +1170,10 @@ extern {
                                         -> *const c_char;
     pub fn git_repository_head(out: *mut *mut git_reference,
                                repo: *mut git_repository) -> c_int;
+    pub fn git_repository_set_head(repo: *mut git_repository,
+                                   refname: *const c_char) -> c_int;
+    pub fn git_repository_set_head_detached(repo: *mut git_repository,
+                                            commitish: *const git_oid) -> c_int;
     pub fn git_repository_is_bare(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_empty(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_shallow(repo: *mut git_repository) -> c_int;
