@@ -144,6 +144,32 @@ impl Repository {
         }
     }
 
+    /// Find a single object and intermediate reference by a revision string.
+    ///
+    /// See `man gitrevisions`, or
+    /// http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions for
+    /// information on the syntax accepted.
+    ///
+    /// In some cases (`@{<-n>}` or `<branchname>@{upstream}`), the expression may
+    /// point to an intermediate reference. When such expressions are being passed
+    /// in, this intermediate reference is returned.
+    pub fn revparse_ext(&self, spec: &str) -> Result<(Object, Option<Reference>), Error> {
+        let spec = try!(CString::new(spec));
+        let mut git_obj = 0 as *mut raw::git_object;
+        let mut git_ref = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_revparse_ext(&mut git_obj, &mut git_ref,
+                                            self.raw, spec));
+            assert!(!git_obj.is_null());
+            let object = Binding::from_raw(git_obj);
+            let reference = match git_ref.is_null() {
+                false => Some(Binding::from_raw(git_ref)),
+                true => None,
+            };
+            Ok((object, reference))
+        }
+    }
+
     /// Tests whether this repository is a bare repository or not.
     pub fn is_bare(&self) -> bool {
         unsafe { raw::git_repository_is_bare(self.raw) == 1 }
@@ -1465,5 +1491,27 @@ mod tests {
         let master_oid = repo.revparse_single("master").unwrap().id();
         assert!(repo.set_head_detached(master_oid).is_ok());
         assert_eq!(repo.head().unwrap().target().unwrap(), master_oid);
+    }
+
+    #[test]
+    fn smoke_revparse_ext() {
+        let (_td, repo) = graph_repo_init();
+
+        {
+            let short_refname = "master";
+            let expected_refname = "refs/heads/master";
+            let (obj, reference) = repo.revparse_ext(short_refname).unwrap();
+            let expected_obj = repo.revparse_single(expected_refname).unwrap();
+            assert_eq!(obj.id(), expected_obj.id());
+            assert_eq!(reference.unwrap().name().unwrap(), expected_refname);
+        }
+        {
+            let missing_refname = "refs/heads/does-not-exist";
+            assert!(repo.revparse_ext(missing_refname).is_err());
+        }
+        {
+            let (_obj, reference) = repo.revparse_ext("HEAD^").unwrap();
+            assert!(reference.is_none());
+        }
     }
 }

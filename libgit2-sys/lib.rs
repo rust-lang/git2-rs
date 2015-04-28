@@ -1198,6 +1198,10 @@ extern {
     pub fn git_revparse_single(out: *mut *mut git_object,
                                repo: *mut git_repository,
                                spec: *const c_char) -> c_int;
+    pub fn git_revparse_ext(object_out: *mut *mut git_object,
+                            reference_out: *mut *mut git_reference,
+                            repo: *mut git_repository,
+                            spec: *const c_char) -> c_int;
 
     // object
     pub fn git_object_dup(dest: *mut *mut git_object,
