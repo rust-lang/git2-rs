@@ -150,10 +150,11 @@ impl Repository {
     /// http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions for
     /// information on the syntax accepted.
     ///
-    /// In some cases (`@{<-n>}` or `<branchname>@{upstream}`), the expression may
-    /// point to an intermediate reference. When such expressions are being passed
-    /// in, this intermediate reference is returned.
-    pub fn revparse_ext(&self, spec: &str) -> Result<(Object, Option<Reference>), Error> {
+    /// In some cases (`@{<-n>}` or `<branchname>@{upstream}`), the expression
+    /// may point to an intermediate reference. When such expressions are being
+    /// passed in, this intermediate reference is returned.
+    pub fn revparse_ext(&self, spec: &str)
+                        -> Result<(Object, Option<Reference>), Error> {
         let spec = try!(CString::new(spec));
         let mut git_obj = 0 as *mut raw::git_object;
         let mut git_ref = 0 as *mut raw::git_reference;
@@ -161,12 +162,7 @@ impl Repository {
             try_call!(raw::git_revparse_ext(&mut git_obj, &mut git_ref,
                                             self.raw, spec));
             assert!(!git_obj.is_null());
-            let object = Binding::from_raw(git_obj);
-            let reference = match git_ref.is_null() {
-                false => Some(Binding::from_raw(git_ref)),
-                true => None,
-            };
-            Ok((object, reference))
+            Ok((Binding::from_raw(git_obj), Binding::from_raw_opt(git_ref)))
         }
     }
 
