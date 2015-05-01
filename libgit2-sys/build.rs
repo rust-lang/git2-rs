@@ -1,10 +1,18 @@
 extern crate pkg_config;
 
-use std::io::ErrorKind;
 use std::env;
-use std::fs;
+use std::fs::{self, File};
+use std::io::ErrorKind;
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+macro_rules! t {
+    ($e:expr) => (match $e {
+        Ok(n) => n,
+        Err(e) => fail(&format!("\n{} failed with {}\n", stringify!($e), e)),
+    })
+}
 
 fn main() {
     register_dep("SSH2");
@@ -45,6 +53,14 @@ fn main() {
            .arg(&format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
            .arg("-DBUILD_EXAMPLES=OFF")
            .arg(&format!("-DCMAKE_C_FLAGS={}", cflags)), "cmake");
+
+    let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
+    let mut contents = String::new();
+    t!(t!(File::open(flags)).read_to_string(&mut contents));
+    if !contents.contains("-DGIT_SSH") {
+        fail("libgit2 failed to find libssh2, and SSH support is required");
+    }
+
     run(Command::new("cmake")
                 .arg("--build").arg(".")
                 .arg("--target").arg("install")
