@@ -32,6 +32,16 @@ fn main() {
         cflags.push_str(" -fPIC");
     }
 
+    // libgit2 uses pkg-config to discover libssh2, but this doesn't work on
+    // windows as libssh2 doesn't come with a libssh2.pc file in that install.
+    // As a result we just manually turn on SSH support in libgit2 (a little
+    // jankily) here...
+    if mingw {
+        cflags.push_str(" -DGIT_SSH");
+        let libssh2_root = env::var("DEP_SSH2_ROOT").unwrap();
+        cflags.push_str(&format!(" -I{}/include", libssh2_root));
+    }
+
     let src = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap());
     let dst = PathBuf::from(&env::var("OUT_DIR").unwrap());
     let _ = fs::create_dir(&dst.join("build"));
@@ -46,12 +56,10 @@ fn main() {
         "bench" | "release" => "Release",
         _ => "Debug",
     };
-    run(cmd.arg("-DTHREADSAFE=ON")
-           .arg("-DBUILD_SHARED_LIBS=OFF")
+    run(cmd.arg("-DBUILD_SHARED_LIBS=OFF")
            .arg("-DBUILD_CLAR=OFF")
            .arg(&format!("-DCMAKE_BUILD_TYPE={}", profile))
            .arg(&format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
-           .arg("-DBUILD_EXAMPLES=OFF")
            .arg(&format!("-DCMAKE_C_FLAGS={}", cflags)), "cmake");
 
     let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
@@ -69,7 +77,6 @@ fn main() {
     println!("cargo:root={}", dst.display());
     if mingw || target.contains("windows") {
         println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
-                                    -l ws2_32 -l bcrypt -l crypt32 \
                                     -l static=git2");
         println!("cargo:rustc-link-search=native={}/lib", dst.display());
         return
