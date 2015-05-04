@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::marker;
 use std::mem;
 use std::str;
+use std::fmt;
 use libc;
 
 use {raw, Error, Time};
@@ -137,6 +138,16 @@ impl<'a> Drop for Signature<'a> {
             unsafe { raw::git_signature_free(self.raw) }
         }
     }
+}
+
+impl<'a> fmt::Display for Signature<'a> {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} <{}>",
+               String::from_utf8_lossy(self.name_bytes()),
+               String::from_utf8_lossy(self.email_bytes()))
+    }
+
 }
 
 #[cfg(test)]
