@@ -81,6 +81,7 @@ use std::fmt;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
 
+pub use blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use blob::Blob;
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
@@ -289,6 +290,7 @@ pub mod cert;
 pub mod string_array;
 pub mod transport;
 
+mod blame;
 mod blob;
 mod branch;
 mod buf;
