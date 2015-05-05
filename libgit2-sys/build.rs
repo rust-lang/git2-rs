@@ -83,7 +83,7 @@ fn main() {
     }
 
     if env::var("HOST") == env::var("TARGET") {
-        append("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
+        prepend("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
         if pkg_config::Config::new().statik(true).find("libgit2").is_ok() {
             return
         }
@@ -114,18 +114,18 @@ fn run(cmd: &mut Command, program: &str) {
 fn register_dep(dep: &str) {
     match env::var(&format!("DEP_{}_ROOT", dep)) {
         Ok(s) => {
-            append("CMAKE_PREFIX_PATH", PathBuf::from(&s));
-            append("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
+            prepend("CMAKE_PREFIX_PATH", PathBuf::from(&s));
+            prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
         }
         Err(..) => {}
     }
 }
 
-fn append(var: &str, val: PathBuf) {
+fn prepend(var: &str, val: PathBuf) {
     let prefix = env::var(var).unwrap_or(String::new());
-    let val = env::join_paths(env::split_paths(&prefix)
-                                  .chain(Some(val).into_iter())).unwrap();
-    env::set_var(var, &val);
+    let mut v = vec![val];
+    v.extend(env::split_paths(&prefix));
+    env::set_var(var, &env::join_paths(v).unwrap());
 }
 
 fn fail(s: &str) -> ! {
