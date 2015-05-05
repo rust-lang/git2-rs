@@ -114,9 +114,8 @@ fn show_sig(header: &str, sig: Option<Signature>) {
     let offset = sig.when().offset_minutes();
     let (sign, offset) = if offset < 0 {('-', -offset)} else {('+', offset)};
     let (hours, minutes) = (offset / 60, offset % 60);
-    println!("{} {} <{}> {} {}{:02}{:02}",
-             header, sig.name().unwrap(), sig.email().unwrap(),
-             sig.when().seconds(), sign, hours, minutes);
+    println!("{} {} {} {}{:02}{:02}",
+             header, sig, sig.when().seconds(), sign, hours, minutes);
 
 }
 

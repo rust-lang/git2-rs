@@ -183,9 +183,7 @@ fn print_commit(commit: &Commit) {
     }
 
     let author = commit.author();
-    println!("Author: {} <{}>",
-             String::from_utf8_lossy(author.name_bytes()),
-             String::from_utf8_lossy(author.email_bytes()));
+    println!("Author: {}", author);
     print_time(&author.when(), "Date:   ");
     println!("");
 
