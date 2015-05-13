@@ -74,7 +74,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         true
     });
 
-    remote.set_callbacks(&mut cb);
+    remote.set_callbacks(cb);
 
     // Connect to the remote end specifying that we want to fetch information
     // from it.

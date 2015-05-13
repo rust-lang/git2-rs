@@ -19,7 +19,7 @@ use util::Binding;
 pub struct Remote<'repo, 'cb> {
     raw: *mut raw::git_remote,
     _marker: marker::PhantomData<&'repo Repository>,
-    callbacks: Option<&'cb mut RemoteCallbacks<'cb>>,
+    callbacks: Option<Box<RemoteCallbacks<'cb>>>,
 }
 
 /// An iterator over the refspecs that a remote contains.
@@ -266,8 +266,8 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// Set the callbacks to be invoked when the transfer is in-progress.
     ///
     /// This will overwrite the previously set callbacks.
-    pub fn set_callbacks(&mut self, callbacks: &'cb mut RemoteCallbacks<'cb>) {
-        self.callbacks = Some(callbacks);
+    pub fn set_callbacks(&mut self, callbacks: RemoteCallbacks<'cb>) {
+        self.callbacks = Some(Box::new(callbacks));
     }
 
     fn set_raw_callbacks(&mut self) -> Result<(), Error> {
@@ -511,7 +511,7 @@ mod tests {
                 progress_hit.set(true);
                 true
             });
-            origin.set_callbacks(&mut callbacks);
+            origin.set_callbacks(callbacks);
             origin.fetch(&[], None).unwrap();
 
             let list = t!(origin.list());

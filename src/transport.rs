@@ -194,10 +194,8 @@ wrap_env! {
         struct Bomb<'a, 'b> { remote: Option<Remote<'a, 'b>> }
         impl<'a, 'b> Drop for Bomb<'a, 'b> {
             fn drop(&mut self) {
-                unsafe {
-                    // TODO: maybe a method instead?
-                    mem::forget(self.remote.take());
-                }
+                // TODO: maybe a method instead?
+                mem::forget(self.remote.take());
             }
         }
 
