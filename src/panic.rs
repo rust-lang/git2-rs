@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::thread;
 
 // This is technically super unsafe, allowing capturing an arbitrary environment
 // and then declaring it Send to cross the boundary into a safe call to `wrap`.
@@ -34,7 +33,9 @@ thread_local!(static LAST_ERROR: RefCell<Option<Box<Any + Send>>> = {
     RefCell::new(None)
 });
 
+#[cfg(feature = "unstable")]
 pub fn wrap<T, F: FnOnce() -> T + Send + 'static>(f: F) -> Option<T> {
+    use std::thread;
     if LAST_ERROR.with(|slot| slot.borrow().is_some()) {
         return None
     }
@@ -47,6 +48,23 @@ pub fn wrap<T, F: FnOnce() -> T + Send + 'static>(f: F) -> Option<T> {
             None
         }
     }
+}
+
+#[cfg(not(feature = "unstable"))]
+pub fn wrap<T, F: FnOnce() -> T + Send + 'static>(f: F) -> Option<T> {
+    struct Bomb { enabled: bool }
+    impl Drop for Bomb {
+        fn drop(&mut self) {
+            if !self.enabled { return }
+            panic!("callback has panicked, and continuing to unwind into C \
+                    is not safe, so aborting the process");
+
+        }
+    }
+    let mut bomb = Bomb { enabled: true };
+    let ret = Some(f());
+    bomb.enabled = false;
+    return ret;
 }
 
 pub fn check() {

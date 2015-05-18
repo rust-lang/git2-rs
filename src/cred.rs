@@ -352,7 +352,7 @@ impl CredentialHelper {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "unstable"))]
 mod test {
     use std::env;
     use std::fs::File;

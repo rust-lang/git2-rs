@@ -26,3 +26,6 @@ docopt = "0.6"
 rustc-serialize = "0.3"
 time = "0.1"
 tempdir = "0.3"
+
+[features]
+unstable = []
