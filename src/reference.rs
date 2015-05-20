@@ -5,7 +5,7 @@ use std::mem;
 use std::str;
 use libc;
 
-use {raw, Error, Oid, Repository};
+use {raw, Error, Oid, Repository, Object, ObjectType};
 use util::Binding;
 
 struct Refdb<'repo>(&'repo Repository);
@@ -149,6 +149,18 @@ impl<'repo> Reference<'repo> {
         }
     }
 
+    /// Peel a reference to an object
+    ///
+    /// This method recursively peels the reference until it reaches
+    /// an object of the specified type.
+    pub fn peel(&self, kind: ObjectType) -> Result<Object<'repo>, Error> {
+        let mut raw = 0 as *mut raw::git_object;
+        unsafe {
+            try_call!(raw::git_reference_peel(&mut raw, &*self.raw, kind));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Rename an existing reference.
     ///
     /// This method works for both direct and symbolic references.
@@ -265,7 +277,7 @@ impl<'repo> Iterator for ReferenceNames<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use {Reference};
+    use {Reference, ObjectType};
 
     #[test]
     fn smoke() {
@@ -299,6 +311,11 @@ mod tests {
                                       head.target().unwrap(),
                                       false, "test").unwrap();
         assert!(tag1.is_tag());
+
+        let peeled_commit = tag1.peel(ObjectType::Commit).unwrap();
+        assert_eq!(ObjectType::Commit, peeled_commit.kind().unwrap());
+        assert_eq!(tag1.target().unwrap(), peeled_commit.id());
+
         tag1.delete().unwrap();
 
         let mut sym1 = repo.reference_symbolic("refs/tags/tag1",
