@@ -1391,6 +1391,9 @@ extern {
     pub fn git_reference_name_to_id(out: *mut git_oid,
                                     repo: *mut git_repository,
                                     name: *const c_char) -> c_int;
+    pub fn git_reference_peel(out: *mut *mut git_object,
+                              r: *const git_reference,
+                              otype: git_otype) -> c_int;
     pub fn git_reference_rename(new_ref: *mut *mut git_reference,
                                 r: *mut git_reference,
                                 new_name: *const c_char,
