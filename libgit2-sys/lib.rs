@@ -46,9 +46,11 @@ pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
 
 pub enum git_blob {}
 pub enum git_branch_iterator {}
+pub enum git_blame {}
 pub enum git_commit {}
 pub enum git_config {}
 pub enum git_config_iterator {}
@@ -580,6 +582,40 @@ pub enum git_branch_t {
     GIT_BRANCH_LOCAL = 1,
     GIT_BRANCH_REMOTE = 2,
     GIT_BRANCH_ALL = GIT_BRANCH_LOCAL as isize | GIT_BRANCH_REMOTE as isize,
+}
+
+pub const GIT_BLAME_NORMAL: u32 = 0;
+pub const GIT_BLAME_TRACK_COPIES_SAME_FILE: u32 = 1<<0;
+pub const GIT_BLAME_TRACK_COPIES_SAME_COMMIT_MOVES: u32 = 1<<1;
+pub const GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES: u32 = 1<<2;
+pub const GIT_BLAME_TRACK_COPIES_ANY_COMMIT_COPIES: u32 = 1<<3;
+pub const GIT_BLAME_FIRST_PARENT: u32 = 1<<4;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct git_blame_options {
+    pub version: c_uint,
+
+    pub flags: u32,
+    pub min_match_characters: u16,
+    pub newest_commit: git_oid,
+    pub oldest_commit: git_oid,
+    pub min_line: u32,
+    pub max_line: u32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct git_blame_hunk {
+    pub lines_in_hunk: u16,
+    pub final_commit_id: git_oid,
+    pub final_start_line_number: u16,
+    pub final_signature: *mut git_signature,
+    pub orig_commit_id: git_oid,
+    pub orig_path: *const c_char,
+    pub orig_start_line_number: u16,
+    pub orig_signature: *mut git_signature,
+    pub boundary: c_char,
 }
 
 pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
@@ -1895,6 +1931,22 @@ extern {
                            author: *const git_signature,
                            committer: *const git_signature,
                            oid: *const git_oid) -> c_int;
+
+    // blame
+    pub fn git_blame_file(out: *mut *mut git_blame,
+                          repo: *mut git_repository,
+                          path: *const c_char,
+                          options: *mut git_blame_options) -> c_int;
+    pub fn git_blame_free(blame: *mut git_blame);
+
+    pub fn git_blame_init_options(opts: *mut git_blame_options,
+                                  version: c_uint) -> c_int;
+    pub fn git_blame_get_hunk_count(blame: *mut git_blame) -> u32;
+
+    pub fn git_blame_get_hunk_byline(blame: *mut git_blame,
+                                     lineno: u32) -> *const git_blame_hunk;
+    pub fn git_blame_get_hunk_byindex(blame: *mut git_blame,
+                                      index: u32) -> *const git_blame_hunk;
 
     // revwalk
     pub fn git_revwalk_new(out: *mut *mut git_revwalk,

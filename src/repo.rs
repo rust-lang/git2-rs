@@ -6,7 +6,7 @@ use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
-use {ResetType, Signature, Reference, References, Submodule};
+use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
@@ -1084,6 +1084,22 @@ impl Repository {
         let mut raw = 0 as *mut raw::git_revwalk;
         unsafe {
             try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
+    #[allow(unused_variables)]
+    /// Get the blame for a single file.
+    pub fn blame_file(&self, path: &Path, opts: Option<&mut BlameOptions>)
+                      -> Result<Blame, Error> {
+        let path = try!(path.into_c_string());
+        let mut raw = 0 as *mut raw::git_blame;
+
+        unsafe {
+            try_call!(raw::git_blame_file(&mut raw,
+                                          self.raw(),
+                                          path,
+                                          opts.map(|s| s.raw())));
             Ok(Binding::from_raw(raw))
         }
     }
