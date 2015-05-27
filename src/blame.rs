@@ -239,7 +239,9 @@ impl Binding for BlameOptions {
         BlameOptions { raw: *opts }
     }
 
-    fn raw(&self) -> *mut raw::git_blame_options { &self.raw as *const _ as *mut _ }
+    fn raw(&self) -> *mut raw::git_blame_options {
+        &self.raw as *const _ as *mut _
+    }
 }
 
 impl<'blame> Iterator for BlameIter<'blame> {

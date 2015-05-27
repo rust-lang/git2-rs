@@ -1088,7 +1088,6 @@ impl Repository {
         }
     }
 
-    #[allow(unused_variables)]
     /// Get the blame for a single file.
     pub fn blame_file(&self, path: &Path, opts: Option<&mut BlameOptions>)
                       -> Result<Blame, Error> {
