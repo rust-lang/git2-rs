@@ -18,6 +18,12 @@ fn main() {
     register_dep("SSH2");
     register_dep("OPENSSL");
 
+    if env::var("LIBSSH2_SYS_USE_PKG_CONFIG").is_ok() {
+        if pkg_config::find_library("libgit2").is_ok() {
+            return
+        }
+    }
+
     let mut cflags = env::var("CFLAGS").unwrap_or(String::new());
     let target = env::var("TARGET").unwrap();
     let mingw = target.contains("windows-gnu");
