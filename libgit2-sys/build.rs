@@ -27,15 +27,25 @@ fn main() {
     let mut cflags = env::var("CFLAGS").unwrap_or(String::new());
     let target = env::var("TARGET").unwrap();
     let mingw = target.contains("windows-gnu");
-    cflags.push_str(" -ffunction-sections -fdata-sections");
+    let msvc = target.contains("msvc");
 
-    if target.contains("i686") {
-        cflags.push_str(" -m32");
-    } else if target.contains("x86_64") {
-        cflags.push_str(" -m64");
-    }
-    if !target.contains("i686") {
-        cflags.push_str(" -fPIC");
+    if msvc {
+        // libgit2 passes the /GL flag to enable whole program optimization, but
+        // this requires that the /LTCG flag is passed to the linker later on,
+        // and currently the compiler does not do that, so we disable whole
+        // program optimization entirely.
+        cflags.push_str(" /GL-");
+    } else {
+        cflags.push_str(" -ffunction-sections -fdata-sections");
+
+        if target.contains("i686") {
+            cflags.push_str(" -m32");
+        } else if target.contains("x86_64") {
+            cflags.push_str(" -m64");
+        }
+        if !target.contains("i686") {
+            cflags.push_str(" -fPIC");
+        }
     }
 
     // libgit2 uses pkg-config to discover libssh2, but this doesn't work on
@@ -46,6 +56,10 @@ fn main() {
         cflags.push_str(" -DGIT_SSH");
         let libssh2_root = env::var("DEP_SSH2_ROOT").unwrap();
         cflags.push_str(&format!(" -I{}/include", libssh2_root));
+    } else if msvc {
+        cflags.push_str(" /DGIT_SSH");
+        let libssh2_root = env::var("DEP_SSH2_ROOT").unwrap();
+        cflags.push_str(&format!(" /I{}\\include", libssh2_root));
     }
 
     let src = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -57,6 +71,13 @@ fn main() {
        .current_dir(&dst.join("build"));
     if mingw {
         cmd.arg("-G").arg("Unix Makefiles");
+    } else if msvc {
+        // If we don't pass this unfortunately cmake produces 32-bit builds
+        cmd.arg("-G").arg("Visual Studio 12 2013 Win64");
+
+        // Currently liblibc links to msvcrt which apparently is a dynamic CRT,
+        // so we need to turn this off to get it to link right.
+        cmd.arg("-DSTATIC_CRT=OFF");
     }
     let profile = match &env::var("PROFILE").unwrap()[..] {
         "bench" | "release" => "Release",
@@ -70,9 +91,14 @@ fn main() {
 
     let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
     let mut contents = String::new();
-    t!(t!(File::open(flags)).read_to_string(&mut contents));
-    if !contents.contains("-DGIT_SSH") {
-        fail("libgit2 failed to find libssh2, and SSH support is required");
+
+    // Make sure libssh2 was detected on unix systems, because it definitely
+    // should have been!
+    if !msvc {
+        t!(t!(File::open(flags)).read_to_string(&mut contents));
+        if !contents.contains("-DGIT_SSH") {
+            fail("libgit2 failed to find libssh2, and SSH support is required");
+        }
     }
 
     run(Command::new("cmake")
