@@ -58,6 +58,7 @@ pub enum git_index {}
 pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
+pub enum git_annotated_commit {}
 pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
@@ -983,6 +984,27 @@ pub const GIT_DIFF_FIND_EXACT_MATCH_ONLY: u32 = 1 << 14;
 pub const GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY : u32 = 1 << 15;
 pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
 
+#[repr(C)]
+pub struct git_merge_options {
+    pub version: c_uint,
+    pub tree_flags: u32,
+    pub rename_threshold: c_uint,
+    pub target_limit: c_uint,
+    pub metric: *mut git_diff_similarity_metric,
+    pub file_favor: git_merge_file_favor_t,
+    pub file_flags: c_uint,
+}
+
+#[repr(C)]
+pub enum git_merge_file_favor_t {
+    GIT_MERGE_FILE_FAVOR_NORMAL = 0,
+    GIT_MERGE_FILE_FAVOR_OURS = 1,
+    GIT_MERGE_FILE_FAVOR_THEIRS = 2,
+    GIT_MERGE_FILE_FAVOR_UNION = 3,
+}
+
+pub const GIT_MERGE_TREE_FIND_RENAMES: u32 = 1 << 0;
+
 pub type git_transport_cb = extern fn(out: *mut *mut git_transport,
                                       owner: *mut git_remote,
                                       param: *mut c_void) -> c_int;
@@ -1898,6 +1920,15 @@ extern {
                              opts: *const git_checkout_options) -> c_int;
     pub fn git_checkout_init_options(opts: *mut git_checkout_options,
                                      version: c_uint) -> c_int;
+
+    // merge
+    pub fn git_merge_init_options(opts: *mut git_merge_options,
+                                  version: c_uint) -> c_int;
+    pub fn git_merge(repo: *mut git_repository,
+                     their_heads: *const *const git_annotated_commit,
+                     len: size_t,
+                     merge_opts: *const git_merge_options,
+                     checkout_opts: *const git_checkout_options) -> c_int;
 
     // notes
     pub fn git_note_author(note: *const git_note) -> *const git_signature;
