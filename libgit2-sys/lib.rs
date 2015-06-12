@@ -44,6 +44,7 @@ pub const GIT_OID_RAWSZ: usize = 20;
 pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;
 pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_MERGE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
@@ -1922,6 +1923,9 @@ extern {
                                      version: c_uint) -> c_int;
 
     // merge
+    pub fn git_annotated_commit_from_ref(out: *mut *mut git_annotated_commit,
+                                         repo: *mut git_repository,
+                                         reference: *const git_reference);
     pub fn git_merge_init_options(opts: *mut git_merge_options,
                                   version: c_uint) -> c_int;
     pub fn git_merge(repo: *mut git_repository,
