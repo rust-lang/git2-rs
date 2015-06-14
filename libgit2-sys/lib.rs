@@ -1925,7 +1925,8 @@ extern {
     // merge
     pub fn git_annotated_commit_from_ref(out: *mut *mut git_annotated_commit,
                                          repo: *mut git_repository,
-                                         reference: *const git_reference);
+                                         reference: *const git_reference) -> c_int;
+    pub fn git_annotated_commit_free(commit: *mut git_annotated_commit);
     pub fn git_merge_init_options(opts: *mut git_merge_options,
                                   version: c_uint) -> c_int;
     pub fn git_merge(repo: *mut git_repository,

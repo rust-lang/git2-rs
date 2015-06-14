@@ -1,11 +1,9 @@
 use std::marker;
-use std::ops::Range;
-use std::str;
-use libc;
 
-use {raw, signature, Oid, Error, Signature, Tree, Time, Object};
+use {raw, Object};
 use util::Binding;
 
+/// annotated commits, the input to merge and rebase
 pub struct AnnotatedCommit<'repo> {
     raw: *mut raw::git_annotated_commit,
     _marker: marker::PhantomData<Object<'repo>>,
@@ -20,4 +18,10 @@ impl<'repo> Binding for AnnotatedCommit<'repo> {
         }
     }
     fn raw(&self) -> *mut raw::git_annotated_commit { self.raw }
+}
+
+impl<'repo> Drop for AnnotatedCommit<'repo> {
+    fn drop(&mut self) {
+        unsafe { raw::git_annotated_commit_free(self.raw) }
+    }
 }
