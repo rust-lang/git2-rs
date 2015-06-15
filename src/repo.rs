@@ -8,7 +8,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use AnnotatedCommit;
+use {AnnotatedCommit, MergeOptions};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
 use build::{RepoBuilder, CheckoutBuilder};
@@ -1007,6 +1007,7 @@ impl Repository {
     /// prepare a commit.
     pub fn merge(&self,
                  annotated_commits: &[&AnnotatedCommit],
+                 merge_opts: &MergeOptions,
                  checkout_opts: Option<&mut CheckoutBuilder>) -> Result<(), Error> {
         unsafe {
             let mut raw_checkout_opts = mem::zeroed();
@@ -1017,8 +1018,7 @@ impl Repository {
                 None => {}
             }
 
-            let mut raw_merge_opts = mem::zeroed();
-            try_call!(raw::git_merge_init_options(&mut raw_merge_opts, raw::GIT_MERGE_OPTIONS_VERSION));
+            let raw_merge_opts = merge_opts.raw();
 
             let commit_ptrs: Vec<*const raw::git_annotated_commit> =  annotated_commits.iter().map(|c| {
                 c.raw() as *const raw::git_annotated_commit

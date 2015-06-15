@@ -90,7 +90,7 @@ pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
 pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
-pub use merge::AnnotatedCommit;
+pub use merge::{AnnotatedCommit, MergeOptions};
 pub use error::Error;
 pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use note::{Note, Notes};
