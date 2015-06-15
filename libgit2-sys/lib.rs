@@ -1006,6 +1006,17 @@ pub enum git_merge_file_favor_t {
 
 pub const GIT_MERGE_TREE_FIND_RENAMES: u32 = 1 << 0;
 
+// used in git_merge_options.file_flags
+pub const GIT_MERGE_FILE_DEFAULT: u32 = 0;
+pub const GIT_MERGE_FILE_STYLE_MERGE: u32 = (1 << 0);
+pub const GIT_MERGE_FILE_STYLE_DIFF3: u32 = (1 << 1);
+pub const GIT_MERGE_FILE_SIMPLIFY_ALNUM: u32 = (1 << 2);
+pub const GIT_MERGE_FILE_IGNORE_WHITESPACE: u32 = (1 << 3);
+pub const GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE: u32 = (1 << 4);
+pub const GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL: u32 = (1 << 5);
+pub const GIT_MERGE_FILE_DIFF_PATIENCE: u32 = (1 << 6);
+pub const GIT_MERGE_FILE_DIFF_MINIMAL: u32 = (1 << 7);
+
 pub type git_transport_cb = extern fn(out: *mut *mut git_transport,
                                       owner: *mut git_remote,
                                       param: *mut c_void) -> c_int;
