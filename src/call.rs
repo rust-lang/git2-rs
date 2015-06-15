@@ -44,7 +44,7 @@ mod impls {
     use std::ffi::CString;
     use libc;
 
-    use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
+    use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction, FileFavor};
     use {DiffFormat};
     use call::Convert;
 
@@ -154,6 +154,17 @@ mod impls {
                 DiffFormat::Raw => raw::GIT_DIFF_FORMAT_RAW,
                 DiffFormat::NameOnly => raw::GIT_DIFF_FORMAT_NAME_ONLY,
                 DiffFormat::NameStatus => raw::GIT_DIFF_FORMAT_NAME_STATUS,
+            }
+        }
+    }
+
+    impl Convert<raw::git_merge_file_favor_t> for FileFavor {
+        fn convert(&self) -> raw::git_merge_file_favor_t {
+            match *self {
+                FileFavor::Normal => raw::GIT_MERGE_FILE_FAVOR_NORMAL,
+                FileFavor::Ours => raw::GIT_MERGE_FILE_FAVOR_OURS,
+                FileFavor::Theirs => raw::GIT_MERGE_FILE_FAVOR_THEIRS,
+                FileFavor::Union => raw::GIT_MERGE_FILE_FAVOR_UNION,
             }
         }
     }

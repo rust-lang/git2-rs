@@ -35,6 +35,7 @@ pub use git_delta_t::*;
 pub use git_sort::*;
 pub use git_diff_format_t::*;
 pub use git_diff_stats_format_t::*;
+pub use git_merge_file_favor_t::*;
 pub use git_smart_service_t::*;
 pub use git_cert_ssh_t::*;
 

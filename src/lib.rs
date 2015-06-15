@@ -231,6 +231,19 @@ pub enum ConfigLevel {
     Highest,
 }
 
+/// An enumeration for favoring sides to resolve merge conflicts
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum FileFavor {
+    /// Record conflicts in the index without favoring sides
+    Normal,
+    /// Favor "ours"
+    Ours,
+    /// Favor "theirs"
+    Theirs,
+    /// Combine both files
+    Union,
+}
+
 bitflags! {
     #[doc = "
 Orderings that may be specified for Revwalk iteration.

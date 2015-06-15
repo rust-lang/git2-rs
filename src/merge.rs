@@ -2,8 +2,9 @@ use std::marker;
 use std::mem;
 use libc::c_uint;
 
-use {raw, Object};
+use {raw, Object, FileFavor};
 use util::Binding;
+use call::Convert;
 
 /// annotated commits, the input to merge and rebase
 pub struct AnnotatedCommit<'repo> {
@@ -41,6 +42,12 @@ impl MergeOptions {
     /// configuration value.
     pub fn target_limit(&mut self, limit: u32) -> &mut MergeOptions {
         self.raw.target_limit = limit as c_uint;
+        self
+    }
+
+    /// Specify a side to favor for resolving conflicts
+    pub fn file_favor(&mut self, favor: FileFavor) -> &mut MergeOptions {
+        self.raw.file_favor = favor.convert();
         self
     }
 
