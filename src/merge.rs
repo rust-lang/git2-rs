@@ -30,6 +30,16 @@ impl MergeOptions {
         opts
     }
 
+    /// Detect file renames
+    pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
+        if find {
+            self.raw.tree_flags |= raw::GIT_MERGE_TREE_FIND_RENAMES;
+        } else {
+            self.raw.tree_flags &= !raw::GIT_MERGE_TREE_FIND_RENAMES;
+        }
+        self
+    }
+
     /// Similarity to consider a file renamed (default 50)
     pub fn rename_threshold(&mut self, thresh: u32) -> &mut MergeOptions {
         self.raw.rename_threshold = thresh;
