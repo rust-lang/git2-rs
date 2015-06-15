@@ -11,23 +11,30 @@ pub struct AnnotatedCommit<'repo> {
 }
 
 /// merge options
-pub struct MergeOptions;
+// modeled after DiffFindOptions
+pub struct MergeOptions {
+    raw: raw::git_merge_options,
+}
 
 impl MergeOptions {
     /// Creates a default set of merge options.
     pub fn new() -> MergeOptions {
-        MergeOptions
+        let mut opts = MergeOptions {
+            raw: unsafe { mem::zeroed() },
+        };
+        assert_eq!(unsafe {
+            raw::git_merge_init_options(&mut opts.raw, 1)
+        }, 0);
+        opts
     }
 
-    /// Creates a set of raw merge options to be used with
-    /// `git_merge`.
+    /// Acquire a pointer to the underlying raw options.
     ///
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.
-    pub unsafe fn raw(&self) -> raw::git_merge_options {
-        let mut opts = mem::zeroed();
-        assert_eq!(raw::git_merge_init_options(&mut opts, raw::GIT_MERGE_OPTIONS_VERSION), 0);
-        return opts;
+    // modeled after DiffOptions.raw()
+    pub unsafe fn raw(&self) -> *const raw::git_merge_options {
+        &self.raw as *const _
     }
 }
 

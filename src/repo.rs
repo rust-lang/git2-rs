@@ -1018,8 +1018,6 @@ impl Repository {
                 None => {}
             }
 
-            let raw_merge_opts = merge_opts.raw();
-
             let commit_ptrs: Vec<*const raw::git_annotated_commit> =  annotated_commits.iter().map(|c| {
                 c.raw() as *const raw::git_annotated_commit
             }).collect();
@@ -1027,7 +1025,7 @@ impl Repository {
             try_call!(raw::git_merge(self.raw,
                                      commit_ptrs.as_ptr(),
                                      annotated_commits.len() as size_t,
-                                     &raw_merge_opts,
+                                     merge_opts.raw(),
                                      &raw_checkout_opts));
         }
         Ok(())
