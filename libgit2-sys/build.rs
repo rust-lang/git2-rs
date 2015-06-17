@@ -81,6 +81,7 @@ fn main() {
     }
     let profile = match &env::var("PROFILE").unwrap()[..] {
         "bench" | "release" => "Release",
+        _ if msvc => "Release", // currently we need to always use the same CRT
         _ => "Debug",
     };
     run(cmd.arg("-DBUILD_SHARED_LIBS=OFF")
