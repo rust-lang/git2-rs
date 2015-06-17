@@ -104,6 +104,7 @@ fn main() {
     run(Command::new("cmake")
                 .arg("--build").arg(".")
                 .arg("--target").arg("install")
+                .arg("--config").arg(profile)
                 .current_dir(&dst.join("build")), "cmake");
 
     println!("cargo:root={}", dst.display());
