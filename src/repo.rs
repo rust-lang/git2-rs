@@ -787,7 +787,8 @@ impl Repository {
     }
 
     /// Creates a git_annotated_commit from the given reference.
-    pub fn reference_to_annotated_commit(&self, reference: &Reference) -> Result<AnnotatedCommit, Error> {
+    pub fn reference_to_annotated_commit(&self, reference: &Reference)
+                                         -> Result<AnnotatedCommit, Error> {
         let mut ret = 0 as *mut raw::git_annotated_commit;
         unsafe {
             try_call!(raw::git_annotated_commit_from_ref(&mut ret,
@@ -1001,10 +1002,10 @@ impl Repository {
         Ok(())
     }
 
-    /// Merges the given commit(s) into HEAD, writing the results into the working directory.
-    /// Any changes are staged for commit and any conflicts are written to the index. Callers
-    /// should inspect the repository's index after this completes, resolve any conflicts and
-    /// prepare a commit.
+    /// Merges the given commit(s) into HEAD, writing the results into the
+    /// working directory. Any changes are staged for commit and any conflicts
+    /// are written to the index. Callers should inspect the repository's index
+    /// after this completes, resolve any conflicts and prepare a commit.
     pub fn merge(&self,
                  annotated_commits: &[&AnnotatedCommit],
                  merge_opts: &MergeOptions,
@@ -1018,9 +1019,9 @@ impl Repository {
                 None => {}
             }
 
-            let commit_ptrs: Vec<*const raw::git_annotated_commit> =  annotated_commits.iter().map(|c| {
+            let commit_ptrs = annotated_commits.iter().map(|c| {
                 c.raw() as *const raw::git_annotated_commit
-            }).collect();
+            }).collect::<Vec<_>>();
 
             try_call!(raw::git_merge(self.raw,
                                      commit_ptrs.as_ptr(),

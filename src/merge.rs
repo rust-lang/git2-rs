@@ -6,7 +6,9 @@ use {raw, Object, FileFavor};
 use util::Binding;
 use call::Convert;
 
-/// annotated commits, the input to merge and rebase
+/// A structure to represent an annotated commit, the input to merge and rebase.
+/// An annotated commit contains information about how it was looked up, which may
+/// be useful for functions like merge or rebase to provide context to the operation.
 pub struct AnnotatedCommit<'repo> {
     raw: *mut raw::git_annotated_commit,
     _marker: marker::PhantomData<Object<'repo>>,
@@ -47,9 +49,9 @@ impl MergeOptions {
     }
 
     ///  Maximum similarity sources to examine for renames (default 200).
-    /// If the number of rename candidates (add / delete pairs) is greater than this value,
-    /// inexact rename detection is aborted. This setting overrides the `merge.renameLimit`
-    /// configuration value.
+    /// If the number of rename candidates (add / delete pairs) is greater
+    /// than this value, inexact rename detection is aborted. This setting
+    /// overrides the `merge.renameLimit` configuration value.
     pub fn target_limit(&mut self, limit: u32) -> &mut MergeOptions {
         self.raw.target_limit = limit as c_uint;
         self
@@ -111,10 +113,6 @@ impl MergeOptions {
     }
 
     /// Acquire a pointer to the underlying raw options.
-    ///
-    /// This function is unsafe as the pointer is only valid so long as this
-    /// structure is not moved, modified, or used elsewhere.
-    // modeled after DiffOptions.raw()
     pub unsafe fn raw(&self) -> *const raw::git_merge_options {
         &self.raw as *const _
     }
