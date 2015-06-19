@@ -2,7 +2,7 @@ use std::marker;
 use std::mem;
 use libc::c_uint;
 
-use {raw, Object, FileFavor};
+use {raw, Commit, FileFavor};
 use util::Binding;
 use call::Convert;
 
@@ -11,7 +11,7 @@ use call::Convert;
 /// be useful for functions like merge or rebase to provide context to the operation.
 pub struct AnnotatedCommit<'repo> {
     raw: *mut raw::git_annotated_commit,
-    _marker: marker::PhantomData<Object<'repo>>,
+    _marker: marker::PhantomData<Commit<'repo>>,
 }
 
 /// merge options
