@@ -1476,6 +1476,10 @@ extern {
     pub fn git_reference_symbolic_target(r: *const git_reference) -> *const c_char;
     pub fn git_reference_target(r: *const git_reference) -> *const git_oid;
     pub fn git_reference_target_peel(r: *const git_reference) -> *const git_oid;
+    pub fn git_reference_set_target(out: *mut *mut git_reference,
+                                    r: *mut git_reference,
+                                    id: *const git_oid,
+                                    log_message: *const c_char) -> c_int;
     pub fn git_reference_type(r: *const git_reference) -> git_ref_t;
     pub fn git_reference_iterator_new(out: *mut *mut git_reference_iterator,
                                       repo: *mut git_repository) -> c_int;
@@ -1949,6 +1953,7 @@ extern {
                      len: size_t,
                      merge_opts: *const git_merge_options,
                      checkout_opts: *const git_checkout_options) -> c_int;
+    pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
 
     // notes
     pub fn git_note_author(note: *const git_note) -> *const git_signature;
