@@ -1041,6 +1041,15 @@ impl Repository {
         Ok(())
     }
 
+    /// Remove all the metadata associated with an ongoing command like merge,
+    /// revert, cherry-pick, etc. For example: MERGE_HEAD, MERGE_MSG, etc.
+    pub fn cleanup_state(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_state_cleanup(self.raw));
+        }
+        Ok(())
+    }
+
     /// Add a note for an object
     ///
     /// The `notes_ref` argument is the canonical name of the reference to use,
