@@ -1953,6 +1953,11 @@ extern {
                      len: size_t,
                      merge_opts: *const git_merge_options,
                      checkout_opts: *const git_checkout_options) -> c_int;
+    pub fn git_merge_commits(out: *mut *mut git_index,
+                             repo: *mut git_repository,
+                             our_commit: *const git_commit,
+                             their_commit: *const git_commit,
+                             opts: *const git_merge_options) -> c_int;
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
 
     // notes
