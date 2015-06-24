@@ -82,42 +82,42 @@ impl MergeOptions {
 
     /// Create standard conflicted merge files
     pub fn standard_style(&mut self, standard: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_STYLE_MERGE, find)
+        self.flag(raw::GIT_MERGE_FILE_STYLE_MERGE, standard)
     }
 
     /// Create diff3-style file
     pub fn diff3_style(&mut self, diff3: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_STYLE_DIFF3, find)
+        self.flag(raw::GIT_MERGE_FILE_STYLE_DIFF3, diff3)
     }
 
     /// Condense non-alphanumeric regions for simplified diff file
     pub fn simplify_alnum(&mut self, simplify: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM, find)
+        self.flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM, simplify)
     }
 
     /// Ignore all whitespace
     pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE, find)
+        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE, ignore)
     }
 
     /// Ignore changes in amount of whitespace
     pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE, find)
+        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE, ignore)
     }
 
     /// Ignore whitespace at end of line
     pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL, find)
+        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL, ignore)
     }
 
     /// Use the "patience diff" algorithm
     pub fn patience(&mut self, patience: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE, find)
+        self.flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE, patience)
     }
 
     /// Take extra time to find minimal diff
     pub fn minimal(&mut self, minimal: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL, find)
+        self.flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL, minimal)
     }
 
     /// Acquire a pointer to the underlying raw options.
