@@ -35,6 +35,7 @@ pub use git_delta_t::*;
 pub use git_sort::*;
 pub use git_diff_format_t::*;
 pub use git_diff_stats_format_t::*;
+pub use git_merge_file_favor_t::*;
 pub use git_smart_service_t::*;
 pub use git_cert_ssh_t::*;
 
@@ -44,6 +45,7 @@ pub const GIT_OID_RAWSZ: usize = 20;
 pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;
 pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_MERGE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
@@ -58,6 +60,7 @@ pub enum git_index {}
 pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
+pub enum git_annotated_commit {}
 pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
@@ -983,6 +986,38 @@ pub const GIT_DIFF_FIND_EXACT_MATCH_ONLY: u32 = 1 << 14;
 pub const GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY : u32 = 1 << 15;
 pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
 
+#[repr(C)]
+pub struct git_merge_options {
+    pub version: c_uint,
+    pub tree_flags: u32,
+    pub rename_threshold: c_uint,
+    pub target_limit: c_uint,
+    pub metric: *mut git_diff_similarity_metric,
+    pub file_favor: git_merge_file_favor_t,
+    pub file_flags: c_uint,
+}
+
+#[repr(C)]
+pub enum git_merge_file_favor_t {
+    GIT_MERGE_FILE_FAVOR_NORMAL = 0,
+    GIT_MERGE_FILE_FAVOR_OURS = 1,
+    GIT_MERGE_FILE_FAVOR_THEIRS = 2,
+    GIT_MERGE_FILE_FAVOR_UNION = 3,
+}
+
+pub const GIT_MERGE_TREE_FIND_RENAMES: u32 = 1 << 0;
+
+// used in git_merge_options.file_flags
+pub const GIT_MERGE_FILE_DEFAULT: u32 = 0;
+pub const GIT_MERGE_FILE_STYLE_MERGE: u32 = (1 << 0);
+pub const GIT_MERGE_FILE_STYLE_DIFF3: u32 = (1 << 1);
+pub const GIT_MERGE_FILE_SIMPLIFY_ALNUM: u32 = (1 << 2);
+pub const GIT_MERGE_FILE_IGNORE_WHITESPACE: u32 = (1 << 3);
+pub const GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE: u32 = (1 << 4);
+pub const GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL: u32 = (1 << 5);
+pub const GIT_MERGE_FILE_DIFF_PATIENCE: u32 = (1 << 6);
+pub const GIT_MERGE_FILE_DIFF_MINIMAL: u32 = (1 << 7);
+
 pub type git_transport_cb = extern fn(out: *mut *mut git_transport,
                                       owner: *mut git_remote,
                                       param: *mut c_void) -> c_int;
@@ -1898,6 +1933,20 @@ extern {
                              opts: *const git_checkout_options) -> c_int;
     pub fn git_checkout_init_options(opts: *mut git_checkout_options,
                                      version: c_uint) -> c_int;
+
+    // merge
+    pub fn git_annotated_commit_id(commit: *const git_annotated_commit) -> *const git_oid;
+    pub fn git_annotated_commit_from_ref(out: *mut *mut git_annotated_commit,
+                                         repo: *mut git_repository,
+                                         reference: *const git_reference) -> c_int;
+    pub fn git_annotated_commit_free(commit: *mut git_annotated_commit);
+    pub fn git_merge_init_options(opts: *mut git_merge_options,
+                                  version: c_uint) -> c_int;
+    pub fn git_merge(repo: *mut git_repository,
+                     their_heads: *const *const git_annotated_commit,
+                     len: size_t,
+                     merge_opts: *const git_merge_options,
+                     checkout_opts: *const git_checkout_options) -> c_int;
 
     // notes
     pub fn git_note_author(note: *const git_note) -> *const git_signature;

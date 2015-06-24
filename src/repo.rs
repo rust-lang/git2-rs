@@ -8,6 +8,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
+use {AnnotatedCommit, MergeOptions};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
 use build::{RepoBuilder, CheckoutBuilder};
@@ -785,6 +786,18 @@ impl Repository {
         }
     }
 
+    /// Creates a git_annotated_commit from the given reference.
+    pub fn reference_to_annotated_commit(&self, reference: &Reference)
+                                         -> Result<AnnotatedCommit, Error> {
+        let mut ret = 0 as *mut raw::git_annotated_commit;
+        unsafe {
+            try_call!(raw::git_annotated_commit_from_ref(&mut ret,
+                                                         self.raw(),
+                                                         reference.raw()));
+            Ok(AnnotatedCommit::from_raw(ret))
+        }
+    }
+
     /// Create a new action signature with default user and now timestamp.
     ///
     /// This looks up the user.name and user.email from the configuration and
@@ -985,6 +998,44 @@ impl Repository {
 
             try_call!(raw::git_checkout_tree(self.raw, &*treeish.raw(),
                                              &raw_opts));
+        }
+        Ok(())
+    }
+
+    /// Merges the given commit(s) into HEAD, writing the results into the
+    /// working directory. Any changes are staged for commit and any conflicts
+    /// are written to the index. Callers should inspect the repository's index
+    /// after this completes, resolve any conflicts and prepare a commit.
+    ///
+    /// The merge performed uses the first common ancestor, unlike the
+    /// git-merge-recursive strategy, which may produce an artificial common
+    /// ancestor tree when there are multiple ancestors.
+    /// For compatibility with git, the repository is put into a merging state.
+    /// Once the commit is done (or if the uses wishes to abort), you should
+    /// clear this state by calling git_repository_state_cleanup().
+    pub fn merge(&self,
+                 annotated_commits: &[&AnnotatedCommit],
+                 merge_opts: Option<&MergeOptions>,
+                 checkout_opts: Option<&mut CheckoutBuilder>) -> Result<(), Error> {
+        unsafe {
+            let mut raw_checkout_opts = mem::zeroed();
+            try_call!(raw::git_checkout_init_options(&mut raw_checkout_opts,
+                                raw::GIT_CHECKOUT_OPTIONS_VERSION));
+            match checkout_opts {
+                Some(c) => c.configure(&mut raw_checkout_opts),
+                None => {}
+            }
+
+            let commit_ptrs = annotated_commits.iter().map(|c| {
+                c.raw() as *const raw::git_annotated_commit
+            }).collect::<Vec<_>>();
+
+            try_call!(raw::git_merge(self.raw,
+                                     commit_ptrs.as_ptr(),
+                                     annotated_commits.len() as size_t,
+                                     merge_opts.map_or(0 as *const raw::git_merge_options,
+                                                       |o| o.raw()),
+                                     &raw_checkout_opts));
         }
         Ok(())
     }
