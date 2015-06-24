@@ -1015,15 +1015,16 @@ impl Repository {
     /// clear this state by calling git_repository_state_cleanup().
     pub fn merge(&self,
                  annotated_commits: &[&AnnotatedCommit],
-                 merge_opts: Option<&MergeOptions>,
-                 checkout_opts: Option<&mut CheckoutBuilder>) -> Result<(), Error> {
+                 merge_opts: Option<&mut MergeOptions>,
+                 checkout_opts: Option<&mut CheckoutBuilder>)
+                 -> Result<(), Error>
+    {
         unsafe {
             let mut raw_checkout_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(&mut raw_checkout_opts,
                                 raw::GIT_CHECKOUT_OPTIONS_VERSION));
-            match checkout_opts {
-                Some(c) => c.configure(&mut raw_checkout_opts),
-                None => {}
+            if let Some(c) = checkout_opts {
+                c.configure(&mut raw_checkout_opts);
             }
 
             let commit_ptrs = annotated_commits.iter().map(|c| {
@@ -1033,8 +1034,8 @@ impl Repository {
             try_call!(raw::git_merge(self.raw,
                                      commit_ptrs.as_ptr(),
                                      annotated_commits.len() as size_t,
-                                     merge_opts.map_or(0 as *const raw::git_merge_options,
-                                                       |o| o.raw()),
+                                     merge_opts.map(|o| o.raw())
+                                               .unwrap_or(0 as *const _),
                                      &raw_checkout_opts));
         }
         Ok(())

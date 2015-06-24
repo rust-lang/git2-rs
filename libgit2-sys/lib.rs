@@ -1935,10 +1935,12 @@ extern {
                                      version: c_uint) -> c_int;
 
     // merge
-    pub fn git_annotated_commit_id(commit: *const git_annotated_commit) -> *const git_oid;
+    pub fn git_annotated_commit_id(commit: *const git_annotated_commit)
+                                   -> *const git_oid;
     pub fn git_annotated_commit_from_ref(out: *mut *mut git_annotated_commit,
                                          repo: *mut git_repository,
-                                         reference: *const git_reference) -> c_int;
+                                         reference: *const git_reference)
+                                         -> c_int;
     pub fn git_annotated_commit_free(commit: *mut git_annotated_commit);
     pub fn git_merge_init_options(opts: *mut git_merge_options,
                                   version: c_uint) -> c_int;
