@@ -2,7 +2,7 @@ use std::marker;
 use std::mem;
 use libc::c_uint;
 
-use {raw, Commit, FileFavor};
+use {raw, Oid, Commit, FileFavor};
 use util::Binding;
 use call::Convert;
 
@@ -18,6 +18,13 @@ pub struct AnnotatedCommit<'repo> {
 // modeled after DiffFindOptions
 pub struct MergeOptions {
     raw: raw::git_merge_options,
+}
+
+impl<'repo> AnnotatedCommit<'repo> {
+    /// Gets the commit ID that the given git_annotated_commit refers to
+    pub fn id(&self) -> Oid {
+        unsafe { Binding::from_raw(raw::git_annotated_commit_id(&*self.raw)) }
+    }
 }
 
 impl MergeOptions {

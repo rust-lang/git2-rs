@@ -1935,6 +1935,7 @@ extern {
                                      version: c_uint) -> c_int;
 
     // merge
+    pub fn git_annotated_commit_id(commit: *const git_annotated_commit) -> *const git_oid;
     pub fn git_annotated_commit_from_ref(out: *mut *mut git_annotated_commit,
                                          repo: *mut git_repository,
                                          reference: *const git_reference) -> c_int;
