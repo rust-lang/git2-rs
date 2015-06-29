@@ -112,9 +112,12 @@ fn main() {
                 .current_dir(&dst.join("build")), "cmake");
 
     println!("cargo:root={}", dst.display());
-    if mingw || target.contains("windows") {
-        println!("cargo:rustc-flags=-l winhttp -l rpcrt4 -l ole32 \
-                                    -l static=git2");
+    if target.contains("windows") {
+        println!("cargo:rustc-link-lib=winhttp");
+        println!("cargo:rustc-link-lib=rpcrt4");
+        println!("cargo:rustc-link-lib=ole32");
+        println!("cargo:rustc-link-lib=crypt32");
+        println!("cargo:rustc-link-lib=static=git2");
         println!("cargo:rustc-link-search=native={}/lib", dst.display());
         return
     }
@@ -126,10 +129,10 @@ fn main() {
         }
     }
 
-    println!("cargo:rustc-flags=-l static=git2");
-    println!("cargo:rustc-flags=-L {}", dst.join("lib").display());
+    println!("cargo:rustc-link-lib=static=git2");
+    println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
     if target.contains("apple") {
-        println!("cargo:rustc-flags=-l iconv");
+        println!("cargo:rustc-link-lib=iconv");
     }
 }
 
