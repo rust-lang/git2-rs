@@ -54,12 +54,15 @@ fn main() {
     // jankily) here...
     if mingw {
         cflags.push_str(" -DGIT_SSH");
-        let libssh2_root = env::var("DEP_SSH2_ROOT").unwrap();
-        cflags.push_str(&format!(" -I{}/include", libssh2_root));
     } else if msvc {
         cflags.push_str(" /DGIT_SSH");
-        let libssh2_root = env::var("DEP_SSH2_ROOT").unwrap();
-        cflags.push_str(&format!(" /I{}\\include", libssh2_root));
+    }
+    if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
+        if mingw {
+            cflags.push_str(&format!(" -I{}", libssh2_include));
+        } else if msvc {
+            cflags.push_str(&format!(" /I{}", libssh2_include));
+        }
     }
 
     let src = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap());
