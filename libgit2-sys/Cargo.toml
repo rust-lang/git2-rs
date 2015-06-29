@@ -1,7 +1,7 @@
 [package]
 
 name = "libgit2-sys"
-version = "0.2.17"
+version = "0.2.18"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
@@ -10,11 +10,11 @@ license = "MIT/Apache-2.0"
 description = "Native bindings to the libgit2 library"
 
 [lib]
-  name = "libgit2_sys"
-  path = "lib.rs"
+name = "libgit2_sys"
+path = "lib.rs"
 
 [dependencies]
-libssh2-sys = "0.1.0"
+libssh2-sys = "0.1.26"
 libc = "0.1"
 
 [build-dependencies]
