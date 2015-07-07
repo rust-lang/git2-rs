@@ -258,9 +258,26 @@ bitflags! {
 Orderings that may be specified for Revwalk iteration.
 "]
     flags Sort: u32 {
+        /// Sort the repository contents in no particular ordering.
+        ///
+        /// This sorting is arbitrary, implementation-specific, and subject to
+        /// change at any time. This is the default sorting for new walkers.
         const SORT_NONE = raw::GIT_SORT_NONE as u32,
+
+        /// Sort the repository contents in topological order (parents before
+        /// children).
+        ///
+        /// This sorting mode can be combined with time sorting.
         const SORT_TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as u32,
+
+        /// Sort the repository contents by commit time.
+        ///
+        /// This sorting mode can be combined with topological sorting.
         const SORT_TIME = raw::GIT_SORT_TIME as u32,
+
+        /// Iterate through the repository contents in reverse order.
+        ///
+        /// This sorting mode can be combined with any others.
         const SORT_REVERSE = raw::GIT_SORT_REVERSE as u32,
     }
 }
@@ -270,11 +287,17 @@ bitflags! {
 Types of credentials that can be requested by a credential callback.
 "]
     flags CredentialType: u32 {
+        #[allow(missing_docs)]
         const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32,
+        #[allow(missing_docs)]
         const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32,
+        #[allow(missing_docs)]
         const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32,
+        #[allow(missing_docs)]
         const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32,
+        #[allow(missing_docs)]
         const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32,
+        #[allow(missing_docs)]
         const USERNAME = raw::GIT_CREDTYPE_USERNAME as u32,
     }
 }
@@ -284,10 +307,14 @@ bitflags! {
 Flags for APIs that add files matching pathspec
 "]
     flags IndexAddOption: u32 {
+        #[allow(missing_docs)]
         const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32,
+        #[allow(missing_docs)]
         const ADD_FORCE = raw::GIT_INDEX_ADD_FORCE as u32,
+        #[allow(missing_docs)]
         const ADD_DISABLE_PATHSPEC_MATCH =
                 raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32,
+        #[allow(missing_docs)]
         const ADD_CHECK_PATHSPEC = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32,
     }
 }
@@ -297,8 +324,11 @@ bitflags! {
 Flags for the return value of `Repository::revparse`
 "]
     flags RevparseMode: u32 {
+        /// The spec targeted a single object
         const REVPARSE_SINGLE = raw::GIT_REVPARSE_SINGLE as u32,
+        /// The spec targeted a range of commits
         const REVPARSE_RANGE = raw::GIT_REVPARSE_RANGE as u32,
+        /// The spec used the `...` operator, which invokes special semantics.
         const REVPARSE_MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32,
     }
 }
@@ -436,24 +466,41 @@ impl ConfigLevel {
 }
 
 bitflags! {
-    #[doc = "
-Flags for repository status
-"]
+    /// Status flags for a single file
+    ///
+    /// A combination of these values will be returned to indicate the status of
+    /// a file.  Status compares the working directory, the index, and the
+    /// current HEAD of the repository.  The `STATUS_INDEX_*` set of flags
+    /// represents the status of file in the index relative to the HEAD, and the
+    /// `STATUS_WT_*` set of flags represent the status of the file in the
+    /// working directory relative to the index.
     flags Status: u32 {
+        #[allow(missing_docs)]
         const STATUS_CURRENT = raw::GIT_STATUS_CURRENT as u32,
 
+        #[allow(missing_docs)]
         const STATUS_INDEX_NEW = raw::GIT_STATUS_INDEX_NEW as u32,
+        #[allow(missing_docs)]
         const STATUS_INDEX_MODIFIED = raw::GIT_STATUS_INDEX_MODIFIED as u32,
+        #[allow(missing_docs)]
         const STATUS_INDEX_DELETED = raw::GIT_STATUS_INDEX_DELETED as u32,
+        #[allow(missing_docs)]
         const STATUS_INDEX_RENAMED = raw::GIT_STATUS_INDEX_RENAMED as u32,
+        #[allow(missing_docs)]
         const STATUS_INDEX_TYPECHANGE = raw::GIT_STATUS_INDEX_TYPECHANGE as u32,
 
+        #[allow(missing_docs)]
         const STATUS_WT_NEW = raw::GIT_STATUS_WT_NEW as u32,
+        #[allow(missing_docs)]
         const STATUS_WT_MODIFIED = raw::GIT_STATUS_WT_MODIFIED as u32,
+        #[allow(missing_docs)]
         const STATUS_WT_DELETED = raw::GIT_STATUS_WT_DELETED as u32,
+        #[allow(missing_docs)]
         const STATUS_WT_TYPECHANGE = raw::GIT_STATUS_WT_TYPECHANGE as u32,
+        #[allow(missing_docs)]
         const STATUS_WT_RENAMED = raw::GIT_STATUS_WT_RENAMED as u32,
 
+        #[allow(missing_docs)]
         const STATUS_IGNORED = raw::GIT_STATUS_IGNORED as u32,
     }
 }
@@ -463,14 +510,14 @@ bitflags! {
 Mode options for RepositoryInitOptions
 "]
     flags RepositoryInitMode: u32 {
-        #[doc = "Use permissions configured by umask - the default"]
+        /// Use permissions configured by umask - the default
         const REPOSITORY_INIT_SHARED_UMASK =
                     raw::GIT_REPOSITORY_INIT_SHARED_UMASK as u32,
-        #[doc = "Use `--shared=group` behavior, chmod'ing the new repo to be \
-                 group writable and \"g+sx\" for sticky group assignment"]
+        /// Use `--shared=group` behavior, chmod'ing the new repo to be
+        /// group writable and \"g+sx\" for sticky group assignment
         const REPOSITORY_INIT_SHARED_GROUP =
                     raw::GIT_REPOSITORY_INIT_SHARED_GROUP as u32,
-        #[doc = "Use `--shared=all` behavior, adding world readability."]
+        /// Use `--shared=all` behavior, adding world readability.
         const REPOSITORY_INIT_SHARED_ALL =
                     raw::GIT_REPOSITORY_INIT_SHARED_ALL as u32,
     }
@@ -545,32 +592,46 @@ Lastly, the following will only be returned for ignore "NONE".
 * WD_UNTRACKED      - wd contains untracked files
 "#]
     flags SubmoduleStatus: u32 {
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_HEAD =
                 raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_INDEX =
                 raw::GIT_SUBMODULE_STATUS_IN_INDEX as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_CONFIG =
                 raw::GIT_SUBMODULE_STATUS_IN_CONFIG as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_WD =
                 raw::GIT_SUBMODULE_STATUS_IN_WD as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_INDEX_ADDED =
                 raw::GIT_SUBMODULE_STATUS_INDEX_ADDED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_INDEX_DELETED =
                 raw::GIT_SUBMODULE_STATUS_INDEX_DELETED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_INDEX_MODIFIED =
                 raw::GIT_SUBMODULE_STATUS_INDEX_MODIFIED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_UNINITIALIZED =
                 raw::GIT_SUBMODULE_STATUS_WD_UNINITIALIZED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_ADDED =
                 raw::GIT_SUBMODULE_STATUS_WD_ADDED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_DELETED =
                 raw::GIT_SUBMODULE_STATUS_WD_DELETED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_MODIFIED =
                 raw::GIT_SUBMODULE_STATUS_WD_MODIFIED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_INDEX_MODIFIED =
                 raw::GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_WD_MODIFIED =
                 raw::GIT_SUBMODULE_STATUS_WD_WD_MODIFIED as u32,
+        #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_UNTRACKED =
                 raw::GIT_SUBMODULE_STATUS_WD_UNTRACKED as u32,
     }
@@ -581,12 +642,28 @@ bitflags! {
     #[doc = r#"
 "#]
     flags PathspecFlags: u32 {
+        /// Use the default pathspec matching configuration.
         const PATHSPEC_DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32,
+        /// Force matching to ignore case, otherwise matching will use native
+        /// case sensitivity fo the platform filesystem.
         const PATHSPEC_IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32,
+        /// Force case sensitive matches, otherwise match will use the native
+        /// case sensitivity of the platform filesystem.
         const PATHSPEC_USE_CASE = raw::GIT_PATHSPEC_USE_CASE as u32,
+        /// Disable glob patterns and just use simple string comparison for
+        /// matching.
         const PATHSPEC_NO_GLOB = raw::GIT_PATHSPEC_NO_GLOB as u32,
+        /// Means that match functions return the error code `NotFound` if no
+        /// matches are found. By default no matches is a success.
         const PATHSPEC_NO_MATCH_ERROR = raw::GIT_PATHSPEC_NO_MATCH_ERROR as u32,
+        /// Means that the list returned should track which patterns matched
+        /// which files so that at the end of the match we can identify patterns
+        /// that did not match any files.
         const PATHSPEC_FIND_FAILURES = raw::GIT_PATHSPEC_FIND_FAILURES as u32,
+        /// Means that the list returned does not need to keep the actual
+        /// matching filenames. Use this to just test if there were any matches
+        /// at all or in combination with `PATHSPEC_FAILURES` to validate a
+        /// pathspec.
         const PATHSPEC_FAILURES_ONLY = raw::GIT_PATHSPEC_FAILURES_ONLY as u32,
     }
 }
@@ -609,10 +686,16 @@ pub enum DiffFormat {
 bitflags! {
     /// Formatting options for diff stats
     flags DiffStatsFormat: u32 {
+        /// Don't generate any stats
         const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE as u32,
+        /// Equivalent of `--stat` in git
         const DIFF_STATS_FULL = raw::GIT_DIFF_STATS_FULL as u32,
+        /// Equivalent of `--shortstat` in git
         const DIFF_STATS_SHORT = raw::GIT_DIFF_STATS_SHORT as u32,
+        /// Equivalent of `--numstat` in git
         const DIFF_STATS_NUMBER = raw::GIT_DIFF_STATS_NUMBER as u32,
+        /// Extended header information such as creations, renames and mode
+        /// changes, equivalent of `--summary` in git
         const DIFF_STATS_INCLUDE_SUMMARY =
             raw::GIT_DIFF_STATS_INCLUDE_SUMMARY as u32,
     }
