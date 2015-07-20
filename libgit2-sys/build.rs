@@ -17,6 +17,7 @@ macro_rules! t {
 fn main() {
     register_dep("SSH2");
     register_dep("OPENSSL");
+    let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
     if env::var("LIBSSH2_SYS_USE_PKG_CONFIG").is_ok() {
         if pkg_config::find_library("libgit2").is_ok() {
@@ -26,6 +27,7 @@ fn main() {
 
     let mut cflags = env::var("CFLAGS").unwrap_or(String::new());
     let target = env::var("TARGET").unwrap();
+    let windows = target.contains("windows");
     let mingw = target.contains("windows-gnu");
     let msvc = target.contains("msvc");
 
@@ -49,19 +51,21 @@ fn main() {
     }
 
     // libgit2 uses pkg-config to discover libssh2, but this doesn't work on
-    // windows as libssh2 doesn't come with a libssh2.pc file in that install.
-    // As a result we just manually turn on SSH support in libgit2 (a little
-    // jankily) here...
-    if mingw {
-        cflags.push_str(" -DGIT_SSH");
-    } else if msvc {
-        cflags.push_str(" /DGIT_SSH");
-    }
-    if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
-        if mingw {
-            cflags.push_str(&format!(" -I{}", libssh2_include));
-        } else if msvc {
-            cflags.push_str(&format!(" /I{}", libssh2_include));
+    // windows as libssh2 doesn't come with a libssh2.pc file in that install
+    // (or when pkg-config isn't found). As a result we just manually turn on
+    // SSH support in libgit2 (a little jankily) here...
+    if windows || !has_pkgconfig {
+        if msvc {
+            cflags.push_str(" /DGIT_SSH");
+        } else {
+            cflags.push_str(" -DGIT_SSH");
+        }
+        if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
+            if msvc {
+                cflags.push_str(&format!(" /I{}", libssh2_include));
+            } else {
+                cflags.push_str(&format!(" -I{}", libssh2_include));
+            }
         }
     }
 
