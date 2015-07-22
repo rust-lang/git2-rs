@@ -79,8 +79,13 @@ fn main() {
     if mingw {
         cmd.arg("-G").arg("Unix Makefiles");
     } else if msvc {
-        // If we don't pass this unfortunately cmake produces 32-bit builds
-        cmd.arg("-G").arg("Visual Studio 12 2013 Win64");
+        if target.contains("i686") {
+            cmd.arg("-G").arg("Visual Studio 12 2013");
+        } else if target.contains("x86_64") {
+            cmd.arg("-G").arg("Visual Studio 12 2013 Win64");
+        } else {
+            panic!("unsupported msvc target: {}", target);
+        }
 
         // Currently liblibc links to msvcrt which apparently is a dynamic CRT,
         // so we need to turn this off to get it to link right.
