@@ -35,7 +35,7 @@ struct State {
     progress: Option<Progress<'static>>,
     total: usize,
     current: usize,
-    path: PathBuf,
+    path: Option<PathBuf>,
     newline: bool,
 }
 
@@ -62,7 +62,9 @@ fn print(state: &mut State) {
                network_pct, kbytes, stats.received_objects(),
                stats.total_objects(),
                index_pct, stats.indexed_objects(), stats.total_objects(),
-               co_pct, state.current, state.total, state.path.display());
+               co_pct, state.current, state.total,
+               state.path.as_ref().map(|s| s.to_string_lossy().into_owned())
+                                  .unwrap_or(String::new()));
     }
     io::stdout().flush().unwrap();
 }
@@ -72,7 +74,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         progress: None,
         total: 0,
         current: 0,
-        path: PathBuf::from("."),
+        path: None,
         newline: false,
     });
     let mut cb = RemoteCallbacks::new();
@@ -86,7 +88,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let mut co = CheckoutBuilder::new();
     co.progress(|path, cur, total| {
         let mut state = state.borrow_mut();
-        state.path = path.to_path_buf();
+        state.path = path.map(|p| p.to_path_buf());
         state.current = cur;
         state.total = total;
         print(&mut *state);
