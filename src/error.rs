@@ -53,17 +53,24 @@ impl Error {
             raw::GIT_EUNMERGED => super::ErrorCode::Unmerged,
             raw::GIT_ENONFASTFORWARD => super::ErrorCode::NotFastForward,
             raw::GIT_EINVALIDSPEC => super::ErrorCode::InvalidSpec,
-            raw::GIT_EMERGECONFLICT => super::ErrorCode::MergeConflict,
+            raw::GIT_ECONFLICT => super::ErrorCode::Conflict,
             raw::GIT_ELOCKED => super::ErrorCode::Locked,
             raw::GIT_EMODIFIED => super::ErrorCode::Modified,
             raw::GIT_PASSTHROUGH => super::ErrorCode::GenericError,
             raw::GIT_ITEROVER => super::ErrorCode::GenericError,
+            raw::GIT_EAUTH => super::ErrorCode::Auth,
+            raw::GIT_ECERTIFICATE => super::ErrorCode::Certificate,
+            raw::GIT_EAPPLIED => super::ErrorCode::Applied,
+            raw::GIT_EPEEL => super::ErrorCode::Peel,
+            raw::GIT_EEOF => super::ErrorCode::Eof,
+            raw::GIT_EINVALID => super::ErrorCode::Invalid,
+            raw::GIT_EUNCOMMITTED => super::ErrorCode::Uncommitted,
         }
     }
 
     /// Return the raw error code associated with this error.
     pub fn raw_code(&self) -> raw::git_error_code {
-        macro_rules! check( ($($e:ident),*) => (
+        macro_rules! check( ($($e:ident,)*) => (
             $(if self.klass == raw::$e as c_int { raw::$e }) else *
             else {
                 raw::GIT_ERROR
@@ -82,11 +89,18 @@ impl Error {
             GIT_EUNMERGED,
             GIT_ENONFASTFORWARD,
             GIT_EINVALIDSPEC,
-            GIT_EMERGECONFLICT,
+            GIT_ECONFLICT,
             GIT_ELOCKED,
             GIT_EMODIFIED,
+            GIT_EAUTH,
+            GIT_ECERTIFICATE,
+            GIT_EAPPLIED,
+            GIT_EPEEL,
+            GIT_EEOF,
+            GIT_EINVALID,
+            GIT_EUNCOMMITTED,
             GIT_PASSTHROUGH,
-            GIT_ITEROVER
+            GIT_ITEROVER,
         )
     }
 

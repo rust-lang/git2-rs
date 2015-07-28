@@ -20,12 +20,6 @@ libc = "0.1"
 [build-dependencies]
 pkg-config = "0.3"
 
-[target.i686-apple-darwin.dependencies]
-openssl-sys = "0.6.0"
-libz-sys = "0.1.0"
-[target.x86_64-apple-darwin.dependencies]
-openssl-sys = "0.6.0"
-libz-sys = "0.1.0"
 [target.i686-unknown-linux-gnu.dependencies]
 openssl-sys = "0.6.0"
 libz-sys = "0.1.0"

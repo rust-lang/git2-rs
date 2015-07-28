@@ -191,8 +191,8 @@ wrap_env! {
     fn transport_factory(out: *mut *mut raw::git_transport,
                          owner: *mut raw::git_remote,
                          param: *mut c_void) -> c_int {{
-        struct Bomb<'a, 'b> { remote: Option<Remote<'a, 'b>> }
-        impl<'a, 'b> Drop for Bomb<'a, 'b> {
+        struct Bomb<'a> { remote: Option<Remote<'a>> }
+        impl<'a> Drop for Bomb<'a> {
             fn drop(&mut self) {
                 // TODO: maybe a method instead?
                 mem::forget(self.remote.take());

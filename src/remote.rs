@@ -6,8 +6,8 @@ use std::slice;
 use std::str;
 use libc;
 
-use {raw, Direction, Error, Refspec, Oid, IntoCString};
-use {Push, RemoteCallbacks, Progress, Repository};
+use {raw, Direction, Error, Refspec, Oid, FetchPrune};
+use {RemoteCallbacks, Progress, Repository, AutotagOption};
 use util::Binding;
 
 /// A structure representing a [remote][1] of a git repository.
@@ -16,16 +16,15 @@ use util::Binding;
 ///
 /// The lifetime is the lifetime of the repository that it is attached to. The
 /// remote is used to manage fetches and pushes as well as refspecs.
-pub struct Remote<'repo, 'cb> {
+pub struct Remote<'repo> {
     raw: *mut raw::git_remote,
     _marker: marker::PhantomData<&'repo Repository>,
-    callbacks: Option<Box<RemoteCallbacks<'cb>>>,
 }
 
 /// An iterator over the refspecs that a remote contains.
-pub struct Refspecs<'remote, 'cb: 'remote> {
+pub struct Refspecs<'remote> {
     range: Range<usize>,
-    remote: &'remote Remote<'remote, 'cb>,
+    remote: &'remote Remote<'remote>,
 }
 
 /// Description of a reference advertised bya remote server, given out on calls
@@ -35,7 +34,15 @@ pub struct RemoteHead<'remote> {
     _marker: marker::PhantomData<&'remote str>,
 }
 
-impl<'repo, 'cb> Remote<'repo, 'cb> {
+/// Options which can be specified to various fetch operations.
+pub struct FetchOptions<'cb> {
+    callbacks: Option<RemoteCallbacks<'cb>>,
+    prune: FetchPrune,
+    update_fetchhead: bool,
+    download_tags: AutotagOption,
+}
+
+impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
         ::init();
@@ -84,9 +91,9 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
 
     /// Open a connection to a remote.
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
+        // TODO: can callbacks be exposed safely?
         unsafe {
-            try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_connect(self.raw, dir));
+            try_call!(raw::git_remote_connect(self.raw, dir, 0 as *const _));
         }
         Ok(())
     }
@@ -101,91 +108,6 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
         unsafe { raw::git_remote_disconnect(self.raw) }
     }
 
-    /// Save a remote to its repository's configuration
-    ///
-    /// Anonymous remotes cannot be saved
-    pub fn save(&self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_remote_save(&*self.raw)); }
-        Ok(())
-    }
-
-    /// Add a fetch refspec to the remote
-    pub fn add_fetch(&mut self, spec: &str) -> Result<(), Error> {
-        let spec = try!(CString::new(spec));
-        unsafe {
-            try_call!(raw::git_remote_add_fetch(self.raw, spec));
-        }
-        Ok(())
-    }
-
-    /// Add a push refspec to the remote
-    pub fn add_push(&mut self, spec: &str) -> Result<(), Error> {
-        let spec = try!(CString::new(spec));
-        unsafe {
-            try_call!(raw::git_remote_add_push(self.raw, spec));
-        }
-        Ok(())
-    }
-
-    /// Set the remote's url
-    ///
-    /// Existing connections will not be updated.
-    pub fn set_url(&mut self, url: &str) -> Result<(), Error> {
-        let url = try!(CString::new(url));
-        unsafe { try_call!(raw::git_remote_set_url(self.raw, url)); }
-        Ok(())
-    }
-
-    /// Set the remote's pushurl.
-    ///
-    /// `None` indicates that it should be cleared.
-    ///
-    /// Existing connections will not be updated.
-    pub fn set_pushurl(&mut self, pushurl: Option<&str>) -> Result<(), Error> {
-        let pushurl = try!(::opt_cstr(pushurl));
-        unsafe {
-            try_call!(raw::git_remote_set_pushurl(self.raw, pushurl));
-        }
-        Ok(())
-    }
-
-    /// Sets the update FETCH_HEAD setting. By default, FETCH_HEAD will be
-    /// updated on every fetch.
-    pub fn set_update_fetchhead(&mut self, update: bool) {
-        unsafe {
-            raw::git_remote_set_update_fetchhead(self.raw, update as libc::c_int)
-        }
-    }
-
-    /// Set the remote's list of fetch refspecs
-    pub fn set_fetch_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
-        where T: IntoCString, I: Iterator<Item=T>
-    {
-        let (_a, _b, mut arr) = try!(::util::iter2cstrs(i));
-        unsafe {
-            try_call!(raw::git_remote_set_fetch_refspecs(self.raw, &mut arr));
-        }
-        Ok(())
-    }
-
-    /// Set the remote's list of push refspecs
-    pub fn set_push_refspecs<T, I>(&mut self, i: I) -> Result<(), Error>
-        where T: IntoCString, I: Iterator<Item=T>
-    {
-        let (_a, _b, mut arr) = try!(::util::iter2cstrs(i));
-        unsafe {
-            try_call!(raw::git_remote_set_push_refspecs(self.raw, &mut arr));
-        }
-        Ok(())
-    }
-
-    /// Clear the refspecs
-    ///
-    /// Remove all configured fetch and push refspecs from the remote.
-    pub fn clear_refspecs(&mut self) {
-        unsafe { raw::git_remote_clear_refspecs(self.raw) }
-    }
-
     /// Download and index the packfile
     ///
     /// Connect to the remote if it hasn't been done yet, negotiate with the
@@ -196,17 +118,18 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     ///
     /// The `specs` argument is a list of refspecs to use for this negotiation
     /// and download. Use an empty array to use the base refspecs.
-    pub fn download(&mut self, specs: &[&str]) -> Result<(), Error> {
+    pub fn download(&mut self, specs: &[&str], opts: Option<&mut FetchOptions>)
+                    -> Result<(), Error> {
         let (_a, _b, arr) = try!(::util::iter2cstrs(specs.iter()));
+        let raw = opts.map(|o| o.raw());
         unsafe {
-            try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_download(self.raw, &arr));
+            try_call!(raw::git_remote_download(self.raw, &arr, raw.as_ref()));
         }
         Ok(())
     }
 
     /// Get the number of refspecs for a remote
-    pub fn refspecs<'a>(&'a self) -> Refspecs<'a, 'cb> {
+    pub fn refspecs<'a>(&'a self) -> Refspecs<'a> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
         Refspecs { range: 0..cnt, remote: self }
     }
@@ -228,55 +151,29 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     /// disconnect and update the remote-tracking branches.
     pub fn fetch(&mut self,
                  refspecs: &[&str],
-                 msg: Option<&str>) -> Result<(), Error> {
+                 opts: Option<&mut FetchOptions>,
+                 reflog_msg: Option<&str>) -> Result<(), Error> {
         let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
-        let msg = try!(::opt_cstr(msg));
+        let msg = try!(::opt_cstr(reflog_msg));
+        let raw = opts.map(|o| o.raw());
         unsafe {
-            try!(self.set_raw_callbacks());
-            try_call!(raw::git_remote_fetch(self.raw, &arr, msg));
+            try_call!(raw::git_remote_fetch(self.raw, &arr, raw.as_ref(), msg));
         }
         Ok(())
     }
 
     /// Update the tips to the new state
-    pub fn update_tips(&mut self, msg: Option<&str>) -> Result<(), Error> {
+    pub fn update_tips(&mut self,
+                       callbacks: Option<&mut RemoteCallbacks>,
+                       update_fetchhead: bool,
+                       download_tags: AutotagOption,
+                       msg: Option<&str>) -> Result<(), Error> {
         let msg = try!(::opt_cstr(msg));
+        let cbs = callbacks.map(|cb| cb.raw());
         unsafe {
-            try_call!(raw::git_remote_update_tips(self.raw, msg));
-        }
-        Ok(())
-    }
-
-    /// Retrieve the update FETCH_HEAD setting.
-    pub fn update_fetchhead(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_remote_update_fetchhead(self.raw)); }
-        Ok(())
-    }
-
-    /// Create a new push object
-    pub fn push(&mut self) -> Result<Push, Error> {
-        let mut ret = 0 as *mut raw::git_push;
-        try!(self.set_raw_callbacks());
-        unsafe {
-            try_call!(raw::git_push_new(&mut ret, self.raw));
-            Ok(Binding::from_raw(ret))
-        }
-    }
-
-    /// Set the callbacks to be invoked when the transfer is in-progress.
-    ///
-    /// This will overwrite the previously set callbacks.
-    pub fn set_callbacks(&mut self, callbacks: RemoteCallbacks<'cb>) {
-        self.callbacks = Some(Box::new(callbacks));
-    }
-
-    fn set_raw_callbacks(&mut self) -> Result<(), Error> {
-        match self.callbacks {
-            Some(ref mut cbs) => unsafe {
-                let raw = cbs.raw();
-                try_call!(raw::git_remote_set_callbacks(self.raw, &raw));
-            },
-            None => {}
+            try_call!(raw::git_remote_update_tips(self.raw, cbs.as_ref(),
+                                                  update_fetchhead,
+                                                  download_tags, msg));
         }
         Ok(())
     }
@@ -310,51 +207,49 @@ impl<'repo, 'cb> Remote<'repo, 'cb> {
     }
 }
 
-impl<'a, 'b> Clone for Remote<'a, 'b> {
-    fn clone(&self) -> Remote<'a, 'b> {
+impl<'repo> Clone for Remote<'repo> {
+    fn clone(&self) -> Remote<'repo> {
         let mut ret = 0 as *mut raw::git_remote;
         let rc = unsafe { call!(raw::git_remote_dup(&mut ret, self.raw)) };
         assert_eq!(rc, 0);
         Remote {
             raw: ret,
             _marker: marker::PhantomData,
-            callbacks: None,
         }
     }
 }
 
-impl<'repo, 'cb> Binding for Remote<'repo, 'cb> {
+impl<'repo> Binding for Remote<'repo> {
     type Raw = *mut raw::git_remote;
 
-    unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo, 'cb> {
+    unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo> {
         Remote {
             raw: raw,
             _marker: marker::PhantomData,
-            callbacks: None,
         }
     }
     fn raw(&self) -> *mut raw::git_remote { self.raw }
 }
 
-impl<'a, 'b> Drop for Remote<'a, 'b> {
+impl<'repo> Drop for Remote<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_remote_free(self.raw) }
     }
 }
 
-impl<'repo, 'cb> Iterator for Refspecs<'repo, 'cb> {
+impl<'repo> Iterator for Refspecs<'repo> {
     type Item = Refspec<'repo>;
     fn next(&mut self) -> Option<Refspec<'repo>> {
         self.range.next().and_then(|i| self.remote.get_refspec(i))
     }
     fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
-impl<'repo, 'cb> DoubleEndedIterator for Refspecs<'repo, 'cb> {
+impl<'repo> DoubleEndedIterator for Refspecs<'repo> {
     fn next_back(&mut self) -> Option<Refspec<'repo>> {
         self.range.next_back().and_then(|i| self.remote.get_refspec(i))
     }
 }
-impl<'repo, 'cb> ExactSizeIterator for Refspecs<'repo, 'cb> {}
+impl<'repo> ExactSizeIterator for Refspecs<'repo> {}
 
 #[allow(missing_docs)] // not documented in libgit2 :(
 impl<'remote> RemoteHead<'remote> {
@@ -381,11 +276,71 @@ impl<'remote> RemoteHead<'remote> {
     }
 }
 
+impl<'cb> FetchOptions<'cb> {
+    /// Creates a new blank set of fetch options
+    pub fn new() -> FetchOptions<'cb> {
+        FetchOptions {
+            callbacks: None,
+            prune: FetchPrune::Unspecified,
+            update_fetchhead: true,
+            download_tags: AutotagOption::Unspecified,
+        }
+    }
+
+    /// Set the callbacks to use for the fetch operation.
+    pub fn remote_callbacks(&mut self, cbs: RemoteCallbacks<'cb>) -> &mut Self {
+        self.callbacks = Some(cbs);
+        self
+    }
+
+    /// Set whether to perform a prune after the fetch.
+    pub fn prune(&mut self, prune: FetchPrune) -> &mut Self {
+        self.prune = prune;
+        self
+    }
+
+    /// Set whether to write the results to FETCH_HEAD.
+    ///
+    /// Defaults to `true`.
+    pub fn update_fetchhead(&mut self, update: bool) -> &mut Self {
+        self.update_fetchhead = update;
+        self
+    }
+
+    /// Set how to behave regarding tags on the remote, such as auto-downloading
+    /// tags for objects we're downloading or downloading all of them.
+    ///
+    /// The default is to auto-follow tags.
+    pub fn download_tags(&mut self, opt: AutotagOption) -> &mut Self {
+        self.download_tags = opt;
+        self
+    }
+}
+
+impl<'cb> Binding for FetchOptions<'cb> {
+    type Raw = raw::git_fetch_options;
+
+    unsafe fn from_raw(_raw: raw::git_fetch_options) -> FetchOptions<'cb> {
+        panic!("unimplemented");
+    }
+    fn raw(&self) -> raw::git_fetch_options {
+        raw::git_fetch_options {
+            version: 1,
+            callbacks: self.callbacks.as_ref().map(|m| m.raw())
+                           .unwrap_or(unsafe { mem::zeroed() }),
+            prune: ::call::convert(&self.prune),
+            update_fetchhead: ::call::convert(&self.update_fetchhead),
+            download_tags: ::call::convert(&self.download_tags),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
     use tempdir::TempDir;
-    use {Repository, Remote, RemoteCallbacks, Direction};
+    use {Repository, Remote, RemoteCallbacks, Direction, FetchOptions};
+    use {AutotagOption};
 
     #[test]
     fn smoke() {
@@ -394,17 +349,14 @@ mod tests {
         drop(repo);
 
         let repo = t!(Repository::init(td.path()));
-        let mut origin = t!(repo.find_remote("origin"));
+        let origin = t!(repo.find_remote("origin"));
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some("/path/to/nowhere"));
         assert_eq!(origin.pushurl(), None);
 
-        t!(origin.set_url("/path/to/elsewhere"));
-        assert_eq!(origin.url(), Some("/path/to/elsewhere"));
-        t!(origin.set_pushurl(Some("/path/to/elsewhere")));
-        assert_eq!(origin.pushurl(), Some("/path/to/elsewhere"));
+        t!(repo.remote_set_url("origin", "/path/to/elsewhere"));
+        t!(repo.remote_set_pushurl("origin", Some("/path/to/elsewhere")));
 
-        origin.set_update_fetchhead(true);
         let stats = origin.stats();
         assert_eq!(stats.total_objects(), 0);
     }
@@ -422,6 +374,7 @@ mod tests {
             format!("file:///{}", remote.display().to_string()
                                         .replace("\\", "/"))
         };
+
         let mut origin = repo.remote("origin", &url).unwrap();
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some(&url[..]));
@@ -451,23 +404,16 @@ mod tests {
 
         origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
-        origin.download(&[]).unwrap();
+        origin.download(&[], None).unwrap();
         origin.disconnect();
 
-        t!(origin.save());
+        origin.fetch(&[], None, None).unwrap();
+        origin.fetch(&[], None, Some("foo")).unwrap();
+        origin.update_tips(None, true, AutotagOption::Unspecified, None).unwrap();
+        origin.update_tips(None, true, AutotagOption::All, Some("foo")).unwrap();
 
-        t!(origin.add_fetch("foo"));
-        t!(origin.add_fetch("bar"));
-        origin.clear_refspecs();
-        t!(origin.update_fetchhead());
-
-        origin.set_fetch_refspecs(["foo"].iter().map(|a| *a)).unwrap();
-        origin.set_push_refspecs(["foo"].iter().map(|a| *a)).unwrap();
-
-        origin.fetch(&[], None).unwrap();
-        origin.fetch(&[], Some("foo")).unwrap();
-        origin.update_tips(None).unwrap();
-        origin.update_tips(Some("foo")).unwrap();
+        t!(repo.remote_add_fetch("origin", "foo"));
+        t!(repo.remote_add_fetch("origin", "bar"));
     }
 
     #[test]
@@ -483,8 +429,7 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
 
-        let origin = repo.remote_anonymous("/path/to/nowhere",
-                                           Some("master")).unwrap();
+        let origin = repo.remote_anonymous("/path/to/nowhere").unwrap();
         assert_eq!(origin.name(), None);
         drop(origin.clone());
     }
@@ -511,8 +456,9 @@ mod tests {
                 progress_hit.set(true);
                 true
             });
-            origin.set_callbacks(callbacks);
-            origin.fetch(&[], None).unwrap();
+            origin.fetch(&[],
+                         Some(FetchOptions::new().remote_callbacks(callbacks)),
+                         None).unwrap();
 
             let list = t!(origin.list());
             assert_eq!(list.len(), 2);

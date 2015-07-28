@@ -5,7 +5,7 @@ use std::mem;
 use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, Error, Repository, RemoteCallbacks, IntoCString};
+use {raw, Error, Repository, FetchOptions, IntoCString};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -16,7 +16,7 @@ pub struct RepoBuilder<'cb> {
     local: bool,
     hardlinks: bool,
     checkout: Option<CheckoutBuilder<'cb>>,
-    callbacks: Option<RemoteCallbacks<'cb>>,
+    fetch_opts: Option<FetchOptions<'cb>>,
 }
 
 /// A builder struct for configuring checkouts of a repository.
@@ -53,7 +53,7 @@ impl<'cb> RepoBuilder<'cb> {
             local: true,
             hardlinks: true,
             checkout: None,
-            callbacks: None,
+            fetch_opts: None,
         }
     }
 
@@ -97,10 +97,13 @@ impl<'cb> RepoBuilder<'cb> {
         self
     }
 
-    /// Set the callbacks which will be used to monitor the download progress.
-    pub fn remote_callbacks(&mut self, callbacks: RemoteCallbacks<'cb>)
+    /// Options which control the fetch, including callbacks.
+    ///
+    /// The callbacks are used for reporting fetch progress, and for acquiring
+    /// credentials in the event they are needed.
+    pub fn fetch_options(&mut self, fetch_opts: FetchOptions<'cb>)
                             -> &mut RepoBuilder<'cb> {
-        self.callbacks = Some(callbacks);
+        self.fetch_opts = Some(fetch_opts);
         self
     }
 
@@ -127,9 +130,9 @@ impl<'cb> RepoBuilder<'cb> {
         opts.checkout_opts.checkout_strategy =
             raw::GIT_CHECKOUT_SAFE as c_uint;
 
-        match self.callbacks {
+        match self.fetch_opts {
             Some(ref mut cbs) => {
-                opts.remote_callbacks = cbs.raw();
+                opts.fetch_opts = cbs.raw();
             },
             None => {}
         }

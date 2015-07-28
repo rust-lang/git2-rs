@@ -334,6 +334,7 @@ impl<'a> DiffDelta<'a> {
             raw::GIT_DELTA_UNTRACKED => Delta::Untracked,
             raw::GIT_DELTA_TYPECHANGE => Delta::Typechange,
             raw::GIT_DELTA_UNREADABLE => Delta::Unreadable,
+            raw::GIT_DELTA_CONFLICTED => Delta::Conflicted,
         }
     }
 

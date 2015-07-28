@@ -19,7 +19,7 @@ extern crate docopt;
 extern crate rustc_serialize;
 
 use docopt::Docopt;
-use git2::{Repository, RemoteCallbacks, Direction};
+use git2::{Repository, RemoteCallbacks, Direction, AutotagOption, FetchOptions};
 use std::io::{self, Write};
 use std::str;
 
@@ -36,7 +36,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     println!("Fetcing {} for repo", remote);
     let mut cb = RemoteCallbacks::new();
     let mut remote = try!(repo.find_remote(remote).or_else(|_| {
-        repo.remote_anonymous(remote, None)
+        repo.remote_anonymous(remote)
     }));
     cb.sideband_progress(|data| {
         print!("remote: {}", str::from_utf8(data).unwrap());
@@ -74,8 +74,6 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         true
     });
 
-    remote.set_callbacks(cb);
-
     // Connect to the remote end specifying that we want to fetch information
     // from it.
     try!(remote.connect(Direction::Fetch));
@@ -83,7 +81,9 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // Download the packfile and index it. This function updates the amount of
     // received data and the indexer stats which lets you inform the user about
     // progress.
-    try!(remote.download(&[]));
+    let mut fo = FetchOptions::new();
+    fo.remote_callbacks(cb);
+    try!(remote.download(&[], Some(&mut fo)));
 
     {
         // If there are local objects (we got a thin pack), then tell the user
@@ -108,7 +108,8 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // commits. This may be needed even if there was no packfile to download,
     // which can happen e.g. when the branches have been changed but all the
     // needed objects are available locally.
-    try!(remote.update_tips(None));
+    try!(remote.update_tips(None, true,
+                            AutotagOption::Unspecified, None));
 
     Ok(())
 }

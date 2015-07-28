@@ -98,11 +98,10 @@ pub use object::Object;
 pub use oid::Oid;
 pub use pathspec::{Pathspec, PathspecMatchList, PathspecFailedEntries};
 pub use pathspec::{PathspecDiffEntries, PathspecEntries};
-pub use push::{Push, PushStatus};
 pub use reference::{Reference, References, ReferenceNames};
 pub use reflog::{Reflog, ReflogEntry, ReflogIter};
 pub use refspec::Refspec;
-pub use remote::{Remote, Refspecs, RemoteHead};
+pub use remote::{Remote, Refspecs, RemoteHead, FetchOptions};
 pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
 pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
 pub use repo::{Repository, RepositoryInitOptions};
@@ -142,12 +141,26 @@ pub enum ErrorCode {
     NotFastForward,
     /// Name/ref spec was not in a valid format
     InvalidSpec,
-    /// Merge conflicts prevented operation
-    MergeConflict,
+    /// Checkout conflicts prevented operation
+    Conflict,
     /// Lock file prevented operation
     Locked,
     /// Reference value does not match expected
     Modified,
+    /// Authentication error
+    Auth,
+    /// Server certificate is invalid
+    Certificate,
+    /// Patch/merge has already been applied
+    Applied,
+    /// The requested peel operation is not possible
+    Peel,
+    /// Unexpected EOF
+    Eof,
+    /// Invalid operation or input
+    Invalid,
+    /// Uncommitted changes in index prevented operation
+    Uncommitted,
 }
 
 /// A listing of the possible states that a repository can be in.
@@ -292,6 +305,8 @@ Types of credentials that can be requested by a credential callback.
         #[allow(missing_docs)]
         const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32,
         #[allow(missing_docs)]
+        const SSH_MEMORY = raw::GIT_CREDTYPE_SSH_MEMORY as u32,
+        #[allow(missing_docs)]
         const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32,
         #[allow(missing_docs)]
         const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32,
@@ -358,7 +373,6 @@ mod note;
 mod object;
 mod oid;
 mod pathspec;
-mod push;
 mod reference;
 mod reflog;
 mod refspec;
@@ -502,6 +516,8 @@ bitflags! {
 
         #[allow(missing_docs)]
         const STATUS_IGNORED = raw::GIT_STATUS_IGNORED as u32,
+        #[allow(missing_docs)]
+        const STATUS_CONFLICTED = raw::GIT_STATUS_CONFLICTED as u32,
     }
 }
 
@@ -546,6 +562,8 @@ pub enum Delta {
     Typechange,
     /// Entry is unreadable
     Unreadable,
+    /// Entry in the index is conflicted
+    Conflicted,
 }
 
 bitflags! {
@@ -638,9 +656,26 @@ Lastly, the following will only be returned for ignore "NONE".
 
 }
 
+/// Submodule ignore values
+///
+/// These values represent settings for the `submodule.$name.ignore`
+/// configuration value which says how deeply to look at the working
+/// directory when getting the submodule status.
+pub enum SubmoduleIgnore {
+    /// Use the submodule's configuration
+    Unspecified,
+    /// Any change or untracked file is considered dirty
+    None,
+    /// Only dirty if tracked files have changed
+    Untracked,
+    /// Only dirty if HEAD has moved
+    Dirty,
+    /// Never dirty
+    All,
+}
+
 bitflags! {
-    #[doc = r#"
-"#]
+    /// ...
     flags PathspecFlags: u32 {
         /// Use the default pathspec matching configuration.
         const PATHSPEC_DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32,
@@ -699,6 +734,28 @@ bitflags! {
         const DIFF_STATS_INCLUDE_SUMMARY =
             raw::GIT_DIFF_STATS_INCLUDE_SUMMARY as u32,
     }
+}
+
+/// Automatic tag following options.
+pub enum AutotagOption {
+    /// Use the setting from the remote's configuration
+    Unspecified,
+    /// Ask the server for tags pointing to objects we're already downloading
+    Auto,
+    /// Don't ask for any tags beyond the refspecs
+    None,
+    /// Ask for all the tags
+    All,
+}
+
+/// Configuration for how pruning is done on a fetch
+pub enum FetchPrune {
+    /// Use the setting from the configuration
+    Unspecified,
+    /// Force pruning on
+    On,
+    /// Force pruning off
+    Off,
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use std::marker;
 use std::str;
 use std::path::Path;
 
-use {raw, Oid, Repository, Error, SubmoduleStatus};
+use {raw, Oid, Repository, Error};
 use util::{self, Binding};
 
 /// A structure to represent a git [submodule][1]
@@ -129,18 +129,6 @@ impl<'repo> Submodule<'repo> {
         Ok(())
     }
 
-    /// Write submodule settings to .gitmodules file.
-    ///
-    /// This commits any in-memory changes to the submodule to the gitmodules
-    /// file on disk. You may also be interested in `init()` which
-    /// writes submodule info to ".git/config" (which is better for local
-    /// changes to submodule settings) and/or `sync()` which writes
-    /// settings about remotes to the actual submodule repository.
-    pub fn save(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_submodule_save(self.raw)); }
-        Ok(())
-    }
-
     /// Copy submodule remote info into submodule repo.
     ///
     /// This copies the information about the submodules URL into the checked
@@ -173,16 +161,6 @@ impl<'repo> Submodule<'repo> {
     pub fn add_finalize(&mut self) -> Result<(), Error> {
         unsafe { try_call!(raw::git_submodule_add_finalize(self.raw)); }
         Ok(())
-    }
-
-    /// Get the status for a submodule.
-    ///
-    /// This looks at a submodule and tries to determine the status.  It
-    /// will return a combination of the `SubmoduleStatus` values.
-    pub fn status(&self) -> Result<SubmoduleStatus, Error> {
-        let mut ret = 0;
-        unsafe { try_call!(raw::git_submodule_status(&mut ret, self.raw)); }
-        Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
     }
 }
 

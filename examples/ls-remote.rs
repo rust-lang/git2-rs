@@ -30,7 +30,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open("."));
     let remote = &args.arg_remote;
     let mut remote = try!(repo.find_remote(remote).or_else(|_| {
-        repo.remote_anonymous(remote, None)
+        repo.remote_anonymous(remote)
     }));
 
     // Connect to the remote and call the printing function for each of the

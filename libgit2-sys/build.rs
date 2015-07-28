@@ -19,7 +19,7 @@ fn main() {
     register_dep("OPENSSL");
     let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
-    if env::var("LIBSSH2_SYS_USE_PKG_CONFIG").is_ok() {
+    if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
         if pkg_config::find_library("libgit2").is_ok() {
             return
         }
@@ -98,6 +98,7 @@ fn main() {
     };
     run(cmd.arg("-DBUILD_SHARED_LIBS=OFF")
            .arg("-DBUILD_CLAR=OFF")
+           .arg("-DCURL=OFF")
            .arg(&format!("-DCMAKE_BUILD_TYPE={}", profile))
            .arg(&format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
            .arg(&format!("-DCMAKE_C_FLAGS={}", cflags)), "cmake");

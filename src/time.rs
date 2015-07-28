@@ -1,4 +1,4 @@
-use libc::{c_int, c_uint};
+use libc::c_int;
 
 use raw;
 use util::Binding;
@@ -43,19 +43,19 @@ impl Binding for Time {
 
 impl IndexTime {
     /// Creates a new time structure from its components.
-    pub fn new(seconds: i64, nanoseconds: u32) -> IndexTime {
+    pub fn new(seconds: i32, nanoseconds: u32) -> IndexTime {
         unsafe {
             Binding::from_raw(raw::git_index_time {
-                seconds: seconds as raw::git_time_t,
-                nanoseconds: nanoseconds as c_uint,
+                seconds: seconds,
+                nanoseconds: nanoseconds,
             })
         }
     }
 
     /// Returns the number of seconds in the second component of this time.
-    pub fn seconds(&self) -> i64 { self.raw.seconds as i64 }
+    pub fn seconds(&self) -> i32 { self.raw.seconds }
     /// Returns the nanosecond component of this time.
-    pub fn nanoseconds(&self) -> u32 { self.raw.nanoseconds as u32 }
+    pub fn nanoseconds(&self) -> u32 { self.raw.nanoseconds }
 }
 
 impl Binding for IndexTime {

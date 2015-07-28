@@ -20,7 +20,7 @@ extern crate rustc_serialize;
 
 use std::str;
 use docopt::Docopt;
-use git2::{Repository, Error, StatusOptions, ErrorCode};
+use git2::{Repository, Error, StatusOptions, ErrorCode, SubmoduleIgnore};
 
 #[derive(RustcDecodable)]
 struct Args {
@@ -288,11 +288,10 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
         //
         // TODO: check for GIT_FILEMODE_COMMIT
         let status = entry.index_to_workdir().and_then(|diff| {
+            let ignore = SubmoduleIgnore::Unspecified;
             diff.new_file().path_bytes()
                 .and_then(|s| str::from_utf8(s).ok())
-                .and_then(|name| repo.find_submodule(name).ok())
-        }).and_then(|module| {
-            module.status().ok()
+                .and_then(|name| repo.submodule_status(name, ignore).ok())
         });
         if let Some(status) = status {
             if status.contains(git2::SUBMODULE_STATUS_WD_MODIFIED) {

@@ -8,7 +8,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {AnnotatedCommit, MergeOptions};
+use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
 use build::{RepoBuilder, CheckoutBuilder};
@@ -288,18 +288,11 @@ impl Repository {
     /// Create a remote with the given url and refspec in memory. You can use
     /// this when you have a URL instead of a remote's name. Note that anonymous
     /// remotes cannot be converted to persisted remotes.
-    pub fn remote_anonymous(&self,
-                            url: &str,
-                            fetch: Option<&str>) -> Result<Remote, Error> {
+    pub fn remote_anonymous(&self, url: &str) -> Result<Remote, Error> {
         let mut ret = 0 as *mut raw::git_remote;
         let url = try!(CString::new(url));
-        let fetch = match fetch {
-            Some(t) => Some(try!(CString::new(t))),
-            None => None,
-        };
         unsafe {
-            try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw, url,
-                                                       fetch));
+            try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw, url));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -339,6 +332,63 @@ impl Repository {
     pub fn remote_delete(&self, name: &str) -> Result<(), Error> {
         let name = try!(CString::new(name));
         unsafe { try_call!(raw::git_remote_delete(self.raw, name)); }
+        Ok(())
+    }
+
+    /// Add a fetch refspec to the remote's configuration
+    ///
+    /// Add the given refspec to the fetch list in the configuration. No loaded
+    /// remote instances will be affected.
+    pub fn remote_add_fetch(&self, name: &str, spec: &str)
+                            -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        let spec = try!(CString::new(spec));
+        unsafe {
+            try_call!(raw::git_remote_add_fetch(self.raw, name, spec));
+        }
+        Ok(())
+    }
+
+    /// Add a push refspec to the remote's configuration.
+    ///
+    /// Add the given refspec to the push list in the configuration. No
+    /// loaded remote instances will be affected.
+    pub fn remote_add_push(&self, name: &str, spec: &str)
+                           -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        let spec = try!(CString::new(spec));
+        unsafe {
+            try_call!(raw::git_remote_add_push(self.raw, name, spec));
+        }
+        Ok(())
+    }
+
+    /// Set the remote's url in the configuration
+    ///
+    /// Remote objects already in memory will not be affected. This assumes
+    /// the common case of a single-url remote and will otherwise return an
+    /// error.
+    pub fn remote_set_url(&self, name: &str, url: &str) -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        let url = try!(CString::new(url));
+        unsafe { try_call!(raw::git_remote_set_url(self.raw, name, url)); }
+        Ok(())
+    }
+
+    /// Set the remote's url for pushing in the configuration.
+    ///
+    /// Remote objects already in memory will not be affected. This assumes
+    /// the common case of a single-url remote and will otherwise return an
+    /// error.
+    ///
+    /// `None` indicates that it should be cleared.
+    pub fn remote_set_pushurl(&self, name: &str, pushurl: Option<&str>)
+                              -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        let pushurl = try!(::opt_cstr(pushurl));
+        unsafe {
+            try_call!(raw::git_remote_set_pushurl(self.raw, name, pushurl));
+        }
         Ok(())
     }
 
@@ -847,6 +897,21 @@ impl Repository {
             try_call!(raw::git_submodule_lookup(&mut raw, self.raw(), name));
             Ok(Binding::from_raw(raw))
         }
+    }
+
+    /// Get the status for a submodule.
+    ///
+    /// This looks at a submodule and tries to determine the status.  It
+    /// will return a combination of the `SubmoduleStatus` values.
+    pub fn submodule_status(&self, name: &str, ignore: SubmoduleIgnore)
+                            -> Result<SubmoduleStatus, Error> {
+        let mut ret = 0;
+        let name = try!(CString::new(name));
+        unsafe {
+            try_call!(raw::git_submodule_status(&mut ret, self.raw, name,
+                                                ignore));
+        }
+        Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
     }
 
     /// Lookup a reference to one of the objects in a repository.

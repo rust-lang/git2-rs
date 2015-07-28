@@ -3,7 +3,7 @@ use std::iter::IntoIterator;
 use std::ops::Range;
 use std::path::Path;
 
-use libc::{c_int, c_uint, size_t, c_void, c_char, c_ushort};
+use libc::{c_int, c_uint, size_t, c_void, c_char};
 
 use {raw, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
 use IntoCString;
@@ -42,7 +42,7 @@ pub struct IndexEntry {
     pub mode: u32,
     pub uid: u32,
     pub gid: u32,
-    pub file_size: u64,
+    pub file_size: u32,
     pub id: Oid,
     pub flags: u16,
     pub flags_extended: u16,
@@ -429,15 +429,15 @@ impl Binding for IndexEntry {
             flags_extended, path
         } = raw;
         IndexEntry {
-            dev: dev as u32,
-            ino: ino as u32,
-            mode: mode as u32,
-            uid: uid as u32,
-            gid: gid as u32,
-            file_size: file_size as u64,
+            dev: dev,
+            ino: ino,
+            mode: mode,
+            uid: uid,
+            gid: gid,
+            file_size: file_size,
             id: Binding::from_raw(&id as *const _),
-            flags: flags as u16,
-            flags_extended: flags_extended as u16,
+            flags: flags,
+            flags_extended: flags_extended,
             path: CStr::from_ptr(path).to_bytes().to_vec(),
             mtime: Binding::from_raw(mtime),
             ctime: Binding::from_raw(ctime),
@@ -446,23 +446,23 @@ impl Binding for IndexEntry {
 
     fn raw(&self) -> raw::git_index_entry {
         raw::git_index_entry {
-            dev: self.dev as c_uint,
-            ino: self.ino as c_uint,
-            mode: self.mode as c_uint,
-            uid: self.uid as c_uint,
-            gid: self.gid as c_uint,
-            file_size: self.file_size as raw::git_off_t,
+            dev: self.dev,
+            ino: self.ino,
+            mode: self.mode,
+            uid: self.uid,
+            gid: self.gid,
+            file_size: self.file_size,
             id: unsafe { *self.id.raw() },
-            flags: self.flags as c_ushort,
-            flags_extended: self.flags_extended as c_ushort,
+            flags: self.flags,
+            flags_extended: self.flags_extended,
             path: self.path.as_ptr() as *const _,
             mtime: raw::git_index_time {
-                seconds: self.mtime.seconds() as raw::git_time_t,
-                nanoseconds: self.mtime.nanoseconds() as c_uint,
+                seconds: self.mtime.seconds(),
+                nanoseconds: self.mtime.nanoseconds(),
             },
             ctime: raw::git_index_time {
-                seconds: self.ctime.seconds() as raw::git_time_t,
-                nanoseconds: self.ctime.nanoseconds() as c_uint,
+                seconds: self.ctime.seconds(),
+                nanoseconds: self.ctime.nanoseconds(),
             },
         }
     }

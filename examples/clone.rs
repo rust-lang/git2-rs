@@ -20,7 +20,7 @@ extern crate rustc_serialize;
 
 use docopt::Docopt;
 use git2::build::{RepoBuilder, CheckoutBuilder};
-use git2::{RemoteCallbacks, Progress};
+use git2::{RemoteCallbacks, Progress, FetchOptions};
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -94,7 +94,9 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         print(&mut *state);
     });
 
-    try!(RepoBuilder::new().remote_callbacks(cb).with_checkout(co)
+    let mut fo = FetchOptions::new();
+    fo.remote_callbacks(cb);
+    try!(RepoBuilder::new().fetch_options(fo).with_checkout(co)
                            .clone(&args.arg_url, Path::new(&args.arg_path)));
     println!("");
 

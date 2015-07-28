@@ -44,8 +44,8 @@ mod impls {
     use std::ffi::CString;
     use libc;
 
-    use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction, FileFavor};
-    use {DiffFormat};
+    use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
+    use {DiffFormat, FileFavor, SubmoduleIgnore, AutotagOption, FetchPrune};
     use call::Convert;
 
     impl<T: Copy> Convert<T> for T {
@@ -165,6 +165,41 @@ mod impls {
                 FileFavor::Ours => raw::GIT_MERGE_FILE_FAVOR_OURS,
                 FileFavor::Theirs => raw::GIT_MERGE_FILE_FAVOR_THEIRS,
                 FileFavor::Union => raw::GIT_MERGE_FILE_FAVOR_UNION,
+            }
+        }
+    }
+
+    impl Convert<raw::git_submodule_ignore_t> for SubmoduleIgnore {
+        fn convert(&self) -> raw::git_submodule_ignore_t {
+            match *self {
+                SubmoduleIgnore::Unspecified =>
+                    raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED,
+                SubmoduleIgnore::None => raw::GIT_SUBMODULE_IGNORE_NONE,
+                SubmoduleIgnore::Untracked => raw::GIT_SUBMODULE_IGNORE_UNTRACKED,
+                SubmoduleIgnore::Dirty => raw::GIT_SUBMODULE_IGNORE_DIRTY,
+                SubmoduleIgnore::All => raw::GIT_SUBMODULE_IGNORE_ALL,
+            }
+        }
+    }
+
+    impl Convert<raw::git_remote_autotag_option_t> for AutotagOption {
+        fn convert(&self) -> raw::git_remote_autotag_option_t {
+            match *self {
+                AutotagOption::Unspecified =>
+                    raw::GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED,
+                AutotagOption::None => raw::GIT_REMOTE_DOWNLOAD_TAGS_NONE,
+                AutotagOption::Auto => raw::GIT_REMOTE_DOWNLOAD_TAGS_AUTO,
+                AutotagOption::All => raw::GIT_REMOTE_DOWNLOAD_TAGS_ALL,
+            }
+        }
+    }
+
+    impl Convert<raw::git_fetch_prune_t> for FetchPrune {
+        fn convert(&self) -> raw::git_fetch_prune_t {
+            match *self {
+                FetchPrune::Unspecified => raw::GIT_FETCH_PRUNE_UNSPECIFIED,
+                FetchPrune::On => raw::GIT_FETCH_PRUNE,
+                FetchPrune::Off => raw::GIT_FETCH_NO_PRUNE,
             }
         }
     }
