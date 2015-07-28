@@ -58,7 +58,7 @@ fn main() {
     }
 
     let mut remote = r.find_remote("origin").unwrap();
-    remote.fetch(&["refs/heads/*:refs/heads/*"], None).unwrap();
+    remote.fetch(&["refs/heads/*:refs/heads/*"], None, None).unwrap();
     let b = r.find_branch("master", git2::BranchType::Local).unwrap();
     let id = b.get().target().unwrap();
     let obj = r.find_object(id, None).unwrap();
