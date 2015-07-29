@@ -1172,7 +1172,7 @@ pub struct git_smart_subtransport_definition {
 }
 
 /// Initialize openssl for the libgit2 library
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub fn openssl_init() {
     if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
 
@@ -1290,7 +1290,7 @@ pub fn openssl_init() {
     openssl::probe::init_ssl_cert_env_vars();
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn openssl_init() {}
 
 extern {
