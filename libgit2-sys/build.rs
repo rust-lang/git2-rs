@@ -1,18 +1,11 @@
 extern crate pkg_config;
+extern crate cmake;
 
 use std::env;
-use std::fs::{self, File};
-use std::io::ErrorKind;
+use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-macro_rules! t {
-    ($e:expr) => (match $e {
-        Ok(n) => n,
-        Err(e) => fail(&format!("\n{} failed with {}\n", stringify!($e), e)),
-    })
-}
 
 fn main() {
     register_dep("SSH2");
@@ -25,29 +18,21 @@ fn main() {
         }
     }
 
-    let mut cflags = env::var("CFLAGS").unwrap_or(String::new());
     let target = env::var("TARGET").unwrap();
     let windows = target.contains("windows");
-    let mingw = target.contains("windows-gnu");
     let msvc = target.contains("msvc");
+    let mut cfg = cmake::Config::new("libgit2");
 
     if msvc {
         // libgit2 passes the /GL flag to enable whole program optimization, but
         // this requires that the /LTCG flag is passed to the linker later on,
         // and currently the compiler does not do that, so we disable whole
         // program optimization entirely.
-        cflags.push_str(" /GL-");
-    } else {
-        cflags.push_str(" -ffunction-sections -fdata-sections");
+        cfg.cflag("/GL-");
 
-        if target.contains("i686") {
-            cflags.push_str(" -m32");
-        } else if target.contains("x86_64") {
-            cflags.push_str(" -m64");
-        }
-        if !target.contains("i686") {
-            cflags.push_str(" -fPIC");
-        }
+        // Currently liblibc links to msvcrt which apparently is a dynamic CRT,
+        // so we need to turn this off to get it to link right.
+        cfg.define("STATIC_CRT", "OFF");
     }
 
     // libgit2 uses pkg-config to discover libssh2, but this doesn't work on
@@ -56,52 +41,26 @@ fn main() {
     // SSH support in libgit2 (a little jankily) here...
     if windows || !has_pkgconfig {
         if msvc {
-            cflags.push_str(" /DGIT_SSH");
+            cfg.cflag("/DGIT_SSH");
         } else {
-            cflags.push_str(" -DGIT_SSH");
+            cfg.cflag("-DGIT_SSH");
         }
         if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
             if msvc {
-                cflags.push_str(&format!(" /I{}", libssh2_include));
+                cfg.cflag(format!(" /I{}", libssh2_include));
             } else {
-                cflags.push_str(&format!(" -I{}", libssh2_include));
+                cfg.cflag(format!(" -I{}", libssh2_include));
             }
         }
     }
 
-    let src = PathBuf::from(&env::var("CARGO_MANIFEST_DIR").unwrap());
-    let dst = PathBuf::from(&env::var("OUT_DIR").unwrap());
-    let _ = fs::create_dir(&dst.join("build"));
-
-    let mut cmd = Command::new("cmake");
-    cmd.arg(&src.join("libgit2"))
-       .current_dir(&dst.join("build"));
-    if mingw {
-        cmd.arg("-G").arg("Unix Makefiles");
-    } else if msvc {
-        if target.contains("i686") {
-            cmd.arg("-G").arg("Visual Studio 12 2013");
-        } else if target.contains("x86_64") {
-            cmd.arg("-G").arg("Visual Studio 12 2013 Win64");
-        } else {
-            panic!("unsupported msvc target: {}", target);
-        }
-
-        // Currently liblibc links to msvcrt which apparently is a dynamic CRT,
-        // so we need to turn this off to get it to link right.
-        cmd.arg("-DSTATIC_CRT=OFF");
-    }
-    let profile = match &env::var("PROFILE").unwrap()[..] {
-        "bench" | "release" => "Release",
-        _ if msvc => "Release", // currently we need to always use the same CRT
-        _ => "Debug",
-    };
-    run(cmd.arg("-DBUILD_SHARED_LIBS=OFF")
-           .arg("-DBUILD_CLAR=OFF")
-           .arg("-DCURL=OFF")
-           .arg(&format!("-DCMAKE_BUILD_TYPE={}", profile))
-           .arg(&format!("-DCMAKE_INSTALL_PREFIX={}", dst.display()))
-           .arg(&format!("-DCMAKE_C_FLAGS={}", cflags)), "cmake");
+    let dst = cfg.define("BUILD_SHARED_LIBS", "OFF")
+                 .define("BUILD_CLAR", "OFF")
+                 .define("CURL", "OFF")
+                 .register_dep("SSH2")
+                 .register_dep("Z")
+                 .register_dep("OPENSSL")
+                 .build();
 
     let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
     let mut contents = String::new();
@@ -109,19 +68,12 @@ fn main() {
     // Make sure libssh2 was detected on unix systems, because it definitely
     // should have been!
     if !msvc {
-        t!(t!(File::open(flags)).read_to_string(&mut contents));
+        File::open(flags).unwrap().read_to_string(&mut contents).unwrap();
         if !contents.contains("-DGIT_SSH") {
-            fail("libgit2 failed to find libssh2, and SSH support is required");
+            panic!("libgit2 failed to find libssh2, and SSH support is required");
         }
     }
 
-    run(Command::new("cmake")
-                .arg("--build").arg(".")
-                .arg("--target").arg("install")
-                .arg("--config").arg(profile)
-                .current_dir(&dst.join("build")), "cmake");
-
-    println!("cargo:root={}", dst.display());
     if target.contains("windows") {
         println!("cargo:rustc-link-lib=winhttp");
         println!("cargo:rustc-link-lib=rpcrt4");
@@ -146,25 +98,9 @@ fn main() {
     }
 }
 
-fn run(cmd: &mut Command, program: &str) {
-    println!("running: {:?}", cmd);
-    let status = match cmd.status() {
-        Ok(status) => status,
-        Err(ref e) if e.kind() == ErrorKind::NotFound => {
-            fail(&format!("failed to execute command: {}\nis `{}` not installed?",
-                          e, program));
-        }
-        Err(e) => fail(&format!("failed to execute command: {}", e)),
-    };
-    if !status.success() {
-        fail(&format!("command did not execute successfully, got: {}", status));
-    }
-}
-
 fn register_dep(dep: &str) {
     match env::var(&format!("DEP_{}_ROOT", dep)) {
         Ok(s) => {
-            prepend("CMAKE_PREFIX_PATH", PathBuf::from(&s));
             prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
         }
         Err(..) => {}
@@ -176,8 +112,4 @@ fn prepend(var: &str, val: PathBuf) {
     let mut v = vec![val];
     v.extend(env::split_paths(&prefix));
     env::set_var(var, &env::join_paths(v).unwrap());
-}
-
-fn fail(s: &str) -> ! {
-    panic!("\n{}\n\nbuild script failed, must exit now", s)
 }
