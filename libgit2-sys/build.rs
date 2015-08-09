@@ -1,4 +1,5 @@
 extern crate pkg_config;
+extern crate semver;
 extern crate cmake;
 
 use std::env;
@@ -12,8 +13,12 @@ fn main() {
     register_dep("OPENSSL");
     let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
-    if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
-        if pkg_config::find_library("libgit2").is_ok() {
+    // Try to find if a compatible ligbit2 is available, via pkg-config
+    let git2_pc = pkg_config::find_library("libgit2");
+    if git2_pc.is_ok() {
+        let req_vers = semver::VersionReq::parse("0.23").unwrap();
+        let git2_vers = semver::Version::parse(git2_pc.unwrap().version.as_ref());
+        if git2_vers.is_ok() && req_vers.matches(&git2_vers.unwrap()) {
             return
         }
     }
