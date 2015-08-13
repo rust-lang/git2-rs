@@ -182,6 +182,9 @@ impl<'repo> Reference<'repo> {
     /// Conditionally create a new reference with the same name as the given
     /// reference but a different OID target. The reference must be a direct
     /// reference, otherwise this will fail.
+    ///
+    /// The new reference will be written to disk, overwriting the given
+    /// reference.
     pub fn set_target(&mut self, id: Oid, msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
         let msg = try!(CString::new(msg));

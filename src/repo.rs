@@ -1041,10 +1041,16 @@ impl Repository {
         Ok(())
     }
 
-    /// Merge two commits, producing a git_index that reflects the result of
+    /// Merge two commits, producing an index that reflects the result of
     /// the merge. The index may be written as-is to the working directory or
     /// checked out. If the index is to be converted to a tree, the caller
     /// should resolve any conflicts that arose as part of the merge.
+    ///
+    /// The merge performed uses the first common ancestor, unlike the
+    /// git-merge-recursive strategy, which may produce an artificial common
+    /// ancestor tree when there are multiple ancestors.
+    ///
+    /// The returned index must be freed explicitly with git_index_free.
     pub fn merge_commits(&self, our_commit: &Commit, their_commit: &Commit,
                          opts: Option<&MergeOptions>) -> Result<Index, Error> {
          let mut raw = 0 as *mut raw::git_index;
