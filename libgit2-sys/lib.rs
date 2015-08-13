@@ -771,10 +771,10 @@ pub enum LIBSSH2_USERAUTH_KBDINT_PROMPT {}
 pub enum LIBSSH2_USERAUTH_KBDINT_RESPONSE {}
 
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub struct git_push_options {
     pub version: c_uint,
     pub pb_parallelism: c_uint,
+    pub callbacks: git_remote_callbacks,
 }
 
 pub type git_tag_foreach_cb = extern fn(name: *const c_char,

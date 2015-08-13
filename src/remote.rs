@@ -42,6 +42,12 @@ pub struct FetchOptions<'cb> {
     download_tags: AutotagOption,
 }
 
+/// Options to control the behavior of a git push.
+pub struct PushOptions<'cb> {
+    callbacks: Option<RemoteCallbacks<'cb>>,
+    pb_parallelism: u32,
+}
+
 impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
@@ -174,6 +180,21 @@ impl<'repo> Remote<'repo> {
             try_call!(raw::git_remote_update_tips(self.raw, cbs.as_ref(),
                                                   update_fetchhead,
                                                   download_tags, msg));
+        }
+        Ok(())
+    }
+
+    /// Perform a push
+    ///
+    /// Perform all the steps for a push. If no refspecs are passed then the
+    /// configured refspecs will be used.
+    pub fn push(&mut self,
+                refspecs: &[&str],
+                opts: Option<&mut PushOptions>) -> Result<(), Error> {
+        let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
+        let raw = opts.map(|o| o.raw());
+        unsafe {
+            try_call!(raw::git_remote_push(self.raw, &arr, raw.as_ref()));
         }
         Ok(())
     }
@@ -335,6 +356,49 @@ impl<'cb> Binding for FetchOptions<'cb> {
     }
 }
 
+impl<'cb> PushOptions<'cb> {
+    /// Creates a new blank set of push options
+    pub fn new() -> PushOptions<'cb> {
+        PushOptions {
+            callbacks: None,
+            pb_parallelism: 1,
+        }
+    }
+
+    /// Set the callbacks to use for the fetch operation.
+    pub fn remote_callbacks(&mut self, cbs: RemoteCallbacks<'cb>) -> &mut Self {
+        self.callbacks = Some(cbs);
+        self
+    }
+
+    /// If the transport being used to push to the remote requires the creation
+    /// of a pack file, this controls the number of worker threads used by the
+    /// packbuilder when creating that pack file to be sent to the remote.
+    ///
+    /// if set to 0 the packbuilder will auto-detect the number of threads to
+    /// create, and the default value is 1.
+    pub fn packbuilder_parallelism(&mut self, parallel: u32) -> &mut Self {
+        self.pb_parallelism = parallel;
+        self
+    }
+}
+
+impl<'cb> Binding for PushOptions<'cb> {
+    type Raw = raw::git_push_options;
+
+    unsafe fn from_raw(_raw: raw::git_push_options) -> PushOptions<'cb> {
+        panic!("unimplemented");
+    }
+    fn raw(&self) -> raw::git_push_options {
+        raw::git_push_options {
+            version: 1,
+            callbacks: self.callbacks.as_ref().map(|m| m.raw())
+                           .unwrap_or(unsafe { mem::zeroed() }),
+            pb_parallelism: self.pb_parallelism as libc::c_uint,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
@@ -468,5 +532,23 @@ mod tests {
             assert!(!list[1].is_local());
         }
         assert!(progress_hit.get());
+    }
+
+    #[test]
+    fn push() {
+        let (_td, repo) = ::test::repo_init();
+        let td2 = TempDir::new("git1").unwrap();
+        let td3 = TempDir::new("git2").unwrap();
+        let url = ::test::path2url(&td2.path());
+
+        Repository::init_bare(td2.path()).unwrap();
+        // git push
+        let mut remote = repo.remote("origin", &url).unwrap();
+        remote.push(&["refs/heads/master"], None).unwrap();
+
+        let repo = Repository::clone(&url, td3.path()).unwrap();
+        let commit = repo.head().unwrap().target().unwrap();
+        let commit = repo.find_commit(commit).unwrap();
+        assert_eq!(commit.message(), Some("initial"));
     }
 }
