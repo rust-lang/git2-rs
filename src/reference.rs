@@ -185,9 +185,10 @@ impl<'repo> Reference<'repo> {
     ///
     /// The new reference will be written to disk, overwriting the given
     /// reference.
-    pub fn set_target(&mut self, id: Oid, msg: &str) -> Result<Reference<'repo>, Error> {
+    pub fn set_target(&mut self, id: Oid, reflog_msg: &str)
+                      -> Result<Reference<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_reference;
-        let msg = try!(CString::new(msg));
+        let msg = try!(CString::new(reflog_msg));
         unsafe {
             try_call!(raw::git_reference_set_target(&mut raw, self.raw,
                                                     id.raw(), msg));

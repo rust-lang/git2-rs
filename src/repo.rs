@@ -1123,8 +1123,7 @@ impl Repository {
             try_call!(raw::git_merge_commits(&mut raw, self.raw,
                                              our_commit.raw(),
                                              their_commit.raw(),
-                                             opts.map_or(0 as *const raw::git_merge_options,
-                                                         |o| o.raw())));
+                                             opts.map(|o| o.raw())));
             Ok(Binding::from_raw(raw))
         }
     }
