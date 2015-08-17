@@ -7,12 +7,14 @@ sudo: false
 before_script:
   - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
 script:
+  - export CARGO_TARGET_DIR=`pwd`/target
   - cargo build --verbose
   - cargo test --verbose
   - |
     [ $TRAVIS_RUST_VERSION != nightly ] || cargo test --verbose --manifest-path=git2-curl/Cargo.toml
-  - cargo doc --manifest-path=git2-curl/Cargo.toml
-  - mv git2-curl/target/doc target
+  - cargo doc --no-deps
+  - cargo doc --manifest-path=git2-curl/Cargo.toml --no-deps
+  - cargo doc --manifest-path=libgit2-sys/Cargo.toml --no-deps
 after_success:
   - travis-cargo --only nightly doc-upload
   - travis-cargo coveralls --no-sudo
