@@ -67,7 +67,6 @@
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
-#![cfg_attr(all(feature = "unstable", test, unix), feature(fs, fs_ext))]
 #![cfg_attr(feature = "unstable", feature(catch_panic))]
 
 extern crate libc;
