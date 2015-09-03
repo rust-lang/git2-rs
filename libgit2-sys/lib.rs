@@ -126,6 +126,7 @@ pub enum git_error_code {
     GIT_EEOF = -20,
     GIT_EINVALID = -21,
     GIT_EUNCOMMITTED = -22,
+    GIT_EDIRECTORY = -23,
     GIT_PASSTHROUGH = -30,
     GIT_ITEROVER = -31,
 }

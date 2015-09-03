@@ -160,6 +160,8 @@ pub enum ErrorCode {
     Invalid,
     /// Uncommitted changes in index prevented operation
     Uncommitted,
+    /// Operation was not valid for a directory,
+    Directory,
 }
 
 /// A listing of the possible states that a repository can be in.

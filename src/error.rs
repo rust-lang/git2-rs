@@ -65,6 +65,7 @@ impl Error {
             raw::GIT_EEOF => super::ErrorCode::Eof,
             raw::GIT_EINVALID => super::ErrorCode::Invalid,
             raw::GIT_EUNCOMMITTED => super::ErrorCode::Uncommitted,
+            raw::GIT_EDIRECTORY => super::ErrorCode::Directory,
         }
     }
 
