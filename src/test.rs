@@ -34,7 +34,26 @@ pub fn path2url(path: &Path) -> String {
     Url::from_file_path(path).unwrap().to_string()
 }
 
+#[cfg(windows)]
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
-    // TODO: implement this
     Ok(original.to_path_buf())
+}
+#[cfg(unix)]
+pub fn realpath(original: &Path) -> io::Result<PathBuf> {
+    use std::ffi::{CStr, OsString, CString};
+    use std::os::unix::prelude::*;
+    use libc::{self, c_char};
+    extern {
+        fn realpath(name: *const c_char, resolved: *mut c_char) -> *mut c_char;
+    }
+    unsafe {
+        let cstr = try!(CString::new(original.as_os_str().as_bytes()));
+        let ptr = realpath(cstr.as_ptr(), 0 as *mut _);
+        if ptr.is_null() {
+            return Err(io::Error::last_os_error())
+        }
+        let bytes = CStr::from_ptr(ptr).to_bytes().to_vec();
+        libc::free(ptr as *mut _);
+        Ok(PathBuf::from(OsString::from_vec(bytes)))
+    }
 }
