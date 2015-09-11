@@ -7,6 +7,13 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+macro_rules! t {
+    ($e:expr) => (match $e{
+        Ok(e) => e,
+        Err(e) => panic!("{} failed with {}", stringify!($e), e),
+    })
+}
+
 fn main() {
     register_dep("SSH2");
     register_dep("OPENSSL");
@@ -68,7 +75,7 @@ fn main() {
     // Make sure libssh2 was detected on unix systems, because it definitely
     // should have been!
     if !msvc {
-        File::open(flags).unwrap().read_to_string(&mut contents).unwrap();
+        t!(t!(File::open(flags)).read_to_string(&mut contents));
         if !contents.contains("-DGIT_SSH") {
             panic!("libgit2 failed to find libssh2, and SSH support is required");
         }
@@ -85,6 +92,13 @@ fn main() {
     }
 
     if env::var("HOST") == env::var("TARGET") {
+        // libssh2 is linked in elsehwere, don't want it reported via pkg-config
+        let pc = dst.join("lib/pkgconfig/libgit2.pc");
+        let mut contents = String::new();
+        t!(t!(File::open(&pc)).read_to_string(&mut contents));
+        let contents = contents.replace(" -lssh2 ", " ");
+        t!(t!(File::create(&pc)).write_all(contents.as_bytes()));
+
         prepend("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
         if pkg_config::Config::new().statik(true).find("libgit2").is_ok() {
             return
