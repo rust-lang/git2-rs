@@ -896,15 +896,15 @@ pub struct git_diff_hunk {
 }
 
 pub type git_diff_line_t = c_uint;
-pub const GIT_DIFF_LINE_CONTEXT: u8 = ' ' as u8;
-pub const GIT_DIFF_LINE_ADDITION: u8 = '+' as u8;
-pub const GIT_DIFF_LINE_DELETION: u8 = '-' as u8;
-pub const GIT_DIFF_LINE_CONTEXT_EOFNL: u8 = '=' as u8;
-pub const GIT_DIFF_LINE_ADD_EOFNL: u8 = '>' as u8;
-pub const GIT_DIFF_LINE_DEL_EOFNL: u8 = '<' as u8;
-pub const GIT_DIFF_LINE_FILE_HDR: u8 = 'F' as u8;
-pub const GIT_DIFF_LINE_HUNK_HDR: u8 = 'H' as u8;
-pub const GIT_DIFF_LINE_BINARY: u8 = 'B' as u8;
+pub const GIT_DIFF_LINE_CONTEXT: c_char = ' ' as c_char;
+pub const GIT_DIFF_LINE_ADDITION: c_char = '+' as c_char;
+pub const GIT_DIFF_LINE_DELETION: c_char = '-' as c_char;
+pub const GIT_DIFF_LINE_CONTEXT_EOFNL: c_char = '=' as c_char;
+pub const GIT_DIFF_LINE_ADD_EOFNL: c_char = '>' as c_char;
+pub const GIT_DIFF_LINE_DEL_EOFNL: c_char = '<' as c_char;
+pub const GIT_DIFF_LINE_FILE_HDR: c_char = 'F' as c_char;
+pub const GIT_DIFF_LINE_HUNK_HDR: c_char = 'H' as c_char;
+pub const GIT_DIFF_LINE_BINARY: c_char = 'B' as c_char;
 
 #[repr(C)]
 pub struct git_diff_line {
