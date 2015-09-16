@@ -8,12 +8,12 @@ before_script:
   - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
 script:
   - export CARGO_TARGET_DIR=`pwd`/target
-  - cargo build --verbose
-  - cargo test --verbose
+  - cargo build
+  - cargo test
   - cargo run --manifest-path systest/Cargo.toml
   - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then
       cargo test --features unstable;
-      cargo test --verbose --manifest-path git2-curl/Cargo.toml;
+      cargo test --manifest-path git2-curl/Cargo.toml;
     fi
   - cargo doc --no-deps
   - cargo doc --manifest-path=git2-curl/Cargo.toml --no-deps
