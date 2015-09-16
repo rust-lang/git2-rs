@@ -340,8 +340,8 @@ pub type git_push_negotiation = extern fn(*mut *const git_push_update,
 
 #[repr(C)]
 pub struct git_push_update {
-    pub src_refname: *const c_char,
-    pub dst_refname: *const c_char,
+    pub src_refname: *mut c_char,
+    pub dst_refname: *mut c_char,
     pub src: git_oid,
     pub dst: git_oid,
 }
@@ -892,7 +892,7 @@ pub struct git_diff_hunk {
     pub new_start: c_int,
     pub new_lines: c_int,
     pub header_len: size_t,
-    pub header: [u8; 128],
+    pub header: [c_char; 128],
 }
 
 pub type git_diff_line_t = c_uint;
@@ -908,13 +908,13 @@ pub const GIT_DIFF_LINE_BINARY: u8 = 'B' as u8;
 
 #[repr(C)]
 pub struct git_diff_line {
-    pub origin: u8,
+    pub origin: c_char,
     pub old_lineno: c_int,
     pub new_lineno: c_int,
     pub num_lines: c_int,
     pub content_len: size_t,
     pub content_offset: git_off_t,
-    pub content: *const u8,
+    pub content: *const c_char,
 }
 
 #[repr(C)]
@@ -1116,7 +1116,7 @@ pub struct git_transport {
                         *const git_remote_callbacks) -> c_int,
     pub negotiate_fetch: extern fn(*mut git_transport,
                                    *mut git_repository,
-                                   *mut *const git_remote_head,
+                                   *const *const git_remote_head,
                                    size_t) -> c_int,
     pub download_pack: extern fn(*mut git_transport,
                                  *mut git_repository,
@@ -1125,7 +1125,7 @@ pub struct git_transport {
                                  *mut c_void) -> c_int,
     pub is_connected: extern fn(*mut git_transport) -> c_int,
     pub read_flags: extern fn(*mut git_transport, *mut c_int) -> c_int,
-    pub cancel: extern fn(*mut git_transport) -> c_int,
+    pub cancel: extern fn(*mut git_transport),
     pub close: extern fn(*mut git_transport) -> c_int,
     pub free: extern fn(*mut git_transport),
 }
