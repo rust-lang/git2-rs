@@ -95,7 +95,7 @@ pub struct git_time {
 pub type git_off_t = i64;
 pub type git_time_t = i64;
 
-pub type git_revparse_mode_t = c_int;
+pub type git_revparse_mode_t = c_uint;
 pub const GIT_REVPARSE_SINGLE: c_int = 1 << 0;
 pub const GIT_REVPARSE_RANGE: c_int = 1 << 1;
 pub const GIT_REVPARSE_MERGE_BASE: c_int = 1 << 2;
@@ -237,7 +237,7 @@ pub struct git_checkout_options {
     pub our_label: *const c_char,
     pub their_label: *const c_char,
     pub perfdata_cb: Option<git_checkout_perfdata_cb>,
-    pub perdata_payload: *mut c_void,
+    pub perfdata_payload: *mut c_void,
 }
 
 pub type git_checkout_notify_cb = extern fn(git_checkout_notify_t,
@@ -334,7 +334,7 @@ pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
                                                         c_int,
                                                         *const c_char,
                                                         *mut c_void) -> c_int;
-pub type git_push_negotiation = extern fn(*const *const git_push_update,
+pub type git_push_negotiation = extern fn(*mut *const git_push_update,
                                           size_t,
                                           *mut c_void) -> c_int;
 
@@ -361,7 +361,7 @@ pub struct git_cert {
 
 #[repr(C)]
 pub struct git_cert_hostkey {
-    pub cert_type: git_cert_t,
+    pub parent: git_cert,
     pub kind: git_cert_ssh_t,
     pub hash_md5: [u8; 16],
     pub hash_sha1: [u8; 20],
@@ -369,7 +369,7 @@ pub struct git_cert_hostkey {
 
 #[repr(C)]
 pub struct git_cert_x509 {
-    pub cert_type: git_cert_t,
+    pub parent: git_cert,
     pub data: *mut c_void,
     pub len: size_t,
 }
@@ -690,6 +690,8 @@ pub struct git_config_entry {
     pub name: *const c_char,
     pub value: *const c_char,
     pub level: git_config_level_t,
+    pub free: extern fn(*mut git_config_entry),
+    pub payload: *mut c_void,
 }
 
 #[repr(C)]
@@ -893,7 +895,7 @@ pub struct git_diff_hunk {
     pub header: [u8; 128],
 }
 
-pub type git_diff_line_t = u8;
+pub type git_diff_line_t = c_uint;
 pub const GIT_DIFF_LINE_CONTEXT: u8 = ' ' as u8;
 pub const GIT_DIFF_LINE_ADDITION: u8 = '+' as u8;
 pub const GIT_DIFF_LINE_DELETION: u8 = '-' as u8;
@@ -902,7 +904,7 @@ pub const GIT_DIFF_LINE_ADD_EOFNL: u8 = '>' as u8;
 pub const GIT_DIFF_LINE_DEL_EOFNL: u8 = '<' as u8;
 pub const GIT_DIFF_LINE_FILE_HDR: u8 = 'F' as u8;
 pub const GIT_DIFF_LINE_HUNK_HDR: u8 = 'H' as u8;
-pub const GIT_DIFF_LINE_LINE_BINARY: u8 = 'B' as u8;
+pub const GIT_DIFF_LINE_BINARY: u8 = 'B' as u8;
 
 #[repr(C)]
 pub struct git_diff_line {
@@ -956,7 +958,6 @@ pub type git_diff_notify_cb = extern fn(*const git_diff,
                                         *const c_char,
                                         *mut c_void) -> c_int;
 
-pub type git_diff_options_t = u32;
 pub const GIT_DIFF_NORMAL: u32 = 0;
 pub const GIT_DIFF_REVERSE: u32 = 1 << 0;
 pub const GIT_DIFF_INCLUDE_IGNORED: u32 = 1 << 1;
@@ -1043,7 +1044,7 @@ pub struct git_diff_binary {
 
 #[repr(C)]
 pub struct git_diff_binary_file {
-    pub type_: git_diff_binary_t,
+    pub kind: git_diff_binary_t,
     pub data: *const c_char,
     pub datalen: size_t,
     pub inflatedlen: size_t,
@@ -1115,7 +1116,7 @@ pub struct git_transport {
                         *const git_remote_callbacks) -> c_int,
     pub negotiate_fetch: extern fn(*mut git_transport,
                                    *mut git_repository,
-                                   *const *const git_remote_head,
+                                   *mut *const git_remote_head,
                                    size_t) -> c_int,
     pub download_pack: extern fn(*mut git_transport,
                                  *mut git_repository,
@@ -1297,7 +1298,7 @@ pub fn openssl_init() {}
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
-    pub fn git_libgit2_shutdown();
+    pub fn git_libgit2_shutdown() -> c_int;
 
     // repository
     pub fn git_repository_free(repo: *mut git_repository);
@@ -1382,7 +1383,6 @@ extern {
     // giterr
     pub fn giterr_last() -> *const git_error;
     pub fn giterr_clear();
-    pub fn giterr_detach(cpy: *mut git_error) -> c_int;
     pub fn giterr_set_str(error_class: c_int, string: *const c_char);
 
     // remote
@@ -1406,7 +1406,7 @@ extern {
     pub fn git_remote_connect(remote: *mut git_remote,
                               dir: git_direction,
                               callbacks: *const git_remote_callbacks) -> c_int;
-    pub fn git_remote_connected(remote: *mut git_remote) -> c_int;
+    pub fn git_remote_connected(remote: *const git_remote) -> c_int;
     pub fn git_remote_disconnect(remote: *mut git_remote);
     pub fn git_remote_add_fetch(repo: *mut git_repository,
                                 remote: *const c_char,
@@ -1522,7 +1522,7 @@ extern {
     pub fn git_reset(repo: *mut git_repository,
                      target: *mut git_object,
                      reset_type: git_reset_t,
-                     checkout_opts: *mut git_checkout_options) -> c_int;
+                     checkout_opts: *const git_checkout_options) -> c_int;
     pub fn git_reset_default(repo: *mut git_repository,
                              target: *mut git_object,
                              pathspecs: *mut git_strarray) -> c_int;
@@ -1545,7 +1545,7 @@ extern {
                                     repo: *mut git_repository,
                                     name: *const c_char) -> c_int;
     pub fn git_reference_peel(out: *mut *mut git_object,
-                              r: *const git_reference,
+                              r: *mut git_reference,
                               otype: git_otype) -> c_int;
     pub fn git_reference_rename(new_ref: *mut *mut git_reference,
                                 r: *mut git_reference,
@@ -1624,7 +1624,7 @@ extern {
     pub fn git_submodule_set_update(repo: *mut git_repository,
                                     name: *const c_char,
                                     update: git_submodule_update_t)
-                                    -> git_submodule_update_t;
+                                    -> c_int;
     pub fn git_submodule_set_url(repo: *mut git_repository,
                                  name: *const c_char,
                                  url: *const c_char) -> c_int;
@@ -1752,7 +1752,7 @@ extern {
                              message: *const c_char,
                              tree: *const git_tree,
                              parent_count: size_t,
-                             parents: *const *const git_commit) -> c_int;
+                             parents: *mut *const git_commit) -> c_int;
     pub fn git_commit_header_field(out: *mut git_buf,
                                    commit: *const git_commit,
                                    field: *const c_char) -> c_int;
@@ -1957,26 +1957,6 @@ extern {
     pub fn git_cred_username_new(cred: *mut *mut git_cred,
                                  username: *const c_char) -> c_int;
 
-    // push
-    pub fn git_push_add_refspec(push: *mut git_push,
-                                refspec: *const c_char) -> c_int;
-    pub fn git_push_finish(push: *mut git_push) -> c_int;
-    pub fn git_push_free(push: *mut git_push);
-    pub fn git_push_init_options(opts: *mut git_push_options,
-                                 version: c_uint) -> c_int;
-    pub fn git_push_new(out: *mut *mut git_push,
-                        remote: *mut git_remote) -> c_int;
-    pub fn git_push_set_options(push: *mut git_push,
-                                opts: *const git_push_options) -> c_int;
-    pub fn git_push_update_tips(push: *mut git_push,
-                                signature: *const git_signature,
-                                reflog_message: *const c_char) -> c_int;
-    pub fn git_push_status_foreach(push: *mut git_push,
-                                   cb: extern fn(*const c_char,
-                                                 *const c_char,
-                                                 *mut c_void) -> c_int,
-                                   data: *mut c_void) -> c_int;
-
     // tags
     pub fn git_tag_annotation_create(oid: *mut git_oid,
                                      repo: *mut git_repository,
@@ -2052,7 +2032,7 @@ extern {
     pub fn git_merge_init_options(opts: *mut git_merge_options,
                                   version: c_uint) -> c_int;
     pub fn git_merge(repo: *mut git_repository,
-                     their_heads: *const *const git_annotated_commit,
+                     their_heads: *mut *const git_annotated_commit,
                      len: size_t,
                      merge_opts: *const git_merge_options,
                      checkout_opts: *const git_checkout_options) -> c_int;
@@ -2168,7 +2148,7 @@ extern {
                                                 pos: size_t) -> *const c_char;
     pub fn git_pathspec_match_list_failed_entrycount(
                     m: *const git_pathspec_match_list) -> size_t;
-    pub fn git_pathspec_match_list_free(m: *const git_pathspec_match_list);
+    pub fn git_pathspec_match_list_free(m: *mut git_pathspec_match_list);
     pub fn git_pathspec_match_tree(out: *mut *mut git_pathspec_match_list,
                                    tree: *mut git_tree,
                                    flags: u32,
@@ -2331,6 +2311,6 @@ fn smoke() {
     unsafe { git_threads_init(); }
 }
 
-pub fn issue_14344_workaround() {
+pub fn __issue_14344_workaround() {
     libssh2::issue_14344_workaround();
 }

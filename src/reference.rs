@@ -156,7 +156,7 @@ impl<'repo> Reference<'repo> {
     pub fn peel(&self, kind: ObjectType) -> Result<Object<'repo>, Error> {
         let mut raw = 0 as *mut raw::git_object;
         unsafe {
-            try_call!(raw::git_reference_peel(&mut raw, &*self.raw, kind));
+            try_call!(raw::git_reference_peel(&mut raw, self.raw, kind));
             Ok(Binding::from_raw(raw))
         }
     }

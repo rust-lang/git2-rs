@@ -732,9 +732,9 @@ impl Repository {
                   tree: &Tree,
                   parents: &[&Commit]) -> Result<Oid, Error> {
         let update_ref = try!(::opt_cstr(update_ref));
-        let parent_ptrs: Vec<*const raw::git_commit> =  parents.iter().map(|p| {
+        let mut parent_ptrs = parents.iter().map(|p| {
             p.raw() as *const raw::git_commit
-        }).collect();
+        }).collect::<Vec<_>>();
         let message = try!(CString::new(message));
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
@@ -747,7 +747,7 @@ impl Repository {
                                              message,
                                              tree.raw(),
                                              parents.len() as size_t,
-                                             parent_ptrs.as_ptr()));
+                                             parent_ptrs.as_mut_ptr()));
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
@@ -1092,12 +1092,12 @@ impl Repository {
                 c.configure(&mut raw_checkout_opts);
             }
 
-            let commit_ptrs = annotated_commits.iter().map(|c| {
+            let mut commit_ptrs = annotated_commits.iter().map(|c| {
                 c.raw() as *const raw::git_annotated_commit
             }).collect::<Vec<_>>();
 
             try_call!(raw::git_merge(self.raw,
-                                     commit_ptrs.as_ptr(),
+                                     commit_ptrs.as_mut_ptr(),
                                      annotated_commits.len() as size_t,
                                      merge_opts.map(|o| o.raw())
                                                .unwrap_or(0 as *const _),

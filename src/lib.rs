@@ -398,7 +398,9 @@ fn init() {
                 "couldn't initialize the libgit2 library: {}", r);
         assert_eq!(libc::atexit(shutdown), 0);
     });
-    extern fn shutdown() { unsafe { raw::git_libgit2_shutdown() } }
+    extern fn shutdown() {
+        unsafe { raw::git_libgit2_shutdown(); }
+    }
 }
 
 unsafe fn opt_bytes<'a, T>(_anchor: &'a T,

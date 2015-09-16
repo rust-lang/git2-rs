@@ -743,7 +743,7 @@ impl<'a> DiffLine<'a> {
             raw::GIT_DIFF_LINE_DEL_EOFNL => '<',
             raw::GIT_DIFF_LINE_FILE_HDR => 'F',
             raw::GIT_DIFF_LINE_HUNK_HDR => 'H',
-            raw::GIT_DIFF_LINE_LINE_BINARY => 'B',
+            raw::GIT_DIFF_LINE_BINARY => 'B',
             _ => ' ',
         }
     }
