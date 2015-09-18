@@ -4,7 +4,7 @@ use std::ops::Range;
 use std::path::Path;
 use libc::size_t;
 
-use {raw, Error, Tree, PathspecFlags, Index, Repository, DiffDelta, IntoCString};
+use {raw, Error, Diff, Tree, PathspecFlags, Index, Repository, DiffDelta, IntoCString};
 use util::Binding;
 
 /// Structure representing a compiled pathspec used for matching against various
@@ -45,6 +45,22 @@ impl Pathspec {
         unsafe {
             let mut ret = 0 as *mut raw::git_pathspec;
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Match a pathspec against files in a diff.
+    ///
+    /// The list returned contains the list of all matched filenames (unless you
+    /// pass `PATHSPEC_FAILURES_ONLY` in the flags) and may also contain the
+    /// list of pathspecs with no match if the `PATHSPEC_FIND_FAILURES` flag is
+    /// specified.
+    pub fn match_diff(&self, diff: &Diff, flags: PathspecFlags)
+                      -> Result<PathspecMatchList, Error> {
+        let mut ret = 0 as *mut raw::git_pathspec_match_list;
+        unsafe {
+            try_call!(raw::git_pathspec_match_diff(&mut ret, diff.raw(),
+                                                   flags.bits(), self.raw));
             Ok(Binding::from_raw(ret))
         }
     }
