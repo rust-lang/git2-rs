@@ -1,10 +1,11 @@
 //! Bindings to libgit2's raw git_strarray type
 
-use std::ops::Range;
+use std::ops::{Range,Deref};
 
 use oid::Oid;
 use raw;
 use util::Binding;
+use std::slice;
 
 /// An oid array structure used by libgit2
 ///
@@ -31,10 +32,7 @@ impl OidArray {
     /// Returns None if i is out of bounds.
     pub fn get(&self, i: usize) -> Option<Oid> {
         if i < self.raw.count as usize {
-            unsafe {
-                let ptr = self.raw.ids.offset(i as isize);
-                Some(Oid::from_raw(ptr))
-            }
+            Some(self[i])
         } else {
             None
         }
@@ -65,6 +63,16 @@ impl OidArray {
 
     /// Returns the number of strings in this array.
     pub fn len(&self) -> usize { self.raw.count as usize }
+}
+
+impl Deref for OidArray {
+    type Target = [Oid];
+
+    fn deref(&self) -> &[Oid] {
+        unsafe {
+            slice::from_raw_parts(self.raw.ids as *const Oid, self.raw.count as usize)
+        }
+    }
 }
 
 impl Binding for OidArray {
