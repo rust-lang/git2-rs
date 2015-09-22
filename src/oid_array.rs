@@ -1,0 +1,110 @@
+//! Bindings to libgit2's raw git_strarray type
+
+use std::ops::Range;
+
+use oid::Oid;
+use raw;
+use util::Binding;
+
+/// An oid array structure used by libgit2
+///
+/// Some apis return arrays of oids which originate from libgit2. This
+/// wrapper type behaves a little like `Vec<&Oid>` but does so without copying
+/// the underlying Oids until necessary.
+pub struct OidArray {
+    raw: raw::git_oidarray,
+}
+
+/// A forward iterator over the Oids of an array, casted to `&Oid`.
+pub struct Iter<'a> {
+    range: Range<usize>,
+    arr: &'a OidArray,
+}
+
+/// A forward iterator over the bytes of n array.
+pub struct IterBytes<'a> {
+    range: Range<usize>,
+    arr: &'a OidArray,
+}
+
+impl OidArray {
+    /// Returns None if i is out of bounds.
+    pub fn get(&self, i: usize) -> Option<Oid> {
+        if i < self.raw.count as usize {
+            unsafe {
+                let ptr = self.raw.ids.offset(i as isize);
+                Some(Oid::from_raw(ptr))
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Returns None if `i` is out of bounds.
+    pub fn get_bytes(&self, i: usize) -> Option<&[u8]> {
+        if i < self.raw.count as usize {
+            unsafe {
+                let ptr = self.raw.ids.offset(i as isize) as *const _;
+                Some(::opt_bytes(self, ptr).unwrap())
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Returns an iterator over the Oids contained within this array.
+    pub fn iter(&self) -> Iter {
+        Iter { range: 0..self.len(), arr: self }
+    }
+
+    /// Returns an iterator over the strings contained within this array,
+    /// yielding byte slices.
+    pub fn iter_bytes(&self) -> IterBytes {
+        IterBytes { range: 0..self.len(), arr: self }
+    }
+
+    /// Returns the number of strings in this array.
+    pub fn len(&self) -> usize { self.raw.count as usize }
+}
+
+impl Binding for OidArray {
+    type Raw = raw::git_oidarray;
+    unsafe fn from_raw(raw: raw::git_oidarray) -> OidArray {
+        OidArray { raw: raw }
+    }
+    fn raw(&self) -> raw::git_oidarray { self.raw }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = Oid;
+    fn next(&mut self) -> Option<Oid> {
+        self.range.next().and_then(|i| self.arr.get(i))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+}
+impl<'a> DoubleEndedIterator for Iter<'a> {
+    fn next_back(&mut self) -> Option<Oid> {
+        self.range.next_back().and_then(|i| self.arr.get(i))
+    }
+}
+impl<'a> ExactSizeIterator for Iter<'a> {}
+
+impl<'a> Iterator for IterBytes<'a> {
+    type Item = &'a [u8];
+    fn next(&mut self) -> Option<&'a [u8]> {
+        self.range.next().and_then(|i| self.arr.get_bytes(i))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+}
+impl<'a> DoubleEndedIterator for IterBytes<'a> {
+    fn next_back(&mut self) -> Option<&'a [u8]> {
+        self.range.next_back().and_then(|i| self.arr.get_bytes(i))
+    }
+}
+impl<'a> ExactSizeIterator for IterBytes<'a> {}
+
+impl Drop for OidArray {
+    fn drop(&mut self) {
+        unsafe { raw::git_oidarray_free(&mut self.raw) }
+    }
+}

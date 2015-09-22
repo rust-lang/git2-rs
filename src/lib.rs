@@ -357,6 +357,7 @@ mod util;
 pub mod build;
 pub mod cert;
 pub mod string_array;
+pub mod oid_array;
 pub mod transport;
 
 mod blame;

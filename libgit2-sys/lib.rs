@@ -79,6 +79,16 @@ impl Clone for git_strarray {
 }
 
 #[repr(C)]
+#[derive(Copy)]
+pub struct git_oidarray {
+    pub ids: *mut git_oid,
+    pub count: size_t,
+}
+impl Clone for git_oidarray {
+    fn clone(&self) -> git_oidarray { *self }
+}
+
+#[repr(C)]
 pub struct git_signature {
     pub name: *mut c_char,
     pub email: *mut c_char,
@@ -1478,6 +1488,9 @@ extern {
     // strarray
     pub fn git_strarray_free(array: *mut git_strarray);
 
+    // oidarray
+    pub fn git_oidarray_free(array: *mut git_oidarray);
+
     // signature
     pub fn git_signature_default(out: *mut *mut git_signature,
                                  repo: *mut git_repository) -> c_int;
@@ -2127,6 +2140,11 @@ extern {
                           repo: *mut git_repository,
                           one: *const git_oid,
                           two: *const git_oid) -> c_int;
+
+    pub fn git_merge_bases(out: *mut git_oidarray,
+                           repo: *mut git_repository,
+                           one: *const git_oid,
+                           two: *const git_oid) -> c_int;
 
     // pathspec
     pub fn git_pathspec_free(ps: *mut git_pathspec);
