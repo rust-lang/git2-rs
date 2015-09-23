@@ -17,17 +17,6 @@ pub struct OidArray {
     raw: raw::git_oidarray,
 }
 
-impl OidArray {
-    /// Returns None if i is out of bounds.
-    pub fn get(&self, i: usize) -> Option<Oid> {
-        if i < self.raw.count as usize {
-            Some(self[i])
-        } else {
-            None
-        }
-    }
-}
-
 impl Deref for OidArray {
     type Target = [Oid];
 
