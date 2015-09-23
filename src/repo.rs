@@ -1694,7 +1694,8 @@ mod tests {
         index.add_path(Path::new("file_a")).unwrap();
         let id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(id_a).unwrap();
-        let oid2 = repo.commit(Some("refs/heads/branch_a"), &sig, &sig, "commit 2", &tree_a, &[&commit1]).unwrap();
+        let oid2 = repo.commit(Some("refs/heads/branch_a"), &sig, &sig,
+                               "commit 2", &tree_a, &[&commit1]).unwrap();
         let commit2 = repo.find_commit(oid2).unwrap();
         println!("created oid2 {:?}", oid2);
 
@@ -1705,7 +1706,8 @@ mod tests {
         index.add_path(Path::new("file_b")).unwrap();
         let id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(id_b).unwrap();
-        let oid3 = repo.commit(Some("refs/heads/branch_b"), &sig, &sig, "commit 3", &tree_b, &[&commit1]).unwrap();
+        let oid3 = repo.commit(Some("refs/heads/branch_b"), &sig, &sig,
+                               "commit 3", &tree_b, &[&commit1]).unwrap();
         let commit3 = repo.find_commit(oid3).unwrap();
         println!("created oid3 {:?}", oid3);
 
@@ -1713,7 +1715,9 @@ mod tests {
         //let mut index4 = repo.merge_commits(&commit2, &commit3, None).unwrap();
         repo.set_head("refs/heads/branch_a").unwrap();
         repo.checkout_head(None).unwrap();
-        let oid4 = repo.commit(Some("refs/heads/branch_a"), &sig, &sig, "commit 4", &tree_a, &[&commit2, &commit3]).unwrap();
+        let oid4 = repo.commit(Some("refs/heads/branch_a"), &sig, &sig,
+                               "commit 4", &tree_a,
+                               &[&commit2, &commit3]).unwrap();
         //index4.write_tree_to(&repo).unwrap();
         println!("created oid4 {:?}", oid4);
 
@@ -1721,10 +1725,12 @@ mod tests {
         //let mut index5 = repo.merge_commits(&commit3, &commit2, None).unwrap();
         repo.set_head("refs/heads/branch_b").unwrap();
         repo.checkout_head(None).unwrap();
-        let oid5 = repo.commit(Some("refs/heads/branch_b"), &sig, &sig, "commit 5", &tree_a, &[&commit3, &commit2]).unwrap();
+        let oid5 = repo.commit(Some("refs/heads/branch_b"), &sig, &sig,
+                               "commit 5", &tree_a,
+                               &[&commit3, &commit2]).unwrap();
         //index5.write_tree_to(&repo).unwrap();
         println!("created oid5 {:?}", oid5);
-        
+
         // merge bases of (oid4,oid5) should be (oid2,oid3)
         let merge_bases = repo.merge_bases(oid4, oid5).unwrap();
         let mut found_oid2 = false;
