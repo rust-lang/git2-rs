@@ -6,6 +6,7 @@ use oid::Oid;
 use raw;
 use util::Binding;
 use std::slice;
+use std::mem;
 
 /// An oid array structure used by libgit2
 ///
@@ -32,6 +33,8 @@ impl Deref for OidArray {
 
     fn deref(&self) -> &[Oid] {
         unsafe {
+            debug_assert_eq!(mem::size_of::<Oid>(), mem::size_of_val(&*self.raw.ids));
+            
             slice::from_raw_parts(self.raw.ids as *const Oid, self.raw.count as usize)
         }
     }
