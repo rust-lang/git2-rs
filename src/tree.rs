@@ -287,19 +287,20 @@ mod tests {
         }
     }
 
-    fn tree_iter<'tree,'repo:'tree>(tree: &'tree Tree<'repo>, repo: &'repo Repository) -> TestTreeIter<'repo> {
+    fn tree_iter<'repo>(tree: &Tree<'repo>, repo: &'repo Repository)
+                        -> TestTreeIter<'repo> {
         let mut initial = vec![];
-        
+
         for entry in tree.iter() {
             initial.push(entry.to_owned());
         }
-        
+
         TestTreeIter {
             entries: initial,
             repo: repo,
         }
     }
-    
+
     #[test]
     fn smoke_tree_iter() {
         let (td, repo) = ::test::repo_init();
@@ -313,9 +314,7 @@ mod tests {
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         assert_eq!(tree.id(), commit.tree_id());
         assert_eq!(tree.len(), 1);
-        
-//        let mut entries = vec![];
-        
+
         for entry in tree_iter(&tree, &repo) {
             println!("iter entry {:?}", entry.name());
         }
@@ -333,7 +332,7 @@ mod tests {
         repo.commit(Some("HEAD"), &sig, &sig, "another commit",
                     &tree, &[&parent]).unwrap();
     }
-    
+
     #[test]
     fn smoke() {
         let (td, repo) = ::test::repo_init();
