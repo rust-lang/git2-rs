@@ -1,3 +1,4 @@
+use std::mem;
 use std::cmp::Ordering;
 use std::ffi::CString;
 use std::ops::Range;
@@ -170,6 +171,14 @@ impl<'tree> TreeEntry<'tree> {
     pub fn filemode_raw(&self) -> i32 {
         unsafe { raw::git_tree_entry_filemode_raw(&*self.raw) as i32 }
     }
+
+    /// Clone the underlying raw tree entry
+    pub fn to_owned(&self) -> TreeEntry<'static> {
+        unsafe {
+            let me = mem::transmute::<&TreeEntry<'tree>, &TreeEntry<'static>>(self);
+            me.clone()
+        }
+    }
 }
 
 impl<'a> Binding for TreeEntry<'a> {
@@ -240,25 +249,97 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
 mod tests {
+    use {Repository,Tree,TreeEntry,ObjectType,Object};
+    use tempdir::TempDir;
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
 
+    pub struct TestTreeIter<'a> {
+        entries: Vec<TreeEntry<'a>>,
+        repo: &'a Repository,
+    }
+
+    impl<'a> Iterator for TestTreeIter<'a> {
+        type Item = TreeEntry<'a>;
+
+        fn next(&mut self) -> Option<TreeEntry<'a> > {
+            if self.entries.is_empty() {
+                None
+            } else {
+                let entry = self.entries.remove(0);
+
+                match entry.kind() {
+                    Some(ObjectType::Tree) => {
+                        let obj: Object<'a> = entry.to_object(self.repo).unwrap();
+
+                        let tree: &Tree<'a> = obj.as_tree().unwrap();
+
+                        for entry in tree.iter() {
+                            self.entries.push(entry.to_owned());
+                        }
+                    }
+                    _ => {}
+                }
+
+                Some(entry)
+            }
+        }
+    }
+
+    fn tree_iter<'tree,'repo:'tree>(tree: &'tree Tree<'repo>, repo: &'repo Repository) -> TestTreeIter<'repo> {
+        let mut initial = vec![];
+        
+        for entry in tree.iter() {
+            initial.push(entry.to_owned());
+        }
+        
+        TestTreeIter {
+            entries: initial,
+            repo: repo,
+        }
+    }
+    
+    #[test]
+    fn smoke_tree_iter() {
+        let (td, repo) = ::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        assert_eq!(tree.id(), commit.tree_id());
+        assert_eq!(tree.len(), 1);
+        
+//        let mut entries = vec![];
+        
+        for entry in tree_iter(&tree, &repo) {
+            println!("iter entry {:?}", entry.name());
+        }
+    }
+
+    fn setup_repo(td: &TempDir, repo: &Repository) {
+        let mut index = repo.index().unwrap();
+        File::create(&td.path().join("foo")).unwrap().write_all(b"foo").unwrap();
+        index.add_path(Path::new("foo")).unwrap();
+        let id = index.write_tree().unwrap();
+        let sig = repo.signature().unwrap();
+        let tree = repo.find_tree(id).unwrap();
+        let parent = repo.find_commit(repo.head().unwrap().target()
+                                      .unwrap()).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "another commit",
+                    &tree, &[&parent]).unwrap();
+    }
+    
     #[test]
     fn smoke() {
         let (td, repo) = ::test::repo_init();
-        {
-            let mut index = repo.index().unwrap();
-            File::create(&td.path().join("foo")).unwrap().write_all(b"foo").unwrap();
-            index.add_path(Path::new("foo")).unwrap();
-            let id = index.write_tree().unwrap();
-            let sig = repo.signature().unwrap();
-            let tree = repo.find_tree(id).unwrap();
-            let parent = repo.find_commit(repo.head().unwrap().target()
-                                              .unwrap()).unwrap();
-            repo.commit(Some("HEAD"), &sig, &sig, "another commit",
-                        &tree, &[&parent]).unwrap();
-        }
+
+        setup_repo(&td, &repo);
+
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();
