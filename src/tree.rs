@@ -172,7 +172,10 @@ impl<'tree> TreeEntry<'tree> {
         unsafe { raw::git_tree_entry_filemode_raw(&*self.raw) as i32 }
     }
 
-    /// Clone the underlying raw tree entry
+    /// Convert this entry of any lifetime into an owned signature with a static
+    /// lifetime.
+    ///
+    /// This will use the `Clone::clone` implementation under the hood.
     pub fn to_owned(&self) -> TreeEntry<'static> {
         unsafe {
             let me = mem::transmute::<&TreeEntry<'tree>, &TreeEntry<'static>>(self);
