@@ -1,3 +1,4 @@
+use std::mem;
 use std::cmp::Ordering;
 use std::ffi::CString;
 use std::ops::Range;
@@ -170,6 +171,14 @@ impl<'tree> TreeEntry<'tree> {
     pub fn filemode_raw(&self) -> i32 {
         unsafe { raw::git_tree_entry_filemode_raw(&*self.raw) as i32 }
     }
+
+    /// Clone the underlying raw tree entry
+    pub fn to_owned(&self) -> TreeEntry<'static> {
+        unsafe {
+            let me = mem::transmute::<&TreeEntry<'tree>, &TreeEntry<'static>>(self);
+            me.clone()
+        }
+    }
 }
 
 impl<'a> Binding for TreeEntry<'a> {
@@ -267,7 +276,7 @@ mod tests {
                         let tree: &Tree<'a> = obj.as_tree().unwrap();
 
                         for entry in tree.iter() {
-                            self.entries.push(entry);
+                            self.entries.push(entry.to_owned());
                         }
                     }
                     _ => {}
@@ -282,7 +291,7 @@ mod tests {
         let mut initial = vec![];
         
         for entry in tree.iter() {
-            initial.push(entry);
+            initial.push(entry.to_owned());
         }
         
         TestTreeIter {
