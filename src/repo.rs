@@ -10,7 +10,8 @@ use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
-use {RevparseMode, RepositoryInitMode, Reflog, IntoCString};
+use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
+use {DescribeOptions};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
 use oid_array::OidArray;
@@ -1336,6 +1337,19 @@ impl Repository {
             try_call!(raw::git_reflog_rename(self.raw, old_name, new_name));
         }
         Ok(())
+    }
+
+    /// Describes a commit
+    ///
+    /// Performs a describe operation on the current commit and the worktree.
+    /// After performing a describe on HEAD, a status is run and description is
+    /// considered to be dirty if there are.
+    pub fn describe(&self, opts: &DescribeOptions) -> Result<Describe, Error> {
+        let mut ret = 0 as *mut _;
+        unsafe {
+            try_call!(raw::git_describe_workdir(&mut ret, self.raw, opts.raw()));
+            Ok(Binding::from_raw(ret))
+        }
     }
 }
 

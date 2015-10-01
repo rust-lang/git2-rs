@@ -2,6 +2,7 @@ use std::marker;
 use std::mem;
 
 use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree, Repository};
+use {Describe, DescribeOptions};
 use util::Binding;
 
 /// A structure to represent a git [object][1]
@@ -80,6 +81,18 @@ impl<'repo> Object<'repo> {
     /// Returns `None` if the object is not actually a blob.
     pub fn as_blob(&self) -> Option<&Blob<'repo>> {
         self.cast(ObjectType::Blob)
+    }
+
+    /// Describes a commit
+    ///
+    /// Performs a describe operation on this commitish object.
+    pub fn describe(&self, opts: &DescribeOptions)
+                    -> Result<Describe, Error> {
+        let mut ret = 0 as *mut _;
+        unsafe {
+            try_call!(raw::git_describe_commit(&mut ret, self.raw, opts.raw()));
+            Ok(Binding::from_raw(ret))
+        }
     }
 
     fn cast<T>(&self, kind: ObjectType) -> Option<&T> {

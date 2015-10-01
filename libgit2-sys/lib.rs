@@ -48,6 +48,7 @@ pub enum git_diff {}
 pub enum git_diff_stats {}
 pub enum git_reflog {}
 pub enum git_reflog_entry {}
+pub enum git_describe_result {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1181,6 +1182,32 @@ pub struct git_smart_subtransport_definition {
     pub callback: git_smart_subtransport_cb,
     pub rpc: c_uint,
     pub param: *mut c_void,
+}
+
+#[repr(C)]
+pub struct git_describe_options {
+    pub version: c_uint,
+    pub max_candidates_tags: c_uint,
+    pub describe_strategy: c_uint,
+    pub pattern: *const c_char,
+    pub only_follow_first_parent: c_int,
+    pub show_commit_oid_as_fallback: c_int,
+}
+
+#[repr(C)]
+pub enum git_describe_strategy_t {
+    GIT_DESCRIBE_DEFAULT,
+    GIT_DESCRIBE_TAGS,
+    GIT_DESCRIBE_ALL,
+}
+pub use git_describe_strategy_t::*;
+
+#[repr(C)]
+pub struct git_describe_format_options {
+    pub version: c_uint,
+    pub abbreviated_size: c_uint,
+    pub always_use_long_format: c_int,
+    pub dirty_suffix: *const c_char,
 }
 
 /// Initialize openssl for the libgit2 library
@@ -2322,6 +2349,18 @@ extern {
     pub fn git_transport_smart(out: *mut *mut git_transport,
                                owner: *mut git_remote,
                                payload: *mut c_void) -> c_int;
+
+    // describe
+    pub fn git_describe_commit(result: *mut *mut git_describe_result,
+                               object: *mut git_object,
+                               opts: *mut git_describe_options) -> c_int;
+    pub fn git_describe_format(buf: *mut git_buf,
+                               result: *const git_describe_result,
+                               opts: *const git_describe_format_options) -> c_int;
+    pub fn git_describe_result_free(result: *mut git_describe_result);
+    pub fn git_describe_workdir(out: *mut *mut git_describe_result,
+                                repo: *mut git_repository,
+                                opts: *mut git_describe_options) -> c_int;
 }
 
 #[test]

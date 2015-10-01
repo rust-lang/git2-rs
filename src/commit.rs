@@ -230,6 +230,13 @@ impl<'repo> Commit<'repo> {
             }
         }
     }
+
+    /// Casts this Commit to be usable as an `Object`
+    pub fn as_object(&self) -> &Object<'repo> {
+        unsafe {
+            &*(self as *const _ as *const Object<'repo>)
+        }
+    }
 }
 
 impl<'repo> Binding for Commit<'repo> {

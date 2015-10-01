@@ -31,6 +31,13 @@ impl<'repo> Blob<'repo> {
             slice::from_raw_parts(data, len)
         }
     }
+
+    /// Casts this Blob to be usable as an `Object`
+    pub fn as_object(&self) -> &Object<'repo> {
+        unsafe {
+            &*(self as *const _ as *const Object<'repo>)
+        }
+    }
 }
 
 impl<'repo> Binding for Blob<'repo> {

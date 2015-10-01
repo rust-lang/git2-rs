@@ -88,6 +88,13 @@ impl<'repo> Tag<'repo> {
     pub fn target_type(&self) -> Option<ObjectType> {
         unsafe { ObjectType::from_raw(raw::git_tag_target_type(&*self.raw)) }
     }
+
+    /// Casts this Tag to be usable as an `Object`
+    pub fn as_object(&self) -> &Object<'repo> {
+        unsafe {
+            &*(self as *const _ as *const Object<'repo>)
+        }
+    }
 }
 
 impl<'repo> Binding for Tag<'repo> {

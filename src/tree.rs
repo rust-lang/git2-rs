@@ -96,6 +96,13 @@ impl<'repo> Tree<'repo> {
             Ok(Binding::from_raw(ret))
         }
     }
+
+    /// Casts this Tree to be usable as an `Object`
+    pub fn as_object(&self) -> &Object<'repo> {
+        unsafe {
+            &*(self as *const _ as *const Object<'repo>)
+        }
+    }
 }
 
 impl<'repo> Binding for Tree<'repo> {
