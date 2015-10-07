@@ -54,7 +54,7 @@ pub enum git_describe_result {}
 pub struct git_revspec {
     pub from: *mut git_object,
     pub to: *mut git_object,
-    pub flags: git_revparse_mode_t,
+    pub flags: c_uint,
 }
 
 #[repr(C)]
