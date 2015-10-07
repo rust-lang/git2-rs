@@ -28,5 +28,6 @@ fn main() {
             _ => false,
         }
     });
+    cfg.skip_type(|t| t == "__enum_ty");
     cfg.generate("../libgit2-sys/lib.rs", "all.rs");
 }

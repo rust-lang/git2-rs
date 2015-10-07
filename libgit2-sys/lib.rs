@@ -19,6 +19,9 @@ pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
 
+#[cfg(target_env = "msvc")] type __enum_ty = i32;
+#[cfg(not(target_env = "msvc"))] type __enum_ty = u32;
+
 pub enum git_blob {}
 pub enum git_branch_iterator {}
 pub enum git_blame {}
@@ -106,7 +109,7 @@ pub struct git_time {
 pub type git_off_t = i64;
 pub type git_time_t = i64;
 
-pub type git_revparse_mode_t = c_uint;
+pub type git_revparse_mode_t = __enum_ty;
 pub const GIT_REVPARSE_SINGLE: c_int = 1 << 0;
 pub const GIT_REVPARSE_RANGE: c_int = 1 << 1;
 pub const GIT_REVPARSE_MERGE_BASE: c_int = 1 << 2;
@@ -849,7 +852,7 @@ pub enum git_sort {
 }
 pub use git_sort::*;
 
-pub type git_submodule_status_t = c_uint;
+pub type git_submodule_status_t = __enum_ty;
 pub const GIT_SUBMODULE_STATUS_IN_HEAD: c_uint = 1 << 0;
 pub const GIT_SUBMODULE_STATUS_IN_INDEX: c_uint = 1 << 1;
 pub const GIT_SUBMODULE_STATUS_IN_CONFIG: c_uint = 1 << 2;
@@ -874,7 +877,7 @@ pub struct git_remote_head {
     pub symref_target: *mut c_char,
 }
 
-pub type git_pathspec_flag_t = u32;
+pub type git_pathspec_flag_t = __enum_ty;
 pub const GIT_PATHSPEC_DEFAULT: u32 = 0;
 pub const GIT_PATHSPEC_IGNORE_CASE: u32 = 1 << 0;
 pub const GIT_PATHSPEC_USE_CASE: u32 = 1 << 1;
@@ -906,7 +909,7 @@ pub struct git_diff_hunk {
     pub header: [c_char; 128],
 }
 
-pub type git_diff_line_t = c_uint;
+pub type git_diff_line_t = __enum_ty;
 pub const GIT_DIFF_LINE_CONTEXT: c_char = ' ' as c_char;
 pub const GIT_DIFF_LINE_ADDITION: c_char = '+' as c_char;
 pub const GIT_DIFF_LINE_DELETION: c_char = '-' as c_char;
@@ -954,7 +957,7 @@ pub enum git_diff_format_t {
 }
 pub use git_diff_format_t::*;
 
-pub type git_diff_stats_format_t = u32;
+pub type git_diff_stats_format_t = __enum_ty;
 pub const GIT_DIFF_STATS_NONE: git_diff_stats_format_t = 0;
 pub const GIT_DIFF_STATS_FULL: git_diff_stats_format_t = 1 << 0;
 pub const GIT_DIFF_STATS_SHORT: git_diff_stats_format_t = 1 << 1;
@@ -1077,7 +1080,7 @@ pub struct git_merge_options {
     pub file_flags: c_uint,
 }
 
-pub type git_merge_tree_flag_t = u32;
+pub type git_merge_tree_flag_t = __enum_ty;
 pub const GIT_MERGE_TREE_FIND_RENAMES: git_merge_tree_flag_t = 1 << 0;
 
 #[repr(C)]
