@@ -726,19 +726,19 @@ pub enum DiffFormat {
 
 bitflags! {
     /// Formatting options for diff stats
-    flags DiffStatsFormat: u32 {
+    flags DiffStatsFormat: raw::git_diff_stats_format_t {
         /// Don't generate any stats
-        const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE as u32,
+        const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE,
         /// Equivalent of `--stat` in git
-        const DIFF_STATS_FULL = raw::GIT_DIFF_STATS_FULL as u32,
+        const DIFF_STATS_FULL = raw::GIT_DIFF_STATS_FULL,
         /// Equivalent of `--shortstat` in git
-        const DIFF_STATS_SHORT = raw::GIT_DIFF_STATS_SHORT as u32,
+        const DIFF_STATS_SHORT = raw::GIT_DIFF_STATS_SHORT,
         /// Equivalent of `--numstat` in git
-        const DIFF_STATS_NUMBER = raw::GIT_DIFF_STATS_NUMBER as u32,
+        const DIFF_STATS_NUMBER = raw::GIT_DIFF_STATS_NUMBER,
         /// Extended header information such as creations, renames and mode
         /// changes, equivalent of `--summary` in git
         const DIFF_STATS_INCLUDE_SUMMARY =
-            raw::GIT_DIFF_STATS_INCLUDE_SUMMARY as u32,
+            raw::GIT_DIFF_STATS_INCLUDE_SUMMARY,
     }
 }
 
