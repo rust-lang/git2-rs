@@ -1069,13 +1069,16 @@ pub use git_diff_binary_t::*;
 #[repr(C)]
 pub struct git_merge_options {
     pub version: c_uint,
-    pub tree_flags: u32,
+    pub tree_flags: git_merge_tree_flag_t,
     pub rename_threshold: c_uint,
     pub target_limit: c_uint,
     pub metric: *mut git_diff_similarity_metric,
     pub file_favor: git_merge_file_favor_t,
     pub file_flags: c_uint,
 }
+
+pub type git_merge_tree_flag_t = u32;
+pub const GIT_MERGE_TREE_FIND_RENAMES: git_merge_tree_flag_t = 1 << 0;
 
 #[repr(C)]
 pub enum git_merge_file_favor_t {
@@ -1085,8 +1088,6 @@ pub enum git_merge_file_favor_t {
     GIT_MERGE_FILE_FAVOR_UNION = 3,
 }
 pub use git_merge_file_favor_t::*;
-
-pub const GIT_MERGE_TREE_FIND_RENAMES: u32 = 1 << 0;
 
 // used in git_merge_options.file_flags
 pub const GIT_MERGE_FILE_DEFAULT: u32 = 0;
