@@ -954,15 +954,12 @@ pub enum git_diff_format_t {
 }
 pub use git_diff_format_t::*;
 
-#[repr(C)]
-pub enum git_diff_stats_format_t {
-    GIT_DIFF_STATS_NONE = 0,
-    GIT_DIFF_STATS_FULL = 1 << 0,
-    GIT_DIFF_STATS_SHORT = 1 << 1,
-    GIT_DIFF_STATS_NUMBER = 1 << 2,
-    GIT_DIFF_STATS_INCLUDE_SUMMARY = 1 << 3,
-}
-pub use git_diff_stats_format_t::*;
+pub type git_diff_stats_format_t = u32;
+pub const GIT_DIFF_STATS_NONE: git_diff_stats_format_t = 0;
+pub const GIT_DIFF_STATS_FULL: git_diff_stats_format_t = 1 << 0;
+pub const GIT_DIFF_STATS_SHORT: git_diff_stats_format_t = 1 << 1;
+pub const GIT_DIFF_STATS_NUMBER: git_diff_stats_format_t = 1 << 2;
+pub const GIT_DIFF_STATS_INCLUDE_SUMMARY: git_diff_stats_format_t = 1 << 3;
 
 pub type git_diff_notify_cb = extern fn(*const git_diff,
                                         *const git_diff_delta,
@@ -2279,7 +2276,7 @@ extern {
     pub fn git_diff_stats_insertions(stats: *const git_diff_stats) -> size_t;
     pub fn git_diff_stats_to_buf(out: *mut git_buf,
                                  stats: *const git_diff_stats,
-                                 format: u32, // git_diff_stats_format_t
+                                 format: git_diff_stats_format_t,
                                  width: size_t) -> c_int;
     pub fn git_diff_status_char(status: git_delta_t) -> c_char;
     pub fn git_diff_tree_to_index(diff: *mut *mut git_diff,
