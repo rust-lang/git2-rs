@@ -1660,7 +1660,7 @@ extern {
     pub fn git_submodule_set_ignore(repo: *mut git_repository,
                                     name: *const c_char,
                                     ignore: git_submodule_ignore_t)
-                                    -> git_submodule_ignore_t;
+                                    -> c_int;
     pub fn git_submodule_set_update(repo: *mut git_repository,
                                     name: *const c_char,
                                     update: git_submodule_update_t)
