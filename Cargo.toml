@@ -29,3 +29,6 @@ tempdir = "0.3"
 
 [features]
 unstable = []
+default = ["ssh", "https"]
+ssh = ["libgit2-sys/ssh"]
+https = ["libgit2-sys/https"]

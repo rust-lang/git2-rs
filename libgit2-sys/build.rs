@@ -15,8 +15,14 @@ macro_rules! t {
 }
 
 fn main() {
-    register_dep("SSH2");
-    register_dep("OPENSSL");
+    let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
+    let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
+    if ssh {
+        register_dep("SSH2");
+    }
+    if https {
+        register_dep("OPENSSL");
+    }
     let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
     if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
@@ -46,12 +52,7 @@ fn main() {
     // windows as libssh2 doesn't come with a libssh2.pc file in that install
     // (or when pkg-config isn't found). As a result we just manually turn on
     // SSH support in libgit2 (a little jankily) here...
-    if windows || !has_pkgconfig {
-        if msvc {
-            cfg.cflag("/DGIT_SSH");
-        } else {
-            cfg.cflag("-DGIT_SSH");
-        }
+    if ssh && (windows || !has_pkgconfig) {
         if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
             if msvc {
                 cfg.cflag(format!(" /I{}", libssh2_include));
@@ -61,12 +62,21 @@ fn main() {
         }
     }
 
+    if ssh {
+        cfg.register_dep("SSH2");
+    } else {
+        cfg.define("USE_SSH", "OFF");
+    }
+    if https {
+        cfg.register_dep("OPENSSL");
+    } else {
+        cfg.define("USE_OPENSSL", "OFF");
+    }
+
     let dst = cfg.define("BUILD_SHARED_LIBS", "OFF")
                  .define("BUILD_CLAR", "OFF")
                  .define("CURL", "OFF")
-                 .register_dep("SSH2")
                  .register_dep("Z")
-                 .register_dep("OPENSSL")
                  .build();
 
     let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
@@ -74,7 +84,7 @@ fn main() {
 
     // Make sure libssh2 was detected on unix systems, because it definitely
     // should have been!
-    if !msvc {
+    if ssh && !msvc {
         t!(t!(File::open(flags)).read_to_string(&mut contents));
         if !contents.contains("-DGIT_SSH") {
             panic!("libgit2 failed to find libssh2, and SSH support is required");

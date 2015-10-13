@@ -3,8 +3,9 @@
 #![allow(raw_pointer_derive)]
 
 extern crate libc;
+#[cfg(feature = "ssh")]
 extern crate libssh2_sys as libssh2;
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, not(target_os = "macos"), feature = "https"))]
 extern crate openssl_sys as openssl;
 #[cfg(unix)] extern crate libz_sys as libz;
 
@@ -1212,7 +1213,7 @@ pub struct git_describe_format_options {
 }
 
 /// Initialize openssl for the libgit2 library
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, not(target_os = "macos"), feature = "https"))]
 pub fn openssl_init() {
     if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
 
@@ -1330,7 +1331,7 @@ pub fn openssl_init() {
     openssl::probe::init_ssl_cert_env_vars();
 }
 
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(any(windows, target_os = "macos", not(feature = "https")))]
 pub fn openssl_init() {}
 
 extern {
@@ -2367,8 +2368,4 @@ extern {
 #[test]
 fn smoke() {
     unsafe { git_threads_init(); }
-}
-
-pub fn __issue_14344_workaround() {
-    libssh2::issue_14344_workaround();
 }
