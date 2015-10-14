@@ -2,7 +2,7 @@ extern crate pkg_config;
 extern crate cmake;
 
 use std::env;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -72,6 +72,9 @@ fn main() {
     } else {
         cfg.define("USE_OPENSSL", "OFF");
     }
+
+    let _ = fs::remove_dir_all(env::var("OUT_DIR").unwrap());
+    t!(fs::create_dir_all(env::var("OUT_DIR").unwrap()));
 
     let dst = cfg.define("BUILD_SHARED_LIBS", "OFF")
                  .define("BUILD_CLAR", "OFF")
