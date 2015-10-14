@@ -79,12 +79,11 @@ fn main() {
                  .register_dep("Z")
                  .build();
 
-    let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
-    let mut contents = String::new();
-
     // Make sure libssh2 was detected on unix systems, because it definitely
     // should have been!
     if ssh && !msvc {
+        let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
+        let mut contents = String::new();
         t!(t!(File::open(flags)).read_to_string(&mut contents));
         if !contents.contains("-DGIT_SSH") {
             panic!("libgit2 failed to find libssh2, and SSH support is required");
