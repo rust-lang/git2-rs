@@ -7,7 +7,7 @@ extern crate libc;
 extern crate libssh2_sys as libssh2;
 #[cfg(all(unix, not(target_os = "macos"), feature = "https"))]
 extern crate openssl_sys as openssl;
-#[cfg(unix)] extern crate libz_sys as libz;
+extern crate libz_sys as libz;
 
 use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void};
 
