@@ -26,6 +26,8 @@ cmake = "0.1.2"
 openssl-sys = "0.6.0"
 [target.x86_64-unknown-linux-gnu.dependencies]
 openssl-sys = "0.6.0"
+[target.x86_64-unknown-linux-musl.dependencies]
+openssl-sys = "0.6.0"
 [target.aarch64-unknown-linux-gnu.dependencies]
 openssl-sys = "0.6.0"
 [target.arm-unknown-linux-gnueabihf.dependencies]
