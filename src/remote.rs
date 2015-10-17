@@ -99,7 +99,9 @@ impl<'repo> Remote<'repo> {
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
         // TODO: can callbacks be exposed safely?
         unsafe {
-            try_call!(raw::git_remote_connect(self.raw, dir, 0 as *const _));
+            try_call!(raw::git_remote_connect(self.raw, dir,
+                                              0 as *const _,
+                                              0 as *const _));
         }
         Ok(())
     }
@@ -352,6 +354,11 @@ impl<'cb> Binding for FetchOptions<'cb> {
             prune: ::call::convert(&self.prune),
             update_fetchhead: ::call::convert(&self.update_fetchhead),
             download_tags: ::call::convert(&self.download_tags),
+            // TODO: expose this as a builder option
+            custom_headers: raw::git_strarray {
+                count: 0,
+                strings: 0 as *mut _,
+            },
         }
     }
 }
@@ -395,6 +402,11 @@ impl<'cb> Binding for PushOptions<'cb> {
             callbacks: self.callbacks.as_ref().map(|m| m.raw())
                            .unwrap_or(unsafe { mem::zeroed() }),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
+            // TODO: expose this as a builder option
+            custom_headers: raw::git_strarray {
+                count: 0,
+                strings: 0 as *mut _,
+            },
         }
     }
 }

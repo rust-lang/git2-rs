@@ -306,6 +306,7 @@ pub struct git_fetch_options {
     pub prune: git_fetch_prune_t,
     pub update_fetchhead: c_int,
     pub download_tags: git_remote_autotag_option_t,
+    pub custom_headers: git_strarray,
 }
 
 #[repr(C)]
@@ -793,6 +794,7 @@ pub struct git_push_options {
     pub version: c_uint,
     pub pb_parallelism: c_uint,
     pub callbacks: git_remote_callbacks,
+    pub custom_headers: git_strarray,
 }
 
 pub type git_tag_foreach_cb = extern fn(name: *const c_char,
@@ -1116,6 +1118,8 @@ pub struct git_transport {
                                  git_transport_message_cb,
                                  git_transport_certificate_check_cb,
                                  *mut c_void) -> c_int,
+    pub set_custom_headers: extern fn(*mut git_transport,
+                                      *const git_strarray) -> c_int,
     pub connect: extern fn(*mut git_transport,
                            *const c_char,
                            git_cred_acquire_cb,
@@ -1444,7 +1448,8 @@ extern {
     pub fn git_remote_url(remote: *const git_remote) -> *const c_char;
     pub fn git_remote_connect(remote: *mut git_remote,
                               dir: git_direction,
-                              callbacks: *const git_remote_callbacks) -> c_int;
+                              callbacks: *const git_remote_callbacks,
+                              custom_headers: *const git_strarray) -> c_int;
     pub fn git_remote_connected(remote: *const git_remote) -> c_int;
     pub fn git_remote_disconnect(remote: *mut git_remote);
     pub fn git_remote_add_fetch(repo: *mut git_repository,
