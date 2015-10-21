@@ -55,9 +55,11 @@ fn main() {
     if ssh && (windows || !has_pkgconfig) {
         if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
             if msvc {
-                cfg.cflag(format!(" /I{}", libssh2_include));
+                cfg.cflag(format!("/I{}", libssh2_include))
+                   .cflag("/DGIT_SSH");
             } else {
-                cfg.cflag(format!(" -I{}", libssh2_include));
+                cfg.cflag(format!("-I{}", libssh2_include))
+                   .cflag("-DGIT_SSH");
             }
         }
     }
