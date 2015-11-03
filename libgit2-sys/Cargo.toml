@@ -15,7 +15,7 @@ path = "lib.rs"
 
 [dependencies]
 libssh2-sys = { version = "0.1.28", optional = true }
-libc = "0.1"
+libc = "0.2"
 libz-sys = "0.1.0"
 
 [build-dependencies]
