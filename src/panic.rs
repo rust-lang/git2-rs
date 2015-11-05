@@ -74,3 +74,7 @@ pub fn check() {
         None => {}
     }
 }
+
+pub fn panicked() -> bool {
+    LAST_ERROR.with(|slot| slot.borrow().is_some())
+}

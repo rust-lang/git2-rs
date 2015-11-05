@@ -113,6 +113,7 @@ pub use submodule::Submodule;
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry, TreeIter};
+pub use treebuilder::TreeBuilder;
 pub use util::IntoCString;
 
 /// An enumeration of possible errors that can happen when working with a git
@@ -391,6 +392,7 @@ mod submodule;
 mod tag;
 mod time;
 mod tree;
+mod treebuilder;
 
 fn init() {
     static INIT: Once = ONCE_INIT;
