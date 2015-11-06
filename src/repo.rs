@@ -11,7 +11,7 @@ use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
-use {DescribeOptions};
+use {DescribeOptions, TreeBuilder};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
 use oid_array::OidArray;
@@ -924,6 +924,21 @@ impl Repository {
             Ok(Binding::from_raw(raw))
         }
     }
+
+    /// Create a new TreeBuilder, optionally initialized with the
+    /// entries of the given Tree
+    pub fn treebuilder(&self, tree: Option<&Tree>) -> Result<TreeBuilder, Error> {
+        unsafe {
+            let mut ret = 0 as *mut raw::git_treebuilder;
+            let tree = match tree {
+                Some(tree) => tree.raw(),
+                None => 0 as *mut raw::git_tree,
+            };
+            try_call!(raw::git_treebuilder_new(&mut ret, self.raw, tree));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
 
     /// Create a new tag in the repository from an object
     ///

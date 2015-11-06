@@ -42,6 +42,7 @@ pub enum git_submodule {}
 pub enum git_tag {}
 pub enum git_tree {}
 pub enum git_tree_entry {}
+pub enum git_treebuilder {}
 pub enum git_push {}
 pub enum git_note {}
 pub enum git_note_iterator {}
@@ -600,17 +601,13 @@ pub enum git_ref_t {
 }
 pub use git_ref_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_filemode_t {
-    GIT_FILEMODE_UNREADABLE          = 0o000000,
-    GIT_FILEMODE_TREE                = 0o040000,
-    GIT_FILEMODE_BLOB                = 0o100644,
-    GIT_FILEMODE_BLOB_EXECUTABLE     = 0o100755,
-    GIT_FILEMODE_LINK                = 0o120000,
-    GIT_FILEMODE_COMMIT              = 0o160000,
-}
-pub use git_filemode_t::*;
+pub type git_filemode_t = __enum_ty;
+pub const GIT_FILEMODE_UNREADABLE: git_filemode_t          = 0o000000;
+pub const GIT_FILEMODE_TREE: git_filemode_t                = 0o040000;
+pub const GIT_FILEMODE_BLOB: git_filemode_t                = 0o100644;
+pub const GIT_FILEMODE_BLOB_EXECUTABLE: git_filemode_t     = 0o100755;
+pub const GIT_FILEMODE_LINK: git_filemode_t                = 0o120000;
+pub const GIT_FILEMODE_COMMIT: git_filemode_t              = 0o160000;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -622,6 +619,8 @@ pub use git_treewalk_mode::*;
 
 pub type git_treewalk_cb = extern fn(*const c_char, *const git_tree_entry,
                                      *mut c_void) -> c_int;
+pub type git_treebuilder_filter_cb = extern fn(*const git_tree_entry,
+                                               *mut c_void) -> c_int;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1748,6 +1747,28 @@ extern {
                          mode: git_treewalk_mode,
                          callback: git_treewalk_cb,
                          payload: *mut c_void) -> c_int;
+
+    // treebuilder
+    pub fn git_treebuilder_new(out: *mut *mut git_treebuilder,
+                               repo: *mut git_repository,
+                               source: *const git_tree) -> c_int;
+    pub fn git_treebuilder_clear(bld: *mut git_treebuilder);
+    pub fn git_treebuilder_entrycount(bld: *mut git_treebuilder) -> c_uint;
+    pub fn git_treebuilder_free(bld: *mut git_treebuilder);
+    pub fn git_treebuilder_get(bld: *mut git_treebuilder,
+                               filename: *const c_char) -> *const git_tree_entry;
+    pub fn git_treebuilder_insert(out: *mut *const git_tree_entry,
+                                  bld: *mut git_treebuilder,
+                                  filename: *const c_char,
+                                  id: *const git_oid,
+                                  filemode: git_filemode_t) -> c_int;
+    pub fn git_treebuilder_remove(bld: *mut git_treebuilder,
+                                  filename: *const c_char) -> c_int;
+    pub fn git_treebuilder_filter(bld: *mut git_treebuilder,
+                                  filter: git_treebuilder_filter_cb,
+                                  payload: *mut c_void);
+    pub fn git_treebuilder_write(id: *mut git_oid,
+                                 bld: *mut git_treebuilder) -> c_int;
 
     // buf
     pub fn git_buf_free(buffer: *mut git_buf);

@@ -55,7 +55,7 @@ impl<'repo> Tree<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(TreeEntry::from_raw_const(ptr))
+                Some(entry_from_raw_const(ptr))
             }
         }
     }
@@ -68,7 +68,7 @@ impl<'repo> Tree<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(TreeEntry::from_raw_const(ptr))
+                Some(entry_from_raw_const(ptr))
             }
         }
     }
@@ -81,7 +81,7 @@ impl<'repo> Tree<'repo> {
             if ptr.is_null() {
                 None
             } else {
-                Some(TreeEntry::from_raw_const(ptr))
+                Some(entry_from_raw_const(ptr))
             }
         }
     }
@@ -120,20 +120,20 @@ impl<'repo> Drop for Tree<'repo> {
     }
 }
 
-impl<'tree> TreeEntry<'tree> {
-    /// Create a new tree entry from the raw pointer provided.
-    ///
-    /// The lifetime of the entry is tied to the tree provided and the function
-    /// is unsafe because the validity of the pointer cannot be guaranteed.
-    unsafe fn from_raw_const(raw: *const raw::git_tree_entry)
-                                 -> TreeEntry<'tree> {
-        TreeEntry {
-            raw: raw as *mut raw::git_tree_entry,
-            owned: false,
-            _marker: marker::PhantomData,
-        }
+/// Create a new tree entry from the raw pointer provided.
+///
+/// The lifetime of the entry is tied to the tree provided and the function
+/// is unsafe because the validity of the pointer cannot be guaranteed.
+pub unsafe fn entry_from_raw_const<'tree>(raw: *const raw::git_tree_entry)
+                                          -> TreeEntry<'tree> {
+    TreeEntry {
+        raw: raw as *mut raw::git_tree_entry,
+        owned: false,
+        _marker: marker::PhantomData,
     }
+}
 
+impl<'tree> TreeEntry<'tree> {
     /// Get the id of the object pointed by the entry
     pub fn id(&self) -> Oid {
         unsafe { Binding::from_raw(raw::git_tree_entry_id(&*self.raw)) }
