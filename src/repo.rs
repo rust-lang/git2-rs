@@ -926,7 +926,10 @@ impl Repository {
     }
 
     /// Create a new TreeBuilder, optionally initialized with the
-    /// entries of the given Tree
+    /// entries of the given Tree.
+    ///
+    /// The tree builder can be used to create or modify trees in memory and
+    /// write them as tree objects to the database.
     pub fn treebuilder(&self, tree: Option<&Tree>) -> Result<TreeBuilder, Error> {
         unsafe {
             let mut ret = 0 as *mut raw::git_treebuilder;

@@ -1,5 +1,6 @@
-use libc::{c_int, c_void};
 use std::marker;
+
+use libc::{c_int, c_void};
 
 use {panic, raw, tree, Error, Oid, Repository, TreeEntry};
 use util::{Binding, IntoCString};
@@ -22,7 +23,9 @@ impl<'repo> TreeBuilder<'repo> {
     }
 
     /// Get en entry from the builder from its filename
-    pub fn get<P: IntoCString>(&self, filename: P) -> Result<Option<TreeEntry>, Error> {
+    pub fn get<P>(&self, filename: P) -> Result<Option<TreeEntry>, Error>
+        where P: IntoCString
+    {
         let filename = try!(filename.into_c_string());
         unsafe {
             let ret = raw::git_treebuilder_get(self.raw, filename.as_ptr());
@@ -37,7 +40,10 @@ impl<'repo> TreeBuilder<'repo> {
     /// Add or update an entry in the builder
     ///
     /// No attempt is made to ensure that the provided Oid points to
-    /// an object of a reasonable type (or any object at all)
+    /// an object of a reasonable type (or any object at all).
+    ///
+    /// The mode given must be one of 0o040000, 0o100644, 0o100755, 0o120000 or
+    /// 0o160000 currently.
     pub fn insert<P: IntoCString>(&mut self, filename: P, oid: Oid,
                                   filemode: i32) -> Result<TreeEntry, Error> {
         let filename = try!(filename.into_c_string());
@@ -65,7 +71,8 @@ impl<'repo> TreeBuilder<'repo> {
     /// Values for which the filter returns `true` will be kept.  Note
     /// that this behavior is different from the libgit2 C interface.
     pub fn filter<F>(&mut self, mut filter: F)
-                     where F: FnMut(&TreeEntry) -> bool {
+        where F: FnMut(&TreeEntry) -> bool
+    {
         let mut cb: &mut FilterCb = &mut filter;
         let ptr = &mut cb as *mut _;
         unsafe {

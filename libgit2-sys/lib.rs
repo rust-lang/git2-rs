@@ -602,12 +602,12 @@ pub enum git_ref_t {
 pub use git_ref_t::*;
 
 pub type git_filemode_t = __enum_ty;
-pub const GIT_FILEMODE_UNREADABLE: git_filemode_t          = 0o000000;
-pub const GIT_FILEMODE_TREE: git_filemode_t                = 0o040000;
-pub const GIT_FILEMODE_BLOB: git_filemode_t                = 0o100644;
-pub const GIT_FILEMODE_BLOB_EXECUTABLE: git_filemode_t     = 0o100755;
-pub const GIT_FILEMODE_LINK: git_filemode_t                = 0o120000;
-pub const GIT_FILEMODE_COMMIT: git_filemode_t              = 0o160000;
+pub const GIT_FILEMODE_UNREADABLE: git_filemode_t = 0o000000;
+pub const GIT_FILEMODE_TREE: git_filemode_t = 0o040000;
+pub const GIT_FILEMODE_BLOB: git_filemode_t = 0o100644;
+pub const GIT_FILEMODE_BLOB_EXECUTABLE: git_filemode_t = 0o100755;
+pub const GIT_FILEMODE_LINK: git_filemode_t = 0o120000;
+pub const GIT_FILEMODE_COMMIT: git_filemode_t = 0o160000;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
