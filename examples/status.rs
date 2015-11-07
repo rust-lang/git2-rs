@@ -19,6 +19,7 @@ extern crate docopt;
 extern crate rustc_serialize;
 
 use std::str;
+use std::time::Duration;
 use docopt::Docopt;
 use git2::{Repository, Error, StatusOptions, ErrorCode, SubmoduleIgnore};
 
@@ -90,7 +91,7 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if args.flag_repeat {
-            std::thread::sleep_ms(10000);
+            std::thread::sleep(Duration::new(10, 0));
         } else {
             return Ok(())
         }
