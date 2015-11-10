@@ -21,8 +21,9 @@ fn main() {
 
     // Spin up a server for git-http-backend
     let td = TempDir::new("wut").unwrap();
-    let _a = Server::start(Config { port: PORT, threads: 1 },
-                           git_backend::Serve(td.path().to_path_buf()));
+    let mut cfg = Config::new();
+    cfg.port(PORT).threads(1);
+    let _a = Server::start(cfg, git_backend::Serve(td.path().to_path_buf()));
 
     // Prep a repo with one file called `foo`
     let sig = git2::Signature::now("foo", "bar").unwrap();

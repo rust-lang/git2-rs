@@ -20,7 +20,7 @@ log = "0.3"
 git2 = { path = "..", version = "0.3" }
 
 [dev-dependencies]
-civet = "0.7"
+civet = "0.8"
 conduit = "0.7"
 conduit-git-http-backend = "0.7"
 tempdir = "0.3"
