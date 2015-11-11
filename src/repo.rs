@@ -11,7 +11,7 @@ use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
-use {DescribeOptions, TreeBuilder};
+use {DescribeOptions, TreeBuilder, Diff, DiffOptions};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
 use oid_array::OidArray;
@@ -1366,6 +1366,136 @@ impl Repository {
         let mut ret = 0 as *mut _;
         unsafe {
             try_call!(raw::git_describe_workdir(&mut ret, self.raw, opts.raw()));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a diff with the difference between two tree objects.
+    ///
+    /// This is equivalent to `git diff <old-tree> <new-tree>`
+    ///
+    /// The first tree will be used for the "old_file" side of the delta and the
+    /// second tree will be used for the "new_file" side of the delta.  You can
+    /// pass `None` to indicate an empty tree, although it is an error to pass
+    /// `None` for both the `old_tree` and `new_tree`.
+    pub fn diff_tree_to_tree(&self,
+                             old_tree: Option<&Tree>,
+                             new_tree: Option<&Tree>,
+                             opts: Option<&mut DiffOptions>)
+                             -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_tree(&mut ret,
+                                                 self.raw(),
+                                                 old_tree.map(|s| s.raw()),
+                                                 new_tree.map(|s| s.raw()),
+                                                 opts.map(|s| s.raw())));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between a tree and repository index.
+    ///
+    /// This is equivalent to `git diff --cached <treeish>` or if you pass
+    /// the HEAD tree, then like `git diff --cached`.
+    ///
+    /// The tree you pass will be used for the "old_file" side of the delta, and
+    /// the index will be used for the "new_file" side of the delta.
+    ///
+    /// If you pass `None` for the index, then the existing index of the `repo`
+    /// will be used.  In this case, the index will be refreshed from disk
+    /// (if it has changed) before the diff is generated.
+    ///
+    /// If the tree is `None`, then it is considered an empty tree.
+    pub fn diff_tree_to_index(&self,
+                              old_tree: Option<&Tree>,
+                              index: Option<&Index>,
+                              opts: Option<&mut DiffOptions>)
+                              -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_index(&mut ret,
+                                                  self.raw(),
+                                                  old_tree.map(|s| s.raw()),
+                                                  index.map(|s| s.raw()),
+                                                  opts.map(|s| s.raw())));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between the repository index and the workdir directory.
+    ///
+    /// This matches the `git diff` command.  See the note below on
+    /// `tree_to_workdir` for a discussion of the difference between
+    /// `git diff` and `git diff HEAD` and how to emulate a `git diff <treeish>`
+    /// using libgit2.
+    ///
+    /// The index will be used for the "old_file" side of the delta, and the
+    /// working directory will be used for the "new_file" side of the delta.
+    ///
+    /// If you pass `None` for the index, then the existing index of the `repo`
+    /// will be used.  In this case, the index will be refreshed from disk
+    /// (if it has changed) before the diff is generated.
+    pub fn diff_index_to_workdir(&self,
+                                 index: Option<&Index>,
+                                 opts: Option<&mut DiffOptions>)
+                                 -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_index_to_workdir(&mut ret,
+                                                     self.raw(),
+                                                     index.map(|s| s.raw()),
+                                                     opts.map(|s| s.raw())));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between a tree and the working directory.
+    ///
+    /// The tree you provide will be used for the "old_file" side of the delta,
+    /// and the working directory will be used for the "new_file" side.
+    ///
+    /// This is not the same as `git diff <treeish>` or `git diff-index
+    /// <treeish>`.  Those commands use information from the index, whereas this
+    /// function strictly returns the differences between the tree and the files
+    /// in the working directory, regardless of the state of the index.  Use
+    /// `tree_to_workdir_with_index` to emulate those commands.
+    ///
+    /// To see difference between this and `tree_to_workdir_with_index`,
+    /// consider the example of a staged file deletion where the file has then
+    /// been put back into the working dir and further modified.  The
+    /// tree-to-workdir diff for that file is 'modified', but `git diff` would
+    /// show status 'deleted' since there is a staged delete.
+    ///
+    /// If `None` is passed for `tree`, then an empty tree is used.
+    pub fn diff_tree_to_workdir(&self,
+                                old_tree: Option<&Tree>,
+                                opts: Option<&mut DiffOptions>)
+                                -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_workdir(&mut ret,
+                                                    self.raw(),
+                                                    old_tree.map(|s| s.raw()),
+                                                    opts.map(|s| s.raw())));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a diff between a tree and the working directory using index data
+    /// to account for staged deletes, tracked files, etc.
+    ///
+    /// This emulates `git diff <tree>` by diffing the tree to the index and
+    /// the index to the working directory and blending the results into a
+    /// single diff that includes staged deleted, etc.
+    pub fn diff_tree_to_workdir_with_index(&self,
+                                           old_tree: Option<&Tree>,
+                                           opts: Option<&mut DiffOptions>)
+                                           -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_tree_to_workdir_with_index(&mut ret,
+                    self.raw(), old_tree.map(|s| s.raw()), opts.map(|s| s.raw())));
             Ok(Binding::from_raw(ret))
         }
     }
