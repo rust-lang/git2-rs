@@ -181,6 +181,7 @@ pub enum git_error_t {
     GITERR_CHERRYPICK,
     GITERR_DESCRIBE,
     GITERR_REBASE,
+    GITERR_FILESYSTEM,
 }
 pub use git_error_t::*;
 
