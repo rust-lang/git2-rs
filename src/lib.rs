@@ -130,7 +130,7 @@ pub enum ErrorCode {
     Ambiguous,
     /// Output buffer too short to hold data
     BufSize,
-    /// Operation not allowed on bare repository
+    /// User-generated error
     User,
     /// Operation not allowed on bare repository
     BareRepo,
