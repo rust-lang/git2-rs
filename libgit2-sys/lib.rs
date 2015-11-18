@@ -23,6 +23,26 @@ pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
 #[cfg(target_env = "msvc")] type __enum_ty = i32;
 #[cfg(not(target_env = "msvc"))] type __enum_ty = u32;
 
+macro_rules! git_enum {
+    (pub enum $name:ident { $($variants:tt)* }) => {
+        pub type $name = __enum_ty;
+        git_enum!(gen, $name, 0, $($variants)*);
+    };
+    (pub enum $name:ident: $t:ty { $($variants:tt)* }) => {
+        pub type $name = $t;
+        git_enum!(gen, $name, 0, $($variants)*);
+    };
+    (gen, $name:ident, $val:expr, $variant:ident, $($rest:tt)*) => {
+        pub const $variant: $name = $val;
+        git_enum!(gen, $name, $val+1, $($rest)*);
+    };
+    (gen, $name:ident, $val:expr, $variant:ident = $e:expr, $($rest:tt)*) => {
+        pub const $variant: $name = $e;
+        git_enum!(gen, $name, $e+1, $($rest)*);
+    };
+    (gen, $name:ident, $val:expr, ) => {}
+}
+
 pub enum git_blob {}
 pub enum git_branch_iterator {}
 pub enum git_blame {}
@@ -111,103 +131,102 @@ pub struct git_time {
 pub type git_off_t = i64;
 pub type git_time_t = i64;
 
-pub type git_revparse_mode_t = __enum_ty;
-pub const GIT_REVPARSE_SINGLE: c_int = 1 << 0;
-pub const GIT_REVPARSE_RANGE: c_int = 1 << 1;
-pub const GIT_REVPARSE_MERGE_BASE: c_int = 1 << 2;
-
-#[repr(C)]
-#[derive(PartialEq, Eq, Clone, Copy)]
-pub enum git_error_code {
-    GIT_OK = 0,
-
-    GIT_ERROR = -1,
-    GIT_ENOTFOUND = -3,
-    GIT_EEXISTS = -4,
-    GIT_EAMBIGUOUS = -5,
-    GIT_EBUFS = -6,
-    GIT_EUSER = -7,
-    GIT_EBAREREPO = -8,
-    GIT_EUNBORNBRANCH = -9,
-    GIT_EUNMERGED = -10,
-    GIT_ENONFASTFORWARD = -11,
-    GIT_EINVALIDSPEC = -12,
-    GIT_ECONFLICT = -13,
-    GIT_ELOCKED = -14,
-    GIT_EMODIFIED = -15,
-    GIT_EAUTH = -16,
-    GIT_ECERTIFICATE = -17,
-    GIT_EAPPLIED = -18,
-    GIT_EPEEL = -19,
-    GIT_EEOF = -20,
-    GIT_EINVALID = -21,
-    GIT_EUNCOMMITTED = -22,
-    GIT_EDIRECTORY = -23,
-    GIT_PASSTHROUGH = -30,
-    GIT_ITEROVER = -31,
+git_enum! {
+    pub enum git_revparse_mode_t {
+        GIT_REVPARSE_SINGLE = 1 << 0,
+        GIT_REVPARSE_RANGE = 1 << 1,
+        GIT_REVPARSE_MERGE_BASE = 1 << 2,
+    }
 }
-pub use git_error_code::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_error_t {
-    GITERR_NONE = 0,
-    GITERR_NOMEMORY,
-    GITERR_OS,
-    GITERR_INVALID,
-    GITERR_REFERENCE,
-    GITERR_ZLIB,
-    GITERR_REPOSITORY,
-    GITERR_CONFIG,
-    GITERR_REGEX,
-    GITERR_ODB,
-    GITERR_INDEX,
-    GITERR_OBJECT,
-    GITERR_NET,
-    GITERR_TAG,
-    GITERR_TREE,
-    GITERR_INDEXER,
-    GITERR_SSL,
-    GITERR_SUBMODULE,
-    GITERR_THREAD,
-    GITERR_STASH,
-    GITERR_CHECKOUT,
-    GITERR_FETCHHEAD,
-    GITERR_MERGE,
-    GITERR_SSH,
-    GITERR_FILTER,
-    GITERR_REVERT,
-    GITERR_CALLBACK,
-    GITERR_CHERRYPICK,
-    GITERR_DESCRIBE,
-    GITERR_REBASE,
-    GITERR_FILESYSTEM,
-}
-pub use git_error_t::*;
+git_enum! {
+    pub enum git_error_code: c_int {
+        GIT_OK = 0,
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_repository_state_t {
-    GIT_REPOSITORY_STATE_NONE,
-    GIT_REPOSITORY_STATE_MERGE,
-    GIT_REPOSITORY_STATE_REVERT,
-    GIT_REPOSITORY_STATE_CHERRYPICK,
-    GIT_REPOSITORY_STATE_BISECT,
-    GIT_REPOSITORY_STATE_REBASE,
-    GIT_REPOSITORY_STATE_REBASE_INTERACTIVE,
-    GIT_REPOSITORY_STATE_REBASE_MERGE,
-    GIT_REPOSITORY_STATE_APPLY_MAILBOX,
-    GIT_REPOSITORY_STATE_APPLY_MAILBOX_OR_REBASE,
+        GIT_ERROR = -1,
+        GIT_ENOTFOUND = -3,
+        GIT_EEXISTS = -4,
+        GIT_EAMBIGUOUS = -5,
+        GIT_EBUFS = -6,
+        GIT_EUSER = -7,
+        GIT_EBAREREPO = -8,
+        GIT_EUNBORNBRANCH = -9,
+        GIT_EUNMERGED = -10,
+        GIT_ENONFASTFORWARD = -11,
+        GIT_EINVALIDSPEC = -12,
+        GIT_ECONFLICT = -13,
+        GIT_ELOCKED = -14,
+        GIT_EMODIFIED = -15,
+        GIT_EAUTH = -16,
+        GIT_ECERTIFICATE = -17,
+        GIT_EAPPLIED = -18,
+        GIT_EPEEL = -19,
+        GIT_EEOF = -20,
+        GIT_EINVALID = -21,
+        GIT_EUNCOMMITTED = -22,
+        GIT_EDIRECTORY = -23,
+        GIT_PASSTHROUGH = -30,
+        GIT_ITEROVER = -31,
+    }
 }
-pub use git_repository_state_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_direction {
-    GIT_DIRECTION_FETCH = 0,
-    GIT_DIRECTION_PUSH = 1,
+git_enum! {
+    pub enum git_error_t {
+        GITERR_NONE = 0,
+        GITERR_NOMEMORY,
+        GITERR_OS,
+        GITERR_INVALID,
+        GITERR_REFERENCE,
+        GITERR_ZLIB,
+        GITERR_REPOSITORY,
+        GITERR_CONFIG,
+        GITERR_REGEX,
+        GITERR_ODB,
+        GITERR_INDEX,
+        GITERR_OBJECT,
+        GITERR_NET,
+        GITERR_TAG,
+        GITERR_TREE,
+        GITERR_INDEXER,
+        GITERR_SSL,
+        GITERR_SUBMODULE,
+        GITERR_THREAD,
+        GITERR_STASH,
+        GITERR_CHECKOUT,
+        GITERR_FETCHHEAD,
+        GITERR_MERGE,
+        GITERR_SSH,
+        GITERR_FILTER,
+        GITERR_REVERT,
+        GITERR_CALLBACK,
+        GITERR_CHERRYPICK,
+        GITERR_DESCRIBE,
+        GITERR_REBASE,
+        GITERR_FILESYSTEM,
+    }
 }
-pub use git_direction::*;
+
+git_enum! {
+    pub enum git_repository_state_t {
+        GIT_REPOSITORY_STATE_NONE,
+        GIT_REPOSITORY_STATE_MERGE,
+        GIT_REPOSITORY_STATE_REVERT,
+        GIT_REPOSITORY_STATE_CHERRYPICK,
+        GIT_REPOSITORY_STATE_BISECT,
+        GIT_REPOSITORY_STATE_REBASE,
+        GIT_REPOSITORY_STATE_REBASE_INTERACTIVE,
+        GIT_REPOSITORY_STATE_REBASE_MERGE,
+        GIT_REPOSITORY_STATE_APPLY_MAILBOX,
+        GIT_REPOSITORY_STATE_APPLY_MAILBOX_OR_REBASE,
+    }
+}
+
+git_enum! {
+    pub enum git_direction {
+        GIT_DIRECTION_FETCH,
+        GIT_DIRECTION_PUSH,
+    }
+}
 
 #[repr(C)]
 pub struct git_clone_options {
@@ -223,15 +242,14 @@ pub struct git_clone_options {
     pub remote_cb_payload: *mut c_void,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_clone_local_t {
-    GIT_CLONE_LOCAL_AUTO,
-    GIT_CLONE_LOCAL,
-    GIT_CLONE_NO_LOCAL,
-    GIT_CLONE_LOCAL_NO_LINKS,
+git_enum! {
+    pub enum git_clone_local_t {
+        GIT_CLONE_LOCAL_AUTO,
+        GIT_CLONE_LOCAL,
+        GIT_CLONE_NO_LOCAL,
+        GIT_CLONE_LOCAL_NO_LINKS,
+    }
 }
-pub use git_clone_local_t::*;
 
 #[repr(C)]
 pub struct git_checkout_options {
@@ -311,31 +329,30 @@ pub struct git_fetch_options {
     pub custom_headers: git_strarray,
 }
 
-#[repr(C)]
-pub enum git_remote_autotag_option_t {
-    GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED = 0,
-    GIT_REMOTE_DOWNLOAD_TAGS_AUTO,
-    GIT_REMOTE_DOWNLOAD_TAGS_NONE,
-    GIT_REMOTE_DOWNLOAD_TAGS_ALL,
+git_enum! {
+    pub enum git_remote_autotag_option_t {
+        GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED,
+        GIT_REMOTE_DOWNLOAD_TAGS_AUTO,
+        GIT_REMOTE_DOWNLOAD_TAGS_NONE,
+        GIT_REMOTE_DOWNLOAD_TAGS_ALL,
+    }
 }
-pub use git_remote_autotag_option_t::*;
 
-#[repr(C)]
-pub enum git_fetch_prune_t {
-    GIT_FETCH_PRUNE_UNSPECIFIED,
-    GIT_FETCH_PRUNE,
-    GIT_FETCH_NO_PRUNE,
+git_enum! {
+    pub enum git_fetch_prune_t {
+        GIT_FETCH_PRUNE_UNSPECIFIED,
+        GIT_FETCH_PRUNE,
+        GIT_FETCH_NO_PRUNE,
+    }
 }
-pub use git_fetch_prune_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_remote_completion_type {
-    GIT_REMOTE_COMPLETION_DOWNLOAD,
-    GIT_REMOTE_COMPLETION_INDEXING,
-    GIT_REMOTE_COMPLETION_ERROR,
+git_enum! {
+    pub enum git_remote_completion_type {
+        GIT_REMOTE_COMPLETION_DOWNLOAD,
+        GIT_REMOTE_COMPLETION_INDEXING,
+        GIT_REMOTE_COMPLETION_ERROR,
+    }
 }
-pub use git_remote_completion_type::*;
 
 pub type git_transport_message_cb = extern fn(*const c_char, c_int,
                                               *mut c_void) -> c_int;
@@ -364,13 +381,13 @@ pub struct git_push_update {
     pub dst: git_oid,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, PartialEq)]
-pub enum git_cert_t {
-    GIT_CERT_X509,
-    GIT_CERT_HOSTKEY_LIBSSH2,
+git_enum! {
+    pub enum git_cert_t {
+        GIT_CERT_NONE,
+        GIT_CERT_X509,
+        GIT_CERT_HOSTKEY_LIBSSH2,
+    }
 }
-pub use git_cert_t::*;
 
 #[repr(C)]
 pub struct git_cert {
@@ -392,13 +409,12 @@ pub struct git_cert_x509 {
     pub len: size_t,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_cert_ssh_t {
-    GIT_CERT_SSH_MD5 = 1 << 0,
-    GIT_CERT_SSH_SHA1 = 1 << 1,
+git_enum! {
+    pub enum git_cert_ssh_t {
+        GIT_CERT_SSH_MD5 = 1 << 0,
+        GIT_CERT_SSH_SHA1 = 1 << 1,
+    }
 }
-pub use git_cert_ssh_t::*;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -430,90 +446,86 @@ pub type git_remote_create_cb = extern fn(*mut *mut git_remote,
                                           *const c_char,
                                           *mut c_void) -> c_int;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_checkout_notify_t {
-    GIT_CHECKOUT_NOTIFY_NONE = 0,
-    GIT_CHECKOUT_NOTIFY_CONFLICT = (1 << 0),
-    GIT_CHECKOUT_NOTIFY_DIRTY = (1 << 1),
-    GIT_CHECKOUT_NOTIFY_UPDATED = (1 << 2),
-    GIT_CHECKOUT_NOTIFY_UNTRACKED = (1 << 3),
-    GIT_CHECKOUT_NOTIFY_IGNORED = (1 << 4),
+git_enum! {
+    pub enum git_checkout_notify_t {
+        GIT_CHECKOUT_NOTIFY_NONE = 0,
+        GIT_CHECKOUT_NOTIFY_CONFLICT = (1 << 0),
+        GIT_CHECKOUT_NOTIFY_DIRTY = (1 << 1),
+        GIT_CHECKOUT_NOTIFY_UPDATED = (1 << 2),
+        GIT_CHECKOUT_NOTIFY_UNTRACKED = (1 << 3),
+        GIT_CHECKOUT_NOTIFY_IGNORED = (1 << 4),
 
-    GIT_CHECKOUT_NOTIFY_ALL = 0x0FFFF,
-}
-pub use git_checkout_notify_t::*;
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_status_t {
-    GIT_STATUS_CURRENT = 0,
-
-    GIT_STATUS_INDEX_NEW = (1 << 0),
-    GIT_STATUS_INDEX_MODIFIED = (1 << 1),
-    GIT_STATUS_INDEX_DELETED = (1 << 2),
-    GIT_STATUS_INDEX_RENAMED = (1 << 3),
-    GIT_STATUS_INDEX_TYPECHANGE = (1 << 4),
-
-    GIT_STATUS_WT_NEW = (1 << 7),
-    GIT_STATUS_WT_MODIFIED = (1 << 8),
-    GIT_STATUS_WT_DELETED = (1 << 9),
-    GIT_STATUS_WT_TYPECHANGE = (1 << 10),
-    GIT_STATUS_WT_RENAMED = (1 << 11),
-    GIT_STATUS_WT_UNREADABLE = (1 << 12),
-
-    GIT_STATUS_IGNORED = (1 << 14),
-    GIT_STATUS_CONFLICTED = (1 << 15),
-}
-pub use git_status_t::*;
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_status_opt_t {
-    GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
-    GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
-    GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = (1 << 2),
-    GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = (1 << 3),
-    GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = (1 << 4),
-    GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = (1 << 5),
-    GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = (1 << 6),
-    GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = (1 << 7),
-    GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = (1 << 8),
-    GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = (1 << 9),
-    GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = (1 << 10),
-
-    GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = (1 << 11),
-    GIT_STATUS_OPT_NO_REFRESH                       = (1 << 12),
-    GIT_STATUS_OPT_UPDATE_INDEX                     = (1 << 13),
-    GIT_STATUS_OPT_INCLUDE_UNREADABLE               = (1 << 14),
-    GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = (1 << 15),
-}
-pub use git_status_opt_t::*;
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_status_show_t {
-    GIT_STATUS_SHOW_INDEX_AND_WORKDIR = 0,
-    GIT_STATUS_SHOW_INDEX_ONLY = 1,
-    GIT_STATUS_SHOW_WORKDIR_ONLY = 2
+        GIT_CHECKOUT_NOTIFY_ALL = 0x0FFFF,
+    }
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_delta_t {
-    GIT_DELTA_UNMODIFIED = 0,
-    GIT_DELTA_ADDED = 1,
-    GIT_DELTA_DELETED = 2,
-    GIT_DELTA_MODIFIED = 3,
-    GIT_DELTA_RENAMED = 4,
-    GIT_DELTA_COPIED = 5,
-    GIT_DELTA_IGNORED = 6,
-    GIT_DELTA_UNTRACKED = 7,
-    GIT_DELTA_TYPECHANGE = 8,
-    GIT_DELTA_UNREADABLE = 9,
-    GIT_DELTA_CONFLICTED = 10,
+git_enum! {
+    pub enum git_status_t {
+        GIT_STATUS_CURRENT = 0,
+
+        GIT_STATUS_INDEX_NEW = (1 << 0),
+        GIT_STATUS_INDEX_MODIFIED = (1 << 1),
+        GIT_STATUS_INDEX_DELETED = (1 << 2),
+        GIT_STATUS_INDEX_RENAMED = (1 << 3),
+        GIT_STATUS_INDEX_TYPECHANGE = (1 << 4),
+
+        GIT_STATUS_WT_NEW = (1 << 7),
+        GIT_STATUS_WT_MODIFIED = (1 << 8),
+        GIT_STATUS_WT_DELETED = (1 << 9),
+        GIT_STATUS_WT_TYPECHANGE = (1 << 10),
+        GIT_STATUS_WT_RENAMED = (1 << 11),
+        GIT_STATUS_WT_UNREADABLE = (1 << 12),
+
+        GIT_STATUS_IGNORED = (1 << 14),
+        GIT_STATUS_CONFLICTED = (1 << 15),
+    }
 }
-pub use git_delta_t::*;
+
+git_enum! {
+    pub enum git_status_opt_t {
+        GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
+        GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
+        GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = (1 << 2),
+        GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = (1 << 3),
+        GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = (1 << 4),
+        GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = (1 << 5),
+        GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = (1 << 6),
+        GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = (1 << 7),
+        GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = (1 << 8),
+        GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = (1 << 9),
+        GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = (1 << 10),
+
+        GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = (1 << 11),
+        GIT_STATUS_OPT_NO_REFRESH                       = (1 << 12),
+        GIT_STATUS_OPT_UPDATE_INDEX                     = (1 << 13),
+        GIT_STATUS_OPT_INCLUDE_UNREADABLE               = (1 << 14),
+        GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = (1 << 15),
+    }
+}
+
+git_enum! {
+    pub enum git_status_show_t {
+        GIT_STATUS_SHOW_INDEX_AND_WORKDIR = 0,
+        GIT_STATUS_SHOW_INDEX_ONLY = 1,
+        GIT_STATUS_SHOW_WORKDIR_ONLY = 2,
+    }
+}
+
+git_enum! {
+    pub enum git_delta_t {
+        GIT_DELTA_UNMODIFIED,
+        GIT_DELTA_ADDED,
+        GIT_DELTA_DELETED,
+        GIT_DELTA_MODIFIED,
+        GIT_DELTA_RENAMED,
+        GIT_DELTA_COPIED,
+        GIT_DELTA_IGNORED,
+        GIT_DELTA_UNTRACKED,
+        GIT_DELTA_TYPECHANGE,
+        GIT_DELTA_UNREADABLE,
+        GIT_DELTA_CONFLICTED,
+    }
+}
 
 #[repr(C)]
 pub struct git_status_options {
@@ -541,82 +553,80 @@ pub struct git_status_entry {
     pub index_to_workdir: *mut git_diff_delta
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_checkout_strategy_t {
-    GIT_CHECKOUT_NONE = 0,
-    GIT_CHECKOUT_SAFE = (1 << 0),
-    GIT_CHECKOUT_FORCE = (1 << 1),
-    GIT_CHECKOUT_ALLOW_CONFLICTS = (1 << 4),
-    GIT_CHECKOUT_REMOVE_UNTRACKED = (1 << 5),
-    GIT_CHECKOUT_REMOVE_IGNORED = (1 << 6),
-    GIT_CHECKOUT_UPDATE_ONLY = (1 << 7),
-    GIT_CHECKOUT_DONT_UPDATE_INDEX = (1 << 8),
-    GIT_CHECKOUT_NO_REFRESH = (1 << 9),
-    GIT_CHECKOUT_SKIP_UNMERGED = (1 << 10),
-    GIT_CHECKOUT_USE_OURS = (1 << 11),
-    GIT_CHECKOUT_USE_THEIRS = (1 << 12),
-    GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH = (1 << 13),
-    GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES = (1 << 18),
-    GIT_CHECKOUT_DONT_OVERWRITE_IGNORED = (1 << 19),
-    GIT_CHECKOUT_CONFLICT_STYLE_MERGE = (1 << 20),
-    GIT_CHECKOUT_CONFLICT_STYLE_DIFF3 = (1 << 21),
+git_enum! {
+    pub enum git_checkout_strategy_t {
+        GIT_CHECKOUT_NONE = 0,
+        GIT_CHECKOUT_SAFE = (1 << 0),
+        GIT_CHECKOUT_FORCE = (1 << 1),
+        GIT_CHECKOUT_ALLOW_CONFLICTS = (1 << 4),
+        GIT_CHECKOUT_REMOVE_UNTRACKED = (1 << 5),
+        GIT_CHECKOUT_REMOVE_IGNORED = (1 << 6),
+        GIT_CHECKOUT_UPDATE_ONLY = (1 << 7),
+        GIT_CHECKOUT_DONT_UPDATE_INDEX = (1 << 8),
+        GIT_CHECKOUT_NO_REFRESH = (1 << 9),
+        GIT_CHECKOUT_SKIP_UNMERGED = (1 << 10),
+        GIT_CHECKOUT_USE_OURS = (1 << 11),
+        GIT_CHECKOUT_USE_THEIRS = (1 << 12),
+        GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH = (1 << 13),
+        GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES = (1 << 18),
+        GIT_CHECKOUT_DONT_OVERWRITE_IGNORED = (1 << 19),
+        GIT_CHECKOUT_CONFLICT_STYLE_MERGE = (1 << 20),
+        GIT_CHECKOUT_CONFLICT_STYLE_DIFF3 = (1 << 21),
 
-    GIT_CHECKOUT_UPDATE_SUBMODULES = (1 << 16),
-    GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED = (1 << 17),
+        GIT_CHECKOUT_UPDATE_SUBMODULES = (1 << 16),
+        GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED = (1 << 17),
+    }
 }
-pub use git_checkout_strategy_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_reset_t {
-    GIT_RESET_SOFT = 1,
-    GIT_RESET_MIXED = 2,
-    GIT_RESET_HARD = 3,
+git_enum! {
+    pub enum git_reset_t {
+        GIT_RESET_SOFT = 1,
+        GIT_RESET_MIXED = 2,
+        GIT_RESET_HARD = 3,
+    }
 }
-pub use git_reset_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_otype {
-    GIT_OBJ_ANY = -2,
-    GIT_OBJ_BAD = -1,
-    GIT_OBJ__EXT1 = 0,
-    GIT_OBJ_COMMIT = 1,
-    GIT_OBJ_TREE = 2,
-    GIT_OBJ_BLOB = 3,
-    GIT_OBJ_TAG = 4,
-    GIT_OBJ__EXT2 = 5,
-    GIT_OBJ_OFS_DELTA = 6,
-    GIT_OBJ_REF_DELTA = 7,
+git_enum! {
+    pub enum git_otype: c_int {
+        GIT_OBJ_ANY = -2,
+        GIT_OBJ_BAD = -1,
+        GIT_OBJ__EXT1 = 0,
+        GIT_OBJ_COMMIT = 1,
+        GIT_OBJ_TREE = 2,
+        GIT_OBJ_BLOB = 3,
+        GIT_OBJ_TAG = 4,
+        GIT_OBJ__EXT2 = 5,
+        GIT_OBJ_OFS_DELTA = 6,
+        GIT_OBJ_REF_DELTA = 7,
+    }
 }
-pub use git_otype::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_ref_t {
-    GIT_REF_INVALID = 0,
-    GIT_REF_OID = 1,
-    GIT_REF_SYMBOLIC = 2,
-    GIT_REF_LISTALL = GIT_REF_OID as isize | GIT_REF_SYMBOLIC as isize,
+git_enum! {
+    pub enum git_ref_t {
+        GIT_REF_INVALID = 0,
+        GIT_REF_OID = 1,
+        GIT_REF_SYMBOLIC = 2,
+        GIT_REF_LISTALL = GIT_REF_OID | GIT_REF_SYMBOLIC,
+    }
 }
-pub use git_ref_t::*;
 
-pub type git_filemode_t = __enum_ty;
-pub const GIT_FILEMODE_UNREADABLE: git_filemode_t = 0o000000;
-pub const GIT_FILEMODE_TREE: git_filemode_t = 0o040000;
-pub const GIT_FILEMODE_BLOB: git_filemode_t = 0o100644;
-pub const GIT_FILEMODE_BLOB_EXECUTABLE: git_filemode_t = 0o100755;
-pub const GIT_FILEMODE_LINK: git_filemode_t = 0o120000;
-pub const GIT_FILEMODE_COMMIT: git_filemode_t = 0o160000;
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_treewalk_mode {
-    GIT_TREEWALK_PRE = 0,
-    GIT_TREEWALK_POST = 1,
+git_enum! {
+    pub enum git_filemode_t {
+        GIT_FILEMODE_UNREADABLE = 0o000000,
+        GIT_FILEMODE_TREE = 0o040000,
+        GIT_FILEMODE_BLOB = 0o100644,
+        GIT_FILEMODE_BLOB_EXECUTABLE = 0o100755,
+        GIT_FILEMODE_LINK = 0o120000,
+        GIT_FILEMODE_COMMIT = 0o160000,
+    }
 }
-pub use git_treewalk_mode::*;
+
+git_enum! {
+    pub enum git_treewalk_mode {
+        GIT_TREEWALK_PRE = 0,
+        GIT_TREEWALK_POST = 1,
+    }
+}
 
 pub type git_treewalk_cb = extern fn(*const c_char, *const git_tree_entry,
                                      *mut c_void) -> c_int;
@@ -631,14 +641,13 @@ pub struct git_buf {
     pub size: size_t,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_branch_t {
-    GIT_BRANCH_LOCAL = 1,
-    GIT_BRANCH_REMOTE = 2,
-    GIT_BRANCH_ALL = GIT_BRANCH_LOCAL as isize | GIT_BRANCH_REMOTE as isize,
+git_enum! {
+    pub enum git_branch_t {
+        GIT_BRANCH_LOCAL = 1,
+        GIT_BRANCH_REMOTE = 2,
+        GIT_BRANCH_ALL = GIT_BRANCH_LOCAL | GIT_BRANCH_REMOTE,
+    }
 }
-pub use git_branch_t::*;
 
 pub const GIT_BLAME_NORMAL: u32 = 0;
 pub const GIT_BLAME_TRACK_COPIES_SAME_FILE: u32 = 1<<0;
@@ -710,41 +719,37 @@ pub struct git_config_entry {
     pub payload: *mut c_void,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_config_level_t {
-    GIT_CONFIG_LEVEL_SYSTEM = 1,
-    GIT_CONFIG_LEVEL_XDG = 2,
-    GIT_CONFIG_LEVEL_GLOBAL = 3,
-    GIT_CONFIG_LEVEL_LOCAL = 4,
-    GIT_CONFIG_LEVEL_APP = 5,
-    GIT_CONFIG_HIGHEST_LEVEL = -1,
+git_enum! {
+    pub enum git_config_level_t: c_int {
+        GIT_CONFIG_LEVEL_SYSTEM = 1,
+        GIT_CONFIG_LEVEL_XDG = 2,
+        GIT_CONFIG_LEVEL_GLOBAL = 3,
+        GIT_CONFIG_LEVEL_LOCAL = 4,
+        GIT_CONFIG_LEVEL_APP = 5,
+        GIT_CONFIG_HIGHEST_LEVEL = -1,
+    }
 }
-pub use git_config_level_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_submodule_update_t {
-    GIT_SUBMODULE_UPDATE_RESET    = -1,
-    GIT_SUBMODULE_UPDATE_CHECKOUT = 1,
-    GIT_SUBMODULE_UPDATE_REBASE   = 2,
-    GIT_SUBMODULE_UPDATE_MERGE    = 3,
-    GIT_SUBMODULE_UPDATE_NONE     = 4,
-    GIT_SUBMODULE_UPDATE_DEFAULT  = 0
+git_enum! {
+    pub enum git_submodule_update_t {
+        GIT_SUBMODULE_UPDATE_CHECKOUT = 1,
+        GIT_SUBMODULE_UPDATE_REBASE   = 2,
+        GIT_SUBMODULE_UPDATE_MERGE    = 3,
+        GIT_SUBMODULE_UPDATE_NONE     = 4,
+        GIT_SUBMODULE_UPDATE_DEFAULT  = 0,
+    }
 }
-pub use git_submodule_update_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_submodule_ignore_t {
-    GIT_SUBMODULE_IGNORE_UNSPECIFIED = -1,
+git_enum! {
+    pub enum git_submodule_ignore_t: c_int {
+        GIT_SUBMODULE_IGNORE_UNSPECIFIED = -1,
 
-    GIT_SUBMODULE_IGNORE_NONE      = 1,
-    GIT_SUBMODULE_IGNORE_UNTRACKED = 2,
-    GIT_SUBMODULE_IGNORE_DIRTY     = 3,
-    GIT_SUBMODULE_IGNORE_ALL       = 4,
+        GIT_SUBMODULE_IGNORE_NONE      = 1,
+        GIT_SUBMODULE_IGNORE_UNTRACKED = 2,
+        GIT_SUBMODULE_IGNORE_DIRTY     = 3,
+        GIT_SUBMODULE_IGNORE_ALL       = 4,
+    }
 }
-pub use git_submodule_ignore_t::*;
 
 #[repr(C)]
 pub struct git_cred {
@@ -752,18 +757,17 @@ pub struct git_cred {
     pub free: extern fn(*mut git_cred),
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_credtype_t {
-    GIT_CREDTYPE_USERPASS_PLAINTEXT = 1 << 0,
-    GIT_CREDTYPE_SSH_KEY = 1 << 1,
-    GIT_CREDTYPE_SSH_CUSTOM = 1 << 2,
-    GIT_CREDTYPE_DEFAULT = 1 << 3,
-    GIT_CREDTYPE_SSH_INTERACTIVE = 1 << 4,
-    GIT_CREDTYPE_USERNAME = 1 << 5,
-    GIT_CREDTYPE_SSH_MEMORY = 1 << 6,
+git_enum! {
+    pub enum git_credtype_t {
+        GIT_CREDTYPE_USERPASS_PLAINTEXT = 1 << 0,
+        GIT_CREDTYPE_SSH_KEY = 1 << 1,
+        GIT_CREDTYPE_SSH_CUSTOM = 1 << 2,
+        GIT_CREDTYPE_DEFAULT = 1 << 3,
+        GIT_CREDTYPE_SSH_INTERACTIVE = 1 << 4,
+        GIT_CREDTYPE_USERNAME = 1 << 5,
+        GIT_CREDTYPE_SSH_MEMORY = 1 << 6,
+    }
 }
-pub use git_credtype_t::*;
 
 pub type git_cred_ssh_interactive_callback = extern fn(
     name: *const c_char,
@@ -801,15 +805,14 @@ pub type git_tag_foreach_cb = extern fn(name: *const c_char,
                                         oid: *mut git_oid,
                                         payload: *mut c_void) -> c_int;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_index_add_option_t {
-    GIT_INDEX_ADD_DEFAULT = 0,
-    GIT_INDEX_ADD_FORCE = 1 << 0,
-    GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH = 1 << 1,
-    GIT_INDEX_ADD_CHECK_PATHSPEC = 1 << 2,
+git_enum! {
+    pub enum git_index_add_option_t {
+        GIT_INDEX_ADD_DEFAULT = 0,
+        GIT_INDEX_ADD_FORCE = 1 << 0,
+        GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH = 1 << 1,
+        GIT_INDEX_ADD_CHECK_PATHSPEC = 1 << 2,
+    }
 }
-pub use git_index_add_option_t::*;
 
 #[repr(C)]
 pub struct git_repository_init_options {
@@ -825,51 +828,52 @@ pub struct git_repository_init_options {
 
 pub const GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_repository_init_flag_t {
-    GIT_REPOSITORY_INIT_BARE              = (1 << 0),
-    GIT_REPOSITORY_INIT_NO_REINIT         = (1 << 1),
-    GIT_REPOSITORY_INIT_NO_DOTGIT_DIR     = (1 << 2),
-    GIT_REPOSITORY_INIT_MKDIR             = (1 << 3),
-    GIT_REPOSITORY_INIT_MKPATH            = (1 << 4),
-    GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = (1 << 5),
+git_enum! {
+    pub enum git_repository_init_flag_t {
+        GIT_REPOSITORY_INIT_BARE              = (1 << 0),
+        GIT_REPOSITORY_INIT_NO_REINIT         = (1 << 1),
+        GIT_REPOSITORY_INIT_NO_DOTGIT_DIR     = (1 << 2),
+        GIT_REPOSITORY_INIT_MKDIR             = (1 << 3),
+        GIT_REPOSITORY_INIT_MKPATH            = (1 << 4),
+        GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = (1 << 5),
+    }
 }
-pub use git_repository_init_flag_t::*;
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum git_repository_init_mode_t {
-    GIT_REPOSITORY_INIT_SHARED_UMASK = 0,
-    GIT_REPOSITORY_INIT_SHARED_GROUP = 0o002775,
-    GIT_REPOSITORY_INIT_SHARED_ALL   = 0o002777,
+git_enum! {
+    pub enum git_repository_init_mode_t {
+        GIT_REPOSITORY_INIT_SHARED_UMASK = 0,
+        GIT_REPOSITORY_INIT_SHARED_GROUP = 0o002775,
+        GIT_REPOSITORY_INIT_SHARED_ALL   = 0o002777,
+    }
 }
-pub use git_repository_init_mode_t::*;
 
-#[repr(C)]
-pub enum git_sort {
-    GIT_SORT_NONE        = 0,
-    GIT_SORT_TOPOLOGICAL = (1 << 0),
-    GIT_SORT_TIME        = (1 << 1),
-    GIT_SORT_REVERSE     = (1 << 2),
+git_enum! {
+    pub enum git_sort_t {
+        GIT_SORT_NONE        = 0,
+        GIT_SORT_TOPOLOGICAL = (1 << 0),
+        GIT_SORT_TIME        = (1 << 1),
+        GIT_SORT_REVERSE     = (1 << 2),
+    }
 }
-pub use git_sort::*;
 
-pub type git_submodule_status_t = __enum_ty;
-pub const GIT_SUBMODULE_STATUS_IN_HEAD: c_uint = 1 << 0;
-pub const GIT_SUBMODULE_STATUS_IN_INDEX: c_uint = 1 << 1;
-pub const GIT_SUBMODULE_STATUS_IN_CONFIG: c_uint = 1 << 2;
-pub const GIT_SUBMODULE_STATUS_IN_WD: c_uint = 1 << 3;
-pub const GIT_SUBMODULE_STATUS_INDEX_ADDED: c_uint = 1 << 4;
-pub const GIT_SUBMODULE_STATUS_INDEX_DELETED: c_uint = 1 << 5;
-pub const GIT_SUBMODULE_STATUS_INDEX_MODIFIED: c_uint = 1 << 6;
-pub const GIT_SUBMODULE_STATUS_WD_UNINITIALIZED: c_uint = 1 << 7;
-pub const GIT_SUBMODULE_STATUS_WD_ADDED: c_uint = 1 << 8;
-pub const GIT_SUBMODULE_STATUS_WD_DELETED: c_uint = 1 << 9;
-pub const GIT_SUBMODULE_STATUS_WD_MODIFIED: c_uint = 1 << 10;
-pub const GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED: c_uint = 1 << 11;
-pub const GIT_SUBMODULE_STATUS_WD_WD_MODIFIED: c_uint = 1 << 12;
-pub const GIT_SUBMODULE_STATUS_WD_UNTRACKED: c_uint = 1 << 13;
+git_enum! {
+    pub enum git_submodule_status_t {
+        GIT_SUBMODULE_STATUS_IN_HEAD = 1 << 0,
+        GIT_SUBMODULE_STATUS_IN_INDEX = 1 << 1,
+        GIT_SUBMODULE_STATUS_IN_CONFIG = 1 << 2,
+        GIT_SUBMODULE_STATUS_IN_WD = 1 << 3,
+        GIT_SUBMODULE_STATUS_INDEX_ADDED = 1 << 4,
+        GIT_SUBMODULE_STATUS_INDEX_DELETED = 1 << 5,
+        GIT_SUBMODULE_STATUS_INDEX_MODIFIED = 1 << 6,
+        GIT_SUBMODULE_STATUS_WD_UNINITIALIZED = 1 << 7,
+        GIT_SUBMODULE_STATUS_WD_ADDED = 1 << 8,
+        GIT_SUBMODULE_STATUS_WD_DELETED = 1 << 9,
+        GIT_SUBMODULE_STATUS_WD_MODIFIED = 1 << 10,
+        GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED = 1 << 11,
+        GIT_SUBMODULE_STATUS_WD_WD_MODIFIED = 1 << 12,
+        GIT_SUBMODULE_STATUS_WD_UNTRACKED = 1 << 13,
+    }
+}
 
 #[repr(C)]
 pub struct git_remote_head {
@@ -880,14 +884,17 @@ pub struct git_remote_head {
     pub symref_target: *mut c_char,
 }
 
-pub type git_pathspec_flag_t = __enum_ty;
-pub const GIT_PATHSPEC_DEFAULT: u32 = 0;
-pub const GIT_PATHSPEC_IGNORE_CASE: u32 = 1 << 0;
-pub const GIT_PATHSPEC_USE_CASE: u32 = 1 << 1;
-pub const GIT_PATHSPEC_NO_GLOB: u32 = 1 << 2;
-pub const GIT_PATHSPEC_NO_MATCH_ERROR: u32 = 1 << 3;
-pub const GIT_PATHSPEC_FIND_FAILURES: u32 = 1 << 4;
-pub const GIT_PATHSPEC_FAILURES_ONLY: u32 = 1 << 5;
+git_enum! {
+    pub enum git_pathspec_flag_t {
+        GIT_PATHSPEC_DEFAULT = 0,
+        GIT_PATHSPEC_IGNORE_CASE = 1 << 0,
+        GIT_PATHSPEC_USE_CASE = 1 << 1,
+        GIT_PATHSPEC_NO_GLOB = 1 << 2,
+        GIT_PATHSPEC_NO_MATCH_ERROR = 1 << 3,
+        GIT_PATHSPEC_FIND_FAILURES = 1 << 4,
+        GIT_PATHSPEC_FAILURES_ONLY = 1 << 5,
+    }
+}
 
 pub type git_diff_file_cb = extern fn(*const git_diff_delta, f32, *mut c_void)
                                       -> c_int;
@@ -950,22 +957,25 @@ pub struct git_diff_options {
     pub new_prefix: *const c_char,
 }
 
-#[repr(C)]
-pub enum git_diff_format_t {
-    GIT_DIFF_FORMAT_PATCH = 1,
-    GIT_DIFF_FORMAT_PATCH_HEADER = 2,
-    GIT_DIFF_FORMAT_RAW = 3,
-    GIT_DIFF_FORMAT_NAME_ONLY = 4,
-    GIT_DIFF_FORMAT_NAME_STATUS = 5,
+git_enum! {
+    pub enum git_diff_format_t {
+        GIT_DIFF_FORMAT_PATCH = 1,
+        GIT_DIFF_FORMAT_PATCH_HEADER = 2,
+        GIT_DIFF_FORMAT_RAW = 3,
+        GIT_DIFF_FORMAT_NAME_ONLY = 4,
+        GIT_DIFF_FORMAT_NAME_STATUS = 5,
+    }
 }
-pub use git_diff_format_t::*;
 
-pub type git_diff_stats_format_t = __enum_ty;
-pub const GIT_DIFF_STATS_NONE: git_diff_stats_format_t = 0;
-pub const GIT_DIFF_STATS_FULL: git_diff_stats_format_t = 1 << 0;
-pub const GIT_DIFF_STATS_SHORT: git_diff_stats_format_t = 1 << 1;
-pub const GIT_DIFF_STATS_NUMBER: git_diff_stats_format_t = 1 << 2;
-pub const GIT_DIFF_STATS_INCLUDE_SUMMARY: git_diff_stats_format_t = 1 << 3;
+git_enum! {
+    pub enum git_diff_stats_format_t {
+        GIT_DIFF_STATS_NONE = 0,
+        GIT_DIFF_STATS_FULL = 1 << 0,
+        GIT_DIFF_STATS_SHORT = 1 << 1,
+        GIT_DIFF_STATS_NUMBER = 1 << 2,
+        GIT_DIFF_STATS_INCLUDE_SUMMARY = 1 << 3,
+    }
+}
 
 pub type git_diff_notify_cb = extern fn(*const git_diff,
                                         *const git_diff_delta,
@@ -1064,13 +1074,13 @@ pub struct git_diff_binary_file {
     pub inflatedlen: size_t,
 }
 
-#[repr(C)]
-pub enum git_diff_binary_t {
-    GIT_DIFF_BINARY_NONE,
-    GIT_DIFF_BINARY_LITERAL,
-    GIT_DIFF_BINARY_DELTA,
+git_enum! {
+    pub enum git_diff_binary_t {
+        GIT_DIFF_BINARY_NONE,
+        GIT_DIFF_BINARY_LITERAL,
+        GIT_DIFF_BINARY_DELTA,
+    }
 }
-pub use git_diff_binary_t::*;
 
 #[repr(C)]
 pub struct git_merge_options {
@@ -1083,17 +1093,20 @@ pub struct git_merge_options {
     pub file_flags: c_uint,
 }
 
-pub type git_merge_tree_flag_t = __enum_ty;
-pub const GIT_MERGE_TREE_FIND_RENAMES: git_merge_tree_flag_t = 1 << 0;
-
-#[repr(C)]
-pub enum git_merge_file_favor_t {
-    GIT_MERGE_FILE_FAVOR_NORMAL = 0,
-    GIT_MERGE_FILE_FAVOR_OURS = 1,
-    GIT_MERGE_FILE_FAVOR_THEIRS = 2,
-    GIT_MERGE_FILE_FAVOR_UNION = 3,
+git_enum! {
+    pub enum git_merge_tree_flag_t {
+        GIT_MERGE_TREE_FIND_RENAMES = 1 << 0,
+    }
 }
-pub use git_merge_file_favor_t::*;
+
+git_enum! {
+    pub enum git_merge_file_favor_t {
+        GIT_MERGE_FILE_FAVOR_NORMAL = 0,
+        GIT_MERGE_FILE_FAVOR_OURS = 1,
+        GIT_MERGE_FILE_FAVOR_THEIRS = 2,
+        GIT_MERGE_FILE_FAVOR_UNION = 3,
+    }
+}
 
 // used in git_merge_options.file_flags
 pub const GIT_MERGE_FILE_DEFAULT: u32 = 0;
@@ -1147,14 +1160,14 @@ pub struct git_transport {
     pub free: extern fn(*mut git_transport),
 }
 
-#[repr(C)]
-pub enum git_smart_service_t {
-    GIT_SERVICE_UPLOADPACK_LS = 1,
-    GIT_SERVICE_UPLOADPACK = 2,
-    GIT_SERVICE_RECEIVEPACK_LS = 3,
-    GIT_SERVICE_RECEIVEPACK = 4,
+git_enum! {
+    pub enum git_smart_service_t {
+        GIT_SERVICE_UPLOADPACK_LS = 1,
+        GIT_SERVICE_UPLOADPACK = 2,
+        GIT_SERVICE_RECEIVEPACK_LS = 3,
+        GIT_SERVICE_RECEIVEPACK = 4,
+    }
 }
-pub use git_smart_service_t::*;
 
 #[repr(C)]
 pub struct git_smart_subtransport_stream {
@@ -1200,13 +1213,13 @@ pub struct git_describe_options {
     pub show_commit_oid_as_fallback: c_int,
 }
 
-#[repr(C)]
-pub enum git_describe_strategy_t {
-    GIT_DESCRIBE_DEFAULT,
-    GIT_DESCRIBE_TAGS,
-    GIT_DESCRIBE_ALL,
+git_enum! {
+    pub enum git_describe_strategy_t {
+        GIT_DESCRIBE_DEFAULT,
+        GIT_DESCRIBE_TAGS,
+        GIT_DESCRIBE_ALL,
+    }
 }
-pub use git_describe_strategy_t::*;
 
 #[repr(C)]
 pub struct git_describe_format_options {

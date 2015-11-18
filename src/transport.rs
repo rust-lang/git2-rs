@@ -233,6 +233,7 @@ wrap_env! {
                 raw::GIT_SERVICE_UPLOADPACK => Service::UploadPack,
                 raw::GIT_SERVICE_RECEIVEPACK_LS => Service::ReceivePackLs,
                 raw::GIT_SERVICE_RECEIVEPACK => Service::ReceivePack,
+                n => panic!("unknown action: {}", n),
             };
             let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
             let obj = match transport.obj.action(url, action) {

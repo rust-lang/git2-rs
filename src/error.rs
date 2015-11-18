@@ -71,6 +71,7 @@ impl Error {
             raw::GIT_EINVALID => super::ErrorCode::Invalid,
             raw::GIT_EUNCOMMITTED => super::ErrorCode::Uncommitted,
             raw::GIT_EDIRECTORY => super::ErrorCode::Directory,
+            _ => super::ErrorCode::GenericError,
         }
     }
 
@@ -108,6 +109,7 @@ impl Error {
             raw::GITERR_DESCRIBE => super::ErrorClass::Describe,
             raw::GITERR_REBASE => super::ErrorClass::Rebase,
             raw::GITERR_FILESYSTEM => super::ErrorClass::Filesystem,
+            _ => super::ErrorClass::None,
         }
     }
 
@@ -200,7 +202,7 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "[{}] ", self.klass));
+        try!(write!(f, "[{}/{}] ", self.klass, self.code));
         f.write_str(&self.message)
     }
 }

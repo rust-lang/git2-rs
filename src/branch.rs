@@ -124,7 +124,7 @@ impl<'repo> Iterator for Branches<'repo> {
             let typ = match typ {
                 raw::GIT_BRANCH_LOCAL => BranchType::Local,
                 raw::GIT_BRANCH_REMOTE => BranchType::Remote,
-                raw::GIT_BRANCH_ALL => panic!("unexected branch type"),
+                n => panic!("unexected branch type: {}", n),
             };
             Some((Branch::wrap(Binding::from_raw(ret)), typ))
         }

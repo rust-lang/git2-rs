@@ -511,15 +511,11 @@ impl ObjectType {
     pub fn from_raw(raw: raw::git_otype) -> Option<ObjectType> {
         match raw {
             raw::GIT_OBJ_ANY => Some(ObjectType::Any),
-            raw::GIT_OBJ_BAD => None,
-            raw::GIT_OBJ__EXT1 => None,
             raw::GIT_OBJ_COMMIT => Some(ObjectType::Commit),
             raw::GIT_OBJ_TREE => Some(ObjectType::Tree),
             raw::GIT_OBJ_BLOB => Some(ObjectType::Blob),
             raw::GIT_OBJ_TAG => Some(ObjectType::Tag),
-            raw::GIT_OBJ__EXT2 => None,
-            raw::GIT_OBJ_OFS_DELTA => None,
-            raw::GIT_OBJ_REF_DELTA => None,
+            _ => None,
         }
     }
 
@@ -551,6 +547,7 @@ impl ConfigLevel {
             raw::GIT_CONFIG_LEVEL_LOCAL => ConfigLevel::Local,
             raw::GIT_CONFIG_LEVEL_APP => ConfigLevel::App,
             raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
+            n => panic!("unknown config level: {}", n),
         }
     }
 }
