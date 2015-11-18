@@ -23,25 +23,25 @@ pkg-config = "0.3"
 cmake = "0.1.2"
 
 [target.i686-unknown-linux-gnu.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.x86_64-unknown-linux-gnu.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.x86_64-unknown-linux-musl.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.aarch64-unknown-linux-gnu.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.arm-unknown-linux-gnueabihf.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.i686-unknown-freebsd.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.x86_64-unknown-freebsd.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.x86_64-unknown-bitrig.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.x86_64-unknown-openbsd.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 [target.x86_64-unknown-dragonfly.dependencies]
-openssl-sys = "0.6.0"
+openssl-sys = "0.7.0"
 
 [features]
 ssh = ["libssh2-sys"]
