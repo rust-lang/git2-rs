@@ -14,9 +14,9 @@ name = "libgit2_sys"
 path = "lib.rs"
 
 [dependencies]
-libssh2-sys = { version = "0.1.28", optional = true }
+libssh2-sys = { version = ">= 0", optional = true }
 libc = "0.2"
-libz-sys = "0.1.0"
+libz-sys = ">= 0"
 
 [build-dependencies]
 pkg-config = "0.3"
