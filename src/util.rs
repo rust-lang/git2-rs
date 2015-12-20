@@ -6,7 +6,7 @@ use libc::{c_char, size_t};
 use {raw, Error};
 
 #[doc(hidden)]
-trait IsNull {
+pub trait IsNull {
     fn is_ptr_null(&self) -> bool;
 }
 impl<T> IsNull for *const T {

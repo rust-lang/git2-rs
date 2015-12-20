@@ -1,6 +1,5 @@
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
 #![allow(non_camel_case_types)]
-#![allow(raw_pointer_derive)]
 
 extern crate libc;
 #[cfg(feature = "ssh")]
@@ -20,12 +19,12 @@ pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
 
-#[cfg(target_env = "msvc")] type __enum_ty = i32;
-#[cfg(not(target_env = "msvc"))] type __enum_ty = u32;
-
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
-        pub type $name = __enum_ty;
+        #[cfg(target_env = "msvc")]
+        pub type $name = i32;
+        #[cfg(not(target_env = "msvc"))]
+        pub type $name = u32;
         git_enum!(gen, $name, 0, $($variants)*);
     };
     (pub enum $name:ident: $t:ty { $($variants:tt)* }) => {
@@ -919,16 +918,19 @@ pub struct git_diff_hunk {
     pub header: [c_char; 128],
 }
 
-pub type git_diff_line_t = __enum_ty;
-pub const GIT_DIFF_LINE_CONTEXT: c_char = ' ' as c_char;
-pub const GIT_DIFF_LINE_ADDITION: c_char = '+' as c_char;
-pub const GIT_DIFF_LINE_DELETION: c_char = '-' as c_char;
-pub const GIT_DIFF_LINE_CONTEXT_EOFNL: c_char = '=' as c_char;
-pub const GIT_DIFF_LINE_ADD_EOFNL: c_char = '>' as c_char;
-pub const GIT_DIFF_LINE_DEL_EOFNL: c_char = '<' as c_char;
-pub const GIT_DIFF_LINE_FILE_HDR: c_char = 'F' as c_char;
-pub const GIT_DIFF_LINE_HUNK_HDR: c_char = 'H' as c_char;
-pub const GIT_DIFF_LINE_BINARY: c_char = 'B' as c_char;
+git_enum! {
+    pub enum git_diff_line_t: c_char {
+        GIT_DIFF_LINE_CONTEXT = ' ' as c_char,
+        GIT_DIFF_LINE_ADDITION = '+' as c_char,
+        GIT_DIFF_LINE_DELETION = '-' as c_char,
+        GIT_DIFF_LINE_CONTEXT_EOFNL = '=' as c_char,
+        GIT_DIFF_LINE_ADD_EOFNL = '>' as c_char,
+        GIT_DIFF_LINE_DEL_EOFNL = '<' as c_char,
+        GIT_DIFF_LINE_FILE_HDR = 'F' as c_char,
+        GIT_DIFF_LINE_HUNK_HDR = 'H' as c_char,
+        GIT_DIFF_LINE_BINARY = 'B' as c_char,
+    }
+}
 
 #[repr(C)]
 pub struct git_diff_line {
