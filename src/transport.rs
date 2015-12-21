@@ -8,7 +8,7 @@ use std::slice;
 use std::str;
 use libc::{c_int, c_void, c_uint, c_char, size_t};
 
-use {raw, Error, Remote};
+use {raw, panic, Error, Remote};
 use util::Binding;
 
 /// A transport is a structure which knows how to transfer data to and from a
@@ -187,144 +187,127 @@ impl Drop for Transport {
 }
 
 // callback used by register() to create new transports
-wrap_env! {
-    fn transport_factory(out: *mut *mut raw::git_transport,
-                         owner: *mut raw::git_remote,
-                         param: *mut c_void) -> c_int {{
-        struct Bomb<'a> { remote: Option<Remote<'a>> }
-        impl<'a> Drop for Bomb<'a> {
-            fn drop(&mut self) {
-                // TODO: maybe a method instead?
-                mem::forget(self.remote.take());
-            }
+extern fn transport_factory(out: *mut *mut raw::git_transport,
+                            owner: *mut raw::git_remote,
+                            param: *mut c_void) -> c_int {
+    struct Bomb<'a> { remote: Option<Remote<'a>> }
+    impl<'a> Drop for Bomb<'a> {
+        fn drop(&mut self) {
+            // TODO: maybe a method instead?
+            mem::forget(self.remote.take());
         }
+    }
 
-        unsafe {
-            let remote = Bomb { remote: Some(Binding::from_raw(owner)) };
-            let data = &mut *(param as *mut TransportData);
-            match (data.factory)(remote.remote.as_ref().unwrap()) {
-                Ok(mut transport) => {
-                    *out = transport.raw;
-                    transport.owned = false;
-                    0
-                }
-                Err(e) => e.raw_code() as c_int,
+    panic::wrap(|| unsafe {
+        let remote = Bomb { remote: Some(Binding::from_raw(owner)) };
+        let data = &mut *(param as *mut TransportData);
+        match (data.factory)(remote.remote.as_ref().unwrap()) {
+            Ok(mut transport) => {
+                *out = transport.raw;
+                transport.owned = false;
+                0
             }
+            Err(e) => e.raw_code() as c_int,
         }
-    }}
-    returning ret as ret.unwrap_or(-1)
+    }).unwrap_or(-1)
 }
 
 // callback used by smart transports to delegate an action to a
 // `SmartSubtransport` trait object.
-wrap_env! {
-    fn subtransport_action(stream: *mut *mut raw::git_smart_subtransport_stream,
-                           raw_transport: *mut raw::git_smart_subtransport,
-                           url: *const c_char,
-                           action: raw::git_smart_service_t) -> c_int {
-        unsafe {
-            let url = CStr::from_ptr(url).to_bytes();
-            let url = match str::from_utf8(url).ok() {
-                Some(s) => s,
-                None => return -1,
-            };
-            let action = match action {
-                raw::GIT_SERVICE_UPLOADPACK_LS => Service::UploadPackLs,
-                raw::GIT_SERVICE_UPLOADPACK => Service::UploadPack,
-                raw::GIT_SERVICE_RECEIVEPACK_LS => Service::ReceivePackLs,
-                raw::GIT_SERVICE_RECEIVEPACK => Service::ReceivePack,
-                n => panic!("unknown action: {}", n),
-            };
-            let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
-            let obj = match transport.obj.action(url, action) {
-                Ok(s) => s,
-                Err(e) => return e.raw_code() as c_int,
-            };
-            *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
-                raw: raw::git_smart_subtransport_stream {
-                    subtransport: raw_transport,
-                    read: stream_read,
-                    write: stream_write,
-                    free: stream_free,
-                },
-                obj: obj,
-            }));
-            0
-        }
-    }
-    returning ret as ret.unwrap_or(-1)
+extern fn subtransport_action(stream: *mut *mut raw::git_smart_subtransport_stream,
+                              raw_transport: *mut raw::git_smart_subtransport,
+                              url: *const c_char,
+                              action: raw::git_smart_service_t) -> c_int {
+    panic::wrap(|| unsafe {
+        let url = CStr::from_ptr(url).to_bytes();
+        let url = match str::from_utf8(url).ok() {
+            Some(s) => s,
+            None => return -1,
+        };
+        let action = match action {
+            raw::GIT_SERVICE_UPLOADPACK_LS => Service::UploadPackLs,
+            raw::GIT_SERVICE_UPLOADPACK => Service::UploadPack,
+            raw::GIT_SERVICE_RECEIVEPACK_LS => Service::ReceivePackLs,
+            raw::GIT_SERVICE_RECEIVEPACK => Service::ReceivePack,
+            n => panic!("unknown action: {}", n),
+        };
+        let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
+        let obj = match transport.obj.action(url, action) {
+            Ok(s) => s,
+            Err(e) => return e.raw_code() as c_int,
+        };
+        *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
+            raw: raw::git_smart_subtransport_stream {
+                subtransport: raw_transport,
+                read: stream_read,
+                write: stream_write,
+                free: stream_free,
+            },
+            obj: obj,
+        }));
+        0
+    }).unwrap_or(-1)
 }
 
 // callback used by smart transports to close a `SmartSubtransport` trait
 // object.
-wrap_env! {
-    fn subtransport_close(transport: *mut raw::git_smart_subtransport) -> c_int {
-        unsafe {
-            let transport = &mut *(transport as *mut RawSmartSubtransport);
-            transport.obj.close()
-        }
-    }
-    returning ret as {
-        match ret {
-            Some(Ok(())) => 0,
-            Some(Err(e)) => e.raw_code() as c_int,
-            None => -1,
-        }
+extern fn subtransport_close(transport: *mut raw::git_smart_subtransport)
+                             -> c_int {
+    let ret = panic::wrap(|| unsafe {
+        let transport = &mut *(transport as *mut RawSmartSubtransport);
+        transport.obj.close()
+    });
+    match ret {
+        Some(Ok(())) => 0,
+        Some(Err(e)) => e.raw_code() as c_int,
+        None => -1,
     }
 }
 
 // callback used by smart transports to free a `SmartSubtransport` trait
 // object.
 extern fn subtransport_free(transport: *mut raw::git_smart_subtransport) {
-    unsafe {
+    let _ = panic::wrap(|| unsafe {
         mem::transmute::<_, Box<RawSmartSubtransport>>(transport);
-    }
+    });
 }
 
 // callback used by smart transports to read from a `SmartSubtransportStream`
 // object.
-wrap_env! {
-    fn stream_read(stream: *mut raw::git_smart_subtransport_stream,
-                   buffer: *mut c_char,
-                   buf_size: size_t,
-                   bytes_read: *mut size_t) -> c_int {
-        unsafe {
-            let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-            let buf = slice::from_raw_parts_mut(buffer as *mut u8,
-                                                buf_size as usize);
-            match transport.obj.read(buf) {
-                Ok(n) => { *bytes_read = n as size_t; Ok(n) }
-                e => e,
-            }
+extern fn stream_read(stream: *mut raw::git_smart_subtransport_stream,
+                      buffer: *mut c_char,
+                      buf_size: size_t,
+                      bytes_read: *mut size_t) -> c_int {
+    let ret = panic::wrap(|| unsafe {
+        let transport = &mut *(stream as *mut RawSmartSubtransportStream);
+        let buf = slice::from_raw_parts_mut(buffer as *mut u8,
+                                            buf_size as usize);
+        match transport.obj.read(buf) {
+            Ok(n) => { *bytes_read = n as size_t; Ok(n) }
+            e => e,
         }
-    }
-    returning ret as unsafe {
-        match ret {
-            Some(Ok(_)) => 0,
-            Some(Err(e)) => { set_err(e); -2 }
-            None => -1,
-        }
+    });
+    match ret {
+        Some(Ok(_)) => 0,
+        Some(Err(e)) => unsafe { set_err(e); -2 },
+        None => -1,
     }
 }
 
 // callback used by smart transports to write to a `SmartSubtransportStream`
 // object.
-wrap_env! {
-    fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
-                    buffer: *const c_char,
-                    len: size_t) -> c_int {
-        unsafe {
-            let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-            let buf = slice::from_raw_parts(buffer as *const u8, len as usize);
-            transport.obj.write_all(buf)
-        }
-    }
-    returning ret as unsafe {
-        match ret {
-            Some(Ok(())) => 0,
-            Some(Err(e)) => { set_err(e); -2 }
-            None => -1,
-        }
+extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
+                       buffer: *const c_char,
+                       len: size_t) -> c_int {
+    let ret = panic::wrap(|| unsafe {
+        let transport = &mut *(stream as *mut RawSmartSubtransportStream);
+        let buf = slice::from_raw_parts(buffer as *const u8, len as usize);
+        transport.obj.write_all(buf)
+    });
+    match ret {
+        Some(Ok(())) => 0,
+        Some(Err(e)) => unsafe { set_err(e); -2 },
+        None => -1,
     }
 }
 
@@ -336,7 +319,7 @@ unsafe fn set_err(e: io::Error) {
 // callback used by smart transports to free a `SmartSubtransportStream`
 // object.
 extern fn stream_free(stream: *mut raw::git_smart_subtransport_stream) {
-    unsafe {
+    let _ = panic::wrap(|| unsafe {
         mem::transmute::<_, Box<RawSmartSubtransportStream>>(stream);
-    }
+    });
 }

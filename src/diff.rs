@@ -6,7 +6,7 @@ use std::path::Path;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
-use {raw, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
 use {DiffStatsFormat, IntoCString};
 use util::{self, Binding};
 
@@ -196,20 +196,21 @@ impl Diff {
     // TODO: num_deltas_of_type, foreach, format_email, find_similar
 }
 
-wrap_env! {
-    fn print_cb(delta: *const raw::git_diff_delta,
-                hunk: *const raw::git_diff_hunk,
-                line: *const raw::git_diff_line,
-                data: *mut c_void) -> c_int {
-        unsafe {
-            let delta = Binding::from_raw(delta as *mut _);
-            let hunk = Binding::from_raw_opt(hunk);
-            let line = Binding::from_raw(line);
+extern fn print_cb(delta: *const raw::git_diff_delta,
+                   hunk: *const raw::git_diff_hunk,
+                   line: *const raw::git_diff_line,
+                   data: *mut c_void) -> c_int {
+    unsafe {
+        let delta = Binding::from_raw(delta as *mut _);
+        let hunk = Binding::from_raw_opt(hunk);
+        let line = Binding::from_raw(line);
+
+        let r = panic::wrap(|| {
             let data = data as *mut &mut PrintCb;
             (*data)(delta, hunk, line)
-        }
+        });
+        if r == Some(true) {0} else {-1}
     }
-    returning ok as if ok == Some(true) {0} else {-1}
 }
 
 impl Binding for Diff {

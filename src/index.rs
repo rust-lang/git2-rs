@@ -5,7 +5,7 @@ use std::path::Path;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char};
 
-use {raw, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
+use {raw, panic, Repository, Error, Tree, Oid, IndexAddOption, IndexTime};
 use IntoCString;
 use util::{self, Binding};
 
@@ -393,18 +393,18 @@ impl Binding for Index {
     fn raw(&self) -> *mut raw::git_index { self.raw }
 }
 
-wrap_env! {
-    fn index_matched_path_cb(path: *const c_char,
-                             matched_pathspec: *const c_char,
-                             payload: *mut c_void) -> c_int {
-        unsafe {
-            let path = CStr::from_ptr(path).to_bytes();
-            let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
+extern fn index_matched_path_cb(path: *const c_char,
+                                matched_pathspec: *const c_char,
+                                payload: *mut c_void) -> c_int {
+    unsafe {
+        let path = CStr::from_ptr(path).to_bytes();
+        let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
+
+        panic::wrap(|| {
             let payload = payload as *mut &mut IndexMatchedPath;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
-        }
+        }).unwrap_or(-1)
     }
-    returning code as code.unwrap_or(-1)
 }
 
 impl Drop for Index {

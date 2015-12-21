@@ -5,7 +5,7 @@ use std::mem;
 use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, Error, Repository, FetchOptions, IntoCString};
+use {raw, panic, Error, Repository, FetchOptions, IntoCString};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -410,26 +410,23 @@ impl<'cb> CheckoutBuilder<'cb> {
     }
 }
 
-wrap_env! {
-    fn progress_cb(path: *const c_char,
-                   completed: size_t,
-                   total: size_t,
-                   data: *mut c_void) -> () {
-        unsafe {
-            let payload = &mut *(data as *mut CheckoutBuilder);
-            let callback = match payload.progress {
-                Some(ref mut c) => c,
-                None => return,
-            };
-            let path = if path.is_null() {
-                None
-            } else {
-                Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
-            };
-            callback(path, completed as usize, total as usize)
-        }
-    }
-    returning _ok as ()
+extern fn progress_cb(path: *const c_char,
+                      completed: size_t,
+                      total: size_t,
+                      data: *mut c_void) {
+    panic::wrap(|| unsafe {
+        let payload = &mut *(data as *mut CheckoutBuilder);
+        let callback = match payload.progress {
+            Some(ref mut c) => c,
+            None => return,
+        };
+        let path = if path.is_null() {
+            None
+        } else {
+            Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
+        };
+        callback(path, completed as usize, total as usize)
+    });
 }
 
 #[cfg(test)]
