@@ -654,7 +654,7 @@ impl<'a> DiffLine<'a> {
     ///  * `H` - Hunk header
     ///  * `B` - Line binary
     pub fn origin(&self) -> char {
-        match unsafe { (*self.raw).origin } {
+        match unsafe { (*self.raw).origin as raw::git_diff_line_t } {
             raw::GIT_DIFF_LINE_CONTEXT => ' ',
             raw::GIT_DIFF_LINE_ADDITION => '+',
             raw::GIT_DIFF_LINE_DELETION => '-',
