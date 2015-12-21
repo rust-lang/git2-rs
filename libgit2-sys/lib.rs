@@ -919,16 +919,16 @@ pub struct git_diff_hunk {
 }
 
 git_enum! {
-    pub enum git_diff_line_t: c_char {
-        GIT_DIFF_LINE_CONTEXT = ' ' as c_char,
-        GIT_DIFF_LINE_ADDITION = '+' as c_char,
-        GIT_DIFF_LINE_DELETION = '-' as c_char,
-        GIT_DIFF_LINE_CONTEXT_EOFNL = '=' as c_char,
-        GIT_DIFF_LINE_ADD_EOFNL = '>' as c_char,
-        GIT_DIFF_LINE_DEL_EOFNL = '<' as c_char,
-        GIT_DIFF_LINE_FILE_HDR = 'F' as c_char,
-        GIT_DIFF_LINE_HUNK_HDR = 'H' as c_char,
-        GIT_DIFF_LINE_BINARY = 'B' as c_char,
+    pub enum git_diff_line_t {
+        GIT_DIFF_LINE_CONTEXT = b' ' as git_diff_line_t,
+        GIT_DIFF_LINE_ADDITION = b'+' as git_diff_line_t,
+        GIT_DIFF_LINE_DELETION = b'-' as git_diff_line_t,
+        GIT_DIFF_LINE_CONTEXT_EOFNL = b'=' as git_diff_line_t,
+        GIT_DIFF_LINE_ADD_EOFNL = b'>' as git_diff_line_t,
+        GIT_DIFF_LINE_DEL_EOFNL = b'<' as git_diff_line_t,
+        GIT_DIFF_LINE_FILE_HDR = b'F' as git_diff_line_t,
+        GIT_DIFF_LINE_HUNK_HDR = b'H' as git_diff_line_t,
+        GIT_DIFF_LINE_BINARY = b'B' as git_diff_line_t,
     }
 }
 
