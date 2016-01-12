@@ -109,6 +109,8 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=iconv");
+        println!("cargo:rustc-link-lib=framework=Security");
+        println!("cargo:rustc-link-lib=framework=CoreFoundation");
     }
 }
 
