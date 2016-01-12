@@ -105,20 +105,6 @@ fn main() {
         return
     }
 
-    if env::var("HOST") == env::var("TARGET") {
-        // libssh2 is linked in elsehwere, don't want it reported via pkg-config
-        let pc = dst.join("lib/pkgconfig/libgit2.pc");
-        let mut contents = String::new();
-        t!(t!(File::open(&pc)).read_to_string(&mut contents));
-        let contents = contents.replace(" -lssh2 ", " ");
-        t!(t!(File::create(&pc)).write_all(contents.as_bytes()));
-
-        prepend("PKG_CONFIG_PATH", dst.join("lib/pkgconfig"));
-        if pkg_config::Config::new().statik(true).find("libgit2").is_ok() {
-            return
-        }
-    }
-
     println!("cargo:rustc-link-lib=static=git2");
     println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
     if target.contains("apple") {
