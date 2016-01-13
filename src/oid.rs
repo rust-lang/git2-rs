@@ -81,6 +81,18 @@ impl fmt::Display for Oid {
     }
 }
 
+impl str::FromStr for Oid {
+    type Err = Error;
+
+    /// Parse a hex-formatted object id into an Oid structure.
+    ///
+    /// If the string is not a valid 40-character hex string, an error is
+    /// returned.
+    fn from_str(s: &str) -> Result<Oid, Error> {
+        Oid::from_str(s)
+    }
+}
+
 impl PartialEq for Oid {
     fn eq(&self, other: &Oid) -> bool {
         unsafe { raw::git_oid_equal(&self.raw, &other.raw) != 0 }
