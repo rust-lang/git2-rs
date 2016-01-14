@@ -1,6 +1,7 @@
 use std::fmt;
 use std::cmp::Ordering;
 use std::hash::{Hasher, Hash};
+use std::str;
 use libc;
 
 use {raw, Error};
