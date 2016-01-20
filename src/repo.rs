@@ -418,6 +418,8 @@ impl Repository {
                  -> Result<(), Error> {
         unsafe {
             let mut opts: raw::git_checkout_options = mem::zeroed();
+            try_call!(raw::git_checkout_init_options(&mut opts,
+                                raw::GIT_CHECKOUT_OPTIONS_VERSION));
             let opts = checkout.map(|c| {
                 c.configure(&mut opts); &mut opts
             });
@@ -1035,9 +1037,8 @@ impl Repository {
             let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(&mut raw_opts,
                                 raw::GIT_CHECKOUT_OPTIONS_VERSION));
-            match opts {
-                Some(c) => c.configure(&mut raw_opts),
-                None => {}
+            if let Some(c) = opts {
+                c.configure(&mut raw_opts);
             }
 
             try_call!(raw::git_checkout_head(self.raw, &raw_opts));

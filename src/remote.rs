@@ -350,7 +350,7 @@ impl<'cb> Binding for FetchOptions<'cb> {
         raw::git_fetch_options {
             version: 1,
             callbacks: self.callbacks.as_ref().map(|m| m.raw())
-                           .unwrap_or(unsafe { mem::zeroed() }),
+                           .unwrap_or_else(|| RemoteCallbacks::new().raw()),
             prune: ::call::convert(&self.prune),
             update_fetchhead: ::call::convert(&self.update_fetchhead),
             download_tags: ::call::convert(&self.download_tags),
@@ -400,7 +400,7 @@ impl<'cb> Binding for PushOptions<'cb> {
         raw::git_push_options {
             version: 1,
             callbacks: self.callbacks.as_ref().map(|m| m.raw())
-                           .unwrap_or(unsafe { mem::zeroed() }),
+                           .unwrap_or(RemoteCallbacks::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
