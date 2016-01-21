@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use libc::c_int;
 
 use raw;
@@ -33,6 +35,18 @@ impl Time {
     pub fn offset_minutes(&self) -> i32 { self.raw.offset as i32 }
 }
 
+impl PartialOrd for Time {
+    fn partial_cmp(&self, other: &Time) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Time {
+    fn cmp(&self, other: &Time) -> Ordering {
+        (self.raw.time, self.raw.offset).cmp(&(other.raw.time, other.raw.offset))
+    }
+}
+
 impl Binding for Time {
     type Raw = raw::git_time;
     unsafe fn from_raw(raw: raw::git_time) -> Time {
@@ -64,4 +78,18 @@ impl Binding for IndexTime {
         IndexTime { raw: raw }
     }
     fn raw(&self) -> raw::git_index_time { self.raw }
+}
+
+impl PartialOrd for IndexTime {
+    fn partial_cmp(&self, other: &IndexTime) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for IndexTime {
+    fn cmp(&self, other: &IndexTime) -> Ordering {
+        let me = (self.raw.seconds, self.raw.nanoseconds);
+        let other = (other.raw.seconds, other.raw.nanoseconds);
+        me.cmp(&other)
+    }
 }
