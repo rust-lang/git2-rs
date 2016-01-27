@@ -105,6 +105,23 @@ fn main() {
         return
     }
 
+    // libgit2 requires the http_parser library for the HTTP transport to be
+    // implemented, and it will attempt to use the system http_parser if it's
+    // available. Detect this situation and report using the system http parser
+    // the same way in this situation.
+    //
+    // Note that other dependencies of libgit2 like openssl, libz, and libssh2
+    // are tracked via crates instead of this. Ideally this should be a crate as
+    // well.
+    let pkgconfig_file = dst.join("lib/pkgconfig/libgit2.pc");
+    if let Ok(mut f) = File::open(&pkgconfig_file) {
+        let mut contents = String::new();
+        t!(f.read_to_string(&mut contents));
+        if contents.contains("-lhttp_parser") {
+            println!("cargo:rustc-link-lib=http_parser");
+        }
+    }
+
     println!("cargo:rustc-link-lib=static=git2");
     println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
     if target.contains("apple") {
