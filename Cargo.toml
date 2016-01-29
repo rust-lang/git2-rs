@@ -16,7 +16,7 @@ repositories.
 """
 
 [dependencies]
-url = "0.2"
+url = "0.5"
 bitflags = "0.1"
 libc = "0.2"
 libgit2-sys = { path = "libgit2-sys", version = "0.3.8" }
