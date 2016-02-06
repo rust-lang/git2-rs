@@ -88,16 +88,16 @@ pub struct DiffBinaryFile<'diff> {
 
 type PrintCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
 
-type FileCb<'a> = FnMut(DiffDelta, f32) -> bool + 'a;
-type BinaryCb<'a> = FnMut(DiffDelta, DiffBinary) -> bool + 'a;
-type HunkCb<'a> = FnMut(DiffDelta, DiffHunk) -> bool + 'a;
-type LineCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+pub type FileCb<'a> = FnMut(DiffDelta, f32) -> bool + 'a;
+pub type BinaryCb<'a> = FnMut(DiffDelta, DiffBinary) -> bool + 'a;
+pub type HunkCb<'a> = FnMut(DiffDelta, DiffHunk) -> bool + 'a;
+pub type LineCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
 
-struct ForeachCallbacks<'a, 'b: 'a> {
+struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
   file: &'a mut FileCb<'b>,
-  binary: Option<&'a mut BinaryCb<'b>>,
-  hunk: Option<&'a mut HunkCb<'b>>,
-  line: Option<&'a mut LineCb<'b>>,
+  binary: Option<&'c mut BinaryCb<'d>>,
+  hunk: Option<&'e mut HunkCb<'f>>,
+  line: Option<&'g mut LineCb<'h>>,
 }
 
 impl Diff {
@@ -199,31 +199,13 @@ impl Diff {
     ///
     /// Returning `false` from any callback will terminate the iteration and
     /// return an error from this function.
-    pub fn foreach<F, B, H, L>(&self,
-                               mut file_cb: F,
-                               mut binary_cb: Option<B>,
-                               mut hunk_cb: Option<H>,
-                               mut line_cb: Option<L>) -> Result<(), Error>
-                    where F: FnMut(DiffDelta, f32) -> bool,
-                          B: FnMut(DiffDelta, DiffBinary) -> bool,
-                          H: FnMut(DiffDelta, DiffHunk) -> bool,
-                          L: FnMut(DiffDelta,
-                                   Option<DiffHunk>,
-                                   DiffLine) -> bool {
-        let binary_cb: Option<&mut BinaryCb> = match binary_cb {
-            Some(ref mut cb) => Some(cb),
-            None => None
-        };
-        let hunk_cb: Option<&mut HunkCb> = match hunk_cb {
-            Some(ref mut cb) => Some(cb),
-            None => None
-        };
-        let line_cb: Option<&mut LineCb> = match line_cb {
-            Some(ref mut cb) => Some(cb),
-            None => None
-        };
+    pub fn foreach<'a>(&self,
+                   file_cb: &mut FileCb,
+                   binary_cb: Option<&mut BinaryCb>,
+                   hunk_cb: Option<&mut HunkCb>,
+                   line_cb: Option<&mut LineCb>) -> Result<(), Error> {
         let mut cbs = ForeachCallbacks {
-            file: &mut file_cb,
+            file: file_cb,
             binary: binary_cb,
             hunk: hunk_cb,
             line: line_cb,
@@ -289,7 +271,7 @@ extern fn file_cb_c(delta: *const raw::git_diff_delta,
         let delta = Binding::from_raw(delta as *mut _);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut &mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks;
             ((*cbs).file)(delta, progress)
         });
         if r == Some(true) {0} else {-1}
@@ -304,7 +286,7 @@ extern fn binary_cb_c(delta: *const raw::git_diff_delta,
         let binary = Binding::from_raw(binary);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut &mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks;
             match (*cbs).binary {
               Some(ref mut cb) => cb(delta, binary),
               None => false,
@@ -322,7 +304,7 @@ extern fn hunk_cb_c(delta: *const raw::git_diff_delta,
         let hunk = Binding::from_raw(hunk);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut &mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks;
             match (*cbs).hunk {
               Some(ref mut cb) => cb(delta, hunk),
               None => false,
@@ -342,7 +324,7 @@ extern fn line_cb_c(delta: *const raw::git_diff_delta,
         let line = Binding::from_raw(line);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut &mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks;
             match (*cbs).line {
               Some(ref mut cb) => cb(delta, hunk, line),
               None => false,
@@ -1133,5 +1115,64 @@ mod tests {
         assert_eq!(stats.insertions(), 0);
         assert_eq!(stats.deletions(), 0);
         assert_eq!(stats.files_changed(), 0);
+    }
+
+    mod foreach {
+        use diff::Diff;
+        use std::fs::File;
+        use std::path::Path;
+        use std::borrow::Borrow;
+        use std::io::Write;
+
+        fn diff_init(file_path: &Path) -> Diff {
+            let (td, repo) = ::test::repo_init();
+            t!(t!(File::create(&td.path().join(file_path))).write_all(b"bar"));
+            let mut index = t!(repo.index());
+            t!(index.add_path(file_path));
+            let tree_oid = t!(index.write_tree());
+            let tree = t!(repo.find_tree(tree_oid));
+            let head = t!(t!(repo.find_commit(t!(t!(repo.head()).resolve()).target().unwrap())).tree());
+            t!(repo.diff_tree_to_tree(Some(&head), Some(&tree), None))
+        }
+
+        #[test]
+        fn smoke() {
+            let (_td, repo) = ::test::repo_init();
+            let diff = t!(repo.diff_tree_to_workdir(None, None));
+            let mut count = 0;
+            t!(diff.foreach(&mut |_file, _progress| { count = count + 1; true }, None, None, None));
+            assert_eq!(count, 0);
+        }
+
+        #[test]
+        fn file_only() {
+            let path = Path::new("foo");
+            let diff = diff_init(path);
+            let mut count = 0;
+            let mut result = None;
+            t!(diff.foreach(&mut |file, _progress| {
+                count = count + 1;
+                result = file.new_file().path().map(ToOwned::to_owned);
+                true
+            }, None, None, None));
+            assert_eq!(result.as_ref().map(Borrow::borrow), Some(path));
+            assert_eq!(count, 1);
+        }
+
+        #[test]
+        fn file_and_hunk() {
+            let path = Path::new("foo");
+            let diff = diff_init(path);
+            let mut new_lines = 0;
+            t!(diff.foreach(
+                &mut |_file, _progress| { true },
+                None,
+                Some(&mut |_file, hunk| {
+                    new_lines = hunk.new_lines();
+                    true
+                }),
+                None));
+            assert_eq!(new_lines, 1);
+        }
     }
 }
