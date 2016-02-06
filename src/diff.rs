@@ -7,7 +7,7 @@ use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
 use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
-use {DiffStatsFormat, IntoCString};
+use {DiffBinaryKind, DiffStatsFormat, IntoCString};
 use util::{self, Binding};
 
 /// The diff object that contains all individual file deltas.
@@ -74,7 +74,31 @@ pub struct DiffStats {
     raw: *mut raw::git_diff_stats,
 }
 
+/// Structure describing the binary contents of a diff.
+pub struct DiffBinary<'diff> {
+  raw: *const raw::git_diff_binary,
+  _marker: marker::PhantomData<&'diff raw::git_diff_binary>,
+}
+
+/// The contents of one of the files in a binary diff.
+pub struct DiffBinaryFile<'diff> {
+  raw: *const raw::git_diff_binary_file,
+  _marker: marker::PhantomData<&'diff raw::git_diff_binary_file>,
+}
+
 type PrintCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+
+type FileCb<'a> = FnMut(DiffDelta, f32) -> bool + 'a;
+type BinaryCb<'a> = FnMut(DiffDelta, DiffBinary) -> bool + 'a;
+type HunkCb<'a> = FnMut(DiffDelta, DiffHunk) -> bool + 'a;
+type LineCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+
+struct ForeachCallbacks<'a, 'b: 'a> {
+  file: &'a mut FileCb<'b>,
+  binary: Option<&'a mut BinaryCb<'b>>,
+  hunk: Option<&'a mut HunkCb<'b>>,
+  line: Option<&'a mut LineCb<'b>>,
+}
 
 impl Diff {
     /// Deprecated, use repo.diff_tree_to_tree(..) instead
@@ -171,6 +195,51 @@ impl Diff {
         }
     }
 
+    /// Loop over all deltas in a diff issuing callbacks.
+    ///
+    /// Returning `false` from any callback will terminate the iteration and
+    /// return an error from this function.
+    pub fn foreach<F, B, H, L>(&self,
+                               mut file_cb: F,
+                               mut binary_cb: Option<B>,
+                               mut hunk_cb: Option<H>,
+                               mut line_cb: Option<L>) -> Result<(), Error>
+                    where F: FnMut(DiffDelta, f32) -> bool,
+                          B: FnMut(DiffDelta, DiffBinary) -> bool,
+                          H: FnMut(DiffDelta, DiffHunk) -> bool,
+                          L: FnMut(DiffDelta,
+                                   Option<DiffHunk>,
+                                   DiffLine) -> bool {
+        let binary_cb: Option<&mut BinaryCb> = match binary_cb {
+            Some(ref mut cb) => Some(cb),
+            None => None
+        };
+        let hunk_cb: Option<&mut HunkCb> = match hunk_cb {
+            Some(ref mut cb) => Some(cb),
+            None => None
+        };
+        let line_cb: Option<&mut LineCb> = match line_cb {
+            Some(ref mut cb) => Some(cb),
+            None => None
+        };
+        let mut cbs = ForeachCallbacks {
+            file: &mut file_cb,
+            binary: binary_cb,
+            hunk: hunk_cb,
+            line: line_cb,
+        };
+        let ptr = &mut cbs as *mut _;
+        unsafe {
+            let binary_cb_c: Option<raw::git_diff_binary_cb> = if cbs.binary.is_some() { Some(binary_cb_c) } else { None };
+            let hunk_cb_c: Option<raw::git_diff_hunk_cb> = if cbs.hunk.is_some() { Some(hunk_cb_c) } else { None };
+            let line_cb_c: Option<raw::git_diff_line_cb> = if cbs.line.is_some() { Some(line_cb_c) } else { None };
+            try_call!(raw::git_diff_foreach(self.raw, file_cb_c, binary_cb_c,
+                                            hunk_cb_c, line_cb_c,
+                                            ptr as *mut _));
+            return Ok(())
+        }
+    }
+
     /// Accumulate diff statistics for all patches.
     pub fn stats(&self) -> Result<DiffStats, Error> {
         let mut ret = 0 as *mut raw::git_diff_stats;
@@ -193,7 +262,7 @@ impl Diff {
         Ok(())
     }
 
-    // TODO: num_deltas_of_type, foreach, format_email, find_similar
+    // TODO: num_deltas_of_type, format_email, find_similar
 }
 
 extern fn print_cb(delta: *const raw::git_diff_delta,
@@ -212,6 +281,77 @@ extern fn print_cb(delta: *const raw::git_diff_delta,
         if r == Some(true) {0} else {-1}
     }
 }
+
+extern fn file_cb_c(delta: *const raw::git_diff_delta,
+                  progress: f32,
+                  data: *mut c_void) -> c_int {
+    unsafe {
+        let delta = Binding::from_raw(delta as *mut _);
+
+        let r = panic::wrap(|| {
+            let cbs = data as *mut &mut ForeachCallbacks;
+            ((*cbs).file)(delta, progress)
+        });
+        if r == Some(true) {0} else {-1}
+    }
+}
+
+extern fn binary_cb_c(delta: *const raw::git_diff_delta,
+                    binary: *const raw::git_diff_binary,
+                    data: *mut c_void) -> c_int {
+    unsafe {
+        let delta = Binding::from_raw(delta as *mut _);
+        let binary = Binding::from_raw(binary);
+
+        let r = panic::wrap(|| {
+            let cbs = data as *mut &mut ForeachCallbacks;
+            match (*cbs).binary {
+              Some(ref mut cb) => cb(delta, binary),
+              None => false,
+            }
+        });
+        if r == Some(true) {0} else {-1}
+    }
+}
+
+extern fn hunk_cb_c(delta: *const raw::git_diff_delta,
+                  hunk: *const raw::git_diff_hunk,
+                  data: *mut c_void) -> c_int {
+    unsafe {
+        let delta = Binding::from_raw(delta as *mut _);
+        let hunk = Binding::from_raw(hunk);
+
+        let r = panic::wrap(|| {
+            let cbs = data as *mut &mut ForeachCallbacks;
+            match (*cbs).hunk {
+              Some(ref mut cb) => cb(delta, hunk),
+              None => false,
+            }
+        });
+        if r == Some(true) {0} else {-1}
+    }
+}
+
+extern fn line_cb_c(delta: *const raw::git_diff_delta,
+                  hunk: *const raw::git_diff_hunk,
+                  line: *const raw::git_diff_line,
+                  data: *mut c_void) -> c_int {
+    unsafe {
+        let delta = Binding::from_raw(delta as *mut _);
+        let hunk = Binding::from_raw_opt(hunk);
+        let line = Binding::from_raw(line);
+
+        let r = panic::wrap(|| {
+            let cbs = data as *mut &mut ForeachCallbacks;
+            match (*cbs).line {
+              Some(ref mut cb) => cb(delta, hunk, line),
+              None => false,
+            }
+        });
+        if r == Some(true) {0} else {-1}
+    }
+}
+
 
 impl Binding for Diff {
     type Raw = *mut raw::git_diff;
@@ -763,6 +903,61 @@ impl Drop for DiffStats {
     fn drop(&mut self) {
         unsafe { raw::git_diff_stats_free(self.raw) }
     }
+}
+
+impl<'a> DiffBinary<'a> {
+    /// The contents of the old file.
+    pub fn old_file(&self) -> DiffBinaryFile<'a> {
+        unsafe { Binding::from_raw(&(*self.raw).old_file as *const _) }
+    }
+
+    /// The contents of the new file.
+    pub fn new_file(&self) -> DiffBinaryFile<'a> {
+        unsafe { Binding::from_raw(&(*self.raw).new_file as *const _) }
+    }
+}
+
+impl<'a> Binding for DiffBinary<'a> {
+    type Raw = *const raw::git_diff_binary;
+    unsafe fn from_raw(raw: *const raw::git_diff_binary) -> DiffBinary<'a> {
+        DiffBinary {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+    fn raw(&self) -> *const raw::git_diff_binary { self.raw }
+}
+
+impl<'a> DiffBinaryFile<'a> {
+    /// The type of binary data for this file
+    pub fn kind(&self) -> DiffBinaryKind {
+        unsafe { (*self.raw).kind.into() }
+    }
+
+    /// The binary data, deflated
+    pub fn data(&self) -> &[u8] {
+        unsafe {
+            slice::from_raw_parts((*self.raw).data as *const u8,
+                                  (*self.raw).datalen as usize)
+        }
+    }
+
+    /// The length of the binary data after inflation
+    pub fn inflated_len(&self) -> usize {
+        unsafe { (*self.raw).inflatedlen as usize }
+    }
+
+}
+
+impl<'a> Binding for DiffBinaryFile<'a> {
+    type Raw = *const raw::git_diff_binary_file;
+    unsafe fn from_raw(raw: *const raw::git_diff_binary_file) -> DiffBinaryFile<'a> {
+        DiffBinaryFile {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+    fn raw(&self) -> *const raw::git_diff_binary_file { self.raw }
 }
 
 impl DiffFindOptions {

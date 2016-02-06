@@ -2292,9 +2292,9 @@ extern {
                                       version: c_uint) -> c_int;
     pub fn git_diff_foreach(diff: *mut git_diff,
                             file_cb: git_diff_file_cb,
-                            binary_cb: git_diff_binary_cb,
-                            hunk_cb: git_diff_hunk_cb,
-                            line_cb: git_diff_line_cb,
+                            binary_cb: Option<git_diff_binary_cb>,
+                            hunk_cb: Option<git_diff_hunk_cb>,
+                            line_cb: Option<git_diff_line_cb>,
                             payload: *mut c_void) -> c_int;
     pub fn git_diff_free(diff: *mut git_diff);
     pub fn git_diff_get_delta(diff: *const git_diff,

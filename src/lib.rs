@@ -89,7 +89,7 @@ pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
-pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
+pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions, DiffBinary, DiffBinaryFile};
 pub use merge::{AnnotatedCommit, MergeOptions};
 pub use error::Error;
 pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
@@ -789,6 +789,31 @@ pub enum DiffFormat {
     NameOnly,
     /// like git diff --name-status
     NameStatus,
+}
+
+/// When producing a binary diff, the binary data returned will be
+/// either the deflated full ("literal") contents of the file, or
+/// the deflated binary delta between the two sides (whichever is
+/// smaller).
+#[derive(Copy, Clone)]
+pub enum DiffBinaryKind {
+    /// There is no binary delta
+    None,
+    /// The binary data is the literal contents of the file
+    Literal,
+    /// The binary data is the delta from one side to the other
+    Delta,
+}
+
+impl From<raw::git_diff_binary_t> for DiffBinaryKind {
+  fn from(kind: raw::git_diff_binary_t) -> DiffBinaryKind {
+    match kind {
+      raw::GIT_DIFF_BINARY_NONE => DiffBinaryKind::None,
+      raw::GIT_DIFF_BINARY_LITERAL => DiffBinaryKind::Literal,
+      raw::GIT_DIFF_BINARY_DELTA => DiffBinaryKind::Delta,
+      _ => panic!("Unknown git diff binary kind"),
+    }
+  }
 }
 
 bitflags! {
