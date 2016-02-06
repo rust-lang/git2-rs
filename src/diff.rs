@@ -1206,5 +1206,42 @@ mod tests {
                 None));
             assert_eq!(new_lines, 1);
         }
+
+        #[test]
+        fn all_callbacks() {
+            let fib = vec![0, 1, 1, 2, 3, 5, 8];
+            // Verified with a node implementation of deflate, might be worth
+            // adding a deflate lib to do this inline here.
+            let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0, 0, 53, 0, 21];
+            let foo_path = Path::new("foo");
+            let bin_path = Path::new("bin");
+            let (td, repo) = ::test::repo_init();
+            t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+            t!(t!(File::create(&td.path().join(bin_path))).write_all(&fib));
+            let mut index = t!(repo.index());
+            t!(index.add_path(foo_path));
+            t!(index.add_path(bin_path));
+            let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
+            let mut bin_content = None;
+            let mut new_lines = 0;
+            let mut line_content = None;
+            t!(diff.foreach(
+                &mut |_file, _progress| { true },
+                Some(&mut |_file, binary| {
+                    bin_content = Some(binary.new_file().data().to_owned());
+                    true
+                }),
+                Some(&mut |_file, hunk| {
+                    new_lines = hunk.new_lines();
+                    true
+                }),
+                Some(&mut |_file, _hunk, line| {
+                    line_content = String::from_utf8(line.content().into()).ok();
+                    true
+                })));
+            assert_eq!(bin_content, Some(deflated_fib));
+            assert_eq!(new_lines, 1);
+            assert_eq!(line_content, Some("bar\n".to_string()));
+        }
     }
 }
