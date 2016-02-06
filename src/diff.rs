@@ -77,20 +77,20 @@ pub struct DiffStats {
 /// Structure describing the binary contents of a diff.
 pub struct DiffBinary<'diff> {
     raw: *const raw::git_diff_binary,
-    _marker: marker::PhantomData<&'diff raw::git_diff_binary>,
+    _marker: marker::PhantomData<&'diff Diff>,
 }
 
 /// The contents of one of the files in a binary diff.
 pub struct DiffBinaryFile<'diff> {
     raw: *const raw::git_diff_binary_file,
-    _marker: marker::PhantomData<&'diff raw::git_diff_binary_file>,
+    _marker: marker::PhantomData<&'diff Diff>,
 }
 
 /// When producing a binary diff, the binary data returned will be
 /// either the deflated full ("literal") contents of the file, or
 /// the deflated binary delta between the two sides (whichever is
 /// smaller).
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum DiffBinaryKind {
     /// There is no binary delta
     None,
@@ -901,21 +901,21 @@ impl Drop for DiffStats {
     }
 }
 
-impl<'a> DiffBinary<'a> {
+impl<'diff> DiffBinary<'diff> {
     /// The contents of the old file.
-    pub fn old_file(&self) -> DiffBinaryFile<'a> {
+    pub fn old_file(&self) -> DiffBinaryFile<'diff> {
         unsafe { Binding::from_raw(&(*self.raw).old_file as *const _) }
     }
 
     /// The contents of the new file.
-    pub fn new_file(&self) -> DiffBinaryFile<'a> {
+    pub fn new_file(&self) -> DiffBinaryFile<'diff> {
         unsafe { Binding::from_raw(&(*self.raw).new_file as *const _) }
     }
 }
 
-impl<'a> Binding for DiffBinary<'a> {
+impl<'diff> Binding for DiffBinary<'diff> {
     type Raw = *const raw::git_diff_binary;
-    unsafe fn from_raw(raw: *const raw::git_diff_binary) -> DiffBinary<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_binary) -> DiffBinary<'diff> {
         DiffBinary {
             raw: raw,
             _marker: marker::PhantomData,
@@ -924,7 +924,7 @@ impl<'a> Binding for DiffBinary<'a> {
     fn raw(&self) -> *const raw::git_diff_binary { self.raw }
 }
 
-impl<'a> DiffBinaryFile<'a> {
+impl<'diff> DiffBinaryFile<'diff> {
     /// The type of binary data for this file
     pub fn kind(&self) -> DiffBinaryKind {
         unsafe { Binding::from_raw((*self.raw).kind) }
@@ -945,9 +945,9 @@ impl<'a> DiffBinaryFile<'a> {
 
 }
 
-impl<'a> Binding for DiffBinaryFile<'a> {
+impl<'diff> Binding for DiffBinaryFile<'diff> {
     type Raw = *const raw::git_diff_binary_file;
-    unsafe fn from_raw(raw: *const raw::git_diff_binary_file) -> DiffBinaryFile<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_binary_file) -> DiffBinaryFile<'diff> {
         DiffBinaryFile {
             raw: raw,
             _marker: marker::PhantomData,
@@ -967,10 +967,10 @@ impl Binding for DiffBinaryKind {
         }
     }
     fn raw(&self) -> raw::git_diff_binary_t {
-        match self {
-            &DiffBinaryKind::None => raw::GIT_DIFF_BINARY_NONE,
-            &DiffBinaryKind::Literal => raw::GIT_DIFF_BINARY_LITERAL,
-            &DiffBinaryKind::Delta => raw::GIT_DIFF_BINARY_DELTA,
+        match *self {
+            DiffBinaryKind::None => raw::GIT_DIFF_BINARY_NONE,
+            DiffBinaryKind::Literal => raw::GIT_DIFF_BINARY_LITERAL,
+            DiffBinaryKind::Delta => raw::GIT_DIFF_BINARY_DELTA,
         }
     }
 }
