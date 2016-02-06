@@ -15,11 +15,12 @@ use util::{self, Binding};
 /// This is an opaque structure which will be allocated by one of the diff
 /// generator functions on the `Repository` structure (e.g. `diff_tree_to_tree`
 /// or other `diff_*` functions).
-pub struct Diff {
+pub struct Diff<'repo> {
     raw: *mut raw::git_diff,
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
-unsafe impl Send for Diff {}
+unsafe impl<'repo> Send for Diff<'repo> {}
 
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
@@ -54,7 +55,7 @@ pub struct DiffFindOptions {
 /// An iterator over the diffs in a delta
 pub struct Deltas<'diff> {
     range: Range<usize>,
-    diff: &'diff Diff,
+    diff: &'diff Diff<'diff>,
 }
 
 /// Structure describing a line (or data span) of a diff.
@@ -77,13 +78,13 @@ pub struct DiffStats {
 /// Structure describing the binary contents of a diff.
 pub struct DiffBinary<'diff> {
     raw: *const raw::git_diff_binary,
-    _marker: marker::PhantomData<&'diff Diff>,
+    _marker: marker::PhantomData<&'diff Diff<'diff>>,
 }
 
 /// The contents of one of the files in a binary diff.
 pub struct DiffBinaryFile<'diff> {
     raw: *const raw::git_diff_binary_file,
-    _marker: marker::PhantomData<&'diff Diff>,
+    _marker: marker::PhantomData<&'diff Diff<'diff>>,
 }
 
 /// When producing a binary diff, the binary data returned will be
@@ -114,49 +115,49 @@ struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
     line: Option<&'g mut LineCb<'h>>,
 }
 
-impl Diff {
+impl<'repo> Diff<'repo> {
     /// Deprecated, use repo.diff_tree_to_tree(..) instead
     #[doc(hidden)]
-    pub fn tree_to_tree(repo: &Repository,
+    pub fn tree_to_tree(repo: &'repo Repository,
                         old_tree: Option<&Tree>,
                         new_tree: Option<&Tree>,
-                        opts: Option<&mut DiffOptions>) -> Result<Diff, Error> {
+                        opts: Option<&mut DiffOptions>) -> Result<Diff<'repo>, Error> {
         repo.diff_tree_to_tree(old_tree, new_tree, opts)
     }
 
     /// Deprecated, use repo.diff_tree_to_index(..) instead
     #[doc(hidden)]
-    pub fn tree_to_index(repo: &Repository,
+    pub fn tree_to_index(repo: &'repo Repository,
                          old_tree: Option<&Tree>,
                          index: Option<&Index>,
-                         opts: Option<&mut DiffOptions>) -> Result<Diff, Error> {
+                         opts: Option<&mut DiffOptions>) -> Result<Diff<'repo>, Error> {
         repo.diff_tree_to_index(old_tree, index, opts)
     }
 
     /// Deprecated, use repo.diff_index_to_workdir(..) instead
     #[doc(hidden)]
-    pub fn index_to_workdir(repo: &Repository,
+    pub fn index_to_workdir(repo: &'repo Repository,
                             index: Option<&Index>,
                             opts: Option<&mut DiffOptions>)
-                            -> Result<Diff, Error> {
+                            -> Result<Diff<'repo>, Error> {
         repo.diff_index_to_workdir(index, opts)
     }
 
     /// Deprecated, use repo.diff_tree_to_tree(..) instead
     #[doc(hidden)]
-    pub fn tree_to_workdir(repo: &Repository,
+    pub fn tree_to_workdir(repo: &'repo Repository,
                            old_tree: Option<&Tree>,
                            opts: Option<&mut DiffOptions>)
-                           -> Result<Diff, Error> {
+                           -> Result<Diff<'repo>, Error> {
         repo.diff_tree_to_workdir(old_tree, opts)
     }
 
     /// Deprecated, use repo.diff_tree_to_workdir_with_index(..) instead
     #[doc(hidden)]
-    pub fn tree_to_workdir_with_index(repo: &Repository,
+    pub fn tree_to_workdir_with_index(repo: &'repo Repository,
                                       old_tree: Option<&Tree>,
                                       opts: Option<&mut DiffOptions>)
-                                      -> Result<Diff, Error> {
+                                      -> Result<Diff<'repo>, Error> {
         repo.diff_tree_to_workdir_with_index(old_tree, opts)
     }
 
@@ -168,7 +169,7 @@ impl Diff {
     /// as if the old version was from the "onto" list and the new version
     /// is from the "from" list (with the exception that if the item has a
     /// pending DELETE in the middle, then it will show as deleted).
-    pub fn merge(&mut self, from: &Diff) -> Result<(), Error> {
+    pub fn merge(&mut self, from: &Diff<'repo>) -> Result<(), Error> {
         unsafe { try_call!(raw::git_diff_merge(self.raw, &*from.raw)); }
         Ok(())
     }
@@ -349,15 +350,18 @@ extern fn line_cb_c(delta: *const raw::git_diff_delta,
 }
 
 
-impl Binding for Diff {
+impl<'repo> Binding for Diff<'repo> {
     type Raw = *mut raw::git_diff;
-    unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff {
-        Diff { raw: raw }
+    unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff<'repo> {
+        Diff {
+          raw: raw,
+          _marker: marker::PhantomData,
+        }
     }
     fn raw(&self) -> *mut raw::git_diff { self.raw }
 }
 
-impl Drop for Diff {
+impl<'repo> Drop for Diff<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_diff_free(self.raw) }
     }
@@ -1151,17 +1155,11 @@ mod tests {
     }
 
     mod foreach {
-        use {Diff, DiffOptions};
+        use DiffOptions;
         use std::fs::File;
         use std::path::Path;
         use std::borrow::Borrow;
         use std::io::Write;
-
-        fn diff_init(file_path: &Path) -> Diff {
-            let (td, repo) = ::test::repo_init();
-            t!(t!(File::create(&td.path().join(file_path))).write_all(b"bar"));
-            t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))))
-        }
 
         #[test]
         fn smoke() {
@@ -1175,7 +1173,9 @@ mod tests {
         #[test]
         fn file_only() {
             let path = Path::new("foo");
-            let diff = diff_init(path);
+            let (td, repo) = ::test::repo_init();
+            t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
+            let diff = t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))));
             let mut count = 0;
             let mut result = None;
             t!(diff.foreach(&mut |file, _progress| {
@@ -1191,7 +1191,9 @@ mod tests {
         #[ignore]
         fn file_and_hunk() {
             let path = Path::new("foo");
-            let diff = diff_init(path);
+            let (td, repo) = ::test::repo_init();
+            t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
+            let diff = t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))));
             let mut new_lines = 0;
             t!(diff.foreach(
                 &mut |_file, _progress| { true },
