@@ -1143,6 +1143,12 @@ impl DiffFindOptions {
 
 #[cfg(test)]
 mod tests {
+    use DiffOptions;
+    use std::fs::File;
+    use std::path::Path;
+    use std::borrow::Borrow;
+    use std::io::Write;
+
     #[test]
     fn smoke() {
         let (_td, repo) = ::test::repo_init();
@@ -1154,94 +1160,86 @@ mod tests {
         assert_eq!(stats.files_changed(), 0);
     }
 
-    mod foreach {
-        use DiffOptions;
-        use std::fs::File;
-        use std::path::Path;
-        use std::borrow::Borrow;
-        use std::io::Write;
+    #[test]
+    fn foreach_smoke() {
+        let (_td, repo) = ::test::repo_init();
+        let diff = t!(repo.diff_tree_to_workdir(None, None));
+        let mut count = 0;
+        t!(diff.foreach(&mut |_file, _progress| { count = count + 1; true }, None, None, None));
+        assert_eq!(count, 0);
+    }
 
-        #[test]
-        fn smoke() {
-            let (_td, repo) = ::test::repo_init();
-            let diff = t!(repo.diff_tree_to_workdir(None, None));
-            let mut count = 0;
-            t!(diff.foreach(&mut |_file, _progress| { count = count + 1; true }, None, None, None));
-            assert_eq!(count, 0);
-        }
+    #[test]
+    fn foreach_file_only() {
+        let path = Path::new("foo");
+        let (td, repo) = ::test::repo_init();
+        t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
+        let diff = t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))));
+        let mut count = 0;
+        let mut result = None;
+        t!(diff.foreach(&mut |file, _progress| {
+            count = count + 1;
+            result = file.new_file().path().map(ToOwned::to_owned);
+            true
+        }, None, None, None));
+        assert_eq!(result.as_ref().map(Borrow::borrow), Some(path));
+        assert_eq!(count, 1);
+    }
 
-        #[test]
-        fn file_only() {
-            let path = Path::new("foo");
-            let (td, repo) = ::test::repo_init();
-            t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
-            let diff = t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))));
-            let mut count = 0;
-            let mut result = None;
-            t!(diff.foreach(&mut |file, _progress| {
-                count = count + 1;
-                result = file.new_file().path().map(ToOwned::to_owned);
+    #[test]
+    fn foreach_file_and_hunk() {
+        let path = Path::new("foo");
+        let (td, repo) = ::test::repo_init();
+        t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
+        let mut index = t!(repo.index());
+        t!(index.add_path(path));
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
+        let mut new_lines = 0;
+        t!(diff.foreach(
+            &mut |_file, _progress| { true },
+            None,
+            Some(&mut |_file, hunk| {
+                new_lines = hunk.new_lines();
                 true
-            }, None, None, None));
-            assert_eq!(result.as_ref().map(Borrow::borrow), Some(path));
-            assert_eq!(count, 1);
-        }
+            }),
+            None));
+        assert_eq!(new_lines, 1);
+    }
 
-        #[test]
-        fn file_and_hunk() {
-            let path = Path::new("foo");
-            let (td, repo) = ::test::repo_init();
-            t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
-            let mut index = t!(repo.index());
-            t!(index.add_path(path));
-            let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
-            let mut new_lines = 0;
-            t!(diff.foreach(
-                &mut |_file, _progress| { true },
-                None,
-                Some(&mut |_file, hunk| {
-                    new_lines = hunk.new_lines();
-                    true
-                }),
-                None));
-            assert_eq!(new_lines, 1);
-        }
-
-        #[test]
-        fn all_callbacks() {
-            let fib = vec![0, 1, 1, 2, 3, 5, 8];
-            // Verified with a node implementation of deflate, might be worth
-            // adding a deflate lib to do this inline here.
-            let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0, 0, 53, 0, 21];
-            let foo_path = Path::new("foo");
-            let bin_path = Path::new("bin");
-            let (td, repo) = ::test::repo_init();
-            t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
-            t!(t!(File::create(&td.path().join(bin_path))).write_all(&fib));
-            let mut index = t!(repo.index());
-            t!(index.add_path(foo_path));
-            t!(index.add_path(bin_path));
-            let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
-            let mut bin_content = None;
-            let mut new_lines = 0;
-            let mut line_content = None;
-            t!(diff.foreach(
-                &mut |_file, _progress| { true },
-                Some(&mut |_file, binary| {
-                    bin_content = Some(binary.new_file().data().to_owned());
-                    true
-                }),
-                Some(&mut |_file, hunk| {
-                    new_lines = hunk.new_lines();
-                    true
-                }),
-                Some(&mut |_file, _hunk, line| {
-                    line_content = String::from_utf8(line.content().into()).ok();
-                    true
-                })));
-            assert_eq!(bin_content, Some(deflated_fib));
-            assert_eq!(new_lines, 1);
-            assert_eq!(line_content, Some("bar\n".to_string()));
-        }
+    #[test]
+    fn foreach_all_callbacks() {
+        let fib = vec![0, 1, 1, 2, 3, 5, 8];
+        // Verified with a node implementation of deflate, might be worth
+        // adding a deflate lib to do this inline here.
+        let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0, 0, 53, 0, 21];
+        let foo_path = Path::new("foo");
+        let bin_path = Path::new("bin");
+        let (td, repo) = ::test::repo_init();
+        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+        t!(t!(File::create(&td.path().join(bin_path))).write_all(&fib));
+        let mut index = t!(repo.index());
+        t!(index.add_path(foo_path));
+        t!(index.add_path(bin_path));
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
+        let mut bin_content = None;
+        let mut new_lines = 0;
+        let mut line_content = None;
+        t!(diff.foreach(
+            &mut |_file, _progress| { true },
+            Some(&mut |_file, binary| {
+                bin_content = Some(binary.new_file().data().to_owned());
+                true
+            }),
+            Some(&mut |_file, hunk| {
+                new_lines = hunk.new_lines();
+                true
+            }),
+            Some(&mut |_file, _hunk, line| {
+                line_content = String::from_utf8(line.content().into()).ok();
+                true
+            })));
+        assert_eq!(bin_content, Some(deflated_fib));
+        assert_eq!(new_lines, 1);
+        assert_eq!(line_content, Some("bar\n".to_string()));
     }
 }
