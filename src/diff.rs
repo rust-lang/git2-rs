@@ -76,14 +76,14 @@ pub struct DiffStats {
 
 /// Structure describing the binary contents of a diff.
 pub struct DiffBinary<'diff> {
-  raw: *const raw::git_diff_binary,
-  _marker: marker::PhantomData<&'diff raw::git_diff_binary>,
+    raw: *const raw::git_diff_binary,
+    _marker: marker::PhantomData<&'diff raw::git_diff_binary>,
 }
 
 /// The contents of one of the files in a binary diff.
 pub struct DiffBinaryFile<'diff> {
-  raw: *const raw::git_diff_binary_file,
-  _marker: marker::PhantomData<&'diff raw::git_diff_binary_file>,
+    raw: *const raw::git_diff_binary_file,
+    _marker: marker::PhantomData<&'diff raw::git_diff_binary_file>,
 }
 
 type PrintCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
@@ -94,10 +94,10 @@ pub type HunkCb<'a> = FnMut(DiffDelta, DiffHunk) -> bool + 'a;
 pub type LineCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
 
 struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
-  file: &'a mut FileCb<'b>,
-  binary: Option<&'c mut BinaryCb<'d>>,
-  hunk: Option<&'e mut HunkCb<'f>>,
-  line: Option<&'g mut LineCb<'h>>,
+    file: &'a mut FileCb<'b>,
+    binary: Option<&'c mut BinaryCb<'d>>,
+    hunk: Option<&'e mut HunkCb<'f>>,
+    line: Option<&'g mut LineCb<'h>>,
 }
 
 impl Diff {
@@ -265,8 +265,8 @@ extern fn print_cb(delta: *const raw::git_diff_delta,
 }
 
 extern fn file_cb_c(delta: *const raw::git_diff_delta,
-                  progress: f32,
-                  data: *mut c_void) -> c_int {
+                    progress: f32,
+                    data: *mut c_void) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
 
@@ -279,8 +279,8 @@ extern fn file_cb_c(delta: *const raw::git_diff_delta,
 }
 
 extern fn binary_cb_c(delta: *const raw::git_diff_delta,
-                    binary: *const raw::git_diff_binary,
-                    data: *mut c_void) -> c_int {
+                      binary: *const raw::git_diff_binary,
+                      data: *mut c_void) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let binary = Binding::from_raw(binary);
@@ -288,8 +288,8 @@ extern fn binary_cb_c(delta: *const raw::git_diff_delta,
         let r = panic::wrap(|| {
             let cbs = data as *mut ForeachCallbacks;
             match (*cbs).binary {
-              Some(ref mut cb) => cb(delta, binary),
-              None => false,
+                Some(ref mut cb) => cb(delta, binary),
+                None => false,
             }
         });
         if r == Some(true) {0} else {-1}
@@ -297,8 +297,8 @@ extern fn binary_cb_c(delta: *const raw::git_diff_delta,
 }
 
 extern fn hunk_cb_c(delta: *const raw::git_diff_delta,
-                  hunk: *const raw::git_diff_hunk,
-                  data: *mut c_void) -> c_int {
+                    hunk: *const raw::git_diff_hunk,
+                    data: *mut c_void) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw(hunk);
@@ -306,8 +306,8 @@ extern fn hunk_cb_c(delta: *const raw::git_diff_delta,
         let r = panic::wrap(|| {
             let cbs = data as *mut ForeachCallbacks;
             match (*cbs).hunk {
-              Some(ref mut cb) => cb(delta, hunk),
-              None => false,
+                Some(ref mut cb) => cb(delta, hunk),
+                None => false,
             }
         });
         if r == Some(true) {0} else {-1}
@@ -315,9 +315,9 @@ extern fn hunk_cb_c(delta: *const raw::git_diff_delta,
 }
 
 extern fn line_cb_c(delta: *const raw::git_diff_delta,
-                  hunk: *const raw::git_diff_hunk,
-                  line: *const raw::git_diff_line,
-                  data: *mut c_void) -> c_int {
+                    hunk: *const raw::git_diff_hunk,
+                    line: *const raw::git_diff_line,
+                    data: *mut c_void) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw_opt(hunk);
@@ -326,8 +326,8 @@ extern fn line_cb_c(delta: *const raw::git_diff_delta,
         let r = panic::wrap(|| {
             let cbs = data as *mut ForeachCallbacks;
             match (*cbs).line {
-              Some(ref mut cb) => cb(delta, hunk, line),
-              None => false,
+                Some(ref mut cb) => cb(delta, hunk, line),
+                None => false,
             }
         });
         if r == Some(true) {0} else {-1}
