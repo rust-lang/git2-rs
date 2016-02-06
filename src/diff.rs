@@ -1188,12 +1188,13 @@ mod tests {
         }
 
         #[test]
-        #[ignore]
         fn file_and_hunk() {
             let path = Path::new("foo");
             let (td, repo) = ::test::repo_init();
             t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
-            let diff = t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))));
+            let mut index = t!(repo.index());
+            t!(index.add_path(path));
+            let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
             let mut new_lines = 0;
             t!(diff.foreach(
                 &mut |_file, _progress| { true },
