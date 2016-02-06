@@ -7,7 +7,7 @@ use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
 use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
-use {DiffBinaryKind, DiffStatsFormat, IntoCString};
+use {DiffStatsFormat, IntoCString};
 use util::{self, Binding};
 
 /// The diff object that contains all individual file deltas.
@@ -84,6 +84,20 @@ pub struct DiffBinary<'diff> {
 pub struct DiffBinaryFile<'diff> {
     raw: *const raw::git_diff_binary_file,
     _marker: marker::PhantomData<&'diff raw::git_diff_binary_file>,
+}
+
+/// When producing a binary diff, the binary data returned will be
+/// either the deflated full ("literal") contents of the file, or
+/// the deflated binary delta between the two sides (whichever is
+/// smaller).
+#[derive(Copy, Clone)]
+pub enum DiffBinaryKind {
+    /// There is no binary delta
+    None,
+    /// The binary data is the literal contents of the file
+    Literal,
+    /// The binary data is the delta from one side to the other
+    Delta,
 }
 
 type PrintCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
@@ -913,7 +927,7 @@ impl<'a> Binding for DiffBinary<'a> {
 impl<'a> DiffBinaryFile<'a> {
     /// The type of binary data for this file
     pub fn kind(&self) -> DiffBinaryKind {
-        unsafe { (*self.raw).kind.into() }
+        unsafe { Binding::from_raw((*self.raw).kind) }
     }
 
     /// The binary data, deflated
@@ -940,6 +954,25 @@ impl<'a> Binding for DiffBinaryFile<'a> {
         }
     }
     fn raw(&self) -> *const raw::git_diff_binary_file { self.raw }
+}
+
+impl Binding for DiffBinaryKind {
+    type Raw = raw::git_diff_binary_t;
+    unsafe fn from_raw(raw: raw::git_diff_binary_t) -> DiffBinaryKind {
+        match raw {
+            raw::GIT_DIFF_BINARY_NONE => DiffBinaryKind::None,
+            raw::GIT_DIFF_BINARY_LITERAL => DiffBinaryKind::Literal,
+            raw::GIT_DIFF_BINARY_DELTA => DiffBinaryKind::Delta,
+            _ => panic!("Unknown git diff binary kind"),
+        }
+    }
+    fn raw(&self) -> raw::git_diff_binary_t {
+        match self {
+            &DiffBinaryKind::None => raw::GIT_DIFF_BINARY_NONE,
+            &DiffBinaryKind::Literal => raw::GIT_DIFF_BINARY_LITERAL,
+            &DiffBinaryKind::Delta => raw::GIT_DIFF_BINARY_DELTA,
+        }
+    }
 }
 
 impl DiffFindOptions {
