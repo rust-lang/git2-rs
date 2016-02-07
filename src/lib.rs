@@ -90,6 +90,7 @@ pub use cred::{Cred, CredentialHelper};
 pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
 pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
+pub use diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
 pub use merge::{AnnotatedCommit, MergeOptions};
 pub use error::Error;
 pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
