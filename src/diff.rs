@@ -214,7 +214,7 @@ impl<'repo> Diff<'repo> {
     ///
     /// Returning `false` from any callback will terminate the iteration and
     /// return an error from this function.
-    pub fn foreach<'a>(&self,
+    pub fn foreach(&self,
                    file_cb: &mut FileCb,
                    binary_cb: Option<&mut BinaryCb>,
                    hunk_cb: Option<&mut HunkCb>,
@@ -227,9 +227,21 @@ impl<'repo> Diff<'repo> {
         };
         let ptr = &mut cbs as *mut _;
         unsafe {
-            let binary_cb_c: Option<raw::git_diff_binary_cb> = if cbs.binary.is_some() { Some(binary_cb_c) } else { None };
-            let hunk_cb_c: Option<raw::git_diff_hunk_cb> = if cbs.hunk.is_some() { Some(hunk_cb_c) } else { None };
-            let line_cb_c: Option<raw::git_diff_line_cb> = if cbs.line.is_some() { Some(line_cb_c) } else { None };
+            let binary_cb_c = if cbs.binary.is_some() {
+                Some(binary_cb_c as raw::git_diff_binary_cb)
+            } else {
+                None
+            };
+            let hunk_cb_c = if cbs.hunk.is_some() {
+                Some(hunk_cb_c as raw::git_diff_hunk_cb)
+            } else {
+                None
+            };
+            let line_cb_c = if cbs.line.is_some() {
+                Some(line_cb_c as raw::git_diff_line_cb)
+            } else {
+                None
+            };
             try_call!(raw::git_diff_foreach(self.raw, file_cb_c, binary_cb_c,
                                             hunk_cb_c, line_cb_c,
                                             ptr as *mut _));
@@ -1165,7 +1177,8 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let diff = t!(repo.diff_tree_to_workdir(None, None));
         let mut count = 0;
-        t!(diff.foreach(&mut |_file, _progress| { count = count + 1; true }, None, None, None));
+        t!(diff.foreach(&mut |_file, _progress| { count = count + 1; true },
+                        None, None, None));
         assert_eq!(count, 0);
     }
 
@@ -1174,7 +1187,9 @@ mod tests {
         let path = Path::new("foo");
         let (td, repo) = ::test::repo_init();
         t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
-        let diff = t!(repo.diff_tree_to_workdir(None, Some(DiffOptions::new().include_untracked(true))));
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_workdir(None, Some(&mut opts)));
         let mut count = 0;
         let mut result = None;
         t!(diff.foreach(&mut |file, _progress| {
@@ -1193,7 +1208,10 @@ mod tests {
         t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
         let mut index = t!(repo.index());
         t!(index.add_path(path));
-        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index),
+                                              Some(&mut opts)));
         let mut new_lines = 0;
         t!(diff.foreach(
             &mut |_file, _progress| { true },
@@ -1211,7 +1229,8 @@ mod tests {
         let fib = vec![0, 1, 1, 2, 3, 5, 8];
         // Verified with a node implementation of deflate, might be worth
         // adding a deflate lib to do this inline here.
-        let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0, 0, 53, 0, 21];
+        let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0,
+                                0, 53, 0, 21];
         let foo_path = Path::new("foo");
         let bin_path = Path::new("bin");
         let (td, repo) = ::test::repo_init();
@@ -1220,7 +1239,10 @@ mod tests {
         let mut index = t!(repo.index());
         t!(index.add_path(foo_path));
         t!(index.add_path(bin_path));
-        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(DiffOptions::new().include_untracked(true))));
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index),
+                                              Some(&mut opts)));
         let mut bin_content = None;
         let mut new_lines = 0;
         let mut line_content = None;
