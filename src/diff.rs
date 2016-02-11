@@ -78,13 +78,13 @@ pub struct DiffStats {
 /// Structure describing the binary contents of a diff.
 pub struct DiffBinary<'a> {
     raw: *const raw::git_diff_binary,
-    _marker: marker::PhantomData<&'a Diff<'a>>,
+    _marker: marker::PhantomData<&'a raw::git_diff_binary>,
 }
 
 /// The contents of one of the files in a binary diff.
 pub struct DiffBinaryFile<'a> {
     raw: *const raw::git_diff_binary_file,
-    _marker: marker::PhantomData<&'a Diff<'a>>,
+    _marker: marker::PhantomData<&'a raw::git_diff_binary_file>,
 }
 
 /// When producing a binary diff, the binary data returned will be
