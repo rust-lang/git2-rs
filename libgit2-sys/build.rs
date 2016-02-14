@@ -1,7 +1,9 @@
-extern crate pkg_config;
 extern crate cmake;
+extern crate gcc;
+extern crate pkg_config;
 
 use std::env;
+use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -32,6 +34,7 @@ fn main() {
     }
 
     let target = env::var("TARGET").unwrap();
+    let host = env::var("HOST").unwrap();
     let windows = target.contains("windows");
     let msvc = target.contains("msvc");
     let mut cfg = cmake::Config::new("libgit2");
@@ -60,6 +63,25 @@ fn main() {
             } else {
                 cfg.cflag(format!("-I{}", libssh2_include))
                    .cflag("-DGIT_SSH");
+            }
+        }
+    }
+
+    // When cross-compiling, we're pretty unlikely to find a `dlltool` binary
+    // lying around, so try to find another if it exists
+    if windows && !host.contains("windows") {
+        let c_compiler = gcc::Config::new().cargo_metadata(false)
+                                           .get_compiler();
+        let exe = c_compiler.path();
+        let path = env::var_os("PATH").unwrap_or(OsString::new());
+        let exe = env::split_paths(&path)
+                      .map(|p| p.join(&exe))
+                      .find(|p| p.exists());
+        if let Some(exe) = exe {
+            if let Some(name) = exe.file_name().and_then(|e| e.to_str()) {
+                let name = name.replace("gcc", "dlltool");
+                let dlltool = exe.with_file_name(name);
+                cfg.define("DLLTOOL", &dlltool);
             }
         }
     }

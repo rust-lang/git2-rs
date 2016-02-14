@@ -21,6 +21,7 @@ libz-sys = ">= 0"
 [build-dependencies]
 pkg-config = "0.3"
 cmake = "0.1.2"
+gcc = "0.3"
 
 [target.i686-unknown-linux-gnu.dependencies]
 openssl-sys = "0.7.0"
