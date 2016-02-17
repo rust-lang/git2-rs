@@ -4,7 +4,7 @@
 extern crate libc;
 #[cfg(feature = "ssh")]
 extern crate libssh2_sys as libssh2;
-#[cfg(all(unix, not(target_os = "macos"), feature = "https"))]
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
 extern crate openssl_sys as openssl;
 extern crate libz_sys as libz;
 
@@ -1232,7 +1232,7 @@ pub struct git_describe_format_options {
 }
 
 /// Initialize openssl for the libgit2 library
-#[cfg(all(unix, not(target_os = "macos"), feature = "https"))]
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
 pub fn openssl_init() {
     if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
 
@@ -1350,7 +1350,7 @@ pub fn openssl_init() {
     openssl::probe::init_ssl_cert_env_vars();
 }
 
-#[cfg(any(windows, target_os = "macos", not(feature = "https")))]
+#[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
 pub fn openssl_init() {}
 
 extern {
