@@ -126,6 +126,10 @@ impl Hash for Oid {
     }
 }
 
+impl AsRef<[u8]> for Oid {
+    fn as_ref(&self) -> &[u8] { self.as_bytes() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Oid;
