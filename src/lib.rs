@@ -242,7 +242,9 @@ pub enum RepositoryState {
     Clean,
     Merge,
     Revert,
+    RevertSequence,
     CherryPick,
+    CherryPickSequence,
     Bisect,
     Rebase,
     RebaseInteractive,
@@ -302,6 +304,8 @@ pub enum BranchType {
 /// searching for config entries.
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
+    /// System-wide on Windows, for compatibility with portable git
+    ProgramData,
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
     /// XDG-compatible configuration file, e.g. ~/.config/git/config
@@ -542,6 +546,7 @@ impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
     pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
         match raw {
+            raw::GIT_CONFIG_LEVEL_PROGRAMDATA => ConfigLevel::ProgramData,
             raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
             raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
             raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,

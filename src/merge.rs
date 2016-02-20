@@ -43,9 +43,9 @@ impl MergeOptions {
     /// Detect file renames
     pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
         if find {
-            self.raw.tree_flags |= raw::GIT_MERGE_TREE_FIND_RENAMES;
+            self.raw.flags |= raw::GIT_MERGE_FIND_RENAMES;
         } else {
-            self.raw.tree_flags &= !raw::GIT_MERGE_TREE_FIND_RENAMES;
+            self.raw.flags &= !raw::GIT_MERGE_FIND_RENAMES;
         }
         self
     }
@@ -65,13 +65,22 @@ impl MergeOptions {
         self
     }
 
+    /// Maximum number of times to merge common ancestors to build a
+    /// virtual merge base when faced with criss-cross merges.  When
+    /// this limit is reached, the next ancestor will simply be used
+    /// instead of attempting to merge it.  The default is unlimited.
+    pub fn recursion_limit(&mut self, limit: u32) -> &mut MergeOptions {
+        self.raw.recursion_limit = limit as c_uint;
+        self
+    }
+
     /// Specify a side to favor for resolving conflicts
     pub fn file_favor(&mut self, favor: FileFavor) -> &mut MergeOptions {
         self.raw.file_favor = favor.convert();
         self
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut MergeOptions {
+    fn flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut MergeOptions {
         if val {
             self.raw.file_flags |= opt;
         } else {
