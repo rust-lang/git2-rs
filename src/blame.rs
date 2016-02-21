@@ -51,7 +51,7 @@ impl<'repo> Blame<'repo> {
     /// commit.
     pub fn get_line(&self, lineno: usize) -> Option<BlameHunk> {
         unsafe {
-            let ptr = raw::git_blame_get_hunk_byline(self.raw(), lineno as u32);
+            let ptr = raw::git_blame_get_hunk_byline(self.raw(), lineno);
             if ptr.is_null() {
                 None
             } else {
@@ -91,7 +91,7 @@ impl<'blame> BlameHunk<'blame> {
     ///
     /// Note that the start line is counting from 1.
     pub fn final_start_line(&self) -> usize {
-        unsafe { (*self.raw).final_start_line_number as usize }
+        unsafe { (*self.raw).final_start_line_number }
     }
 
     /// Returns the OID of the commit where this hunk was found.
@@ -112,7 +112,7 @@ impl<'blame> BlameHunk<'blame> {
     ///
     /// Note that the start line is counting from 1.
     pub fn orig_start_line(&self) -> usize {
-        unsafe { (*self.raw).orig_start_line_number as usize }
+        unsafe { (*self.raw).orig_start_line_number}
     }
 
     /// Returns path to the file where this hunk originated.

@@ -212,7 +212,9 @@ impl Repository {
             GIT_REPOSITORY_STATE_NONE => Clean,
             GIT_REPOSITORY_STATE_MERGE => Merge,
             GIT_REPOSITORY_STATE_REVERT => Revert,
+            GIT_REPOSITORY_STATE_REVERT_SEQUENCE => RevertSequence,
             GIT_REPOSITORY_STATE_CHERRYPICK => CherryPick,
+            GIT_REPOSITORY_STATE_CHERRYPICK_SEQUENCE => CherryPickSequence,
             GIT_REPOSITORY_STATE_BISECT => Bisect,
             GIT_REPOSITORY_STATE_REBASE => Rebase,
             GIT_REPOSITORY_STATE_REBASE_INTERACTIVE => RebaseInteractive,
@@ -1093,9 +1095,6 @@ impl Repository {
     /// are written to the index. Callers should inspect the repository's index
     /// after this completes, resolve any conflicts and prepare a commit.
     ///
-    /// The merge performed uses the first common ancestor, unlike the
-    /// git-merge-recursive strategy, which may produce an artificial common
-    /// ancestor tree when there are multiple ancestors.
     /// For compatibility with git, the repository is put into a merging state.
     /// Once the commit is done (or if the uses wishes to abort), you should
     /// clear this state by calling git_repository_state_cleanup().
@@ -1131,12 +1130,6 @@ impl Repository {
     /// the merge. The index may be written as-is to the working directory or
     /// checked out. If the index is to be converted to a tree, the caller
     /// should resolve any conflicts that arose as part of the merge.
-    ///
-    /// The merge performed uses the first common ancestor, unlike the
-    /// git-merge-recursive strategy, which may produce an artificial common
-    /// ancestor tree when there are multiple ancestors.
-    ///
-    /// The returned index must be freed explicitly with git_index_free.
     pub fn merge_commits(&self, our_commit: &Commit, their_commit: &Commit,
                          opts: Option<&MergeOptions>) -> Result<Index, Error> {
          let mut raw = 0 as *mut raw::git_index;

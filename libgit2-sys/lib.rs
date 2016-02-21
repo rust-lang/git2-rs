@@ -164,6 +164,7 @@ git_enum! {
         GIT_EINVALID = -21,
         GIT_EUNCOMMITTED = -22,
         GIT_EDIRECTORY = -23,
+        GIT_EMERGECONFLICT = -24,
         GIT_PASSTHROUGH = -30,
         GIT_ITEROVER = -31,
     }
@@ -210,7 +211,9 @@ git_enum! {
         GIT_REPOSITORY_STATE_NONE,
         GIT_REPOSITORY_STATE_MERGE,
         GIT_REPOSITORY_STATE_REVERT,
+        GIT_REPOSITORY_STATE_REVERT_SEQUENCE,
         GIT_REPOSITORY_STATE_CHERRYPICK,
+        GIT_REPOSITORY_STATE_CHERRYPICK_SEQUENCE,
         GIT_REPOSITORY_STATE_BISECT,
         GIT_REPOSITORY_STATE_REBASE,
         GIT_REPOSITORY_STATE_REBASE_INTERACTIVE,
@@ -664,20 +667,20 @@ pub struct git_blame_options {
     pub min_match_characters: u16,
     pub newest_commit: git_oid,
     pub oldest_commit: git_oid,
-    pub min_line: u32,
-    pub max_line: u32,
+    pub min_line: usize,
+    pub max_line: usize,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct git_blame_hunk {
-    pub lines_in_hunk: u16,
+    pub lines_in_hunk: usize,
     pub final_commit_id: git_oid,
-    pub final_start_line_number: u16,
+    pub final_start_line_number: usize,
     pub final_signature: *mut git_signature,
     pub orig_commit_id: git_oid,
     pub orig_path: *const c_char,
-    pub orig_start_line_number: u16,
+    pub orig_start_line_number: usize,
     pub orig_signature: *mut git_signature,
     pub boundary: c_char,
 }
@@ -720,11 +723,12 @@ pub struct git_config_entry {
 
 git_enum! {
     pub enum git_config_level_t: c_int {
-        GIT_CONFIG_LEVEL_SYSTEM = 1,
-        GIT_CONFIG_LEVEL_XDG = 2,
-        GIT_CONFIG_LEVEL_GLOBAL = 3,
-        GIT_CONFIG_LEVEL_LOCAL = 4,
-        GIT_CONFIG_LEVEL_APP = 5,
+        GIT_CONFIG_LEVEL_PROGRAMDATA = 1,
+        GIT_CONFIG_LEVEL_SYSTEM = 2,
+        GIT_CONFIG_LEVEL_XDG = 3,
+        GIT_CONFIG_LEVEL_GLOBAL = 4,
+        GIT_CONFIG_LEVEL_LOCAL = 5,
+        GIT_CONFIG_LEVEL_APP = 6,
         GIT_CONFIG_HIGHEST_LEVEL = -1,
     }
 }
@@ -749,6 +753,10 @@ git_enum! {
         GIT_SUBMODULE_IGNORE_ALL       = 4,
     }
 }
+
+pub type git_submodule_cb = extern fn(*mut git_submodule,
+                                      *const c_char,
+                                      *mut c_void) -> c_int;
 
 #[repr(C)]
 pub struct git_cred {
@@ -950,7 +958,8 @@ pub struct git_diff_options {
     pub ignore_submodules: git_submodule_ignore_t,
     pub pathspec: git_strarray,
     pub notify_cb: git_diff_notify_cb,
-    pub notify_payload: *mut c_void,
+    pub progress_cb: git_diff_progress_cb,
+    pub payload: *mut c_void,
     pub context_lines: u32,
     pub interhunk_lines: u32,
     pub id_abbrev: u16,
@@ -983,6 +992,11 @@ pub type git_diff_notify_cb = extern fn(*const git_diff,
                                         *const git_diff_delta,
                                         *const c_char,
                                         *mut c_void) -> c_int;
+
+pub type git_diff_progress_cb = extern fn (*const git_diff,
+                                           *const c_char,
+                                           *const c_char,
+                                           *mut c_void) -> c_int;
 
 pub const GIT_DIFF_NORMAL: u32 = 0;
 pub const GIT_DIFF_REVERSE: u32 = 1 << 0;
@@ -1087,17 +1101,21 @@ git_enum! {
 #[repr(C)]
 pub struct git_merge_options {
     pub version: c_uint,
-    pub tree_flags: git_merge_tree_flag_t,
+    pub flags: git_merge_flag_t,
     pub rename_threshold: c_uint,
     pub target_limit: c_uint,
     pub metric: *mut git_diff_similarity_metric,
+    pub recursion_limit: c_uint,
     pub file_favor: git_merge_file_favor_t,
-    pub file_flags: c_uint,
+    pub file_flags: git_merge_file_flag_t,
 }
 
 git_enum! {
-    pub enum git_merge_tree_flag_t {
-        GIT_MERGE_TREE_FIND_RENAMES = 1 << 0,
+    pub enum git_merge_flag_t {
+        GIT_MERGE_FIND_RENAMES = 1 << 0,
+        GIT_MERGE_FAIL_ON_CONFLICT = 1 << 1,
+        GIT_MERGE_SKIP_REUC = 1 << 2,
+        GIT_MERGE_NO_RECURSIVE = 1 << 3,
     }
 }
 
@@ -1110,16 +1128,19 @@ git_enum! {
     }
 }
 
-// used in git_merge_options.file_flags
-pub const GIT_MERGE_FILE_DEFAULT: u32 = 0;
-pub const GIT_MERGE_FILE_STYLE_MERGE: u32 = (1 << 0);
-pub const GIT_MERGE_FILE_STYLE_DIFF3: u32 = (1 << 1);
-pub const GIT_MERGE_FILE_SIMPLIFY_ALNUM: u32 = (1 << 2);
-pub const GIT_MERGE_FILE_IGNORE_WHITESPACE: u32 = (1 << 3);
-pub const GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE: u32 = (1 << 4);
-pub const GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL: u32 = (1 << 5);
-pub const GIT_MERGE_FILE_DIFF_PATIENCE: u32 = (1 << 6);
-pub const GIT_MERGE_FILE_DIFF_MINIMAL: u32 = (1 << 7);
+git_enum! {
+    pub enum git_merge_file_flag_t {
+        GIT_MERGE_FILE_DEFAULT = 0,
+        GIT_MERGE_FILE_STYLE_MERGE = (1 << 0),
+        GIT_MERGE_FILE_STYLE_DIFF3 = (1 << 1),
+        GIT_MERGE_FILE_SIMPLIFY_ALNUM = (1 << 2),
+        GIT_MERGE_FILE_IGNORE_WHITESPACE = (1 << 3),
+        GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE = (1 << 4),
+        GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL = (1 << 5),
+        GIT_MERGE_FILE_DIFF_PATIENCE = (1 << 6),
+        GIT_MERGE_FILE_DIFF_MINIMAL = (1 << 7),
+    }
+}
 
 pub type git_transport_cb = extern fn(out: *mut *mut git_transport,
                                       owner: *mut git_remote,
@@ -1659,9 +1680,7 @@ extern {
                                       write_index: c_int) -> c_int;
     pub fn git_submodule_branch(submodule: *mut git_submodule) -> *const c_char;
     pub fn git_submodule_foreach(repo: *mut git_repository,
-                                 callback: extern fn(*mut git_submodule,
-                                                     *const c_char,
-                                                     *mut c_void) -> c_int,
+                                 callback: git_submodule_cb,
                                  payload: *mut c_void) -> c_int;
     pub fn git_submodule_free(submodule: *mut git_submodule);
     pub fn git_submodule_head_id(submodule: *mut git_submodule) -> *const git_oid;
@@ -1941,6 +1960,7 @@ extern {
     pub fn git_config_delete_multivar(cfg: *mut git_config,
                                       name: *const c_char,
                                       regexp: *const c_char) -> c_int;
+    pub fn git_config_find_programdata(out: *mut git_buf) -> c_int;
     pub fn git_config_find_global(out: *mut git_buf) -> c_int;
     pub fn git_config_find_system(out: *mut git_buf) -> c_int;
     pub fn git_config_find_xdg(out: *mut git_buf) -> c_int;
@@ -2172,7 +2192,7 @@ extern {
     pub fn git_blame_get_hunk_count(blame: *mut git_blame) -> u32;
 
     pub fn git_blame_get_hunk_byline(blame: *mut git_blame,
-                                     lineno: u32) -> *const git_blame_hunk;
+                                     lineno: usize) -> *const git_blame_hunk;
     pub fn git_blame_get_hunk_byindex(blame: *mut git_blame,
                                       index: u32) -> *const git_blame_hunk;
 
