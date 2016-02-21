@@ -6,7 +6,7 @@ build = "build.rs"
 
 [dependencies]
 libgit2-sys = { path = "../libgit2-sys" }
-libc = "0.1"
+libc = "0.2"
 
 [build-dependencies]
 ctest = { git = "https://github.com/alexcrichton/ctest" }
