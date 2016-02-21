@@ -12,8 +12,11 @@ use util::Binding;
 /// library.
 ///
 /// Signatures contain a name, email, and timestamp. All fields can be specified
-/// with `new`, the `now` constructor omits the timestamp, and the `default`
-/// constructor reads configuration from the given repository.
+/// with `new` while the `now` constructor omits the timestamp. The
+/// [`Repository::signature`] method can be used to create a default signature
+/// with name and email values read from the configuration.
+///
+/// [`Repository::signature`]: struct.Repository.html#method.signature
 pub struct Signature<'a> {
     raw: *mut raw::git_signature,
     _marker: marker::PhantomData<&'a str>,
