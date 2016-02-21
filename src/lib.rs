@@ -308,7 +308,7 @@ pub enum ConfigLevel {
     XDG,
     /// User-specific configuration, e.g. ~/.gitconfig
     Global,
-    /// Reopsitory specific config, e.g. $PWD/.git/config
+    /// Repository specific config, e.g. $PWD/.git/config
     Local,
     /// Application specific configuration file
     App,
