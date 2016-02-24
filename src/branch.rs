@@ -111,22 +111,18 @@ impl<'repo> Branches<'repo> {
 }
 
 impl<'repo> Iterator for Branches<'repo> {
-    type Item = (Branch<'repo>, BranchType);
-    fn next(&mut self) -> Option<(Branch<'repo>, BranchType)> {
+    type Item = Result<(Branch<'repo>, BranchType), Error>;
+    fn next(&mut self) -> Option<Result<(Branch<'repo>, BranchType), Error>> {
         let mut ret = 0 as *mut raw::git_reference;
         let mut typ = raw::GIT_BRANCH_LOCAL;
         unsafe {
-            let rc = raw::git_branch_next(&mut ret, &mut typ, self.raw);
-            if rc == raw::GIT_ITEROVER as libc::c_int {
-                return None
-            }
-            assert_eq!(rc, 0);
+            try_call_iter!(raw::git_branch_next(&mut ret, &mut typ, self.raw));
             let typ = match typ {
                 raw::GIT_BRANCH_LOCAL => BranchType::Local,
                 raw::GIT_BRANCH_REMOTE => BranchType::Remote,
                 n => panic!("unexected branch type: {}", n),
             };
-            Some((Branch::wrap(Binding::from_raw(ret)), typ))
+            Some(Ok((Branch::wrap(Binding::from_raw(ret)), typ)))
         }
     }
 }

@@ -259,13 +259,12 @@ impl<'repo> Binding for References<'repo> {
 }
 
 impl<'repo> Iterator for References<'repo> {
-    type Item = Reference<'repo>;
-    fn next(&mut self) -> Option<Reference<'repo>> {
+    type Item = Result<Reference<'repo>, Error>;
+    fn next(&mut self) -> Option<Result<Reference<'repo>, Error>> {
         let mut out = 0 as *mut raw::git_reference;
-        if unsafe { raw::git_reference_next(&mut out, self.raw) == 0 } {
-            Some(unsafe { Binding::from_raw(out) })
-        } else {
-            None
+        unsafe {
+            try_call_iter!(raw::git_reference_next(&mut out, self.raw));
+            Some(Ok(Binding::from_raw(out)))
         }
     }
 }
@@ -277,17 +276,15 @@ impl<'repo> Drop for References<'repo> {
 }
 
 impl<'repo> Iterator for ReferenceNames<'repo> {
-    type Item = &'repo str;
-    fn next(&mut self) -> Option<&'repo str> {
+    type Item = Result<&'repo str, Error>;
+    fn next(&mut self) -> Option<Result<&'repo str, Error>> {
         let mut out = 0 as *const libc::c_char;
-        if unsafe { raw::git_reference_next_name(&mut out, self.inner.raw) == 0 } {
-            Some(unsafe {
-                let bytes = ::opt_bytes(self, out).unwrap();
-                let s = str::from_utf8(bytes).unwrap();
-                mem::transmute::<&str, &'repo str>(s)
-            })
-        } else {
-            None
+        unsafe {
+            try_call_iter!(raw::git_reference_next_name(&mut out,
+                                                        self.inner.raw));
+            let bytes = ::opt_bytes(self, out).unwrap();
+            let s = str::from_utf8(bytes).unwrap();
+            Some(Ok(mem::transmute::<&str, &'repo str>(s)))
         }
     }
 }
@@ -342,10 +339,10 @@ mod tests {
 
         {
             assert!(repo.references().unwrap().count() == 1);
-            assert!(repo.references().unwrap().next().unwrap() == head);
+            assert!(repo.references().unwrap().next().unwrap().unwrap() == head);
             let mut names = repo.references().unwrap().names();
-            assert_eq!(names.next(), Some("refs/heads/master"));
-            assert_eq!(names.next(), None);
+            assert_eq!(names.next().unwrap().unwrap(), "refs/heads/master");
+            assert!(names.next().is_none());
             assert!(repo.references_glob("foo").unwrap().count() == 0);
             assert!(repo.references_glob("refs/heads/*").unwrap().count() == 1);
         }

@@ -18,6 +18,16 @@ macro_rules! try_call {
     })
 }
 
+macro_rules! try_call_iter {
+    ($($f:tt)*) => {
+        match call!($($f)*) {
+            0 => {}
+            raw::GIT_ITEROVER => return None,
+            e => return Some(Err(::call::last_error(e)))
+        }
+    }
+}
+
 #[doc(hidden)]
 pub trait Convert<T> {
     fn convert(&self) -> T;

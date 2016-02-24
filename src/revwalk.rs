@@ -168,12 +168,7 @@ impl<'repo> Iterator for Revwalk<'repo> {
     fn next(&mut self) -> Option<Result<Oid, Error>> {
         let mut out: raw::git_oid = raw::git_oid{ id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
-            match raw::git_revwalk_next(&mut out, self.raw()) {
-                0 => (),
-                raw::GIT_ITEROVER => return None,
-                err => return Some(Err(::call::last_error(err))),
-            }
-
+            try_call_iter!(raw::git_revwalk_next(&mut out, self.raw()));
             Some(Ok(Binding::from_raw(&out as *const _)))
         }
     }

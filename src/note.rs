@@ -1,7 +1,7 @@
 use std::marker;
 use std::str;
 
-use {raw, signature, Signature, Oid, Repository};
+use {raw, signature, Signature, Oid, Repository, Error};
 use util::Binding;
 
 /// A structure representing a [note][note] in git.
@@ -77,16 +77,15 @@ impl<'repo> Binding for Notes<'repo> {
 }
 
 impl<'repo> Iterator for Notes<'repo> {
-    type Item = (Oid, Oid);
-    fn next(&mut self) -> Option<(Oid, Oid)> {
+    type Item = Result<(Oid, Oid), Error>;
+    fn next(&mut self) -> Option<Result<(Oid, Oid), Error>> {
         let mut note_id = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         let mut annotated_id = note_id;
         unsafe {
-            match raw::git_note_next(&mut note_id, &mut annotated_id, self.raw) {
-                0 => Some((Binding::from_raw(&note_id as *const _),
-                           Binding::from_raw(&annotated_id as *const _))),
-                _ => None,
-            }
+            try_call_iter!(raw::git_note_next(&mut note_id, &mut annotated_id,
+                                              self.raw));
+            Some(Ok((Binding::from_raw(&note_id as *const _),
+                     Binding::from_raw(&annotated_id as *const _))))
         }
     }
 }
@@ -113,7 +112,7 @@ mod tests {
         assert_eq!(note_obj.id(), note);
         assert_eq!(note_obj.message(), Some("foo"));
 
-        let (a, b) = repo.notes(None).unwrap().next().unwrap();
+        let (a, b) = repo.notes(None).unwrap().next().unwrap().unwrap();
         assert_eq!(a, note);
         assert_eq!(b, head);
 

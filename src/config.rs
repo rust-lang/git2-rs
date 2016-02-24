@@ -248,6 +248,7 @@ impl Config {
     /// let cfg = Config::new().unwrap();
     ///
     /// for entry in &cfg.entries(None).unwrap() {
+    ///     let entry = entry.unwrap();
     ///     println!("{} => {}", entry.name().unwrap(), entry.value().unwrap());
     /// }
     /// ```
@@ -424,19 +425,16 @@ impl<'cfg> Binding for ConfigEntries<'cfg> {
 // It's also not implemented for `&'b mut T` so we can have multiple entries
 // (ok).
 impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
-    type Item = ConfigEntry<'b>;
-    fn next(&mut self) -> Option<ConfigEntry<'b>> {
+    type Item = Result<ConfigEntry<'b>, Error>;
+    fn next(&mut self) -> Option<Result<ConfigEntry<'b>, Error>> {
         let mut raw = 0 as *mut raw::git_config_entry;
         unsafe {
-            if raw::git_config_next(&mut raw, self.raw) == 0 {
-                Some(ConfigEntry {
-                    owned: false,
-                    raw: raw,
-                    _marker: marker::PhantomData,
-                })
-            } else {
-                None
-            }
+            try_call_iter!(raw::git_config_next(&mut raw, self.raw));
+            Some(Ok(ConfigEntry {
+                owned: false,
+                raw: raw,
+                _marker: marker::PhantomData,
+            }))
         }
     }
 }
@@ -492,6 +490,7 @@ mod tests {
         assert_eq!(cfg.get_str("foo.k4").unwrap(), "bar");
 
         for entry in &cfg.entries(None).unwrap() {
+            let entry = entry.unwrap();
             entry.name();
             entry.value();
             entry.level();
