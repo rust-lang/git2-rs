@@ -6,7 +6,7 @@ use std::path::Path;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
-use {raw, panic, Buf, Delta, Oid, Repository, Tree, Error, Index, DiffFormat};
+use {raw, panic, Buf, Delta, Oid, Repository, Error, DiffFormat};
 use {DiffStatsFormat, IntoCString};
 use util::{self, Binding};
 
@@ -116,51 +116,6 @@ struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
 }
 
 impl<'repo> Diff<'repo> {
-    /// Deprecated, use repo.diff_tree_to_tree(..) instead
-    #[doc(hidden)]
-    pub fn tree_to_tree(repo: &'repo Repository,
-                        old_tree: Option<&Tree>,
-                        new_tree: Option<&Tree>,
-                        opts: Option<&mut DiffOptions>) -> Result<Diff<'repo>, Error> {
-        repo.diff_tree_to_tree(old_tree, new_tree, opts)
-    }
-
-    /// Deprecated, use repo.diff_tree_to_index(..) instead
-    #[doc(hidden)]
-    pub fn tree_to_index(repo: &'repo Repository,
-                         old_tree: Option<&Tree>,
-                         index: Option<&Index>,
-                         opts: Option<&mut DiffOptions>) -> Result<Diff<'repo>, Error> {
-        repo.diff_tree_to_index(old_tree, index, opts)
-    }
-
-    /// Deprecated, use repo.diff_index_to_workdir(..) instead
-    #[doc(hidden)]
-    pub fn index_to_workdir(repo: &'repo Repository,
-                            index: Option<&Index>,
-                            opts: Option<&mut DiffOptions>)
-                            -> Result<Diff<'repo>, Error> {
-        repo.diff_index_to_workdir(index, opts)
-    }
-
-    /// Deprecated, use repo.diff_tree_to_tree(..) instead
-    #[doc(hidden)]
-    pub fn tree_to_workdir(repo: &'repo Repository,
-                           old_tree: Option<&Tree>,
-                           opts: Option<&mut DiffOptions>)
-                           -> Result<Diff<'repo>, Error> {
-        repo.diff_tree_to_workdir(old_tree, opts)
-    }
-
-    /// Deprecated, use repo.diff_tree_to_workdir_with_index(..) instead
-    #[doc(hidden)]
-    pub fn tree_to_workdir_with_index(repo: &'repo Repository,
-                                      old_tree: Option<&Tree>,
-                                      opts: Option<&mut DiffOptions>)
-                                      -> Result<Diff<'repo>, Error> {
-        repo.diff_tree_to_workdir_with_index(old_tree, opts)
-    }
-
     /// Merge one diff into another.
     ///
     /// This merges items from the "from" list into the "self" list.  The

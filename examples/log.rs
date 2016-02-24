@@ -22,7 +22,7 @@ extern crate time;
 use std::str;
 use docopt::Docopt;
 use git2::{Repository, Signature, Commit, ObjectType, Time, DiffOptions};
-use git2::{Pathspec, Diff, Error, DiffFormat};
+use git2::{Pathspec, Error, DiffFormat};
 
 #[derive(RustcDecodable)]
 struct Args {
@@ -138,8 +138,8 @@ fn run(args: &Args) -> Result<(), Error> {
             None
         };
         let b = try!(commit.tree());
-        let diff = try!(Diff::tree_to_tree(&repo, a.as_ref(), Some(&b),
-                                           Some(&mut diffopts2)));
+        let diff = try!(repo.diff_tree_to_tree(a.as_ref(), Some(&b),
+                                               Some(&mut diffopts2)));
         try!(diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
             match line.origin() {
                 ' ' | '+' | '-' => print!("{}", line.origin()),
@@ -212,7 +212,7 @@ fn match_with_parent(repo: &Repository, commit: &Commit, parent: &Commit,
                      opts: &mut DiffOptions) -> Result<bool, Error> {
     let a = try!(parent.tree());
     let b = try!(commit.tree());
-    let diff = try!(Diff::tree_to_tree(repo, Some(&a), Some(&b), Some(opts)));
+    let diff = try!(repo.diff_tree_to_tree(Some(&a), Some(&b), Some(opts)));
     Ok(diff.deltas().len() > 0)
 }
 

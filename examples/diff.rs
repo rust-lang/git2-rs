@@ -101,23 +101,23 @@ fn run(args: &Args) -> Result<(), Error> {
     let head = try!(tree_to_treeish(&repo, Some(&"HEAD".to_string()))).unwrap();
     let mut diff = match (t1, t2, args.cache()) {
         (Some(t1), Some(t2), _) => {
-            try!(Diff::tree_to_tree(&repo, t1.as_tree(), t2.as_tree(),
-                                    Some(&mut opts)))
+            try!(repo.diff_tree_to_tree(t1.as_tree(), t2.as_tree(),
+                                        Some(&mut opts)))
         }
         (t1, None, Cache::None) => {
             let t1 = t1.unwrap_or(head);
-            try!(Diff::tree_to_workdir(&repo, t1.as_tree(), Some(&mut opts)))
+            try!(repo.diff_tree_to_workdir(t1.as_tree(), Some(&mut opts)))
         }
         (t1, None, Cache::Only) => {
             let t1 = t1.unwrap_or(head);
-            try!(Diff::tree_to_index(&repo, t1.as_tree(), None, Some(&mut opts)))
+            try!(repo.diff_tree_to_index(t1.as_tree(), None, Some(&mut opts)))
         }
         (Some(t1), None, _) => {
-            try!(Diff::tree_to_workdir_with_index(&repo, t1.as_tree(),
-                                                  Some(&mut opts)))
+            try!(repo.diff_tree_to_workdir_with_index(t1.as_tree(),
+                                                      Some(&mut opts)))
         }
         (None, None, _) => {
-            try!(Diff::index_to_workdir(&repo, None, Some(&mut opts)))
+            try!(repo.diff_index_to_workdir(None, Some(&mut opts)))
         }
         (None, Some(_), _) => unreachable!(),
     };
