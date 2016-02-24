@@ -98,6 +98,7 @@ fn run(args: &Args) -> Result<(), Error> {
         ($e:expr) => (match $e { Ok(t) => t, Err(e) => return Some(Err(e)) })
     }
     let revwalk = revwalk.filter_map(|id| {
+        let id = filter_try!(id);
         let commit = filter_try!(repo.find_commit(id));
         let parents = commit.parents().len();
         if parents < args.min_parents() { return None }

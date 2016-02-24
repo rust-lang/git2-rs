@@ -64,6 +64,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     }
 
     for id in revwalk {
+        let id = try!(id);
         println!("{}", id);
     }
     Ok(())

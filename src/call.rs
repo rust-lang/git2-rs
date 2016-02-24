@@ -32,7 +32,7 @@ pub fn try(ret: libc::c_int) -> Result<libc::c_int, Error> {
     }
 }
 
-fn last_error(code: libc::c_int) -> Error {
+pub fn last_error(code: libc::c_int) -> Error {
     // Apparently libgit2 isn't necessarily guaranteed to set the last error
     // whenever a function returns a negative value!
     Error::last_error(code).unwrap_or_else(|| {

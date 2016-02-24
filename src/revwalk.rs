@@ -164,25 +164,23 @@ impl<'repo> Drop for Revwalk<'repo> {
 }
 
 impl<'repo> Iterator for Revwalk<'repo> {
-    type Item = Oid;
-    fn next(&mut self) -> Option<Oid> {
+    type Item = Result<Oid, Error>;
+    fn next(&mut self) -> Option<Result<Oid, Error>> {
         let mut out: raw::git_oid = raw::git_oid{ id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             match raw::git_revwalk_next(&mut out, self.raw()) {
                 0 => (),
-                _ => return None,
+                raw::GIT_ITEROVER => return None,
+                err => return Some(Err(::call::last_error(err))),
             }
 
-            Some(Binding::from_raw(&out as *const _))
+            Some(Ok(Binding::from_raw(&out as *const _)))
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
-    use std::vec::{Vec};
-
     #[test]
     fn smoke() {
         let (_td, repo) = ::test::repo_init();
@@ -192,7 +190,8 @@ mod tests {
         let mut walk = repo.revwalk().unwrap();
         walk.push(target).unwrap();
 
-        let oids: Vec<::Oid> = walk.by_ref().collect();
+        let oids: Vec<::Oid> = walk.by_ref().collect::<Result<Vec<_>, _>>()
+                                            .unwrap();
 
         assert_eq!(oids.len(), 1);
         assert_eq!(oids[0], target);
