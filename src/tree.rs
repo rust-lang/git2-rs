@@ -103,6 +103,14 @@ impl<'repo> Tree<'repo> {
             &*(self as *const _ as *const Object<'repo>)
         }
     }
+
+    /// Consumes Commit to be returned as an `Object`
+    pub fn into_object(self) -> Object<'repo> {
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        unsafe {
+            mem::transmute(self)
+        }
+    }
 }
 
 impl<'repo> Binding for Tree<'repo> {
@@ -356,12 +364,15 @@ mod tests {
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         assert_eq!(tree.id(), commit.tree_id());
         assert_eq!(tree.len(), 1);
-        let e1 = tree.get(0).unwrap();
-        assert!(e1 == tree.get_id(e1.id()).unwrap());
-        assert!(e1 == tree.get_name("foo").unwrap());
-        assert!(e1 == tree.get_path(Path::new("foo")).unwrap());
-        assert_eq!(e1.name(), Some("foo"));
-        e1.to_object(&repo).unwrap();
+        {
+            let e1 = tree.get(0).unwrap();
+            assert!(e1 == tree.get_id(e1.id()).unwrap());
+            assert!(e1 == tree.get_name("foo").unwrap());
+            assert!(e1 == tree.get_path(Path::new("foo")).unwrap());
+            assert_eq!(e1.name(), Some("foo"));
+            e1.to_object(&repo).unwrap();
+        }
+        tree.into_object();
 
         repo.find_object(commit.tree_id(), None).unwrap().as_tree().unwrap();
     }

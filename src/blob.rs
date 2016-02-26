@@ -1,4 +1,5 @@
 use std::marker;
+use std::mem;
 use std::slice;
 
 use {raw, Oid, Object};
@@ -36,6 +37,14 @@ impl<'repo> Blob<'repo> {
     pub fn as_object(&self) -> &Object<'repo> {
         unsafe {
             &*(self as *const _ as *const Object<'repo>)
+        }
+    }
+
+    /// Consumes Blob to be returned as an `Object`
+    pub fn into_object(self) -> Object<'repo> {
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        unsafe {
+            mem::transmute(self)
         }
     }
 }
@@ -89,5 +98,6 @@ mod tests {
         let id = repo.blob_path(&path).unwrap();
         let blob = repo.find_blob(id).unwrap();
         assert_eq!(blob.content(), [7, 8, 9]);
+        blob.into_object();
     }
 }

@@ -1,4 +1,5 @@
 use std::marker;
+use std::mem;
 use std::ops::Range;
 use std::str;
 use libc;
@@ -237,6 +238,14 @@ impl<'repo> Commit<'repo> {
             &*(self as *const _ as *const Object<'repo>)
         }
     }
+
+    /// Consumes Commit to be returned as an `Object`
+    pub fn into_object(self) -> Object<'repo> {
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        unsafe {
+            mem::transmute(self)
+        }
+    }
 }
 
 impl<'repo> Binding for Commit<'repo> {
@@ -322,6 +331,7 @@ mod tests {
                                   Some("new message"), None).unwrap();
         let new_head = repo.find_commit(new_head).unwrap();
         assert_eq!(new_head.message(), Some("new message"));
+        new_head.into_object();
 
         repo.find_object(target, None).unwrap().as_commit().unwrap();
     }

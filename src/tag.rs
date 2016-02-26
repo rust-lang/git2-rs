@@ -1,4 +1,5 @@
 use std::marker;
+use std::mem;
 use std::str;
 
 use {raw, signature, Error, Oid, Object, Signature, ObjectType};
@@ -95,6 +96,14 @@ impl<'repo> Tag<'repo> {
             &*(self as *const _ as *const Object<'repo>)
         }
     }
+
+    /// Consumes Tag to be returned as an `Object`
+    pub fn into_object(self) -> Object<'repo> {
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        unsafe {
+            mem::transmute(self)
+        }
+    }
 }
 
 impl<'repo> Binding for Tag<'repo> {
@@ -138,6 +147,7 @@ mod tests {
 
         assert_eq!(tag.tagger().unwrap().name(), sig.name());
         tag.target().unwrap();
+        tag.into_object();
 
         repo.find_object(tag_id, None).unwrap().as_tag().unwrap();
 
