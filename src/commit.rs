@@ -334,6 +334,7 @@ mod tests {
         new_head.into_object();
 
         repo.find_object(target, None).unwrap().as_commit().unwrap();
+        repo.find_object(target, None).unwrap().into_commit().ok().unwrap();
     }
 }
 

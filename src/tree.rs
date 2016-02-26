@@ -375,5 +375,6 @@ mod tests {
         tree.into_object();
 
         repo.find_object(commit.tree_id(), None).unwrap().as_tree().unwrap();
+        repo.find_object(commit.tree_id(), None).unwrap().into_tree().ok().unwrap();
     }
 }

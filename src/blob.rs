@@ -87,6 +87,7 @@ mod tests {
         assert!(blob.is_binary());
 
         repo.find_object(id, None).unwrap().as_blob().unwrap();
+        repo.find_object(id, None).unwrap().into_blob().ok().unwrap();
     }
 
     #[test]

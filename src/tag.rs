@@ -150,6 +150,7 @@ mod tests {
         tag.into_object();
 
         repo.find_object(tag_id, None).unwrap().as_tag().unwrap();
+        repo.find_object(tag_id, None).unwrap().into_tag().ok().unwrap();
 
         repo.tag_delete("foo").unwrap();
     }

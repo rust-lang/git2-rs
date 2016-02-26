@@ -1,5 +1,6 @@
 use std::marker;
 use std::mem;
+use std::ptr;
 
 use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree, Repository};
 use {Describe, DescribeOptions};
@@ -62,11 +63,25 @@ impl<'repo> Object<'repo> {
         self.cast(ObjectType::Commit)
     }
 
+    /// Attempt to consume this object and return a commit.
+    ///
+    /// Returns `Err(self)` if this object is not actually a commit.
+    pub fn into_commit(self) -> Result<Commit<'repo>, Object<'repo>> {
+        self.cast_into(ObjectType::Commit)
+    }
+
     /// Attempt to view this object as a tag.
     ///
     /// Returns `None` if the object is not actually a tag.
     pub fn as_tag(&self) -> Option<&Tag<'repo>> {
         self.cast(ObjectType::Tag)
+    }
+
+    /// Attempt to consume this object and return a tag.
+    ///
+    /// Returns `Err(self)` if this object is not actually a tag.
+    pub fn into_tag(self) -> Result<Tag<'repo>, Object<'repo>> {
+        self.cast_into(ObjectType::Tag)
     }
 
     /// Attempt to view this object as a tree.
@@ -76,11 +91,25 @@ impl<'repo> Object<'repo> {
         self.cast(ObjectType::Tree)
     }
 
+    /// Attempt to consume this object and return a tree.
+    ///
+    /// Returns `Err(self)` if this object is not actually a tree.
+    pub fn into_tree(self) -> Result<Tree<'repo>, Object<'repo>> {
+        self.cast_into(ObjectType::Tree)
+    }
+
     /// Attempt to view this object as a blob.
     ///
     /// Returns `None` if the object is not actually a blob.
     pub fn as_blob(&self) -> Option<&Blob<'repo>> {
         self.cast(ObjectType::Blob)
+    }
+
+    /// Attempt to consume this object and return a blob.
+    ///
+    /// Returns `Err(self)` if this object is not actually a blob.
+    pub fn into_blob(self) -> Result<Blob<'repo>, Object<'repo>> {
+        self.cast_into(ObjectType::Blob)
     }
 
     /// Describes a commit
@@ -101,6 +130,19 @@ impl<'repo> Object<'repo> {
             unsafe { Some(&*(self as *const _ as *const T)) }
         } else {
             None
+        }
+    }
+
+    fn cast_into<T>(self, kind: ObjectType) -> Result<T, Object<'repo>> {
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<T>());
+        if self.kind() == Some(kind) {
+            Ok(unsafe {
+                let other = ptr::read(&self as *const _ as *const T);
+                mem::forget(self);
+                other
+            })
+        } else {
+            Err(self)
         }
     }
 }
