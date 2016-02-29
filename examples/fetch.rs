@@ -33,7 +33,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let remote = args.arg_remote.as_ref().map(|s| &s[..]).unwrap_or("origin");
 
     // Figure out whether it's a named remote or a URL
-    println!("Fetcing {} for repo", remote);
+    println!("Fetching {} for repo", remote);
     let mut cb = RemoteCallbacks::new();
     let mut remote = try!(repo.find_remote(remote).or_else(|_| {
         repo.remote_anonymous(remote)
