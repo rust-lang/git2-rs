@@ -138,8 +138,8 @@ impl CurlSubtransport {
         let parsed = try!(Url::parse(&url).map_err(|_| {
             self.err("invalid url, failed to parse")
         }));
-        let host = match parsed.host() {
-            Some(host) => host.to_string(),
+        let host = match parsed.host_str() {
+            Some(host) => host,
             None => return Err(self.err("invalid url, did not have a host")),
         };
 
@@ -149,7 +149,7 @@ impl CurlSubtransport {
         let mut req = Request::new(&mut h.0, self.method)
                               .uri(url)
                               .header("User-Agent", &agent)
-                              .header("Host", &host)
+                              .header("Host", host)
                               .follow_redirects(true);
         if data.len() > 0 {
             req = req.body(&mut data)
