@@ -128,6 +128,14 @@ impl<'repo> Drop for Tree<'repo> {
     }
 }
 
+impl<'repo, 'iter> IntoIterator for &'iter Tree<'repo> {
+    type Item = TreeEntry<'iter>;
+    type IntoIter = TreeIter<'iter>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// Create a new tree entry from the raw pointer provided.
 ///
 /// The lifetime of the entry is tied to the tree provided and the function
