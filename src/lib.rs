@@ -434,6 +434,7 @@ pub mod cert;
 pub mod string_array;
 pub mod oid_array;
 pub mod transport;
+pub mod filter;
 
 mod blame;
 mod blob;
