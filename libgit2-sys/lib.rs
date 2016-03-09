@@ -533,7 +533,6 @@ pub struct git_status_options {
     pub flags: c_uint,
     pub pathspec: git_strarray,
 }
-pub use git_status_show_t::*;
 
 #[repr(C)]
 pub struct git_diff_delta {
