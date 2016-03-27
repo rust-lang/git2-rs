@@ -1,5 +1,6 @@
 use std::marker;
 use std::mem;
+use std::slice;
 use std::ptr;
 
 use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree, Repository};
@@ -121,6 +122,27 @@ impl<'repo> Object<'repo> {
         unsafe {
             try_call!(raw::git_describe_commit(&mut ret, self.raw, opts.raw()));
             Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Get the canonical raw bytes for this object.
+    pub fn object_data<'a>(&'a self) -> Result<&'a [u8], Error> {
+        let id = self.id();
+        let raw_repo = unsafe {
+            raw::git_object_owner(self.raw())
+        };
+        let mut raw_odb = 0 as *mut raw::git_odb;
+        unsafe {
+            try_call!(raw::git_repository_odb(&mut raw_odb, raw_repo));
+        }
+        let mut raw_odb_object = 0 as *mut raw::git_odb_object;
+        unsafe {
+            try_call!(raw::git_odb_read(&mut raw_odb_object, raw_odb, id.raw()));
+        }
+        unsafe {
+            let bufsize = raw::git_odb_object_size(raw_odb_object);
+            let buf = raw::git_odb_object_data(raw_odb_object);
+            Ok(slice::from_raw_parts(buf, bufsize))
         }
     }
 

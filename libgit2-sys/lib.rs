@@ -50,6 +50,8 @@ pub enum git_config {}
 pub enum git_config_iterator {}
 pub enum git_index {}
 pub enum git_object {}
+pub enum git_odb {}
+pub enum git_odb_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
 pub enum git_annotated_commit {}
@@ -1415,6 +1417,8 @@ extern {
                                    start_path: *const c_char,
                                    across_fs: c_int,
                                    ceiling_dirs: *const c_char) -> c_int;
+    pub fn git_repository_odb(out: *mut *mut git_odb,
+                              repo: *mut git_repository) -> c_int;
 
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
@@ -1446,6 +1450,16 @@ extern {
     pub fn git_object_type2string(kind: git_otype) -> *const c_char;
     pub fn git_object_string2type(s: *const c_char) -> git_otype;
     pub fn git_object_typeisloose(kind: git_otype) -> c_int;
+    pub fn git_object_owner(obj: *const git_object) -> *mut git_repository;
+
+    // odb
+    pub fn git_odb_read(out: *mut *mut git_odb_object,
+                        odb: *mut git_odb,
+                        id: *const git_oid) -> c_int;
+
+    // odb_object
+    pub fn git_odb_object_data(object: *const git_odb_object) -> *const u8;
+    pub fn git_odb_object_size(object: *const git_odb_object) -> size_t;
 
     // oid
     pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar);
