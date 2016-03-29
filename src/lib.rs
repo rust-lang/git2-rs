@@ -277,7 +277,7 @@ pub enum ResetType {
 /// An enumeration all possible kinds objects may have.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ObjectType {
-    /// An object which corresponds to a any git object
+    /// Any kind of git object
     Any,
     /// An object which corresponds to a git commit
     Commit,
