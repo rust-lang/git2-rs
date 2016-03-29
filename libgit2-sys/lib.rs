@@ -820,6 +820,14 @@ git_enum! {
     }
 }
 
+git_enum! {
+    pub enum git_repository_open_flag_t {
+        GIT_REPOSITORY_OPEN_NO_SEARCH = (1 << 0),
+        GIT_REPOSITORY_OPEN_CROSS_FS = (1 << 1),
+        GIT_REPOSITORY_OPEN_BARE = (1 << 2),
+    }
+}
+
 #[repr(C)]
 pub struct git_repository_init_options {
     pub version: c_uint,
@@ -1382,6 +1390,10 @@ extern {
     pub fn git_repository_free(repo: *mut git_repository);
     pub fn git_repository_open(repo: *mut *mut git_repository,
                                path: *const c_char) -> c_int;
+    pub fn git_repository_open_ext(repo: *mut *mut git_repository,
+                                   path: *const c_char,
+                                   flags: c_uint,
+                                   ceiling_dirs: *const c_char) -> c_int;
     pub fn git_repository_init(repo: *mut *mut git_repository,
                                path: *const c_char,
                                is_bare: c_uint) -> c_int;
