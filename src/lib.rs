@@ -412,6 +412,20 @@ Flags for APIs that add files matching pathspec
 
 bitflags! {
     #[doc = "
+Flags for `Repository::open_ext`
+"]
+    flags RepositoryOpenFlags: u32 {
+        /// Only open the specified path; don't walk upward searching.
+        const REPOSITORY_OPEN_NO_SEARCH = raw::GIT_REPOSITORY_OPEN_NO_SEARCH as u32,
+        /// Search across filesystem boundaries.
+        const REPOSITORY_OPEN_CROSS_FS = raw::GIT_REPOSITORY_OPEN_CROSS_FS as u32,
+        /// Force opening as bare repository, and defer loading its config.
+        const REPOSITORY_OPEN_BARE = raw::GIT_REPOSITORY_OPEN_BARE as u32,
+    }
+}
+
+bitflags! {
+    #[doc = "
 Flags for the return value of `Repository::revparse`
 "]
     flags RevparseMode: u32 {

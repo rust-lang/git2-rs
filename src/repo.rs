@@ -1,11 +1,12 @@
-use std::ffi::{CStr, CString};
+use std::env;
+use std::ffi::{CStr, CString, OsStr};
 use std::iter::IntoIterator;
 use std::mem;
 use std::path::Path;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
-use {raw, Revspec, Error, init, Object, RepositoryState, Remote, Buf};
+use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
@@ -55,6 +56,43 @@ impl Repository {
         let mut ret = 0 as *mut raw::git_repository;
         unsafe {
             try_call!(raw::git_repository_open(&mut ret, path));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Find and open an existing repository, with additional options.
+    ///
+    /// If flags contains REPOSITORY_OPEN_NO_SEARCH, the path must point
+    /// directly to a repository; otherwise, this may point to a subdirectory
+    /// of a repository, and `open_ext` will search up through parent
+    /// directories.
+    ///
+    /// If flags contains REPOSITORY_OPEN_CROSS_FS, the search through parent
+    /// directories will not cross a filesystem boundary (detected when the
+    /// stat st_dev field changes).
+    ///
+    /// If flags contains REPOSITORY_OPEN_BARE, force opening the repository as
+    /// bare even if it isn't, ignoring any working directory, and defer
+    /// loading the repository configuration for performance.
+    ///
+    /// ceiling_dirs specifies a list of paths that the search through parent
+    /// directories will stop before entering.  Use the functions in std::env
+    /// to construct or manipulate such a path list.
+    pub fn open_ext<P, O, I>(path: P,
+                             flags: RepositoryOpenFlags,
+                             ceiling_dirs: I)
+                            -> Result<Repository, Error>
+            where P: AsRef<Path>, O: AsRef<OsStr>, I: IntoIterator<Item=O> {
+        init();
+        let path = try!(path.as_ref().into_c_string());
+        let ceiling_dirs_os = try!(env::join_paths(ceiling_dirs));
+        let ceiling_dirs = try!(ceiling_dirs_os.into_c_string());
+        let mut ret = 0 as *mut raw::git_repository;
+        unsafe {
+            try_call!(raw::git_repository_open_ext(&mut ret,
+                                                   path,
+                                                   flags.bits() as c_uint,
+                                                   ceiling_dirs));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -1663,6 +1701,7 @@ impl RepositoryInitOptions {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
     use tempdir::TempDir;
@@ -1752,6 +1791,30 @@ mod tests {
         let repo = Repository::discover(&subdir).unwrap();
         assert_eq!(::test::realpath(&repo.path()).unwrap(),
                    ::test::realpath(&td.path().join("")).unwrap());
+    }
+
+    #[test]
+    fn smoke_open_ext() {
+        let td = TempDir::new("test").unwrap();
+        let subdir = td.path().join("subdir");
+        fs::create_dir(&subdir).unwrap();
+        Repository::init(td.path()).unwrap();
+
+        let repo = Repository::open_ext(&subdir, ::RepositoryOpenFlags::empty(), &[] as &[&OsStr]).unwrap();
+        assert!(!repo.is_bare());
+        assert_eq!(::test::realpath(&repo.path()).unwrap(),
+                   ::test::realpath(&td.path().join(".git")).unwrap());
+
+        let repo = Repository::open_ext(&subdir, ::REPOSITORY_OPEN_BARE, &[] as &[&OsStr]).unwrap();
+        assert!(repo.is_bare());
+        assert_eq!(::test::realpath(&repo.path()).unwrap(),
+                   ::test::realpath(&td.path().join(".git")).unwrap());
+
+        let err = Repository::open_ext(&subdir, ::REPOSITORY_OPEN_NO_SEARCH, &[] as &[&OsStr]).err().unwrap();
+        assert_eq!(err.code(), ::ErrorCode::NotFound);
+
+        let err = Repository::open_ext(&subdir, ::RepositoryOpenFlags::empty(), &[&subdir]).err().unwrap();
+        assert_eq!(err.code(), ::ErrorCode::NotFound);
     }
 
     fn graph_repo_init() -> (TempDir, Repository) {
