@@ -17,7 +17,7 @@ git2 = "0.3"
 First, you'll need to install _CMake_. Afterwards, just run:
 
 ```sh
-$ git clone --recursive https://github.com/alexcrichton/git2-rs
+$ git clone https://github.com/alexcrichton/git2-rs
 $ cd git2-rs
 $ cargo build
 ```

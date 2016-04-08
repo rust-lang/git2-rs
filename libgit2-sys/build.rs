@@ -33,6 +33,11 @@ fn main() {
         }
     }
 
+    if !Path::new("libgit2").exists() {
+        let _ = Command::new("git").args(&["submodule", "update", "--init"])
+                                   .status();
+    }
+
     let target = env::var("TARGET").unwrap();
     let host = env::var("HOST").unwrap();
     let windows = target.contains("windows");
