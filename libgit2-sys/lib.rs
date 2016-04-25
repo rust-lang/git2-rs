@@ -2436,6 +2436,12 @@ extern {
     pub fn git_describe_workdir(out: *mut *mut git_describe_result,
                                 repo: *mut git_repository,
                                 opts: *mut git_describe_options) -> c_int;
+
+    // message
+    pub fn git_message_prettify(out: *mut git_buf,
+                                message: *const c_char,
+                                strip_comments: c_int,
+                                comment_char: c_char) -> c_int;
 }
 
 #[test]
