@@ -19,7 +19,7 @@ repositories.
 url = "1.0"
 bitflags = "0.1"
 libc = "0.2"
-libgit2-sys = { path = "libgit2-sys", version = "0.4.0" }
+libgit2-sys = { path = "libgit2-sys", version = "0.4.3" }
 
 [dev-dependencies]
 docopt = "0.6"
