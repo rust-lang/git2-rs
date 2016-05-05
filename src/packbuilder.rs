@@ -6,12 +6,15 @@ use libc::{c_int, c_uint, c_void, size_t};
 use {raw, panic, Repository, Error, Oid, Revwalk, Buf};
 use util::Binding;
 
-pub enum Stage {
+/// Stages that are reported by the PackBuilder progress callback.
+pub enum PackBuilderStage {
+    /// Adding objects to the pack
     AddingObjects,
+    /// Deltafication of the pack
     Deltafication,
 }
 
-pub type ProgressCb<'a> = FnMut(Stage, u32, u32) -> bool + 'a;
+pub type ProgressCb<'a> = FnMut(PackBuilderStage, u32, u32) -> bool + 'a;
 pub type ForEachCb<'a> = FnMut(&[u8]) -> bool + 'a;
 
 /// A builder for creating a packfile
@@ -188,19 +191,19 @@ impl<'repo> Drop for PackBuilder<'repo> {
     }
 }
 
-impl Binding for Stage {
+impl Binding for PackBuilderStage {
     type Raw = raw::git_packbuilder_stage_t;
-    unsafe fn from_raw(raw: raw::git_packbuilder_stage_t) -> Stage {
+    unsafe fn from_raw(raw: raw::git_packbuilder_stage_t) -> PackBuilderStage {
         match raw {
-            raw::GIT_PACKBUILDER_ADDING_OBJECTS => Stage::AddingObjects,
-            raw::GIT_PACKBUILDER_DELTAFICATION => Stage::Deltafication,
+            raw::GIT_PACKBUILDER_ADDING_OBJECTS => PackBuilderStage::AddingObjects,
+            raw::GIT_PACKBUILDER_DELTAFICATION => PackBuilderStage::Deltafication,
             _ => panic!("Unknown git diff binary kind"),
         }
     }
     fn raw(&self) -> raw::git_packbuilder_stage_t {
         match *self {
-            Stage::AddingObjects => raw::GIT_PACKBUILDER_ADDING_OBJECTS,
-            Stage::Deltafication => raw::GIT_PACKBUILDER_DELTAFICATION,
+            PackBuilderStage::AddingObjects => raw::GIT_PACKBUILDER_ADDING_OBJECTS,
+            PackBuilderStage::Deltafication => raw::GIT_PACKBUILDER_DELTAFICATION,
         }
     }
 }

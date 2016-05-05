@@ -97,7 +97,7 @@ pub use message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use note::{Note, Notes};
 pub use object::Object;
 pub use oid::Oid;
-pub use packbuilder::PackBuilder;
+pub use packbuilder::{PackBuilder, PackBuilderStage};
 pub use pathspec::{Pathspec, PathspecMatchList, PathspecFailedEntries};
 pub use pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use reference::{Reference, References, ReferenceNames};
