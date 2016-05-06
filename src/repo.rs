@@ -1389,6 +1389,24 @@ impl Repository {
         Ok(())
     }
 
+    /// Check if the given reference has a reflog.
+    pub fn reference_has_log(&self, name: &str) -> Result<bool, Error> {
+        let name = try!(CString::new(name));
+        let ret = unsafe {
+            try_call!(raw::git_reference_has_log(self.raw, name))
+        };
+        Ok(ret != 0)
+    }
+
+    /// Ensure that the given reference has a reflog.
+    pub fn reference_ensure_log(&self, name: &str) -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        unsafe {
+            try_call!(raw::git_reference_ensure_log(self.raw, name));
+        }
+        Ok(())
+    }
+
     /// Describes a commit
     ///
     /// Performs a describe operation on the current commit and the worktree.
@@ -1860,6 +1878,20 @@ mod tests {
         let head_parent_id = head.parent(0).unwrap().id();
         assert!(repo.graph_descendant_of(head_id, head_parent_id).unwrap());
         assert!(!repo.graph_descendant_of(head_parent_id, head_id).unwrap());
+    }
+
+    #[test]
+    fn smoke_reference_has_log_ensure_log() {
+        let (_td, repo) = ::test::repo_init();
+
+        assert_eq!(repo.reference_has_log("HEAD").unwrap(), true);
+        assert_eq!(repo.reference_has_log("refs/heads/master").unwrap(), true);
+        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), false);
+        let master_oid = repo.revparse_single("master").unwrap().id();
+        assert!(repo.reference("NOT_HEAD", master_oid, false, "creating a new branch").is_ok());
+        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), false);
+        assert!(repo.reference_ensure_log("NOT_HEAD").is_ok());
+        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), true);
     }
 
     #[test]
