@@ -559,6 +559,7 @@ git_enum! {
         GIT_CHECKOUT_NONE = 0,
         GIT_CHECKOUT_SAFE = (1 << 0),
         GIT_CHECKOUT_FORCE = (1 << 1),
+        GIT_CHECKOUT_RECREATE_MISSING = (1 << 2),
         GIT_CHECKOUT_ALLOW_CONFLICTS = (1 << 4),
         GIT_CHECKOUT_REMOVE_UNTRACKED = (1 << 5),
         GIT_CHECKOUT_REMOVE_IGNORED = (1 << 6),

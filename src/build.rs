@@ -208,6 +208,13 @@ impl<'cb> CheckoutBuilder<'cb> {
         self
     }
 
+    /// In safe mode, create files that don't exist.
+    ///
+    /// Defaults to false.
+    pub fn recreate_missing(&mut self, allow: bool) -> &mut CheckoutBuilder<'cb> {
+        self.flag(raw::GIT_CHECKOUT_RECREATE_MISSING, allow)
+    }
+
     /// In safe mode, apply safe file updates even when there are conflicts
     /// instead of canceling the checkout.
     ///
