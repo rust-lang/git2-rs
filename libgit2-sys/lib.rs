@@ -687,6 +687,34 @@ pub struct git_blame_hunk {
 pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
                                                *mut c_void) -> c_int;
 
+git_enum! {
+    pub enum git_idxentry_extended_flag_t: u16 {
+        GIT_IDXENTRY_INTENT_TO_ADD     = 1 << 13,
+        GIT_IDXENTRY_SKIP_WORKTREE     = 1 << 14,
+        GIT_IDXENTRY_EXTENDED2         = 1 << 15,
+
+        GIT_IDXENTRY_UPDATE            = 1 << 0,
+        GIT_IDXENTRY_REMOVE            = 1 << 1,
+        GIT_IDXENTRY_UPTODATE          = 1 << 2,
+        GIT_IDXENTRY_ADDED             = 1 << 3,
+
+        GIT_IDXENTRY_HASHED            = 1 << 4,
+        GIT_IDXENTRY_UNHASHED          = 1 << 5,
+        GIT_IDXENTRY_WT_REMOVE         = 1 << 6,
+        GIT_IDXENTRY_CONFLICTED        = 1 << 7,
+
+        GIT_IDXENTRY_UNPACKED          = 1 << 8,
+        GIT_IDXENTRY_NEW_SKIP_WORKTREE = 1 << 9,
+    }
+}
+
+git_enum! {
+    pub enum git_indxentry_flag_t: u16 {
+        GIT_IDXENTRY_EXTENDED = 0x4000,
+        GIT_IDXENTRY_VALID    = 0x8000,
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct git_index_entry {
