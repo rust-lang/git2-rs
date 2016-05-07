@@ -2332,6 +2332,11 @@ extern {
                               idx: size_t) -> *const git_diff_delta;
     pub fn git_diff_get_stats(out: *mut *mut git_diff_stats,
                               diff: *mut git_diff) -> c_int;
+    pub fn git_diff_index_to_index(diff: *mut *mut git_diff,
+                                   repo: *mut git_repository,
+                                   old_index: *mut git_index,
+                                   new_index: *mut git_index,
+                                   opts: *const git_diff_options) -> c_int;
     pub fn git_diff_index_to_workdir(diff: *mut *mut git_diff,
                                      repo: *mut git_repository,
                                      index: *mut git_index,

@@ -1455,6 +1455,26 @@ impl Repository {
         }
     }
 
+    /// Create a diff between two index objects.
+    ///
+    /// The first index will be used for the "old_file" side of the delta, and
+    /// the second index will be used for the "new_file" side of the delta.
+    pub fn diff_index_to_index(&self,
+                               old_index: &Index,
+                               new_index: &Index,
+                               opts: Option<&mut DiffOptions>)
+                               -> Result<Diff, Error> {
+        let mut ret = 0 as *mut raw::git_diff;
+        unsafe {
+            try_call!(raw::git_diff_index_to_index(&mut ret,
+                                                   self.raw(),
+                                                   old_index.raw(),
+                                                   new_index.raw(),
+                                                   opts.map(|s| s.raw())));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Create a diff between the repository index and the workdir directory.
     ///
     /// This matches the `git diff` command.  See the note below on
