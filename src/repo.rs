@@ -675,6 +675,14 @@ impl Repository {
         }
     }
 
+    /// Set the Index file for this repository.
+    pub fn set_index(&self, index: &mut Index) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_index(self.raw(), index.raw()));
+        }
+        Ok(())
+    }
+
     /// Get the configuration file for this repository.
     ///
     /// If a configuration file has not been set, the default config set for the
