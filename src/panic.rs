@@ -6,12 +6,12 @@ thread_local!(static LAST_ERROR: RefCell<Option<Box<Any + Send>>> = {
 });
 
 #[cfg(feature = "unstable")]
-pub fn wrap<T, F: FnOnce() -> T + ::std::panic::RecoverSafe>(f: F) -> Option<T> {
+pub fn wrap<T, F: FnOnce() -> T + ::std::panic::UnwindSafe>(f: F) -> Option<T> {
     use std::panic;
     if LAST_ERROR.with(|slot| slot.borrow().is_some()) {
         return None
     }
-    match panic::recover(f) {
+    match panic::catch_unwind(f) {
         Ok(ret) => Some(ret),
         Err(e) => {
             LAST_ERROR.with(move |slot| {
