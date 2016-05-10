@@ -1681,6 +1681,10 @@ extern {
                                          target: *const c_char,
                                          force: c_int,
                                          log_message: *const c_char) -> c_int;
+    pub fn git_reference_has_log(repo: *mut git_repository,
+                                 name: *const c_char) -> c_int;
+    pub fn git_reference_ensure_log(repo: *mut git_repository,
+                                    name: *const c_char) -> c_int;
 
     // submodules
     pub fn git_submodule_add_finalize(submodule: *mut git_submodule) -> c_int;
