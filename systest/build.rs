@@ -9,6 +9,7 @@ fn main() {
     let mut cfg = ctest::TestGenerator::new();
     cfg.header("git2.h")
        .header("git2/sys/transport.h")
+       .header("git2/sys/repository.h")
        .header("git2/cred_helpers.h")
        .include(root.join("include"))
        .type_name(|s, _| s.to_string());

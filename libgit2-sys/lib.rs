@@ -1420,7 +1420,7 @@ extern {
     pub fn git_repository_index(out: *mut *mut git_index,
                                 repo: *mut git_repository) -> c_int;
     pub fn git_repository_set_index(repo: *mut git_repository,
-                                    index: *mut git_index) -> c_int;
+                                    index: *mut git_index);
     pub fn git_repository_config(out: *mut *mut git_config,
                                  repo: *mut git_repository) -> c_int;
     pub fn git_repository_config_snapshot(out: *mut *mut git_config,
