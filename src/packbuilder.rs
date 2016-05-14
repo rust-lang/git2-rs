@@ -91,9 +91,9 @@ impl<'repo> PackBuilder<'repo> {
     }
 
     /// Create the new pack and pass each object to the callback.
-    pub fn foreach(&mut self,
-                   mut cb: &mut ForEachCb)
-                   -> Result<(), Error> {
+    pub fn foreach<F>(&mut self, mut cb: F) -> Result<(), Error>
+        where F: FnMut(&[u8]) -> bool {
+        let mut cb = &mut cb as &mut ForEachCb;
         let ptr = &mut cb as *mut _;
         unsafe {
             try_call!(raw::git_packbuilder_foreach(self.raw,
@@ -272,6 +272,15 @@ mod tests {
           .cloned().collect::<Vec<u8>>()
     }
 
+    fn empty_pack_header() -> Vec<u8> {
+        pack_header(0).iter()
+          .chain(&[0x02, 0x9d, 0x08, 0x82, 0x3b,  // ^
+                   0xd8, 0xa8, 0xea, 0xb5, 0x10,  // | SHA-1 of the zero
+                   0xad, 0x6a, 0xc7, 0x5c, 0x82,  // | object pack header
+                   0x3c, 0xfd, 0x3e, 0xd3, 0x1e]) // v
+          .cloned().collect::<Vec<u8>>()
+    }
+
     #[test]
     fn smoke() {
         let (_td, repo) = ::test::repo_init();
@@ -285,13 +294,19 @@ mod tests {
         let mut buf = Buf::new();
         t!(builder.write_buf(&mut buf));
         assert!(builder.hash().unwrap().is_zero());
-        let expected = pack_header(0).iter()
-            .chain(&[0x02, 0x9d, 0x08, 0x82, 0x3b,  // ^
-                     0xd8, 0xa8, 0xea, 0xb5, 0x10,  // | SHA-1 of the zero
-                     0xad, 0x6a, 0xc7, 0x5c, 0x82,  // | object pack header
-                     0x3c, 0xfd, 0x3e, 0xd3, 0x1e]) // v
-            .cloned().collect::<Vec<u8>>();
-        assert_eq!(&*buf, &*expected);
+        assert_eq!(&*buf, &*empty_pack_header());
+    }
+
+    #[test]
+    fn smoke_foreach() {
+        let (_td, repo) = ::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let mut buf = Vec::<u8>::new();
+        t!(builder.foreach(|bytes| {
+            buf.extend(bytes);
+            true
+        }));
+        assert_eq!(&*buf, &*empty_pack_header());
     }
 
     #[test]
