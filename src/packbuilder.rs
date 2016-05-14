@@ -106,6 +106,10 @@ impl<'repo> PackBuilder<'repo> {
     /// `progress` will be called with progress information during pack
     /// building. Be aware that this is called inline with pack building
     /// operations, so performance may be affected.
+    ///
+    /// There can only be one progress callback attached, this will replace any
+    /// existing one. See `unset_progress_callback` to remove the current
+    /// progress callback without attaching a new one.
     pub fn set_progress_callback<F>(&mut self, progress: F) -> Result<(), Error>
         where F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo {
         let ptr = Box::into_raw(Box::new(Box::new(progress) as Box<ProgressCb>));
@@ -115,6 +119,18 @@ impl<'repo> PackBuilder<'repo> {
                                                          progress_c,
                                                          ptr as *mut _));
             self.progress = Some(Box::from_raw(ptr));
+        }
+        Ok(())
+    }
+
+    /// Remove the current progress callback.  See `set_progress_callback` to
+    /// set the progress callback.
+    pub fn unset_progress_callback(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_packbuilder_set_callbacks(self.raw,
+                                                         None,
+                                                         ptr::null_mut()));
+            self.progress = None;
         }
         Ok(())
     }
@@ -334,5 +350,23 @@ mod tests {
             t!(builder.write_buf(&mut Buf::new()));
         }
         assert_eq!(progress_called, true);
+    }
+
+    #[test]
+    fn clear_progress_callback() {
+        let mut progress_called = false;
+        {
+            let (_td, repo) = ::test::repo_init();
+            let mut builder = t!(repo.packbuilder());
+            let (commit, _tree) = commit(&repo);
+            t!(builder.set_progress_callback(|_, _, _| {
+                progress_called = true;
+                true
+            }));
+            t!(builder.unset_progress_callback());
+            t!(builder.insert_commit(commit));
+            t!(builder.write_buf(&mut Buf::new()));
+        }
+        assert_eq!(progress_called, false);
     }
 }
