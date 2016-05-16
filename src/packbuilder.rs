@@ -112,26 +112,16 @@ impl<'repo> PackBuilder<'repo> {
     /// progress callback without attaching a new one.
     pub fn set_progress_callback<F>(&mut self, progress: F) -> Result<(), Error>
         where F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo {
-        let ptr = Box::into_raw(Box::new(Box::new(progress) as Box<ProgressCb>));
+        let mut progress = Box::new(Box::new(progress) as Box<ProgressCb>);
+        let ptr = &mut *progress as *mut _;
         let progress_c = Some(progress_c as raw::git_packbuilder_progress);
-        let ret;
         unsafe {
-            ret = ::call::try(call!(
-                    raw::git_packbuilder_set_callbacks(self.raw,
-                                                       progress_c,
-                                                       ptr as *mut _)));
-            // Current implementation will never return an error, but since it
-            // may change in the future...
-            // If an error is returned we don't know if it has kept the old
-            // pointers or the new ones. So to avoid dropping a callback that
-            // may actually get called in the future we keep the old callback
-            // stored and just leak the new one by not recreating a `Box` from
-            // the raw pointer.
-            if ret.is_ok() {
-                self.progress = Some(Box::from_raw(ptr));
-            }
+            try_call!(raw::git_packbuilder_set_callbacks(self.raw,
+                                                         progress_c,
+                                                         ptr as *mut _));
         }
-        ret.map(|_| ())
+        self.progress = Some(progress);
+        Ok(())
     }
 
     /// Remove the current progress callback.  See `set_progress_callback` to
