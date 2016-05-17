@@ -797,6 +797,24 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[doc = "
+Types of notifications emitted from checkouts.
+"]
+    flags CheckoutNotificationType: u32 {
+        /// Notification about a conflict.
+        const CHECKOUT_NOTIFICATION_CONFLICT = raw::GIT_CHECKOUT_NOTIFY_CONFLICT as u32,
+        /// Notification about a dirty file.
+        const CHECKOUT_NOTIFICATION_DIRTY = raw::GIT_CHECKOUT_NOTIFY_DIRTY as u32,
+        /// Notification about an updated file.
+        const CHECKOUT_NOTIFICATION_UPDATED = raw::GIT_CHECKOUT_NOTIFY_UPDATED as u32,
+        /// Notification about an untracked file.
+        const CHECKOUT_NOTIFICATION_UNTRACKED = raw::GIT_CHECKOUT_NOTIFY_UNTRACKED as u32,
+        /// Notification about an ignored file.
+        const CHECKOUT_NOTIFICATION_IGNORED = raw::GIT_CHECKOUT_NOTIFY_IGNORED as u32,
+    }
+}
+
 /// Possible output formats for diff data
 #[derive(Copy, Clone)]
 pub enum DiffFormat {
