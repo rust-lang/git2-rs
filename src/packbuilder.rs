@@ -27,13 +27,11 @@ pub struct PackBuilder<'repo> {
 impl<'repo> PackBuilder<'repo> {
     /// Insert a single object. For an optimal pack it's mandatory to insert
     /// objects in recency order, commits followed by trees and blobs.
-    pub fn insert_object(&mut self,
-                         id: Oid,
-                         name: Option<&str>)
+    pub fn insert_object(&mut self, id: Oid, name: Option<&str>)
                          -> Result<(), Error> {
         let name = try!(::opt_cstr(name));
         unsafe {
-            try_call!(raw::git_packbuilder_insert(self.raw, &*id.raw(), name));
+            try_call!(raw::git_packbuilder_insert(self.raw, id.raw(), name));
         }
         Ok(())
     }
@@ -42,7 +40,7 @@ impl<'repo> PackBuilder<'repo> {
     /// referenced trees and blobs.
     pub fn insert_tree(&mut self, id: Oid) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_packbuilder_insert_tree(self.raw, &*id.raw()));
+            try_call!(raw::git_packbuilder_insert_tree(self.raw, id.raw()));
         }
         Ok(())
     }
@@ -51,7 +49,7 @@ impl<'repo> PackBuilder<'repo> {
     /// referenced tree.
     pub fn insert_commit(&mut self, id: Oid) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_packbuilder_insert_commit(self.raw, &*id.raw()));
+            try_call!(raw::git_packbuilder_insert_commit(self.raw, id.raw()));
         }
         Ok(())
     }
@@ -67,14 +65,12 @@ impl<'repo> PackBuilder<'repo> {
 
     /// Recursively insert an object and its referenced objects. Insert the
     /// object as well as any object it references.
-    pub fn insert_recursive(&mut self,
-                            id: Oid,
-                            name: Option<&str>)
+    pub fn insert_recursive(&mut self, id: Oid, name: Option<&str>)
                             -> Result<(), Error> {
         let name = try!(::opt_cstr(name));
         unsafe {
             try_call!(raw::git_packbuilder_insert_recur(self.raw,
-                                                        &*id.raw(),
+                                                        id.raw(),
                                                         name));
         }
         Ok(())
@@ -92,7 +88,8 @@ impl<'repo> PackBuilder<'repo> {
 
     /// Create the new pack and pass each object to the callback.
     pub fn foreach<F>(&mut self, mut cb: F) -> Result<(), Error>
-        where F: FnMut(&[u8]) -> bool {
+        where F: FnMut(&[u8]) -> bool
+    {
         let mut cb = &mut cb as &mut ForEachCb;
         let ptr = &mut cb as *mut _;
         unsafe {
@@ -111,7 +108,8 @@ impl<'repo> PackBuilder<'repo> {
     /// existing one. See `unset_progress_callback` to remove the current
     /// progress callback without attaching a new one.
     pub fn set_progress_callback<F>(&mut self, progress: F) -> Result<(), Error>
-        where F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo {
+        where F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo
+    {
         let mut progress = Box::new(Box::new(progress) as Box<ProgressCb>);
         let ptr = &mut *progress as *mut _;
         let progress_c = Some(progress_c as raw::git_packbuilder_progress);
@@ -200,10 +198,10 @@ impl Binding for PackBuilderStage {
     }
 }
 
-extern "C" fn foreach_c(buf: *const c_void,
-                        size: size_t,
-                        data: *mut c_void)
-                        -> c_int {
+extern fn foreach_c(buf: *const c_void,
+                    size: size_t,
+                    data: *mut c_void)
+                    -> c_int {
     unsafe {
         let buf = slice::from_raw_parts(buf as *const u8, size as usize);
 
@@ -219,11 +217,11 @@ extern "C" fn foreach_c(buf: *const c_void,
     }
 }
 
-extern "C" fn progress_c(stage: raw::git_packbuilder_stage_t,
-                         current: c_uint,
-                         total: c_uint,
-                         data: *mut c_void)
-                         -> c_int {
+extern fn progress_c(stage: raw::git_packbuilder_stage_t,
+                     current: c_uint,
+                     total: c_uint,
+                     data: *mut c_void)
+                     -> c_int {
     unsafe {
         let stage = Binding::from_raw(stage);
 
