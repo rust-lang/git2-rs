@@ -1,7 +1,7 @@
-use std::ffi::{CStr, OsString};
-use std::iter::IntoIterator;
+use std::ffi::{CStr, OsString, CString};
 use std::ops::Range;
 use std::path::Path;
+use std::slice;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char};
 
@@ -86,10 +86,42 @@ impl Index {
     /// If a previous index entry exists that has the same path and stage as the
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
-    pub fn add(&mut self, source_entry: &IndexEntry) -> Result<(), Error> {
-        let entry = source_entry.raw();
+    pub fn add(&mut self, entry: &IndexEntry) -> Result<(), Error> {
+        let path = try!(CString::new(&entry.path[..]));
+
+        // libgit2 encodes the length of the path in the lower bits of the
+        // `flags` entry, so mask those out and recalculate here to ensure we
+        // don't corrupt anything.
+        let mut flags = entry.flags & !raw::GIT_IDXENTRY_NAMEMASK;
+
+        if entry.path.len() < raw::GIT_IDXENTRY_NAMEMASK as usize {
+            flags |= entry.path.len() as u16;
+        } else {
+            flags |= raw::GIT_IDXENTRY_NAMEMASK;
+        }
+
         unsafe {
-            try_call!(raw::git_index_add(self.raw, &entry));
+            let raw = raw::git_index_entry {
+                dev: entry.dev,
+                ino: entry.ino,
+                mode: entry.mode,
+                uid: entry.uid,
+                gid: entry.gid,
+                file_size: entry.file_size,
+                id: *entry.id.raw(),
+                flags: flags,
+                flags_extended: entry.flags_extended,
+                path: path.as_ptr(),
+                mtime: raw::git_index_time {
+                    seconds: entry.mtime.seconds(),
+                    nanoseconds: entry.mtime.nanoseconds(),
+                },
+                ctime: raw::git_index_time {
+                    seconds: entry.ctime.seconds(),
+                    nanoseconds: entry.ctime.nanoseconds(),
+                },
+            };
+            try_call!(raw::git_index_add(self.raw, &raw));
             Ok(())
         }
     }
@@ -428,6 +460,17 @@ impl Binding for IndexEntry {
             ctime, mtime, dev, ino, mode, uid, gid, file_size, id, flags,
             flags_extended, path
         } = raw;
+
+        // libgit2 encodes the length of the path in the lower bits of `flags`,
+        // but if the length exceeds the number of bits then the path is
+        // nul-terminated.
+        let mut pathlen = (flags & raw::GIT_IDXENTRY_NAMEMASK) as usize;
+        if pathlen == raw::GIT_IDXENTRY_NAMEMASK as usize {
+            pathlen = CStr::from_ptr(path).to_bytes().len();
+        }
+
+        let path = slice::from_raw_parts(path as *const u8, pathlen);
+
         IndexEntry {
             dev: dev,
             ino: ino,
@@ -438,33 +481,15 @@ impl Binding for IndexEntry {
             id: Binding::from_raw(&id as *const _),
             flags: flags,
             flags_extended: flags_extended,
-            path: CStr::from_ptr(path).to_bytes().to_vec(),
+            path: path.to_vec(),
             mtime: Binding::from_raw(mtime),
             ctime: Binding::from_raw(ctime),
         }
     }
 
     fn raw(&self) -> raw::git_index_entry {
-        raw::git_index_entry {
-            dev: self.dev,
-            ino: self.ino,
-            mode: self.mode,
-            uid: self.uid,
-            gid: self.gid,
-            file_size: self.file_size,
-            id: unsafe { *self.id.raw() },
-            flags: self.flags,
-            flags_extended: self.flags_extended,
-            path: self.path.as_ptr() as *const _,
-            mtime: raw::git_index_time {
-                seconds: self.mtime.seconds(),
-                nanoseconds: self.mtime.nanoseconds(),
-            },
-            ctime: raw::git_index_time {
-                seconds: self.ctime.seconds(),
-                nanoseconds: self.ctime.nanoseconds(),
-            },
-        }
+        // not implemented, may require a CString in storage
+        panic!()
     }
 }
 
@@ -474,7 +499,7 @@ mod tests {
     use std::path::Path;
     use tempdir::TempDir;
 
-    use {Index, Repository, ResetType};
+    use {Index, IndexEntry, Repository, ResetType, Oid, IndexTime};
 
     #[test]
     fn smoke() {
@@ -560,6 +585,36 @@ mod tests {
         let repo = Repository::clone(&url, td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None).unwrap();
+    }
+
+    #[test]
+    fn add_then_read() {
+        let mut index = Index::new().unwrap();
+        assert!(index.add(&entry()).is_err());
+
+        let mut index = Index::new().unwrap();
+        let mut e = entry();
+        e.path = b"foobar".to_vec();
+        index.add(&e).unwrap();
+        let e = index.get(0).unwrap();
+        assert_eq!(e.path.len(), 6);
+    }
+
+    fn entry() -> IndexEntry {
+        IndexEntry {
+            ctime: IndexTime::new(0, 0),
+            mtime: IndexTime::new(0, 0),
+            dev: 0,
+            ino: 0,
+            mode: 0o100644,
+            uid: 0,
+            gid: 0,
+            file_size: 0,
+            id: Oid::from_bytes(&[0; 20]).unwrap(),
+            flags: 0,
+            flags_extended: 0,
+            path: Vec::new(),
+        }
     }
 }
 

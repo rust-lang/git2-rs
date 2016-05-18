@@ -734,6 +734,10 @@ pub struct git_index_entry {
     pub path: *const c_char,
 }
 
+pub const GIT_IDXENTRY_NAMEMASK: u16 = 0xfff;
+pub const GIT_IDXENTRY_STAGEMASK: u16 = 0x3000;
+pub const GIT_IDXENTRY_STAGESHIFT: u16 = 12;
+
 #[repr(C)]
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct git_index_time {
