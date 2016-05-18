@@ -1693,6 +1693,21 @@ extern {
                                          target: *const c_char,
                                          force: c_int,
                                          log_message: *const c_char) -> c_int;
+    pub fn git_reference_create_matching(out: *mut *mut git_reference,
+                                         repo: *mut git_repository,
+                                         name: *const c_char,
+                                         id: *const git_oid,
+                                         force: c_int,
+                                         current_id: *const git_oid,
+                                         log_message: *const c_char) -> c_int;
+    pub fn git_reference_symbolic_create_matching(out: *mut *mut git_reference,
+                                                  repo: *mut git_repository,
+                                                  name: *const c_char,
+                                                  target: *const c_char,
+                                                  force: c_int,
+                                                  current_id: *const c_char,
+                                                  log_message: *const c_char)
+                                                  -> c_int;
     pub fn git_reference_has_log(repo: *mut git_repository,
                                  name: *const c_char) -> c_int;
     pub fn git_reference_ensure_log(repo: *mut git_repository,

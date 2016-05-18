@@ -842,6 +842,57 @@ impl Repository {
         }
     }
 
+    /// Conditionally create new direct reference.
+    ///
+    /// A direct reference (also called an object id reference) refers directly
+    /// to a specific object id (a.k.a. OID or SHA) in the repository.  The id
+    /// permanently refers to the object (although the reference itself can be
+    /// moved).  For example, in libgit2 the direct ref "refs/tags/v0.17.0"
+    /// refers to OID 5b9fac39d8a76b9139667c26a63e6b3f204b3977.
+    ///
+    /// The direct reference will be created in the repository and written to
+    /// the disk.
+    ///
+    /// Valid reference names must follow one of two patterns:
+    ///
+    /// 1. Top-level names must contain only capital letters and underscores,
+    ///    and must begin and end with a letter.  (e.g.  "HEAD", "ORIG_HEAD").
+    /// 2. Names prefixed with "refs/" can be almost anything.  You must avoid
+    ///    the characters `~`, `^`, `:`, `\\`, `?`, `[`, and `*`, and the
+    ///    sequences ".." and "@{" which have special meaning to revparse.
+    ///
+    /// This function will return an error if a reference already exists with
+    /// the given name unless `force` is true, in which case it will be
+    /// overwritten.
+    ///
+    /// The message for the reflog will be ignored if the reference does not
+    /// belong in the standard set (HEAD, branches and remote-tracking
+    /// branches) and it does not have a reflog.
+    ///
+    /// It will return GIT_EMODIFIED if the reference's value at the time of
+    /// updating does not match the one passed through `current_id` (i.e. if the
+    /// ref has changed since the user read it).
+    pub fn reference_matching(&self,
+                              name: &str,
+                              id: Oid,
+                              force: bool,
+                              current_id: Oid,
+                              log_message: &str) -> Result<Reference, Error> {
+        let name = try!(CString::new(name));
+        let log_message = try!(CString::new(log_message));
+        let mut raw = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_reference_create_matching(&mut raw,
+                                                         self.raw(),
+                                                         name,
+                                                         id.raw(),
+                                                         force,
+                                                         current_id.raw(),
+                                                         log_message));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Create a new symbolic reference.
     ///
     /// This function will return an error if a reference already exists with
@@ -859,6 +910,39 @@ impl Repository {
             try_call!(raw::git_reference_symbolic_create(&mut raw, self.raw(),
                                                          name, target, force,
                                                          log_message));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Create a new symbolic reference.
+    ///
+    /// This function will return an error if a reference already exists with
+    /// the given name unless force is true, in which case it will be
+    /// overwritten.
+    ///
+    /// It will return GIT_EMODIFIED if the reference's value at the time of
+    /// updating does not match the one passed through current_value (i.e. if
+    /// the ref has changed since the user read it).
+    pub fn reference_symbolic_matching(&self,
+                                       name: &str,
+                                       target: &str,
+                                       force: bool,
+                                       current_value: &str,
+                                       log_message: &str)
+                                       -> Result<Reference, Error> {
+        let name = try!(CString::new(name));
+        let target = try!(CString::new(target));
+        let current_value = try!(CString::new(current_value));
+        let log_message = try!(CString::new(log_message));
+        let mut raw = 0 as *mut raw::git_reference;
+        unsafe {
+            try_call!(raw::git_reference_symbolic_create_matching(&mut raw,
+                                                                  self.raw(),
+                                                                  name,
+                                                                  target,
+                                                                  force,
+                                                                  current_value,
+                                                                  log_message));
             Ok(Binding::from_raw(raw))
         }
     }
