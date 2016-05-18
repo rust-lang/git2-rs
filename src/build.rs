@@ -53,7 +53,10 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 ///
 /// The first argument is the notification type, the next is the path for the
 /// the notification, followed by the baseline diff, target diff, and workdir diff.
-pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> c_int + 'a;
+///
+/// The callback must return a bool specifying whether the checkout should be
+/// canceled.
+pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -453,12 +456,10 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set a callback to receive checkout notifications.
     ///
-    /// Returning a non-zero value from the callback will cancel the checkout.
-    /// The non-zero value is propagated back and returned by the checkout call.
-    ///
     /// Callbacks are invoked prior to modifying any files on disk.
+    /// Returning `true` from the callback will cancel the checkout.
     pub fn notify<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-                       where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> c_int + 'cb {
+                       where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'cb {
         self.notify = Some(Box::new(cb) as Box<Notify<'cb>>);
         self
     }
@@ -551,7 +552,7 @@ extern fn notify_cb(why: raw::git_checkout_notify_t,
                  path,
                  DiffFile::from_raw(baseline),
                  DiffFile::from_raw(target),
-                 DiffFile::from_raw(workdir))
+                 DiffFile::from_raw(workdir)) as c_int
     }).unwrap_or(1)
 }
 
