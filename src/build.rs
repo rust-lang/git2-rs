@@ -5,7 +5,7 @@ use std::mem;
 use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, panic, Error, Repository, FetchOptions, IntoCString};
+use {raw, panic, Error, Repository, FetchOptions, IntoCString, CheckoutNotificationType, DiffFile};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -32,6 +32,8 @@ pub struct CheckoutBuilder<'cb> {
     disable_filters: bool,
     checkout_opts: u32,
     progress: Option<Box<Progress<'cb>>>,
+    notify: Option<Box<Notify<'cb>>>,
+    notify_flags: CheckoutNotificationType,
 }
 
 /// Checkout progress notification callback.
@@ -39,6 +41,15 @@ pub struct CheckoutBuilder<'cb> {
 /// The first argument is the path for the notification, the next is the numver
 /// of completed steps so far, and the final is the total number of steps.
 pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
+
+/// Checkout notifications callback.
+///
+/// The first argument is the notification type, the next is the path for the
+/// the notification, followed by the baseline diff, target diff, and workdir diff.
+///
+/// The callback must return a bool specifying whether the checkout should be
+/// canceled.
+pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -169,6 +180,8 @@ impl<'cb> CheckoutBuilder<'cb> {
             their_label: None,
             checkout_opts: raw::GIT_CHECKOUT_SAFE as u32,
             progress: None,
+            notify: None,
+            notify_flags: CheckoutNotificationType::empty(),
         }
     }
 
@@ -302,6 +315,16 @@ impl<'cb> CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_MERGE, on)
     }
 
+    /// Specify for which notification types to invoke the notification
+    /// callback.
+    ///
+    /// Defaults to none.
+    pub fn notify_on(&mut self, notification_types: CheckoutNotificationType)
+                     -> &mut CheckoutBuilder<'cb> {
+        self.notify_flags = notification_types;
+        self
+    }
+
     /// Indicates whether to include common ancestor data in diff3 format files
     /// for conflicts.
     ///
@@ -377,6 +400,16 @@ impl<'cb> CheckoutBuilder<'cb> {
         self
     }
 
+    /// Set a callback to receive checkout notifications.
+    ///
+    /// Callbacks are invoked prior to modifying any files on disk.
+    /// Returning `true` from the callback will cancel the checkout.
+    pub fn notify<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
+                       where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'cb {
+        self.notify = Some(Box::new(cb) as Box<Notify<'cb>>);
+        self
+    }
+
     /// Configure a raw checkout options based on this configuration.
     ///
     /// This method is unsafe as there is no guarantee that this structure will
@@ -413,6 +446,12 @@ impl<'cb> CheckoutBuilder<'cb> {
             opts.progress_cb = Some(f);
             opts.progress_payload = self as *mut _ as *mut _;
         }
+        if self.notify.is_some() {
+            let f: raw::git_checkout_notify_cb = notify_cb;
+            opts.notify_cb = Some(f);
+            opts.notify_payload = self as *mut _ as *mut _;
+            opts.notify_flags = self.notify_flags.bits() as c_uint;
+        }
         opts.checkout_strategy = self.checkout_opts as c_uint;
     }
 }
@@ -434,6 +473,33 @@ extern fn progress_cb(path: *const c_char,
         };
         callback(path, completed as usize, total as usize)
     });
+}
+
+extern fn notify_cb(why: raw::git_checkout_notify_t,
+                    path: *const c_char,
+                    baseline: *const raw::git_diff_file,
+                    target: *const raw::git_diff_file,
+                    workdir: *const raw::git_diff_file,
+                    data: *mut c_void) -> c_int {
+    // pack callback etc
+    panic::wrap(|| unsafe {
+        let payload = &mut *(data as *mut CheckoutBuilder);
+        let callback = match payload.notify {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+        let path = if path.is_null() {
+            None
+        } else {
+            Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
+        };
+
+        callback(CheckoutNotificationType::from_bits_truncate(why),
+                 path,
+                 DiffFile::from_raw(baseline),
+                 DiffFile::from_raw(target),
+                 DiffFile::from_raw(workdir)) as c_int
+    }).unwrap_or(1)
 }
 
 #[cfg(test)]
