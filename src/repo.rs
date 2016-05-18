@@ -12,7 +12,7 @@ use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
-use {DescribeOptions, TreeBuilder, Diff, DiffOptions};
+use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
 use build::{RepoBuilder, CheckoutBuilder};
 use string_array::StringArray;
 use oid_array::OidArray;
@@ -1576,6 +1576,16 @@ impl Repository {
             Ok(Binding::from_raw(ret))
         }
     }
+
+    /// Create a PackBuilder
+    pub fn packbuilder(&self) -> Result<PackBuilder, Error> {
+        let mut ret = 0 as *mut raw::git_packbuilder;
+        unsafe {
+            try_call!(raw::git_packbuilder_new(&mut ret, self.raw()));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
 }
 
 impl Binding for Repository {

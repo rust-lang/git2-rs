@@ -73,6 +73,7 @@ pub enum git_diff_stats {}
 pub enum git_reflog {}
 pub enum git_reflog_entry {}
 pub enum git_describe_result {}
+pub enum git_packbuilder {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -363,8 +364,8 @@ pub type git_cred_acquire_cb = extern fn(*mut *mut git_cred,
                                          c_uint, *mut c_void) -> c_int;
 pub type git_transfer_progress_cb = extern fn(*const git_transfer_progress,
                                               *mut c_void) -> c_int;
-pub type git_packbuilder_progress = extern fn(c_int, c_uint, c_uint,
-                                              *mut c_void) -> c_int;
+pub type git_packbuilder_progress = extern fn(git_packbuilder_stage_t, c_uint,
+                                              c_uint, *mut c_void) -> c_int;
 pub type git_push_transfer_progress = extern fn(c_uint, c_uint, size_t,
                                                 *mut c_void) -> c_int;
 pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
@@ -1259,6 +1260,16 @@ pub struct git_describe_format_options {
     pub always_use_long_format: c_int,
     pub dirty_suffix: *const c_char,
 }
+
+git_enum! {
+    pub enum git_packbuilder_stage_t {
+        GIT_PACKBUILDER_ADDING_OBJECTS,
+        GIT_PACKBUILDER_DELTAFICATION,
+    }
+}
+
+pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
+                                                *mut c_void) -> c_int;
 
 /// Initialize openssl for the libgit2 library
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
@@ -2454,6 +2465,41 @@ extern {
                                 message: *const c_char,
                                 strip_comments: c_int,
                                 comment_char: c_char) -> c_int;
+
+    // packbuilder
+    pub fn git_packbuilder_new(out: *mut *mut git_packbuilder,
+                               repo: *mut git_repository) -> c_int;
+    pub fn git_packbuilder_set_threads(pb: *mut git_packbuilder,
+                                       n: c_uint) -> c_uint;
+    pub fn git_packbuilder_insert(pb: *mut git_packbuilder,
+                                  id: *const git_oid,
+                                  name: *const c_char) -> c_int;
+    pub fn git_packbuilder_insert_tree(pb: *mut git_packbuilder,
+                                       id: *const git_oid) -> c_int;
+    pub fn git_packbuilder_insert_commit(pb: *mut git_packbuilder,
+                                         id: *const git_oid) -> c_int;
+    pub fn git_packbuilder_insert_walk(pb: *mut git_packbuilder,
+                                       walk: *mut git_revwalk) -> c_int;
+    pub fn git_packbuilder_insert_recur(pb: *mut git_packbuilder,
+                                        id: *const git_oid,
+                                        name: *const c_char) -> c_int;
+    pub fn git_packbuilder_write_buf(buf: *mut git_buf,
+                                     pb: *mut git_packbuilder) -> c_int;
+    pub fn git_packbuilder_write(pb: *mut git_packbuilder,
+                                 path: *const c_char,
+                                 mode: c_uint,
+                                 progress_cb: Option<git_transfer_progress_cb>,
+                                 progress_cb_payload: *mut c_void) -> c_int;
+    pub fn git_packbuilder_hash(pb: *mut git_packbuilder) -> *const git_oid;
+    pub fn git_packbuilder_foreach(pb: *mut git_packbuilder,
+                                   cb: git_packbuilder_foreach_cb,
+                                   payload: *mut c_void) -> c_int;
+    pub fn git_packbuilder_object_count(pb: *mut git_packbuilder) -> u32;
+    pub fn git_packbuilder_written(pb: *mut git_packbuilder) -> u32;
+    pub fn git_packbuilder_set_callbacks(pb: *mut git_packbuilder,
+                                         progress_cb: Option<git_packbuilder_progress>,
+                                         progress_cb_payload: *mut c_void) -> c_int;
+    pub fn git_packbuilder_free(pb: *mut git_packbuilder);
 }
 
 #[test]
