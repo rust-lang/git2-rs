@@ -396,6 +396,55 @@ Types of credentials that can be requested by a credential callback.
 
 bitflags! {
     #[doc = "
+Flags for the `flags` field of an IndexEntry.
+"]
+    flags IndexEntryFlag: u16 {
+        /// Set when the `extended_flags` field is valid.
+        const IDXENTRY_EXTENDED = raw::GIT_IDXENTRY_EXTENDED as u16,
+        /// "Assume valid" flag
+        const IDXENTRY_VALID = raw::GIT_IDXENTRY_VALID as u16,
+    }
+}
+
+bitflags! {
+    #[doc = "
+Flags for the `extended_flags` field of an IndexEntry.
+"]
+    flags IndexEntryExtendedFlag: u16 {
+        /// An "intent to add" entry from "git add -N"
+        const IDXENTRY_INTENT_TO_ADD = raw::GIT_IDXENTRY_INTENT_TO_ADD as u16,
+        /// Skip the associated worktree file, for sparse checkouts
+        const IDXENTRY_SKIP_WORKTREE = raw::GIT_IDXENTRY_SKIP_WORKTREE as u16,
+        /// Reserved for a future on-disk extended flag
+        const IDXENTRY_EXTENDED2 = raw::GIT_IDXENTRY_EXTENDED2 as u16,
+
+        #[allow(missing_docs)]
+        const IDXENTRY_UPDATE = raw::GIT_IDXENTRY_UPDATE as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_REMOVE = raw::GIT_IDXENTRY_REMOVE as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_UPTODATE = raw::GIT_IDXENTRY_UPTODATE as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_ADDED = raw::GIT_IDXENTRY_ADDED as u16,
+
+        #[allow(missing_docs)]
+        const IDXENTRY_HASHED = raw::GIT_IDXENTRY_HASHED as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_UNHASHED = raw::GIT_IDXENTRY_UNHASHED as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_WT_REMOVE = raw::GIT_IDXENTRY_WT_REMOVE as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_CONFLICTED = raw::GIT_IDXENTRY_CONFLICTED as u16,
+
+        #[allow(missing_docs)]
+        const IDXENTRY_UNPACKED = raw::GIT_IDXENTRY_UNPACKED as u16,
+        #[allow(missing_docs)]
+        const IDXENTRY_NEW_SKIP_WORKTREE = raw::GIT_IDXENTRY_NEW_SKIP_WORKTREE as u16,
+    }
+}
+
+bitflags! {
+    #[doc = "
 Flags for APIs that add files matching pathspec
 "]
     flags IndexAddOption: u32 {
