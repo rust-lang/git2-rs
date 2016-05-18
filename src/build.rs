@@ -5,7 +5,8 @@ use std::mem;
 use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
-use {raw, panic, Error, Repository, FetchOptions, IntoCString, CheckoutNotificationType, DiffFile};
+use {raw, panic, Error, Repository, FetchOptions, IntoCString};
+use {CheckoutNotificationType, DiffFile};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -47,9 +48,10 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 /// The first argument is the notification type, the next is the path for the
 /// the notification, followed by the baseline diff, target diff, and workdir diff.
 ///
-/// The callback must return a bool specifying whether the checkout should be
-/// canceled.
-pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'a;
+/// The callback must return a bool specifying whether the checkout should
+/// continue.
+pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
+                            DiffFile, DiffFile) -> bool + 'a;
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -405,7 +407,9 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Callbacks are invoked prior to modifying any files on disk.
     /// Returning `true` from the callback will cancel the checkout.
     pub fn notify<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-                       where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'cb {
+        where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
+                       DiffFile, DiffFile) -> bool + 'cb
+    {
         self.notify = Some(Box::new(cb) as Box<Notify<'cb>>);
         self
     }
@@ -494,12 +498,14 @@ extern fn notify_cb(why: raw::git_checkout_notify_t,
             Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
         };
 
-        callback(CheckoutNotificationType::from_bits_truncate(why),
-                 path,
-                 DiffFile::from_raw(baseline),
-                 DiffFile::from_raw(target),
-                 DiffFile::from_raw(workdir)) as c_int
-    }).unwrap_or(1)
+        let why = CheckoutNotificationType::from_bits_truncate(why);
+        let keep_going = callback(why,
+                                  path,
+                                  DiffFile::from_raw(baseline),
+                                  DiffFile::from_raw(target),
+                                  DiffFile::from_raw(workdir));
+        if keep_going {0} else {1}
+    }).unwrap_or(2)
 }
 
 #[cfg(test)]
