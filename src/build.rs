@@ -552,7 +552,7 @@ extern fn notify_cb(why: raw::git_checkout_notify_t,
                  DiffFile::from_raw(baseline),
                  DiffFile::from_raw(target),
                  DiffFile::from_raw(workdir))
-    }).unwrap()
+    }).unwrap_or(1)
 }
 
 #[cfg(test)]
