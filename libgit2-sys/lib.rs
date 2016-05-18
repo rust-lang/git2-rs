@@ -1461,6 +1461,9 @@ extern {
     pub fn git_repository_path(repo: *mut git_repository) -> *const c_char;
     pub fn git_repository_state(repo: *mut git_repository) -> c_int;
     pub fn git_repository_workdir(repo: *mut git_repository) -> *const c_char;
+    pub fn git_repository_set_workdir(repo: *mut git_repository,
+                                      workdir: *const c_char,
+                                      update_gitlink: c_int) -> c_int;
     pub fn git_repository_index(out: *mut *mut git_index,
                                 repo: *mut git_repository) -> c_int;
     pub fn git_repository_set_index(repo: *mut git_repository,

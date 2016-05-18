@@ -276,6 +276,21 @@ impl Repository {
         }
     }
 
+    /// Set the path to the working directory for this repository.
+    ///
+    /// If `update_link` is true, create/update the gitlink file in the workdir
+    /// and set config "core.worktree" (if workdir is not the parent of the .git
+    /// directory).
+    pub fn set_workdir(&self, path: &Path, update_gitlink: bool)
+                       -> Result<(), Error> {
+        let path = try!(path.into_c_string());
+        unsafe {
+            try_call!(raw::git_repository_set_workdir(self.raw(), path,
+                                                      update_gitlink));
+        }
+        Ok(())
+    }
+
     /// Get the currently active namespace for this repository.
     ///
     /// If there is no namespace, or the namespace is not a valid utf8 string,
