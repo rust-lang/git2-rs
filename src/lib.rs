@@ -344,9 +344,7 @@ pub enum FileFavor {
 }
 
 bitflags! {
-    #[doc = "
-Orderings that may be specified for Revwalk iteration.
-"]
+    /// Orderings that may be specified for Revwalk iteration.
     flags Sort: u32 {
         /// Sort the repository contents in no particular ordering.
         ///
@@ -373,9 +371,7 @@ Orderings that may be specified for Revwalk iteration.
 }
 
 bitflags! {
-    #[doc = "
-Types of credentials that can be requested by a credential callback.
-"]
+    /// Types of credentials that can be requested by a credential callback.
     flags CredentialType: u32 {
         #[allow(missing_docs)]
         const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32,
@@ -395,9 +391,7 @@ Types of credentials that can be requested by a credential callback.
 }
 
 bitflags! {
-    #[doc = "
-Flags for the `flags` field of an IndexEntry.
-"]
+    /// Flags for the `flags` field of an IndexEntry.
     flags IndexEntryFlag: u16 {
         /// Set when the `extended_flags` field is valid.
         const IDXENTRY_EXTENDED = raw::GIT_IDXENTRY_EXTENDED as u16,
@@ -407,9 +401,7 @@ Flags for the `flags` field of an IndexEntry.
 }
 
 bitflags! {
-    #[doc = "
-Flags for the `extended_flags` field of an IndexEntry.
-"]
+    /// Flags for the `extended_flags` field of an IndexEntry.
     flags IndexEntryExtendedFlag: u16 {
         /// An "intent to add" entry from "git add -N"
         const IDXENTRY_INTENT_TO_ADD = raw::GIT_IDXENTRY_INTENT_TO_ADD as u16,
@@ -444,9 +436,7 @@ Flags for the `extended_flags` field of an IndexEntry.
 }
 
 bitflags! {
-    #[doc = "
-Flags for APIs that add files matching pathspec
-"]
+    /// Flags for APIs that add files matching pathspec
     flags IndexAddOption: u32 {
         #[allow(missing_docs)]
         const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32,
@@ -461,9 +451,7 @@ Flags for APIs that add files matching pathspec
 }
 
 bitflags! {
-    #[doc = "
-Flags for `Repository::open_ext`
-"]
+    /// Flags for `Repository::open_ext`
     flags RepositoryOpenFlags: u32 {
         /// Only open the specified path; don't walk upward searching.
         const REPOSITORY_OPEN_NO_SEARCH = raw::GIT_REPOSITORY_OPEN_NO_SEARCH as u32,
@@ -475,9 +463,7 @@ Flags for `Repository::open_ext`
 }
 
 bitflags! {
-    #[doc = "
-Flags for the return value of `Repository::revparse`
-"]
+    /// Flags for the return value of `Repository::revparse`
     flags RevparseMode: u32 {
         /// The spec targeted a single object
         const REVPARSE_SINGLE = raw::GIT_REVPARSE_SINGLE as u32,
@@ -667,9 +653,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[doc = "
-Mode options for RepositoryInitOptions
-"]
+    /// Mode options for RepositoryInitOptions
     flags RepositoryInitMode: u32 {
         /// Use permissions configured by umask - the default
         const REPOSITORY_INIT_SHARED_UMASK =
@@ -712,48 +696,46 @@ pub enum Delta {
 }
 
 bitflags! {
-    #[doc = r#"
-Return codes for submodule status.
-
-A combination of these flags will be returned to describe the status of a
-submodule.  Depending on the "ignore" property of the submodule, some of
-the flags may never be returned because they indicate changes that are
-supposed to be ignored.
-
-Submodule info is contained in 4 places: the HEAD tree, the index, config
-files (both .git/config and .gitmodules), and the working directory.  Any
-or all of those places might be missing information about the submodule
-depending on what state the repo is in.  We consider all four places to
-build the combination of status flags.
-
-There are four values that are not really status, but give basic info
-about what sources of submodule data are available.  These will be
-returned even if ignore is set to "ALL".
-
-* IN_HEAD   - superproject head contains submodule
-* IN_INDEX  - superproject index contains submodule
-* IN_CONFIG - superproject gitmodules has submodule
-* IN_WD     - superproject workdir has submodule
-
-The following values will be returned so long as ignore is not "ALL".
-
-* INDEX_ADDED       - in index, not in head
-* INDEX_DELETED     - in head, not in index
-* INDEX_MODIFIED    - index and head don't match
-* WD_UNINITIALIZED  - workdir contains empty directory
-* WD_ADDED          - in workdir, not index
-* WD_DELETED        - in index, not workdir
-* WD_MODIFIED       - index and workdir head don't match
-
-The following can only be returned if ignore is "NONE" or "UNTRACKED".
-
-* WD_INDEX_MODIFIED - submodule workdir index is dirty
-* WD_WD_MODIFIED    - submodule workdir has modified files
-
-Lastly, the following will only be returned for ignore "NONE".
-
-* WD_UNTRACKED      - wd contains untracked files
-"#]
+    /// Return codes for submodule status.
+    ///
+    /// A combination of these flags will be returned to describe the status of a
+    /// submodule.  Depending on the "ignore" property of the submodule, some of
+    /// the flags may never be returned because they indicate changes that are
+    /// supposed to be ignored.
+    ///
+    /// Submodule info is contained in 4 places: the HEAD tree, the index, config
+    /// files (both .git/config and .gitmodules), and the working directory.  Any
+    /// or all of those places might be missing information about the submodule
+    /// depending on what state the repo is in.  We consider all four places to
+    /// build the combination of status flags.
+    ///
+    /// There are four values that are not really status, but give basic info
+    /// about what sources of submodule data are available.  These will be
+    /// returned even if ignore is set to "ALL".
+    ///
+    /// * IN_HEAD   - superproject head contains submodule
+    /// * IN_INDEX  - superproject index contains submodule
+    /// * IN_CONFIG - superproject gitmodules has submodule
+    /// * IN_WD     - superproject workdir has submodule
+    ///
+    /// The following values will be returned so long as ignore is not "ALL".
+    ///
+    /// * INDEX_ADDED       - in index, not in head
+    /// * INDEX_DELETED     - in head, not in index
+    /// * INDEX_MODIFIED    - index and head don't match
+    /// * WD_UNINITIALIZED  - workdir contains empty directory
+    /// * WD_ADDED          - in workdir, not index
+    /// * WD_DELETED        - in index, not workdir
+    /// * WD_MODIFIED       - index and workdir head don't match
+    ///
+    /// The following can only be returned if ignore is "NONE" or "UNTRACKED".
+    ///
+    /// * WD_INDEX_MODIFIED - submodule workdir index is dirty
+    /// * WD_WD_MODIFIED    - submodule workdir has modified files
+    ///
+    /// Lastly, the following will only be returned for ignore "NONE".
+    ///
+    /// * WD_UNTRACKED      - wd contains untracked files
     flags SubmoduleStatus: u32 {
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_HEAD =
@@ -849,9 +831,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[doc = "
-Types of notifications emitted from checkouts.
-"]
+    /// Types of notifications emitted from checkouts.
     flags CheckoutNotificationType: u32 {
         /// Notification about a conflict.
         const CHECKOUT_NOTIFICATION_CONFLICT = raw::GIT_CHECKOUT_NOTIFY_CONFLICT as u32,
