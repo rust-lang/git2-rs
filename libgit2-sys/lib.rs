@@ -690,7 +690,7 @@ pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
                                                *mut c_void) -> c_int;
 
 git_enum! {
-    pub enum git_idxentry_extended_flag_t: u16 {
+    pub enum git_idxentry_extended_flag_t {
         GIT_IDXENTRY_INTENT_TO_ADD     = 1 << 13,
         GIT_IDXENTRY_SKIP_WORKTREE     = 1 << 14,
         GIT_IDXENTRY_EXTENDED2         = 1 << 15,
@@ -711,7 +711,7 @@ git_enum! {
 }
 
 git_enum! {
-    pub enum git_indxentry_flag_t: u16 {
+    pub enum git_indxentry_flag_t {
         GIT_IDXENTRY_EXTENDED = 0x4000,
         GIT_IDXENTRY_VALID    = 0x8000,
     }
