@@ -498,7 +498,7 @@ extern fn notify_cb(why: raw::git_checkout_notify_t,
             Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
         };
 
-        let why = CheckoutNotificationType::from_bits_truncate(why);
+        let why = CheckoutNotificationType::from_bits_truncate(why as u32);
         let keep_going = callback(why,
                                   path,
                                   DiffFile::from_raw(baseline),
