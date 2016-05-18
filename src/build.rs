@@ -6,13 +6,6 @@ use std::path::Path;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
 use {raw, panic, Error, Repository, FetchOptions, IntoCString, CheckoutNotificationType, DiffFile};
-use {
-    CHECKOUT_NOTIFICATION_CONFLICT,
-    CHECKOUT_NOTIFICATION_DIRTY,
-    CHECKOUT_NOTIFICATION_UPDATED,
-    CHECKOUT_NOTIFICATION_UNTRACKED,
-    CHECKOUT_NOTIFICATION_IGNORED,
-};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -315,68 +308,14 @@ impl<'cb> CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_MERGE, on)
     }
 
-    /// Indicate whether a notification callback should never be invoked.
+    /// Specify for which notification types to invoke the notification
+    /// callback.
     ///
-    /// This is the default.
-    pub fn never_notify(&mut self) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flags = CheckoutNotificationType::empty();
+    /// Defaults to none.
+    pub fn notify_on(&mut self, notification_types: CheckoutNotificationType)
+                     -> &mut CheckoutBuilder<'cb> {
+        self.notify_flags = notification_types;
         self
-    }
-
-    /// Invoke a notification callback for every notification type.
-    pub fn always_notify(&mut self) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flags = CheckoutNotificationType::all();
-        self
-    }
-
-    fn notify_flag(&mut self, bit: CheckoutNotificationType,
-            on: bool) -> &mut CheckoutBuilder<'cb> {
-        if on {
-            self.notify_flags.insert(bit);
-        } else {
-            self.notify_flags.remove(bit);
-        }
-        self
-    }
-
-    /// Indicate whether a notification callback should be invoked for
-    /// notifications of conflicts.
-    ///
-    /// Defaults to false.
-    pub fn notify_on_conflict(&mut self, on_conflict: bool) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flag(CHECKOUT_NOTIFICATION_CONFLICT, on_conflict)
-    }
-
-    /// Indicate whether a notification callback should be invoked for
-    /// notifications of dirty files.
-    ///
-    /// Defaults to false.
-    pub fn notify_on_dirty(&mut self, on_dirty: bool) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flag(CHECKOUT_NOTIFICATION_DIRTY, on_dirty)
-    }
-
-    /// Indicate whether a notification callback should be invoked for
-    /// notifications of changed files.
-    ///
-    /// Defaults to false.
-    pub fn notify_on_updated(&mut self, on_updated: bool) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flag(CHECKOUT_NOTIFICATION_UPDATED, on_updated)
-    }
-
-    /// Indicate whether a notification callback should be invoked for
-    /// notifications of untracked files.
-    ///
-    /// Defaults to false.
-    pub fn notify_on_untracked(&mut self, on_untracked: bool) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flag(CHECKOUT_NOTIFICATION_UNTRACKED, on_untracked)
-    }
-
-    /// Indicate whether a notification callback should be invoked for
-    /// notifications of ignored files.
-    ///
-    /// Defaults to false.
-    pub fn notify_on_ignored(&mut self, on_ignored: bool) -> &mut CheckoutBuilder<'cb> {
-        self.notify_flag(CHECKOUT_NOTIFICATION_IGNORED, on_ignored)
     }
 
     /// Indicates whether to include common ancestor data in diff3 format files
