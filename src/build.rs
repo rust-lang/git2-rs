@@ -405,7 +405,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Set a callback to receive checkout notifications.
     ///
     /// Callbacks are invoked prior to modifying any files on disk.
-    /// Returning `true` from the callback will cancel the checkout.
+    /// Returning `false` from the callback will cancel the checkout.
     pub fn notify<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
         where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
                        DiffFile, DiffFile) -> bool + 'cb
