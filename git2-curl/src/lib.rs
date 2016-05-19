@@ -26,7 +26,6 @@ use std::ascii::AsciiExt;
 use std::error;
 use std::io::prelude::*;
 use std::io::{self, Cursor};
-use std::mem;
 use std::str;
 use std::sync::{Once, ONCE_INIT, Arc, Mutex};
 
@@ -37,11 +36,11 @@ use git2::transport::{Transport, SmartSubtransport, Service};
 use url::Url;
 
 struct CurlTransport {
-    handle: Arc<Mutex<Easy<'static>>>,
+    handle: Arc<Mutex<Easy>>,
 }
 
 struct CurlSubtransport {
-    handle: Arc<Mutex<Easy<'static>>>,
+    handle: Arc<Mutex<Easy>>,
     service: &'static str,
     url_path: &'static str,
     base_url: String,
@@ -66,7 +65,7 @@ struct CurlSubtransport {
 ///
 /// This function may be called concurrently, but only the first `handle` will
 /// be used. All others will be discarded.
-pub unsafe fn register(handle: Easy<'static>) {
+pub unsafe fn register(handle: Easy) {
     static INIT: Once = ONCE_INIT;
 
     let handle = Arc::new(Mutex::new(handle));
@@ -81,7 +80,7 @@ pub unsafe fn register(handle: Easy<'static>) {
     });
 }
 
-fn factory(remote: &git2::Remote, handle: Arc<Mutex<Easy<'static>>>)
+fn factory(remote: &git2::Remote, handle: Arc<Mutex<Easy>>)
            -> Result<Transport, Error> {
     Transport::smart(remote, true, CurlTransport { handle: handle })
 }
@@ -169,37 +168,40 @@ impl CurlSubtransport {
         try!(headers.append("Expect:"));
         try!(h.http_headers(headers));
 
-        // Look for the Content-Type header
-        let content_type = Arc::new(Mutex::new(None));
-        let content_type2 = content_type.clone();
-        try!(h.header_function(move |header| {
-            let header = match str::from_utf8(header) {
-                Ok(s) => s,
-                Err(..) => return true,
-            };
-            let mut parts = header.splitn(2, ": ");
-            let name = parts.next().unwrap();
-            let value = match parts.next() {
-                Some(value) => value,
-                None => return true,
-            };
-            if name.eq_ignore_ascii_case("Content-Type") {
-                *content_type2.lock().unwrap() = Some(value.trim().to_string());
-            }
+        let mut content_type = None;
+        let mut data = Vec::new();
+        {
+            let mut h = h.transfer();
 
-            true
-        }));
+            // Look for the Content-Type header
+            try!(h.header_function(|header| {
+                let header = match str::from_utf8(header) {
+                    Ok(s) => s,
+                    Err(..) => return true,
+                };
+                let mut parts = header.splitn(2, ": ");
+                let name = parts.next().unwrap();
+                let value = match parts.next() {
+                    Some(value) => value,
+                    None => return true,
+                };
+                if name.eq_ignore_ascii_case("Content-Type") {
+                    content_type = Some(value.trim().to_string());
+                }
 
-        // Collect the request's response in-memory
-        let data = Arc::new(Mutex::new(Vec::new()));
-        let data2 = data.clone();
-        try!(h.write_function(move |data| {
-            data2.lock().unwrap().extend_from_slice(data);
-            data.len()
-        }));
+                true
+            }));
 
-        // Send the request
-        try!(h.perform());
+            // Collect the request's response in-memory
+            try!(h.write_function(|buf| {
+                data.extend_from_slice(buf);
+                Ok(buf.len())
+            }));
+
+            // Send the request
+            try!(h.perform());
+        }
+
         let code = try!(h.response_code());
         if code != 200 {
             return Err(self.err(&format!("failed to receive HTTP 200 response: \
@@ -212,7 +214,7 @@ impl CurlSubtransport {
                              self.service),
             _ => format!("application/x-git-{}-result", self.service),
         };
-        match *content_type.lock().unwrap() {
+        match content_type {
             Some(ref content_type) if *content_type != expected => {
                 return Err(self.err(&format!("expected a Content-Type header \
                                               with `{}` but found `{}`",
@@ -227,7 +229,7 @@ impl CurlSubtransport {
         }
 
         // Ok, time to read off some data.
-        let rdr = Cursor::new(mem::replace(&mut *data.lock().unwrap(), Vec::new()));
+        let rdr = Cursor::new(data);
         self.reader = Some(rdr);
         Ok(())
     }
