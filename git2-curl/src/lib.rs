@@ -22,34 +22,33 @@ extern crate curl;
 extern crate url;
 #[macro_use] extern crate log;
 
+use std::ascii::AsciiExt;
+use std::error;
 use std::io::prelude::*;
 use std::io::{self, Cursor};
+use std::mem;
+use std::str;
 use std::sync::{Once, ONCE_INIT, Arc, Mutex};
-use std::error;
 
-use curl::http::handle::Method;
-use curl::http::{Handle, Request};
+use curl::easy::{Easy, List};
 use git2::Error;
 use git2::transport::{SmartSubtransportStream};
 use git2::transport::{Transport, SmartSubtransport, Service};
 use url::Url;
 
 struct CurlTransport {
-    handle: Arc<Mutex<MyHandle>>,
+    handle: Arc<Mutex<Easy<'static>>>,
 }
 
 struct CurlSubtransport {
-    handle: Arc<Mutex<MyHandle>>,
+    handle: Arc<Mutex<Easy<'static>>>,
     service: &'static str,
     url_path: &'static str,
     base_url: String,
-    method: Method,
+    method: &'static str,
     reader: Option<Cursor<Vec<u8>>>,
     sent_request: bool,
 }
-
-struct MyHandle(Handle);
-unsafe impl Send for MyHandle {} // Handle is not send...
 
 /// Register the libcurl backend for HTTP requests made by libgit2.
 ///
@@ -67,10 +66,10 @@ unsafe impl Send for MyHandle {} // Handle is not send...
 ///
 /// This function may be called concurrently, but only the first `handle` will
 /// be used. All others will be discarded.
-pub unsafe fn register(handle: Handle) {
+pub unsafe fn register(handle: Easy<'static>) {
     static INIT: Once = ONCE_INIT;
 
-    let handle = Arc::new(Mutex::new(MyHandle(handle)));
+    let handle = Arc::new(Mutex::new(handle));
     let handle2 = handle.clone();
     INIT.call_once(move || {
         git2::transport::register("http", move |remote| {
@@ -82,7 +81,7 @@ pub unsafe fn register(handle: Handle) {
     });
 }
 
-fn factory(remote: &git2::Remote, handle: Arc<Mutex<MyHandle>>)
+fn factory(remote: &git2::Remote, handle: Arc<Mutex<Easy<'static>>>)
            -> Result<Transport, Error> {
     Transport::smart(remote, true, CurlTransport { handle: handle })
 }
@@ -92,17 +91,16 @@ impl SmartSubtransport for CurlTransport {
               -> Result<Box<SmartSubtransportStream>, Error> {
         let (service, path, method) = match action {
             Service::UploadPackLs => {
-                ("upload-pack", "/info/refs?service=git-upload-pack", Method::Get)
+                ("upload-pack", "/info/refs?service=git-upload-pack", "GET")
             }
             Service::UploadPack => {
-                ("upload-pack", "/git-upload-pack", Method::Post)
+                ("upload-pack", "/git-upload-pack", "POST")
             }
             Service::ReceivePackLs => {
-                ("receive-pack", "/info/refs?service=git-receive-pack",
-                 Method::Get)
+                ("receive-pack", "/info/refs?service=git-receive-pack", "GET")
             }
             Service::ReceivePack => {
-                ("receive-pack", "/git-receive-pack", Method::Post)
+                ("receive-pack", "/git-receive-pack", "POST")
             }
         };
         info!("action {} {}", service, path);
@@ -127,7 +125,7 @@ impl CurlSubtransport {
         io::Error::new(io::ErrorKind::Other, err)
     }
 
-    fn execute(&mut self, mut data: &[u8]) -> io::Result<()> {
+    fn execute(&mut self, data: &[u8]) -> io::Result<()> {
         if self.sent_request {
             return Err(self.err("already sent HTTP request"))
         }
@@ -146,46 +144,90 @@ impl CurlSubtransport {
         // Prep the request
         debug!("request to {}", url);
         let mut h = self.handle.lock().unwrap();
-        let mut req = Request::new(&mut h.0, self.method)
-                              .uri(url)
-                              .header("User-Agent", &agent)
-                              .header("Host", host)
-                              .follow_redirects(true);
-        if data.len() > 0 {
-            req = req.body(&mut data)
-                     .content_length(data.len())
-                     .header("Accept", &format!("application/x-git-{}-result",
-                                                self.service))
-                     .header("Content-Type",
-                             &format!("application/x-git-{}-request",
-                                      self.service));
-        } else {
-            req = req.header("Accept", "*/*");
+        try!(h.url(&url));
+        try!(h.useragent(&agent));
+        try!(h.follow_location(true));
+        match self.method {
+            "GET" => try!(h.get(true)),
+            "PUT" => try!(h.put(true)),
+            "POST" => try!(h.post(true)),
+            other => try!(h.custom_request(other)),
         }
 
+        let mut headers = List::new();
+        try!(headers.append(&format!("Host: {}", host)));
+        if data.len() > 0 {
+            try!(h.post_fields_copy(data));
+            try!(headers.append(&format!("Accept: application/x-git-{}-result",
+                                         self.service)));
+            try!(headers.append(&format!("Content-Type: \
+                                          application/x-git-{}-request",
+                                         self.service)));
+        } else {
+            try!(headers.append("Accept: */*"));
+        }
+        try!(headers.append("Expect:"));
+        try!(h.http_headers(headers));
+
+        // Look for the Content-Type header
+        let content_type = Arc::new(Mutex::new(None));
+        let content_type2 = content_type.clone();
+        try!(h.header_function(move |header| {
+            let header = match str::from_utf8(header) {
+                Ok(s) => s,
+                Err(..) => return true,
+            };
+            let mut parts = header.splitn(2, ": ");
+            let name = parts.next().unwrap();
+            let value = match parts.next() {
+                Some(value) => value,
+                None => return true,
+            };
+            if name.eq_ignore_ascii_case("Content-Type") {
+                *content_type2.lock().unwrap() = Some(value.trim().to_string());
+            }
+
+            true
+        }));
+
+        // Collect the request's response in-memory
+        let data = Arc::new(Mutex::new(Vec::new()));
+        let data2 = data.clone();
+        try!(h.write_function(move |data| {
+            data2.lock().unwrap().extend_from_slice(data);
+            data.len()
+        }));
+
         // Send the request
-        let resp = try!(req.exec().map_err(|e| self.err(e)));
-        debug!("response: {}", resp);
-        if resp.get_code() != 200 {
+        try!(h.perform());
+        let code = try!(h.response_code());
+        if code != 200 {
             return Err(self.err(&format!("failed to receive HTTP 200 response: \
-                                          got {}", resp.get_code())[..]))
+                                          got {}", code)[..]))
         }
 
         // Check returned headers
         let expected = match self.method {
-            Method::Get => format!("application/x-git-{}-advertisement",
-                                   self.service),
+            "GET" => format!("application/x-git-{}-advertisement",
+                             self.service),
             _ => format!("application/x-git-{}-result", self.service),
         };
-        if &resp.get_header("content-type") != &[expected.clone()] {
-            return Err(self.err(&format!("invalid Content-Type header: \
-                                          found `{:?}` expected `{}`",
-                                         resp.get_header("Content-Type"),
-                                         expected)[..]))
+        match *content_type.lock().unwrap() {
+            Some(ref content_type) if *content_type != expected => {
+                return Err(self.err(&format!("expected a Content-Type header \
+                                              with `{}` but found `{}`",
+                                             expected, content_type)[..]))
+            }
+            Some(..) => {}
+            None => {
+                return Err(self.err(&format!("expected a Content-Type header \
+                                              with `{}` but didn't find one",
+                                             expected)[..]))
+            }
         }
 
         // Ok, time to read off some data.
-        let rdr = Cursor::new(resp.move_body());
+        let rdr = Cursor::new(mem::replace(&mut *data.lock().unwrap(), Vec::new()));
         self.reader = Some(rdr);
         Ok(())
     }

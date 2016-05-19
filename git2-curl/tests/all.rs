@@ -15,8 +15,7 @@ const PORT: u16 = 7848;
 
 fn main() {
     unsafe {
-        let h = curl::http::handle::Handle::new();
-        git2_curl::register(h.timeout(1000));
+        git2_curl::register(curl::easy::Easy::new());
     }
 
     // Spin up a server for git-http-backend

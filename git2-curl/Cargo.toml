@@ -14,7 +14,7 @@ Intended to be used with the git2 crate.
 """
 
 [dependencies]
-curl = "0.2"
+curl = { git = "https://github.com/alexcrichton/curl-rust", branch = "rewrite" }
 url = "1.0"
 log = "0.3"
 git2 = { path = "..", version = "0.4" }
