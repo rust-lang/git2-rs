@@ -8,7 +8,7 @@ use libc::c_int;
 use {raw, ErrorClass, ErrorCode};
 
 /// A structure to represent errors coming out of libgit2.
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct Error {
     code: c_int,
     klass: c_int,
