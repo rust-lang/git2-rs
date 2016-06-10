@@ -349,6 +349,43 @@ impl Config {
             Ok(Binding::from_raw(ret))
         }
     }
+
+    /// Parse a string as a bool.
+    /// Interprets "true", "yes", "on", 1, or any non-zero number as true.
+    /// Interprets "false", "no", "off", 0, or an empty string as false.
+    pub fn parse_bool<S: IntoCString>(s: S) -> Result<bool, Error> {
+        let s = try!(s.into_c_string());
+        let mut out = 0;
+        ::init();
+        unsafe {
+            try_call!(raw::git_config_parse_bool(&mut out, s));
+        }
+        Ok(out != 0)
+    }
+
+    /// Parse a string as an i32; handles suffixes like k, M, or G, and
+    /// multiplies by the appropriate power of 1024.
+    pub fn parse_i32<S: IntoCString>(s: S) -> Result<i32, Error> {
+        let s = try!(s.into_c_string());
+        let mut out = 0;
+        ::init();
+        unsafe {
+            try_call!(raw::git_config_parse_int32(&mut out, s));
+        }
+        Ok(out)
+    }
+
+    /// Parse a string as an i64; handles suffixes like k, M, or G, and
+    /// multiplies by the appropriate power of 1024.
+    pub fn parse_i64<S: IntoCString>(s: S) -> Result<i64, Error> {
+        let s = try!(s.into_c_string());
+        let mut out = 0;
+        ::init();
+        unsafe {
+            try_call!(raw::git_config_parse_int64(&mut out, s));
+        }
+        Ok(out)
+    }
 }
 
 impl Binding for Config {
@@ -495,5 +532,45 @@ mod tests {
             entry.value();
             entry.level();
         }
+    }
+
+    #[test]
+    fn parse() {
+        assert_eq!(Config::parse_bool("").unwrap(), false);
+        assert_eq!(Config::parse_bool("false").unwrap(), false);
+        assert_eq!(Config::parse_bool("no").unwrap(), false);
+        assert_eq!(Config::parse_bool("off").unwrap(), false);
+        assert_eq!(Config::parse_bool("0").unwrap(), false);
+
+        assert_eq!(Config::parse_bool("true").unwrap(), true);
+        assert_eq!(Config::parse_bool("yes").unwrap(), true);
+        assert_eq!(Config::parse_bool("on").unwrap(), true);
+        assert_eq!(Config::parse_bool("1").unwrap(), true);
+        assert_eq!(Config::parse_bool("42").unwrap(), true);
+
+        assert!(Config::parse_bool(" ").is_err());
+        assert!(Config::parse_bool("some-string").is_err());
+        assert!(Config::parse_bool("-").is_err());
+
+        assert_eq!(Config::parse_i32("0").unwrap(), 0);
+        assert_eq!(Config::parse_i32("1").unwrap(), 1);
+        assert_eq!(Config::parse_i32("100").unwrap(), 100);
+        assert_eq!(Config::parse_i32("-1").unwrap(), -1);
+        assert_eq!(Config::parse_i32("-100").unwrap(), -100);
+        assert_eq!(Config::parse_i32("1k").unwrap(), 1024);
+        assert_eq!(Config::parse_i32("4k").unwrap(), 4096);
+        assert_eq!(Config::parse_i32("1M").unwrap(), 1048576);
+        assert_eq!(Config::parse_i32("1G").unwrap(), 1024*1024*1024);
+
+        assert_eq!(Config::parse_i64("0").unwrap(), 0);
+        assert_eq!(Config::parse_i64("1").unwrap(), 1);
+        assert_eq!(Config::parse_i64("100").unwrap(), 100);
+        assert_eq!(Config::parse_i64("-1").unwrap(), -1);
+        assert_eq!(Config::parse_i64("-100").unwrap(), -100);
+        assert_eq!(Config::parse_i64("1k").unwrap(), 1024);
+        assert_eq!(Config::parse_i64("4k").unwrap(), 4096);
+        assert_eq!(Config::parse_i64("1M").unwrap(), 1048576);
+        assert_eq!(Config::parse_i64("1G").unwrap(), 1024*1024*1024);
+        assert_eq!(Config::parse_i64("100G").unwrap(), 100*1024*1024*1024);
     }
 }
