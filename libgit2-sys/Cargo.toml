@@ -54,6 +54,8 @@ openssl-sys = "0.7.0"
 openssl-sys = "0.7.0"
 [target.x86_64-unknown-dragonfly.dependencies]
 openssl-sys = "0.7.0"
+[target.x86_64-sun-solaris.dependencies]
+openssl-sys = "0.7.0"
 
 [features]
 ssh = ["libssh2-sys"]
