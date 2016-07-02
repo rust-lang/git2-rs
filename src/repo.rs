@@ -75,6 +75,13 @@ impl Repository {
     /// bare even if it isn't, ignoring any working directory, and defer
     /// loading the repository configuration for performance.
     ///
+    /// If flags contains REPOSITORY_OPEN_NO_DOTGIT, don't try appending
+    /// `/.git` to `path`.
+    ///
+    /// If flags contains REPOSITORY_OPEN_FROM_ENV, `open_ext` will ignore
+    /// other flags and `ceiling_dirs`, and respect the same environment
+    /// variables git does. Note, however, that `path` overrides `$GIT_DIR`.
+    ///
     /// ceiling_dirs specifies a list of paths that the search through parent
     /// directories will stop before entering.  Use the functions in std::env
     /// to construct or manipulate such a path list.

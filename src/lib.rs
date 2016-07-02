@@ -461,6 +461,10 @@ bitflags! {
         const REPOSITORY_OPEN_CROSS_FS = raw::GIT_REPOSITORY_OPEN_CROSS_FS as u32,
         /// Force opening as bare repository, and defer loading its config.
         const REPOSITORY_OPEN_BARE = raw::GIT_REPOSITORY_OPEN_BARE as u32,
+        /// Don't try appending `/.git` to the specified repository path.
+        const REPOSITORY_OPEN_NO_DOTGIT = raw::GIT_REPOSITORY_OPEN_NO_DOTGIT as u32,
+        /// Respect environment variables like `$GIT_DIR`.
+        const REPOSITORY_OPEN_FROM_ENV = raw::GIT_REPOSITORY_OPEN_FROM_ENV as u32,
     }
 }
 
