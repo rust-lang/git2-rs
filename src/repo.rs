@@ -60,6 +60,23 @@ impl Repository {
         }
     }
 
+    /// Find and open an existing repository, respecting git environment
+    /// variables.  This acts like `open_ext` with the
+    /// `REPOSITORY_OPEN_FROM_ENV` flag, but additionally respects `$GIT_DIR`.
+    /// With `$GIT_DIR` unset, this will search for a repository starting in
+    /// the current directory.
+    pub fn open_from_env() -> Result<Repository, Error> {
+        init();
+        let mut ret = 0 as *mut raw::git_repository;
+        unsafe {
+            try_call!(raw::git_repository_open_ext(&mut ret,
+                                                   0 as *const _,
+                                                   raw::GIT_REPOSITORY_OPEN_FROM_ENV,
+                                                   0 as *const _));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Find and open an existing repository, with additional options.
     ///
     /// If flags contains REPOSITORY_OPEN_NO_SEARCH, the path must point
@@ -80,7 +97,8 @@ impl Repository {
     ///
     /// If flags contains REPOSITORY_OPEN_FROM_ENV, `open_ext` will ignore
     /// other flags and `ceiling_dirs`, and respect the same environment
-    /// variables git does. Note, however, that `path` overrides `$GIT_DIR`.
+    /// variables git does. Note, however, that `path` overrides `$GIT_DIR`; to
+    /// respect `$GIT_DIR` as well, use `open_from_env`.
     ///
     /// ceiling_dirs specifies a list of paths that the search through parent
     /// directories will stop before entering.  Use the functions in std::env
