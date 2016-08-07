@@ -873,6 +873,16 @@ impl Drop for DiffStats {
 }
 
 impl<'a> DiffBinary<'a> {
+    /// Returns whether there is data in this binary structure or not.
+    ///
+    /// If this is `true`, then this was produced and included binary content.
+    /// If this is `false` then this was generated knowing only that a binary
+    /// file changed but without providing the data, probably from a patch that
+    /// said `Binary files a/file.txt and b/file.txt differ`.
+    pub fn contains_data(&self) -> bool {
+        unsafe { (*self.raw).contains_data == 1 }
+    }
+
     /// The contents of the old file.
     pub fn old_file(&self) -> DiffBinaryFile<'a> {
         unsafe { Binding::from_raw(&(*self.raw).old_file as *const _) }
@@ -1195,7 +1205,7 @@ mod tests {
         t!(index.add_path(foo_path));
         t!(index.add_path(bin_path));
         let mut opts = DiffOptions::new();
-        opts.include_untracked(true);
+        opts.include_untracked(true).show_binary(true);
         let diff = t!(repo.diff_tree_to_index(None, Some(&index),
                                               Some(&mut opts)));
         let mut bin_content = None;

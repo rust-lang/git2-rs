@@ -18,6 +18,7 @@ pub const GIT_MERGE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_PROXY_OPTIONS_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -329,6 +330,7 @@ pub struct git_fetch_options {
     pub prune: git_fetch_prune_t,
     pub update_fetchhead: c_int,
     pub download_tags: git_remote_autotag_option_t,
+    pub proxy_opts: git_proxy_options,
     pub custom_headers: git_strarray,
 }
 
@@ -838,6 +840,7 @@ pub struct git_push_options {
     pub version: c_uint,
     pub pb_parallelism: c_uint,
     pub callbacks: git_remote_callbacks,
+    pub proxy_opts: git_proxy_options,
     pub custom_headers: git_strarray,
 }
 
@@ -1119,6 +1122,7 @@ pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
 
 #[repr(C)]
 pub struct git_diff_binary {
+    pub contains_data: c_uint,
     pub old_file: git_diff_binary_file,
     pub new_file: git_diff_binary_file,
 }
@@ -1147,6 +1151,7 @@ pub struct git_merge_options {
     pub target_limit: c_uint,
     pub metric: *mut git_diff_similarity_metric,
     pub recursion_limit: c_uint,
+    pub default_driver: *const c_char,
     pub file_favor: git_merge_file_favor_t,
     pub file_flags: git_merge_file_flag_t,
 }
@@ -1201,6 +1206,7 @@ pub struct git_transport {
                            *const c_char,
                            git_cred_acquire_cb,
                            *mut c_void,
+                           *const git_proxy_options,
                            c_int, c_int) -> c_int,
     pub ls: extern fn(*mut *mut *const git_remote_head,
                       *mut size_t,
@@ -1222,6 +1228,24 @@ pub struct git_transport {
     pub cancel: extern fn(*mut git_transport),
     pub close: extern fn(*mut git_transport) -> c_int,
     pub free: extern fn(*mut git_transport),
+}
+
+#[repr(C)]
+pub struct git_proxy_options {
+    pub version: c_uint,
+    pub kind: git_proxy_t,
+    pub url: *const c_char,
+    pub credentials: Option<git_cred_acquire_cb>,
+    pub certificate_check: Option<git_transport_certificate_check_cb>,
+    pub payload: *mut c_void,
+}
+
+git_enum! {
+    pub enum git_proxy_t {
+        GIT_PROXY_NONE = 0,
+        GIT_PROXY_AUTO = 1,
+        GIT_PROXY_SPECIFIED = 2,
+    }
 }
 
 git_enum! {
@@ -1547,6 +1571,7 @@ extern {
     pub fn git_remote_connect(remote: *mut git_remote,
                               dir: git_direction,
                               callbacks: *const git_remote_callbacks,
+                              proxy_opts: *const git_proxy_options,
                               custom_headers: *const git_strarray) -> c_int;
     pub fn git_remote_connected(remote: *const git_remote) -> c_int;
     pub fn git_remote_disconnect(remote: *mut git_remote);
@@ -2546,8 +2571,8 @@ extern {
     pub fn git_packbuilder_foreach(pb: *mut git_packbuilder,
                                    cb: git_packbuilder_foreach_cb,
                                    payload: *mut c_void) -> c_int;
-    pub fn git_packbuilder_object_count(pb: *mut git_packbuilder) -> u32;
-    pub fn git_packbuilder_written(pb: *mut git_packbuilder) -> u32;
+    pub fn git_packbuilder_object_count(pb: *mut git_packbuilder) -> size_t;
+    pub fn git_packbuilder_written(pb: *mut git_packbuilder) -> size_t;
     pub fn git_packbuilder_set_callbacks(pb: *mut git_packbuilder,
                                          progress_cb: Option<git_packbuilder_progress>,
                                          progress_cb_payload: *mut c_void) -> c_int;

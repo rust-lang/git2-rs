@@ -32,3 +32,6 @@ unstable = []
 default = ["ssh", "https"]
 ssh = ["libgit2-sys/ssh"]
 https = ["libgit2-sys/https"]
+
+[workspace]
+members = ["systest", "git2-curl"]
