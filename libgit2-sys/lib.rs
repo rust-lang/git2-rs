@@ -1306,6 +1306,8 @@ pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
 /// Initialize openssl for the libgit2 library
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
 pub fn openssl_init() {
+    openssl::init();
+
     if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
 
     // Currently, libgit2 leverages OpenSSL for SSL support when cloning
