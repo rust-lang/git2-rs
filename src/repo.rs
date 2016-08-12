@@ -462,7 +462,7 @@ impl Repository {
     /// will be left alone, however.)
     ///
     /// The `target` is a commit-ish to which the head should be moved to. The
-    /// object can either be a commit or a tag, but tags must be derefernceable
+    /// object can either be a commit or a tag, but tags must be dereferenceable
     /// to a commit.
     ///
     /// The `checkout` options will only be used for a hard reset.
