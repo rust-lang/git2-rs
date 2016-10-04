@@ -346,7 +346,7 @@ pub enum FileFavor {
 
 bitflags! {
     /// Orderings that may be specified for Revwalk iteration.
-    flags Sort: u32 {
+    pub flags Sort: u32 {
         /// Sort the repository contents in no particular ordering.
         ///
         /// This sorting is arbitrary, implementation-specific, and subject to
@@ -373,7 +373,7 @@ bitflags! {
 
 bitflags! {
     /// Types of credentials that can be requested by a credential callback.
-    flags CredentialType: u32 {
+    pub flags CredentialType: u32 {
         #[allow(missing_docs)]
         const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32,
         #[allow(missing_docs)]
@@ -393,7 +393,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for the `flags` field of an IndexEntry.
-    flags IndexEntryFlag: u16 {
+    pub flags IndexEntryFlag: u16 {
         /// Set when the `extended_flags` field is valid.
         const IDXENTRY_EXTENDED = raw::GIT_IDXENTRY_EXTENDED as u16,
         /// "Assume valid" flag
@@ -403,7 +403,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for the `extended_flags` field of an IndexEntry.
-    flags IndexEntryExtendedFlag: u16 {
+    pub flags IndexEntryExtendedFlag: u16 {
         /// An "intent to add" entry from "git add -N"
         const IDXENTRY_INTENT_TO_ADD = raw::GIT_IDXENTRY_INTENT_TO_ADD as u16,
         /// Skip the associated worktree file, for sparse checkouts
@@ -438,7 +438,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for APIs that add files matching pathspec
-    flags IndexAddOption: u32 {
+    pub flags IndexAddOption: u32 {
         #[allow(missing_docs)]
         const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32,
         #[allow(missing_docs)]
@@ -453,7 +453,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for `Repository::open_ext`
-    flags RepositoryOpenFlags: u32 {
+    pub flags RepositoryOpenFlags: u32 {
         /// Only open the specified path; don't walk upward searching.
         const REPOSITORY_OPEN_NO_SEARCH = raw::GIT_REPOSITORY_OPEN_NO_SEARCH as u32,
         /// Search across filesystem boundaries.
@@ -465,7 +465,7 @@ bitflags! {
 
 bitflags! {
     /// Flags for the return value of `Repository::revparse`
-    flags RevparseMode: u32 {
+    pub flags RevparseMode: u32 {
         /// The spec targeted a single object
         const REVPARSE_SINGLE = raw::GIT_REVPARSE_SINGLE as u32,
         /// The spec targeted a range of commits
@@ -621,7 +621,7 @@ bitflags! {
     /// represents the status of file in the index relative to the HEAD, and the
     /// `STATUS_WT_*` set of flags represent the status of the file in the
     /// working directory relative to the index.
-    flags Status: u32 {
+    pub flags Status: u32 {
         #[allow(missing_docs)]
         const STATUS_CURRENT = raw::GIT_STATUS_CURRENT as u32,
 
@@ -656,7 +656,7 @@ bitflags! {
 
 bitflags! {
     /// Mode options for RepositoryInitOptions
-    flags RepositoryInitMode: u32 {
+    pub flags RepositoryInitMode: u32 {
         /// Use permissions configured by umask - the default
         const REPOSITORY_INIT_SHARED_UMASK =
                     raw::GIT_REPOSITORY_INIT_SHARED_UMASK as u32,
@@ -738,7 +738,7 @@ bitflags! {
     /// Lastly, the following will only be returned for ignore "NONE".
     ///
     /// * WD_UNTRACKED      - wd contains untracked files
-    flags SubmoduleStatus: u32 {
+    pub flags SubmoduleStatus: u32 {
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_HEAD =
                 raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32,
@@ -805,7 +805,7 @@ pub enum SubmoduleIgnore {
 
 bitflags! {
     /// ...
-    flags PathspecFlags: u32 {
+    pub flags PathspecFlags: u32 {
         /// Use the default pathspec matching configuration.
         const PATHSPEC_DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32,
         /// Force matching to ignore case, otherwise matching will use native
@@ -834,7 +834,7 @@ bitflags! {
 
 bitflags! {
     /// Types of notifications emitted from checkouts.
-    flags CheckoutNotificationType: u32 {
+    pub flags CheckoutNotificationType: u32 {
         /// Notification about a conflict.
         const CHECKOUT_NOTIFICATION_CONFLICT = raw::GIT_CHECKOUT_NOTIFY_CONFLICT as u32,
         /// Notification about a dirty file.
@@ -865,7 +865,7 @@ pub enum DiffFormat {
 
 bitflags! {
     /// Formatting options for diff stats
-    flags DiffStatsFormat: raw::git_diff_stats_format_t {
+    pub flags DiffStatsFormat: raw::git_diff_stats_format_t {
         /// Don't generate any stats
         const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE,
         /// Equivalent of `--stat` in git
