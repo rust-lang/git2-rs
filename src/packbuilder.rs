@@ -136,12 +136,12 @@ impl<'repo> PackBuilder<'repo> {
 
     /// Get the total number of objects the packbuilder will write out.
     pub fn object_count(&self) -> usize {
-        unsafe { raw::git_packbuilder_object_count(self.raw) as usize }
+        unsafe { raw::git_packbuilder_object_count(self.raw) }
     }
 
     /// Get the number of objects the packbuilder has already written out.
     pub fn written(&self) -> usize {
-        unsafe { raw::git_packbuilder_written(self.raw) as usize }
+        unsafe { raw::git_packbuilder_written(self.raw) }
     }
 
     /// Get the packfile's hash. A packfile's name is derived from the sorted

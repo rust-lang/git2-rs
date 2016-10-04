@@ -6,7 +6,7 @@ use std::slice;
 use std::str;
 use libc;
 
-use {raw, Direction, Error, Refspec, Oid, FetchPrune};
+use {raw, Direction, Error, Refspec, Oid, FetchPrune, ProxyOptions};
 use {RemoteCallbacks, Progress, Repository, AutotagOption};
 use util::Binding;
 
@@ -37,6 +37,7 @@ pub struct RemoteHead<'remote> {
 /// Options which can be specified to various fetch operations.
 pub struct FetchOptions<'cb> {
     callbacks: Option<RemoteCallbacks<'cb>>,
+    proxy: Option<ProxyOptions<'cb>>,
     prune: FetchPrune,
     update_fetchhead: bool,
     download_tags: AutotagOption,
@@ -45,6 +46,7 @@ pub struct FetchOptions<'cb> {
 /// Options to control the behavior of a git push.
 pub struct PushOptions<'cb> {
     callbacks: Option<RemoteCallbacks<'cb>>,
+    proxy: Option<ProxyOptions<'cb>>,
     pb_parallelism: u32,
 }
 
@@ -100,6 +102,7 @@ impl<'repo> Remote<'repo> {
         // TODO: can callbacks be exposed safely?
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
+                                              0 as *const _,
                                               0 as *const _,
                                               0 as *const _));
         }
@@ -304,6 +307,7 @@ impl<'cb> FetchOptions<'cb> {
     pub fn new() -> FetchOptions<'cb> {
         FetchOptions {
             callbacks: None,
+            proxy: None,
             prune: FetchPrune::Unspecified,
             update_fetchhead: true,
             download_tags: AutotagOption::Unspecified,
@@ -313,6 +317,12 @@ impl<'cb> FetchOptions<'cb> {
     /// Set the callbacks to use for the fetch operation.
     pub fn remote_callbacks(&mut self, cbs: RemoteCallbacks<'cb>) -> &mut Self {
         self.callbacks = Some(cbs);
+        self
+    }
+
+    /// Set the proxy options to use for the fetch operation.
+    pub fn proxy_options(&mut self, opts: ProxyOptions<'cb>) -> &mut Self {
+        self.proxy = Some(opts);
         self
     }
 
@@ -351,6 +361,8 @@ impl<'cb> Binding for FetchOptions<'cb> {
             version: 1,
             callbacks: self.callbacks.as_ref().map(|m| m.raw())
                            .unwrap_or_else(|| RemoteCallbacks::new().raw()),
+            proxy_opts: self.proxy.as_ref().map(|m| m.raw())
+                            .unwrap_or_else(|| ProxyOptions::new().raw()),
             prune: ::call::convert(&self.prune),
             update_fetchhead: ::call::convert(&self.update_fetchhead),
             download_tags: ::call::convert(&self.download_tags),
@@ -368,6 +380,7 @@ impl<'cb> PushOptions<'cb> {
     pub fn new() -> PushOptions<'cb> {
         PushOptions {
             callbacks: None,
+            proxy: None,
             pb_parallelism: 1,
         }
     }
@@ -375,6 +388,12 @@ impl<'cb> PushOptions<'cb> {
     /// Set the callbacks to use for the fetch operation.
     pub fn remote_callbacks(&mut self, cbs: RemoteCallbacks<'cb>) -> &mut Self {
         self.callbacks = Some(cbs);
+        self
+    }
+
+    /// Set the proxy options to use for the fetch operation.
+    pub fn proxy_options(&mut self, opts: ProxyOptions<'cb>) -> &mut Self {
+        self.proxy = Some(opts);
         self
     }
 
@@ -401,6 +420,8 @@ impl<'cb> Binding for PushOptions<'cb> {
             version: 1,
             callbacks: self.callbacks.as_ref().map(|m| m.raw())
                            .unwrap_or(RemoteCallbacks::new().raw()),
+            proxy_opts: self.proxy.as_ref().map(|m| m.raw())
+                            .unwrap_or_else(|| ProxyOptions::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {

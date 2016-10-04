@@ -7,7 +7,6 @@ sudo: false
 before_script:
   - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
 script:
-  - export CARGO_TARGET_DIR=`pwd`/target
   - cargo test --no-default-features
   - cargo test
   - cargo run --manifest-path systest/Cargo.toml --release

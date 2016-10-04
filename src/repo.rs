@@ -81,8 +81,9 @@ impl Repository {
     pub fn open_ext<P, O, I>(path: P,
                              flags: RepositoryOpenFlags,
                              ceiling_dirs: I)
-                            -> Result<Repository, Error>
-            where P: AsRef<Path>, O: AsRef<OsStr>, I: IntoIterator<Item=O> {
+                             -> Result<Repository, Error>
+            where P: AsRef<Path>, O: AsRef<OsStr>, I: IntoIterator<Item=O>
+    {
         init();
         let path = try!(path.as_ref().into_c_string());
         let ceiling_dirs_os = try!(env::join_paths(ceiling_dirs));
@@ -1967,8 +1968,9 @@ mod tests {
         let err = Repository::open_ext(&subdir, ::REPOSITORY_OPEN_NO_SEARCH, &[] as &[&OsStr]).err().unwrap();
         assert_eq!(err.code(), ::ErrorCode::NotFound);
 
-        let err = Repository::open_ext(&subdir, ::RepositoryOpenFlags::empty(), &[&subdir]).err().unwrap();
-        assert_eq!(err.code(), ::ErrorCode::NotFound);
+        assert!(Repository::open_ext(&subdir,
+                                     ::RepositoryOpenFlags::empty(),
+                                     &[&subdir]).is_ok());
     }
 
     fn graph_repo_init() -> (TempDir, Repository) {
@@ -2086,6 +2088,8 @@ mod tests {
         let commit2 = repo.find_commit(oid2).unwrap();
         println!("created oid2 {:?}", oid2);
 
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+
         // create commit oid3 on branchB
         let mut index = repo.index().unwrap();
         let p = Path::new(repo.workdir().unwrap()).join("file_b");
@@ -2134,7 +2138,7 @@ mod tests {
         }
         assert!(found_oid2);
         assert!(found_oid3);
-	assert_eq!(merge_bases.len(), 2);
+	    assert_eq!(merge_bases.len(), 2);
     }
 
     #[test]
