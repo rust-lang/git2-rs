@@ -4,6 +4,8 @@
 extern crate libc;
 #[cfg(feature = "ssh")]
 extern crate libssh2_sys as libssh2;
+#[cfg(feature = "curl")]
+extern crate curl_sys;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
 extern crate openssl_sys as openssl;
 extern crate libz_sys as libz;

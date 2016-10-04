@@ -14,8 +14,9 @@ name = "libgit2_sys"
 path = "lib.rs"
 
 [dependencies]
-libssh2-sys = { version = ">= 0", optional = true }
+curl-sys = { version = ">= 0", optional = true }
 libc = "0.2"
+libssh2-sys = { version = ">= 0", optional = true }
 libz-sys = ">= 0"
 
 [build-dependencies]
@@ -60,3 +61,4 @@ openssl-sys = "0.7.0"
 [features]
 ssh = ["libssh2-sys"]
 https = []
+curl = ["curl-sys"]

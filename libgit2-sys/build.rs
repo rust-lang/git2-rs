@@ -19,11 +19,15 @@ macro_rules! t {
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
+    let curl = env::var("CARGO_FEATURE_CURL").is_ok();
     if ssh {
         register_dep("SSH2");
     }
     if https {
         register_dep("OPENSSL");
+    }
+    if curl {
+        register_dep("CURL");
     }
     let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
@@ -101,13 +105,17 @@ fn main() {
     } else {
         cfg.define("USE_OPENSSL", "OFF");
     }
+    if curl {
+        cfg.register_dep("CURL");
+    } else {
+        cfg.define("CURL", "OFF");
+    }
 
     let _ = fs::remove_dir_all(env::var("OUT_DIR").unwrap());
     t!(fs::create_dir_all(env::var("OUT_DIR").unwrap()));
 
     let dst = cfg.define("BUILD_SHARED_LIBS", "OFF")
                  .define("BUILD_CLAR", "OFF")
-                 .define("CURL", "OFF")
                  .register_dep("Z")
                  .build();
 
