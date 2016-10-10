@@ -18,6 +18,6 @@ install:
 build: false
 
 test_script:
-  - cargo test
-  - cargo test --no-default-features
-  - cargo run --manifest-path systest/Cargo.toml
+  - cargo test --target %TARGET%
+  - cargo test --no-default-features --target %TARGET%
+  - cargo run --manifest-path systest/Cargo.toml --target %TARGET%
