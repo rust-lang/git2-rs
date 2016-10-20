@@ -1967,6 +1967,16 @@ extern {
     pub fn git_commit_header_field(out: *mut git_buf,
                                    commit: *const git_commit,
                                    field: *const c_char) -> c_int;
+    pub fn git_commit_create_with_signature(id: *mut git_oid,
+                                            repo: *mut git_repository,
+                                            commit_content: *const c_char,
+                                            signature: *const c_char,
+                                            signature_field: *const c_char) -> c_int;
+    pub fn git_commit_extract_signature(signature: *mut git_buf,
+                                        signed_data: *mut git_buf,
+                                        repo: *mut git_repository,
+                                        commit_id: *mut git_oid,
+                                        field: *const c_char) -> c_int;
 
     // branch
     pub fn git_branch_create(out: *mut *mut git_reference,
