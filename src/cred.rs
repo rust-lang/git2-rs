@@ -232,7 +232,11 @@ impl CredentialHelper {
     // see https://www.kernel.org/pub/software/scm/git/docs/technical
     //                           /api-credentials.html#_credential_helpers
     fn add_command(&mut self, cmd: Option<&str>) {
-        let cmd = match cmd { Some(s) => s, None => return };
+        let cmd = match cmd {
+            Some("") | None => return,
+            Some(s) => s,
+        };
+
         if cmd.starts_with("!") {
             self.commands.push(cmd[1..].to_string());
         } else if cmd.starts_with("/") || cmd.starts_with("\\") ||
@@ -441,6 +445,16 @@ echo username=c
                                       .execute().unwrap();
         assert_eq!(u, "c");
         assert_eq!(p, "b");
+    }
+
+    #[test]
+    fn credential_helper6() {
+        let cfg = cfg! {
+            "credential.helper" => ""
+        };
+        assert!(CredentialHelper::new("https://example.com/foo/bar")
+                .config(&cfg)
+                .execute().is_none());
     }
 
     #[cfg(unix)]
