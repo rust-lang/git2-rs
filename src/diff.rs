@@ -229,7 +229,7 @@ impl<'repo> Diff<'repo> {
     // TODO: num_deltas_of_type, format_email, find_similar
 }
 
-extern fn print_cb(delta: *const raw::git_diff_delta,
+pub extern fn print_cb(delta: *const raw::git_diff_delta,
                    hunk: *const raw::git_diff_hunk,
                    line: *const raw::git_diff_line,
                    data: *mut c_void) -> c_int {
