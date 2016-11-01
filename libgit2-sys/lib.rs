@@ -73,6 +73,7 @@ pub enum git_pathspec {}
 pub enum git_pathspec_match_list {}
 pub enum git_diff {}
 pub enum git_diff_stats {}
+pub enum git_patch {}
 pub enum git_reflog {}
 pub enum git_reflog_entry {}
 pub enum git_describe_result {}
@@ -2487,6 +2488,58 @@ extern {
     pub fn git_graph_descendant_of(repo: *mut git_repository,
                                    commit: *const git_oid, ancestor: *const git_oid)
                                    -> c_int;
+
+    // patch
+    pub fn git_patch_from_diff(out: *mut *mut git_patch,
+                               diff: *mut git_diff,
+                               idx: size_t) -> c_int;
+    pub fn git_patch_from_blobs(out: *mut *mut git_patch,
+                                old_blob: *const git_blob,
+                                old_as_path: *const c_char,
+                                new_blob: *const git_blob,
+                                new_as_path: *const c_char,
+                                opts: *const git_diff_options) -> c_int;
+    pub fn git_patch_from_blob_and_buffer(out: *mut *mut git_patch,
+                                          old_blob: *const git_blob,
+                                          old_as_path: *const c_char,
+                                          buffer: *const c_char,
+                                          buffer_len: size_t,
+                                          buffer_as_path: *const c_char,
+                                          opts: *const git_diff_options) -> c_int;
+    pub fn git_patch_from_buffers(out: *mut *mut git_patch,
+                                  old_buffer: *const c_void,
+                                  old_len: size_t,
+                                  old_as_path: *const c_char,
+                                  new_buffer: *const c_char,
+                                  new_len: size_t,
+                                  new_as_path: *const c_char,
+                                  opts: *const git_diff_options) -> c_int;
+    pub fn git_patch_free(patch: *mut git_patch);
+    pub fn git_patch_get_delta(patch: *const git_patch) -> *const git_diff_delta;
+    pub fn git_patch_num_hunks(patch: *const git_patch) -> size_t;
+    pub fn git_patch_line_stats(total_context: *mut size_t,
+                                total_additions: *mut size_t,
+                                total_deletions: *mut size_t,
+                                patch: *const git_patch) -> c_int;
+    pub fn git_patch_get_hunk(out: *mut *const git_diff_hunk,
+                              lines_in_hunk: *mut size_t,
+                              patch: *mut git_patch,
+                              hunk_idx: size_t) -> c_int;
+    pub fn git_patch_num_lines_in_hunk(patch: *const git_patch,
+                                       hunk_idx: size_t) -> c_int;
+    pub fn git_patch_get_line_in_hunk(out: *mut *const git_diff_line,
+                                      patch: *mut git_patch,
+                                      hunk_idx: size_t,
+                                      line_of_hunk: size_t) -> c_int;
+    pub fn git_patch_size(patch: *mut git_patch,
+                          include_context: c_int,
+                          include_hunk_headers: c_int,
+                          include_file_headers: c_int) -> size_t;
+    pub fn git_patch_print(patch: *mut git_patch,
+                           print_cb: git_diff_line_cb,
+                           payload: *mut c_void) -> c_int;
+    pub fn git_patch_to_buf(buf: *mut git_buf,
+                            patch: *mut git_patch) -> c_int;
 
     // reflog
     pub fn git_reflog_append(reflog: *mut git_reflog,
