@@ -141,3 +141,12 @@ impl IntoCString for Vec<u8> {
         Ok(try!(CString::new(self)))
     }
 }
+
+pub fn into_opt_c_string<S>(opt_s: Option<S>) -> Result<Option<CString>, Error>
+    where S: IntoCString
+{
+    match opt_s {
+        None => Ok(None),
+        Some(s) => Ok(Some(try!(s.into_c_string()))),
+    }
+}
