@@ -1330,6 +1330,9 @@ git_enum! {
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
 
+#[doc(hidden)]
+pub fn openssl_init() {}
+
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
