@@ -641,6 +641,8 @@ pub type git_treewalk_cb = extern fn(*const c_char, *const git_tree_entry,
 pub type git_treebuilder_filter_cb = extern fn(*const git_tree_entry,
                                                *mut c_void) -> c_int;
 
+pub type git_revwalk_hide_cb = extern fn(*const git_oid, *mut c_void) -> c_int;
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct git_buf {
@@ -2211,6 +2213,9 @@ extern {
                                 refname: *const c_char) -> c_int;
     pub fn git_revwalk_hide_glob(walk: *mut git_revwalk,
                                  refname: *const c_char) -> c_int;
+    pub fn git_revwalk_add_hide_cb(walk: *mut git_revwalk,
+                                   hide_cb: git_revwalk_hide_cb,
+                                   payload: *mut c_void) -> c_int;
 
     pub fn git_revwalk_next(out: *mut git_oid, walk: *mut git_revwalk) -> c_int;
 
