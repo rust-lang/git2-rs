@@ -68,10 +68,11 @@ impl Repository {
     pub fn open_from_env() -> Result<Repository, Error> {
         init();
         let mut ret = 0 as *mut raw::git_repository;
+        let flags = raw::GIT_REPOSITORY_OPEN_FROM_ENV;
         unsafe {
             try_call!(raw::git_repository_open_ext(&mut ret,
                                                    0 as *const _,
-                                                   raw::GIT_REPOSITORY_OPEN_FROM_ENV,
+                                                   flags as c_uint,
                                                    0 as *const _));
             Ok(Binding::from_raw(ret))
         }
