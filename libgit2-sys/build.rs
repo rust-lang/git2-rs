@@ -167,11 +167,18 @@ fn main() {
 }
 
 fn register_dep(dep: &str) {
-    match env::var(&format!("DEP_{}_ROOT", dep)) {
-        Ok(s) => {
-            prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
+    if let Some(s) = env::var_os(&format!("DEP_{}_ROOT", dep)) {
+        prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
+        return
+    }
+    if let Some(s) = env::var_os(&format!("DEP_{}_INCLUDE", dep)) {
+        let root = Path::new(&s).parent().unwrap();
+        env::set_var(&format!("DEP_{}_ROOT", dep), root);
+        let path = root.join("lib/pkgconfig");
+        if path.exists() {
+            prepend("PKG_CONFIG_PATH", path);
+            return
         }
-        Err(..) => {}
     }
 }
 
