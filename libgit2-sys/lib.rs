@@ -2010,6 +2010,10 @@ extern {
     pub fn git_config_set_int64(cfg: *mut git_config,
                                 name: *const c_char,
                                 value: i64) -> c_int;
+    pub fn git_config_set_multivar(cfg: *mut git_config,
+                                   name: *const c_char,
+                                   regexp: *const c_char,
+                                   value: *const c_char) -> c_int;
     pub fn git_config_set_string(cfg: *mut git_config,
                                  name: *const c_char,
                                  value: *const c_char) -> c_int;

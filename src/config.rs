@@ -326,6 +326,18 @@ impl Config {
         Ok(())
     }
 
+    /// Set the value of an multivar config variable in the config file with the
+    /// highest level (usually the local one).
+    pub fn set_multivar(&mut self, name: &str, regexp: &str, value: &str) -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        let regexp = try!(CString::new(regexp));
+        let value = try!(CString::new(value));
+        unsafe {
+            try_call!(raw::git_config_set_multivar(self.raw, name, regexp, value));
+        }
+        Ok(())
+    }
+
     /// Set the value of a string config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_str(&mut self, name: &str, value: &str) -> Result<(), Error> {
@@ -532,6 +544,25 @@ mod tests {
             entry.value();
             entry.level();
         }
+    }
+
+    #[test]
+    fn multivar() {
+        let td = TempDir::new("test").unwrap();
+        let path = td.path().join("foo");
+        File::create(&path).unwrap();
+
+        let mut cfg = Config::open(&path).unwrap();
+        cfg.set_multivar("foo.bar", "^$", "baz").unwrap();
+        cfg.set_multivar("foo.bar", "^$", "qux").unwrap();
+
+        let mut values: Vec<String> = cfg.entries(None)
+            .unwrap()
+            .into_iter()
+            .map(|entry| entry.unwrap().value().unwrap().into())
+            .collect();
+        values.sort();
+        assert_eq!(values, ["baz", "qux"]);
     }
 
     #[test]
