@@ -548,8 +548,6 @@ fn openssl_init() {
 
     openssl_sys::init();
 
-    if !cfg!(target_os = "linux") && !cfg!(target_os = "freebsd") { return }
-
     // Currently, libgit2 leverages OpenSSL for SSL support when cloning
     // repositories over HTTPS. This means that we're picking up an OpenSSL
     // dependency on non-Windows platforms (where it has its own HTTPS
