@@ -1017,7 +1017,7 @@ impl DiffFindOptions {
     }
 
     /// Actually split large rewrites into delete/add pairs
-    pub fn break_rewries(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn break_rewrites(&mut self, find: bool) -> &mut DiffFindOptions {
         self.flag(raw::GIT_DIFF_BREAK_REWRITES, find)
     }
 
