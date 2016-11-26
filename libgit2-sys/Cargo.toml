@@ -16,7 +16,7 @@ path = "lib.rs"
 [dependencies]
 curl-sys = { version = "0.3", optional = true }
 libc = "0.2"
-libssh2-sys = { version = "0.2", optional = true }
+libssh2-sys = { version = "0.2.4", optional = true }
 libz-sys = ">= 0"
 
 [build-dependencies]

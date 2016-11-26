@@ -528,25 +528,18 @@ mod tree;
 mod treebuilder;
 
 fn init() {
+    raw::init();
+
     static INIT: Once = ONCE_INIT;
-    INIT.call_once(|| unsafe {
-        openssl_init();
-        let r = raw::git_libgit2_init();
-        assert!(r >= 0,
-                "couldn't initialize the libgit2 library: {}", r);
-        assert_eq!(libc::atexit(shutdown), 0);
+
+    INIT.call_once(|| {
+        openssl_env_init();
     });
-    extern fn shutdown() {
-        unsafe { raw::git_libgit2_shutdown(); }
-    }
 }
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
-fn openssl_init() {
-    extern crate openssl_sys;
+fn openssl_env_init() {
     extern crate openssl_probe;
-
-    openssl_sys::init();
 
     // Currently, libgit2 leverages OpenSSL for SSL support when cloning
     // repositories over HTTPS. This means that we're picking up an OpenSSL
@@ -663,7 +656,7 @@ fn openssl_init() {
 }
 
 #[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
-fn openssl_init() {}
+fn openssl_env_init() {}
 
 unsafe fn opt_bytes<'a, T>(_anchor: &'a T,
                            c: *const libc::c_char) -> Option<&'a [u8]> {

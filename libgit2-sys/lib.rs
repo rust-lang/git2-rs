@@ -1334,9 +1334,6 @@ git_enum! {
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
 
-#[doc(hidden)]
-pub fn openssl_init() {}
-
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -2524,7 +2521,37 @@ extern {
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
 }
 
-#[test]
-fn smoke() {
-    unsafe { git_threads_init(); }
+pub fn init() {
+    use std::sync::{Once, ONCE_INIT};
+
+    static INIT: Once = ONCE_INIT;
+    INIT.call_once(|| unsafe {
+        openssl_init();
+        ssh_init();
+        let r = git_libgit2_init();
+        assert!(r >= 0,
+                "couldn't initialize the libgit2 library: {}", r);
+        assert_eq!(libc::atexit(shutdown), 0);
+    });
+    extern fn shutdown() {
+        unsafe { git_libgit2_shutdown(); }
+    }
 }
+
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
+#[doc(hidden)]
+pub fn openssl_init() {
+    openssl_sys::init();
+}
+
+#[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
+#[doc(hidden)]
+pub fn openssl_init() {}
+
+#[cfg(feature = "ssh")]
+fn ssh_init() {
+    libssh2::init();
+}
+
+#[cfg(not(feature = "ssh"))]
+fn ssh_init() {}
