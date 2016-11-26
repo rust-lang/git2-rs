@@ -1021,6 +1021,11 @@ impl DiffFindOptions {
         self.flag(raw::GIT_DIFF_BREAK_REWRITES, find)
     }
 
+    #[doc(hidden)]
+    pub fn break_rewries(&mut self, find: bool) -> &mut DiffFindOptions {
+        self.break_rewrites(find)
+    }
+
     /// Find renames/copies for untracked items in working directory.
     ///
     /// For this to work correctly use the `include_untracked` option when the
