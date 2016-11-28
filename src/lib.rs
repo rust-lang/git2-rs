@@ -528,13 +528,13 @@ mod tree;
 mod treebuilder;
 
 fn init() {
-    raw::init();
-
     static INIT: Once = ONCE_INIT;
 
     INIT.call_once(|| {
         openssl_env_init();
     });
+
+    raw::init();
 }
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
