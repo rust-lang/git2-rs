@@ -57,7 +57,13 @@ fn main() {
 
         // Currently liblibc links to msvcrt which apparently is a dynamic CRT,
         // so we need to turn this off to get it to link right.
-        cfg.define("STATIC_CRT", "OFF");
+        let features = env::var("CARGO_CFG_TARGET_FEATURE")
+                          .unwrap_or(String::new());
+        if features.contains("crt-static") {
+            cfg.define("STATIC_CRT", "ON");
+        } else {
+            cfg.define("STATIC_CRT", "OFF");
+        }
     }
 
     // libgit2 uses pkg-config to discover libssh2, but this doesn't work on
