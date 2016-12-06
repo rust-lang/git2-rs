@@ -6,7 +6,7 @@ use std::path::Path;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
-use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf};
+use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf, StashFlags};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
@@ -14,6 +14,7 @@ use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
 use build::{RepoBuilder, CheckoutBuilder};
+use stash::{StashApplyOptions, StashCb, StashCbData, stash_cb};
 use string_array::StringArray;
 use oid_array::OidArray;
 use util::{self, Binding};
@@ -1712,6 +1713,88 @@ impl Repository {
         }
     }
 
+    /// Save the local modifications to a new stash.
+    pub fn stash_save(&mut self,
+                stasher: &Signature,
+                message: &str,
+                flags: Option<StashFlags>)
+                -> Result<Oid, Error> {
+        unsafe {
+            let mut raw_oid = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+            let message = try!(CString::new(message));
+            let flags = flags.unwrap_or(StashFlags::empty());
+            try_call!(raw::git_stash_save(
+                &mut raw_oid,
+                self.raw(),
+                stasher.raw(),
+                message,
+                flags.bits() as c_uint
+            ));
+
+            Ok(Binding::from_raw(&raw_oid as *const _))
+        }
+    }
+
+    /// Apply a single stashed state from the stash list.
+    pub fn stash_apply(&mut self,
+                 index: usize,
+                 opts: Option<&mut StashApplyOptions>)
+                 -> Result<(), Error> {
+        unsafe {
+            let opts = opts.map(|opts| opts.raw());
+            try_call!(raw::git_stash_apply(
+                self.raw(),
+                index,
+                opts
+            ));
+
+            Ok(())
+        }
+    }
+
+    /// Loop over all the stashed states and issue a callback for each one.
+    ///
+    /// Return `true` to continue iterating or `false` to stop.
+    pub fn stash_foreach<C>(&mut self, callback: C) -> Result<(), Error>
+        where C: FnMut(usize, &str, &Oid) -> bool
+    {
+        unsafe {
+            let mut data = Box::new(StashCbData { callback: Box::new(callback) as Box<StashCb> });
+            try_call!(raw::git_stash_foreach(
+                self.raw(),
+                stash_cb,
+                &mut *data as *mut _ as *mut _
+            ));
+            Ok(())
+        }
+    }
+
+    /// Remove a single stashed state from the stash list.
+    pub fn stash_drop(&mut self, index: usize) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_stash_drop(
+                self.raw(),
+                index
+            ));
+            Ok(())
+        }
+    }
+
+    /// Apply a single stashed state from the stash list and remove it from the list if successful.
+    pub fn stash_pop(&mut self,
+               index: usize,
+               opts: Option<&mut StashApplyOptions>)
+               -> Result<(), Error> {
+        unsafe {
+            let opts = opts.map(|opts| opts.raw());
+            try_call!(raw::git_stash_pop(
+                self.raw(),
+                index,
+                opts
+            ));
+            Ok(())
+        }
+    }
 }
 
 impl Binding for Repository {
