@@ -44,10 +44,7 @@ impl<'cb> StashApplyOptions<'cb> {
     }
 
     /// Options to use when writing files to the working directory
-    pub fn checkout_options(&mut self, mut opts: CheckoutBuilder<'cb>) -> &mut StashApplyOptions<'cb> {
-        unsafe {
-            opts.configure(&mut self.raw_opts.checkout_options);
-        }
+    pub fn checkout_options(&mut self, opts: CheckoutBuilder<'cb>) -> &mut StashApplyOptions<'cb> {
         self.checkout_options = Some(opts);
         self
     }
@@ -66,36 +63,39 @@ impl<'cb> StashApplyOptions<'cb> {
     }
 
     /// Pointer to a raw git_stash_apply_options
-    pub fn raw(&self) -> &raw::git_stash_apply_options {
+    pub fn raw(&mut self) -> &raw::git_stash_apply_options {
+        unsafe {
+            if let Some(opts) = self.checkout_options.as_mut() {
+                opts.configure(&mut self.raw_opts.checkout_options);
+            }
+        }
         &self.raw_opts
     }
 }
 
 #[allow(unused)]
 pub struct StashCbData<'a> {
-    pub callback: Box<StashCb<'a>>
+    pub callback: &'a mut StashCb<'a>
 }
 
 #[allow(unused)]
 pub extern fn stash_cb(index: size_t,
-                   message: *const c_char,
-                   stash_id: *const raw::git_oid,
-                   payload: *mut c_void)
-                   -> c_int
+                        message: *const c_char,
+                        stash_id: *const raw::git_oid,
+                        payload: *mut c_void)
+                        -> c_int
 {
     panic::wrap(|| unsafe {
         let mut data = &mut *(payload as *mut StashCbData);
         let res = {
             let mut callback = &mut data.callback;
-            callback(
-                index,
-                CStr::from_ptr(message).to_str().unwrap(),
-                &Binding::from_raw(stash_id)
-            )
+            callback(index,
+                     CStr::from_ptr(message).to_str().unwrap(),
+                     &Binding::from_raw(stash_id))
         };
 
         if res { 0 } else { 1 }
-    }).unwrap()
+    }).unwrap_or(1)
 }
 
 fn convert_progress(progress: raw::git_stash_apply_progress_t) -> StashApplyProgress {
