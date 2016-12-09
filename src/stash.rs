@@ -126,7 +126,7 @@ extern fn stash_apply_progress_cb(progress: raw::git_stash_apply_progress_t,
         };
 
         if res { 0 } else { -1 }
-    }).unwrap()
+    }).unwrap_or(-1)
 }
 
 #[cfg(test)]

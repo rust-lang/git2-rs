@@ -1751,10 +1751,10 @@ impl Repository {
         where C: FnMut(usize, &str, &Oid) -> bool
     {
         unsafe {
-            let mut data = Box::new(StashCbData { callback: &mut callback });
+            let mut data = StashCbData { callback: &mut callback };
             try_call!(raw::git_stash_foreach(self.raw(),
                                              stash_cb,
-                                             &mut *data as *mut _ as *mut _));
+                                             &mut data as *mut _ as *mut _));
             Ok(())
         }
     }
