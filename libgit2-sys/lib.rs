@@ -15,6 +15,7 @@ use libc::{c_int, c_char, c_uint, size_t, c_uchar, c_void};
 pub const GIT_OID_RAWSZ: usize = 20;
 pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;
 pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_STASH_APPLY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_CHECKOUT_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_MERGE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
@@ -1331,6 +1332,52 @@ git_enum! {
     }
 }
 
+git_enum! {
+    pub enum git_stash_flags {
+        GIT_STASH_DEFAULT = 0,
+        GIT_STASH_KEEP_INDEX = 1 << 0,
+        GIT_STASH_INCLUDE_UNTRACKED = 1 << 1,
+        GIT_STASH_INCLUDE_IGNORED = 1 << 2,
+    }
+}
+
+git_enum! {
+    pub enum git_stash_apply_flags {
+        GIT_STASH_APPLY_DEFAULT = 0,
+        GIT_STASH_APPLY_REINSTATE_INDEX = 1 << 0,
+    }
+}
+
+git_enum! {
+    pub enum git_stash_apply_progress_t {
+        GIT_STASH_APPLY_PROGRESS_NONE = 0,
+        GIT_STASH_APPLY_PROGRESS_LOADING_STASH,
+        GIT_STASH_APPLY_PROGRESS_ANALYZE_INDEX,
+        GIT_STASH_APPLY_PROGRESS_ANALYZE_MODIFIED,
+        GIT_STASH_APPLY_PROGRESS_ANALYZE_UNTRACKED,
+        GIT_STASH_APPLY_PROGRESS_CHECKOUT_UNTRACKED,
+        GIT_STASH_APPLY_PROGRESS_CHECKOUT_MODIFIED,
+        GIT_STASH_APPLY_PROGRESS_DONE,
+    }
+}
+
+#[repr(C)]
+pub struct git_stash_apply_options {
+    pub version: c_uint,
+    pub flags: git_stash_apply_flags,
+    pub checkout_options: git_checkout_options,
+    pub progress_cb: git_stash_apply_progress_cb,
+    pub progress_payload: *mut c_void,
+}
+
+pub type git_stash_apply_progress_cb = extern fn(progress: git_stash_apply_progress_t,
+                                                 payload: *mut c_void) -> c_int;
+
+pub type git_stash_cb = extern fn(index: size_t,
+                                  message: *const c_char,
+                                  stash_id: *const git_oid,
+                                  payload: *mut c_void) -> c_int;
+
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
 
@@ -1657,6 +1704,31 @@ extern {
                                  name: *const c_char) -> c_int;
     pub fn git_reference_ensure_log(repo: *mut git_repository,
                                     name: *const c_char) -> c_int;
+
+    // stash
+    pub fn git_stash_save(out: *mut git_oid,
+                          repo: *mut git_repository,
+                          stasher: *const git_signature,
+                          message: *const c_char,
+                          flags: c_uint) -> c_int;
+
+    pub fn git_stash_apply_init_options(opts: *mut git_stash_apply_options,
+                                        version: c_uint) -> c_int;
+
+    pub fn git_stash_apply(repo: *mut git_repository,
+                           index: size_t,
+                           options: *const git_stash_apply_options) -> c_int;
+
+    pub fn git_stash_foreach(repo: *mut git_repository,
+                             callback: git_stash_cb,
+                             payload: *mut c_void) -> c_int;
+
+    pub fn git_stash_drop(repo: *mut git_repository,
+                          index: size_t) -> c_int;
+
+    pub fn git_stash_pop(repo: *mut git_repository,
+                         index: size_t,
+                         options: *const git_stash_apply_options) -> c_int;
 
     // submodules
     pub fn git_submodule_add_finalize(submodule: *mut git_submodule) -> c_int;

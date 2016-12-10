@@ -113,6 +113,7 @@ pub use revspec::Revspec;
 pub use revwalk::Revwalk;
 pub use signature::Signature;
 pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
+pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
 pub use submodule::Submodule;
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
@@ -522,6 +523,7 @@ mod revwalk;
 mod signature;
 mod status;
 mod submodule;
+mod stash;
 mod tag;
 mod time;
 mod tree;
@@ -1024,6 +1026,55 @@ pub enum FetchPrune {
     On,
     /// Force pruning off
     Off,
+}
+
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub enum StashApplyProgress {
+    /// None
+    None,
+    /// Loading the stashed data from the object database
+    LoadingStash,
+    /// The stored index is being analyzed
+    AnalyzeIndex,
+    /// The modified files are being analyzed
+    AnalyzeModified,
+    /// The untracked and ignored files are being analyzed
+    AnalyzeUntracked,
+    /// The untracked files are being written to disk
+    CheckoutUntracked,
+    /// The modified files are being written to disk
+    CheckoutModified,
+    /// The stash was applied successfully
+    Done,
+}
+
+bitflags! {
+    #[allow(missing_docs)]
+    pub flags StashApplyFlags: u32 {
+        #[allow(missing_docs)]
+        const STASH_APPLY_DEFAULT = raw::GIT_STASH_APPLY_DEFAULT as u32,
+        /// Try to reinstate not only the working tree's changes,
+        /// but also the index's changes.
+        const STASH_APPLY_REINSTATE_INDEX = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32,
+    }
+}
+
+bitflags! {
+    #[allow(missing_docs)]
+    pub flags StashFlags: u32 {
+        #[allow(missing_docs)]
+        const STASH_DEFAULT = raw::GIT_STASH_DEFAULT as u32,
+        /// All changes already added to the index are left intact in
+        /// the working directory
+        const STASH_KEEP_INDEX = raw::GIT_STASH_KEEP_INDEX as u32,
+        /// All untracked files are also stashed and then cleaned up
+        /// from the working directory
+        const STASH_INCLUDE_UNTRACKED = raw::GIT_STASH_INCLUDE_UNTRACKED as u32,
+        /// All ignored files are also stashed and then cleaned up from
+        /// the working directory
+        const STASH_INCLUDE_IGNORED = raw::GIT_STASH_INCLUDE_IGNORED as u32,
+    }
 }
 
 #[cfg(test)]
