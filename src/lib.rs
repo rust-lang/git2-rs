@@ -796,7 +796,7 @@ bitflags! {
 }
 
 /// What type of change is described by a `DiffDelta`?
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Delta {
     /// No changes
     Unmodified,
