@@ -98,12 +98,17 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Open a connection to a remote.
-    pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
-        // TODO: can callbacks be exposed safely?
+    pub fn connect(&mut self, dir: Direction, cb: Option<RemoteCallbacks>,
+                   proxy_options: Option<ProxyOptions>)
+                   -> Result<(), Error> {
+        let cb = cb.as_ref().map(|m| m.raw())
+                       .unwrap_or_else(|| RemoteCallbacks::new().raw());
+        let proxy_options = proxy_options.as_ref().map(|m| m.raw())
+                        .unwrap_or_else(|| ProxyOptions::new().raw());
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
-                                              0 as *const _,
-                                              0 as *const _,
+                                              &cb,
+                                              &proxy_options,
                                               0 as *const _));
         }
         Ok(())
