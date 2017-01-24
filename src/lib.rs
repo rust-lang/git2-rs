@@ -120,6 +120,7 @@ pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry, TreeIter};
 pub use treebuilder::TreeBuilder;
 pub use util::IntoCString;
+pub use cherrypick::CherrypickOptions;
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
@@ -496,6 +497,7 @@ mod blame;
 mod blob;
 mod branch;
 mod buf;
+mod cherrypick;
 mod commit;
 mod config;
 mod cred;
