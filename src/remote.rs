@@ -500,11 +500,11 @@ mod tests {
             assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
         }
 
-        origin.connect(Direction::Push).unwrap();
+        origin.connect(Direction::Push, None, None).unwrap();
         assert!(origin.connected());
         origin.disconnect();
 
-        origin.connect(Direction::Fetch).unwrap();
+        origin.connect(Direction::Fetch, None, None).unwrap();
         assert!(origin.connected());
         origin.download(&[], None).unwrap();
         origin.disconnect();
