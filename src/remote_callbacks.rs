@@ -20,6 +20,7 @@ pub struct RemoteCallbacks<'a> {
     sideband_progress: Option<Box<TransportMessage<'a>>>,
     update_tips: Option<Box<UpdateTips<'a>>>,
     certificate_check: Option<Box<CertificateCheck<'a>>>,
+    push_update_reference: Option<Box<PushUpdateReference<'a>>>,
 }
 
 /// Struct representing the progress by an in-flight transfer.
@@ -68,6 +69,13 @@ pub type UpdateTips<'a> = FnMut(&str, Oid, Oid) -> bool + 'a;
 /// argument.
 pub type CertificateCheck<'a> = FnMut(&Cert, &str) -> bool + 'a;
 
+/// Callback for each updated reference on push.
+///
+/// The first argument here is the `refname` of the reference, and the second is
+/// the status message sent by a server. If the status is `Some` then the update
+/// was rejected by the remote server with a reason why.
+pub type PushUpdateReference<'a> = FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
+
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
     pub fn new() -> RemoteCallbacks<'a> {
@@ -77,6 +85,7 @@ impl<'a> RemoteCallbacks<'a> {
             sideband_progress: None,
             update_tips: None,
             certificate_check: None,
+            push_update_reference: None,
         }
     }
 
@@ -123,6 +132,18 @@ impl<'a> RemoteCallbacks<'a> {
         self.certificate_check = Some(Box::new(cb) as Box<CertificateCheck<'a>>);
         self
     }
+
+    /// Set a callback to get invoked for each updated reference on a push.
+    ///
+    /// The first argument to the callback is the name of the reference and the
+    /// second is a status message sent by the server. If the status is `Some`
+    /// then the push was rejected.
+    pub fn push_update_reference<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+        where F: FnMut(&str, Option<&str>) -> Result<(), Error> + 'a,
+    {
+        self.push_update_reference = Some(Box::new(cb) as Box<PushUpdateReference<'a>>);
+        self
+    }
 }
 
 impl<'a> Binding for RemoteCallbacks<'a> {
@@ -152,6 +173,10 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 let f: raw::git_transport_certificate_check_cb =
                         certificate_check_cb;
                 callbacks.certificate_check = Some(f);
+            }
+            if self.push_update_reference.is_some() {
+                let f: extern fn(_, _, _) -> c_int = push_update_reference_cb;
+                callbacks.push_update_reference = Some(f);
             }
             if self.update_tips.is_some() {
                 let f: extern fn(*const c_char, *const raw::git_oid,
@@ -331,4 +356,27 @@ extern fn certificate_check_cb(cert: *mut raw::git_cert,
         callback(&cert, hostname)
     });
     if ok == Some(true) {0} else {-1}
+}
+
+extern fn push_update_reference_cb(refname: *const c_char,
+                                   status: *const c_char,
+                                   data: *mut c_void) -> c_int {
+    panic::wrap(|| unsafe {
+        let payload = &mut *(data as *mut RemoteCallbacks);
+        let callback = match payload.push_update_reference {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes())
+                           .unwrap();
+        let status = if status.is_null() {
+            None
+        } else {
+            Some(str::from_utf8(CStr::from_ptr(status).to_bytes()).unwrap())
+        };
+        match callback(refname, status) {
+            Ok(()) => 0,
+            Err(e) => e.raw_code(),
+        }
+    }).unwrap_or(-1)
 }

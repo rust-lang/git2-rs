@@ -193,6 +193,10 @@ impl<'repo> Remote<'repo> {
     ///
     /// Perform all the steps for a push. If no refspecs are passed then the
     /// configured refspecs will be used.
+    ///
+    /// Note that you'll likely want to use `RemoteCallbacks` and set
+    /// `push_update_reference` to test whether all the references were pushed
+    /// successfully.
     pub fn push(&mut self,
                 refspecs: &[&str],
                 opts: Option<&mut PushOptions>) -> Result<(), Error> {
@@ -437,7 +441,7 @@ mod tests {
     use std::cell::Cell;
     use tempdir::TempDir;
     use {Repository, Remote, RemoteCallbacks, Direction, FetchOptions};
-    use {AutotagOption};
+    use {AutotagOption, PushOptions};
 
     #[test]
     fn smoke() {
@@ -577,7 +581,20 @@ mod tests {
         Repository::init_bare(td2.path()).unwrap();
         // git push
         let mut remote = repo.remote("origin", &url).unwrap();
-        remote.push(&["refs/heads/master"], None).unwrap();
+        let mut updated = false;
+        {
+            let mut callbacks = RemoteCallbacks::new();
+            callbacks.push_update_reference(|refname, status| {
+                updated = true;
+                assert_eq!(refname, "refs/heads/master");
+                assert_eq!(status, None);
+                Ok(())
+            });
+            let mut options = PushOptions::new();
+            options.remote_callbacks(callbacks);
+            remote.push(&["refs/heads/master"], Some(&mut options)).unwrap();
+        }
+        assert!(updated);
 
         let repo = Repository::clone(&url, td3.path()).unwrap();
         let commit = repo.head().unwrap().target().unwrap();
