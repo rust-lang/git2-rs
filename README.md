@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/alexcrichton/git2-rs.svg?branch=master)](https://travis-ci.org/alexcrichton/git2-rs)
 [![Build Status](https://ci.appveyor.com/api/projects/status/6vem3xgno2kuxnfm?svg=true)](https://ci.appveyor.com/project/alexcrichton/git2-rs)
 
-[Documentation](http://alexcrichton.com/git2-rs/git2/index.html)
+[Documentation](https://docs.rs/git2)
 
 libgit2 bindings for Rust
 

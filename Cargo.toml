@@ -8,18 +8,23 @@ readme = "README.md"
 keywords = ["git"]
 repository = "https://github.com/alexcrichton/git2-rs"
 homepage = "https://github.com/alexcrichton/git2-rs"
-documentation = "http://alexcrichton.com/git2-rs"
+documentation = "https://docs.rs/git2-rs"
 description = """
 Bindings to libgit2 for interoperating with git repositories. This library is
 both threadsafe and memory safe and allows both reading and writing git
 repositories.
 """
+categories = ["api-bindings"]
+
+[badges]
+travis-ci = { repository = "alexcrichton/git2-rs" }
+appveyor = { repository = "alexcrichton/git2-rs" }
 
 [dependencies]
 url = "1.0"
 bitflags = "0.7"
 libc = "0.2"
-libgit2-sys = { path = "libgit2-sys", version = "0.6.4" }
+libgit2-sys = { path = "libgit2-sys", version = "0.6.6" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.0", optional = true }
