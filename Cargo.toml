@@ -8,7 +8,7 @@ readme = "README.md"
 keywords = ["git"]
 repository = "https://github.com/alexcrichton/git2-rs"
 homepage = "https://github.com/alexcrichton/git2-rs"
-documentation = "https://docs.rs/git2-rs"
+documentation = "https://docs.rs/git2"
 description = """
 Bindings to libgit2 for interoperating with git repositories. This library is
 both threadsafe and memory safe and allows both reading and writing git
