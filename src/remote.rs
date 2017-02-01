@@ -51,9 +51,12 @@ pub struct PushOptions<'cb> {
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
+#[allow(dead_code)]
 pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
     callbacks: RemoteCallbacks<'cb>,
+    callbacks_raw: raw::git_remote_callbacks,
     proxy: ProxyOptions<'cb>,
+    proxy_raw: raw::git_proxy_options,
     remote_raw: *mut raw::git_remote,
     _marker: marker::PhantomData<&'connection Remote<'repo>>,
 }
@@ -114,20 +117,25 @@ impl<'repo> Remote<'repo> {
                                  proxy_options: Option<ProxyOptions<'cb>>)
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
-        let connection = RemoteConnection {
-                            callbacks: cb.unwrap_or_else(|| RemoteCallbacks::new()),
-                            proxy: proxy_options.unwrap_or_else(|| ProxyOptions::new()),
-                            remote_raw: self.raw.clone(),
-                            _marker: marker::PhantomData
-                         };
+        let cb = cb.unwrap_or_else(|| RemoteCallbacks::new());
+        let cb_raw = cb.raw();
+        let proxy_options = proxy_options.unwrap_or_else(|| ProxyOptions::new());
+        let proxy_raw = proxy_options.raw();
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
-                                              &connection.callbacks.raw(),
-                                              &connection.proxy.raw(),
+                                              &cb_raw,
+                                              &proxy_raw,
                                               0 as *const _));
         }
 
-        Ok(connection)
+        Ok(RemoteConnection {
+            callbacks: cb,
+            callbacks_raw: cb_raw,
+            proxy: proxy_options,
+            proxy_raw: proxy_raw,
+            remote_raw: self.raw.clone(),
+            _marker: marker::PhantomData
+        })
     }
 
     /// Check whether the remote is connected
