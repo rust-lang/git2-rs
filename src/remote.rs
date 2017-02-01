@@ -51,11 +51,9 @@ pub struct PushOptions<'cb> {
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
-// To prevent use after free for the callbacks for the lifetime of the remote connection
-#[allow(dead_code)]
 pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
-    callbacks: Option<RemoteCallbacks<'cb>>,
-    proxy: Option<ProxyOptions<'cb>>,
+    callbacks: RemoteCallbacks<'cb>,
+    proxy: ProxyOptions<'cb>,
     remote_raw: *mut raw::git_remote,
     _marker: marker::PhantomData<&'connection Remote<'repo>>,
 }
@@ -116,23 +114,20 @@ impl<'repo> Remote<'repo> {
                                  proxy_options: Option<ProxyOptions<'cb>>)
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
-        let cb_raw = cb.as_ref().map(|m| &m.raw() as *const raw::git_remote_callbacks)
-                       .unwrap_or_else(|| 0 as *const _);
-        let proxy_raw = proxy_options.as_ref().map(|m| &m.raw() as *const raw::git_proxy_options)
-                            .unwrap_or_else(|| 0 as *const _);
+        let connection = RemoteConnection {
+                            callbacks: cb.unwrap_or_else(|| RemoteCallbacks::new()),
+                            proxy: proxy_options.unwrap_or_else(|| ProxyOptions::new()),
+                            remote_raw: self.raw.clone(),
+                            _marker: marker::PhantomData
+                         };
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
-                                              cb_raw,
-                                              proxy_raw,
+                                              &connection.callbacks.raw(),
+                                              &connection.proxy.raw(),
                                               0 as *const _));
         }
 
-        Ok(RemoteConnection::<'repo, 'connection, 'cb> {
-            callbacks: cb,
-            proxy: proxy_options,
-            remote_raw: self.raw.clone(),
-            _marker: marker::PhantomData
-        })
+        Ok(connection)
     }
 
     /// Check whether the remote is connected
@@ -544,7 +539,6 @@ mod tests {
         {
             let _connection = origin.connect(Direction::Fetch, None, None).unwrap();
             assert!(origin.connected());
-            origin.download(&[], None).unwrap();
         }
         assert!(!origin.connected());
 
@@ -609,6 +603,30 @@ mod tests {
             assert!(!list[1].is_local());
         }
         assert!(progress_hit.get());
+    }
+
+    /// This test is meant to assure that the callbacks provided to connect will not cause
+    /// segfaults
+    #[test]
+    fn connect_cb() {
+        let (td, _repo) = ::test::repo_init();
+        let td2 = TempDir::new("git").unwrap();
+        let url = ::test::path2url(&td.path());
+
+        let repo = Repository::init(td2.path()).unwrap();
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.sideband_progress(|_progress| {
+            // no-op
+            true
+        });
+
+        let mut origin = repo.remote("origin", &url).unwrap();
+
+        {
+            let _connection = origin.connect(Direction::Fetch, Some(callbacks), None);
+            origin.fetch(&[], None, None).unwrap();
+        }
+        assert!(!origin.connected());
     }
 
     #[test]
