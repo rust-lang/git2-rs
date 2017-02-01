@@ -112,9 +112,9 @@ impl<'repo> Remote<'repo> {
     ///
     /// Returns a `RemoteConnection` that will disconnect once dropped
     pub fn connect<'connection, 'cb>(&mut self,
-                                 dir: Direction,
-                                 cb: Option<RemoteCallbacks<'cb>>,
-                                 proxy_options: Option<ProxyOptions<'cb>>)
+                                     dir: Direction,
+                                     cb: Option<RemoteCallbacks<'cb>>,
+                                     proxy_options: Option<ProxyOptions<'cb>>)
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
         let cb = cb.unwrap_or_else(|| RemoteCallbacks::new());
