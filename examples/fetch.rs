@@ -76,7 +76,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     // Connect to the remote end specifying that we want to fetch information
     // from it.
-    try!(remote.connect(Direction::Fetch));
+    let _connection = try!(remote.connect(Direction::Fetch, None, None));
 
     // Download the packfile and index it. This function updates the amount of
     // received data and the indexer stats which lets you inform the user about

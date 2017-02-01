@@ -50,6 +50,16 @@ pub struct PushOptions<'cb> {
     pb_parallelism: u32,
 }
 
+/// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
+// To prevent use after free for the callbacks for the lifetime of the remote connection
+#[allow(dead_code)]
+pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
+    callbacks: Option<RemoteCallbacks<'cb>>,
+    proxy: Option<ProxyOptions<'cb>>,
+    remote_raw: *mut raw::git_remote,
+    _marker: marker::PhantomData<&'connection Remote<'repo>>,
+}
+
 impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
@@ -98,15 +108,31 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Open a connection to a remote.
-    pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
-        // TODO: can callbacks be exposed safely?
+    ///
+    /// Returns a `RemoteConnection` that will disconnect once dropped
+    pub fn connect<'connection, 'cb>(&mut self,
+                                 dir: Direction,
+                                 cb: Option<RemoteCallbacks<'cb>>,
+                                 proxy_options: Option<ProxyOptions<'cb>>)
+                    -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
+
+        let cb_raw = cb.as_ref().map(|m| &m.raw() as *const raw::git_remote_callbacks)
+                       .unwrap_or_else(|| 0 as *const _);
+        let proxy_raw = proxy_options.as_ref().map(|m| &m.raw() as *const raw::git_proxy_options)
+                            .unwrap_or_else(|| 0 as *const _);
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
-                                              0 as *const _,
-                                              0 as *const _,
+                                              cb_raw,
+                                              proxy_raw,
                                               0 as *const _));
         }
-        Ok(())
+
+        Ok(RemoteConnection::<'repo, 'connection, 'cb> {
+            callbacks: cb,
+            proxy: proxy_options,
+            remote_raw: self.raw.clone(),
+            _marker: marker::PhantomData
+        })
     }
 
     /// Check whether the remote is connected
@@ -116,7 +142,11 @@ impl<'repo> Remote<'repo> {
 
     /// Disconnect from the remote
     pub fn disconnect(&mut self) {
-        unsafe { raw::git_remote_disconnect(self.raw) }
+        Remote::disconnect_raw(self.raw)
+    }
+
+    fn disconnect_raw(remote_raw: *mut raw::git_remote) {
+        unsafe { raw::git_remote_disconnect(remote_raw) }
     }
 
     /// Download and index the packfile
@@ -436,6 +466,12 @@ impl<'cb> Binding for PushOptions<'cb> {
     }
 }
 
+impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
+    fn drop(&mut self) {
+        Remote::disconnect_raw(self.remote_raw)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
@@ -499,14 +535,18 @@ mod tests {
             assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
         }
 
-        origin.connect(Direction::Push).unwrap();
-        assert!(origin.connected());
-        origin.disconnect();
+        {
+            let _connection = origin.connect(Direction::Push, None, None).unwrap();
+            assert!(origin.connected());
+        }
+        assert!(!origin.connected());
 
-        origin.connect(Direction::Fetch).unwrap();
-        assert!(origin.connected());
-        origin.download(&[], None).unwrap();
-        origin.disconnect();
+        {
+            let _connection = origin.connect(Direction::Fetch, None, None).unwrap();
+            assert!(origin.connected());
+            origin.download(&[], None).unwrap();
+        }
+        assert!(!origin.connected());
 
         origin.fetch(&[], None, None).unwrap();
         origin.fetch(&[], None, Some("foo")).unwrap();

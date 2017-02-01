@@ -105,7 +105,7 @@ pub use proxy_options::ProxyOptions;
 pub use reference::{Reference, References, ReferenceNames};
 pub use reflog::{Reflog, ReflogEntry, ReflogIter};
 pub use refspec::Refspec;
-pub use remote::{Remote, Refspecs, RemoteHead, FetchOptions, PushOptions};
+pub use remote::{Remote, RemoteConnection, Refspecs, RemoteHead, FetchOptions, PushOptions};
 pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
 pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
 pub use repo::{Repository, RepositoryInitOptions};
