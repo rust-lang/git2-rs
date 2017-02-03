@@ -57,8 +57,7 @@ pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
     callbacks_raw: raw::git_remote_callbacks,
     proxy: ProxyOptions<'cb>,
     proxy_raw: raw::git_proxy_options,
-    remote_raw: *mut raw::git_remote,
-    _marker: marker::PhantomData<&'connection Remote<'repo>>,
+    remote: &'connection mut Remote<'repo>,
 }
 
 impl<'repo> Remote<'repo> {
@@ -111,7 +110,7 @@ impl<'repo> Remote<'repo> {
     /// Open a connection to a remote.
     ///
     /// Returns a `RemoteConnection` that will disconnect once dropped
-    pub fn connect<'connection, 'cb>(&mut self,
+    pub fn connect<'connection, 'cb>(&'connection mut self,
                                      dir: Direction,
                                      cb: Option<RemoteCallbacks<'cb>>,
                                      proxy_options: Option<ProxyOptions<'cb>>)
@@ -133,8 +132,7 @@ impl<'repo> Remote<'repo> {
             callbacks_raw: cb_raw,
             proxy: proxy_options,
             proxy_raw: proxy_raw,
-            remote_raw: self.raw.clone(),
-            _marker: marker::PhantomData
+            remote: self,
         })
     }
 
@@ -145,11 +143,7 @@ impl<'repo> Remote<'repo> {
 
     /// Disconnect from the remote
     pub fn disconnect(&mut self) {
-        Remote::disconnect_raw(self.raw)
-    }
-
-    fn disconnect_raw(remote_raw: *mut raw::git_remote) {
-        unsafe { raw::git_remote_disconnect(remote_raw) }
+        unsafe { raw::git_remote_disconnect(self.raw) }
     }
 
     /// Download and index the packfile
@@ -469,9 +463,24 @@ impl<'cb> Binding for PushOptions<'cb> {
     }
 }
 
+impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
+    /// Check whether the remote is (still) connected
+    pub fn connected(&mut self) -> bool {
+        self.remote.connected()
+    }
+
+    /// Get the remote repository's reference advertisement list.
+    ///
+    /// This list is available as soon as the connection to
+    /// the remote is initiated and it remains available after disconnecting.
+    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+        self.remote.list()
+    }
+}
+
 impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
     fn drop(&mut self) {
-        Remote::disconnect_raw(self.remote_raw)
+        self.remote.disconnect()
     }
 }
 
@@ -539,14 +548,14 @@ mod tests {
         }
 
         {
-            let _connection = origin.connect(Direction::Push, None, None).unwrap();
-            assert!(origin.connected());
+            let mut connection = origin.connect(Direction::Push, None, None).unwrap();
+            assert!(connection.connected());
         }
         assert!(!origin.connected());
 
         {
-            let _connection = origin.connect(Direction::Fetch, None, None).unwrap();
-            assert!(origin.connected());
+            let mut connection = origin.connect(Direction::Fetch, None, None).unwrap();
+            assert!(connection.connected());
         }
         assert!(!origin.connected());
 
@@ -616,7 +625,7 @@ mod tests {
     /// This test is meant to assure that the callbacks provided to connect will not cause
     /// segfaults
     #[test]
-    fn connect_cb() {
+    fn connect_list() {
         let (td, _repo) = ::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
         let url = ::test::path2url(&td.path());
@@ -631,8 +640,15 @@ mod tests {
         let mut origin = repo.remote("origin", &url).unwrap();
 
         {
-            let _connection = origin.connect(Direction::Fetch, Some(callbacks), None);
-            origin.fetch(&[], None, None).unwrap();
+            let mut connection = origin.connect(Direction::Fetch, Some(callbacks), None).unwrap();
+            assert!(connection.connected());
+
+            let list = t!(connection.list());
+            assert_eq!(list.len(), 2);
+            assert_eq!(list[0].name(), "HEAD");
+            assert!(!list[0].is_local());
+            assert_eq!(list[1].name(), "refs/heads/master");
+            assert!(!list[1].is_local());
         }
         assert!(!origin.connected());
     }
