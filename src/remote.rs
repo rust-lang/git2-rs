@@ -51,10 +51,9 @@ pub struct PushOptions<'cb> {
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
-#[allow(dead_code)]
 pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
-    callbacks: Box<RemoteCallbacks<'cb>>,
-    proxy: Box<ProxyOptions<'cb>>,
+    _callbacks: Box<RemoteCallbacks<'cb>>,
+    _proxy: ProxyOptions<'cb>,
     remote: &'connection mut Remote<'repo>,
 }
 
@@ -115,7 +114,7 @@ impl<'repo> Remote<'repo> {
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
         let cb = Box::new(cb.unwrap_or_else(|| RemoteCallbacks::new()));
-        let proxy_options = Box::new(proxy_options.unwrap_or_else(|| ProxyOptions::new()));
+        let proxy_options = proxy_options.unwrap_or_else(|| ProxyOptions::new());
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
                                               &cb.raw(),
@@ -124,8 +123,8 @@ impl<'repo> Remote<'repo> {
         }
 
         Ok(RemoteConnection {
-            callbacks: cb,
-            proxy: proxy_options,
+            _callbacks: cb,
+            _proxy: proxy_options,
             remote: self,
         })
     }
