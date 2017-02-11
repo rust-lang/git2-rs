@@ -178,7 +178,9 @@ impl<'repo> Commit<'repo> {
     /// except that any non-`None` values will be updated. The new commit has
     /// the same parents as the old commit.
     ///
-    /// For information about `update_ref`, see `new`.
+    /// For information about `update_ref`, see [`Repository::commit`].
+    ///
+    /// [`Repository::commit`]: struct.Repository.html#method.commit
     pub fn amend(&self,
                  update_ref: Option<&str>,
                  author: Option<&Signature>,
