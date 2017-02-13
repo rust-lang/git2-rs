@@ -105,12 +105,24 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Open a connection to a remote.
+    pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
+        // TODO: can callbacks be exposed safely?
+        unsafe {
+            try_call!(raw::git_remote_connect(self.raw, dir,
+                                              0 as *const _,
+                                              0 as *const _,
+                                              0 as *const _));
+        }
+        Ok(())
+    }
+
+    /// Open a connection to a remote with callbacks and proxy settings
     ///
     /// Returns a `RemoteConnection` that will disconnect once dropped
-    pub fn connect<'connection, 'cb>(&'connection mut self,
-                                     dir: Direction,
-                                     cb: Option<RemoteCallbacks<'cb>>,
-                                     proxy_options: Option<ProxyOptions<'cb>>)
+    pub fn connect_auth<'connection, 'cb>(&'connection mut self,
+                                          dir: Direction,
+                                          cb: Option<RemoteCallbacks<'cb>>,
+                                          proxy_options: Option<ProxyOptions<'cb>>)
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
         let cb = Box::new(cb.unwrap_or_else(|| RemoteCallbacks::new()));
@@ -540,14 +552,23 @@ mod tests {
             assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
         }
 
+        origin.connect(Direction::Push).unwrap();
+        assert!(origin.connected());
+        origin.disconnect();
+
+        origin.connect(Direction::Fetch).unwrap();
+        assert!(origin.connected());
+        origin.download(&[], None).unwrap();
+        origin.disconnect();
+
         {
-            let mut connection = origin.connect(Direction::Push, None, None).unwrap();
+            let mut connection = origin.connect_auth(Direction::Push, None, None).unwrap();
             assert!(connection.connected());
         }
         assert!(!origin.connected());
 
         {
-            let mut connection = origin.connect(Direction::Fetch, None, None).unwrap();
+            let mut connection = origin.connect_auth(Direction::Fetch, None, None).unwrap();
             assert!(connection.connected());
         }
         assert!(!origin.connected());
@@ -633,7 +654,7 @@ mod tests {
         let mut origin = repo.remote("origin", &url).unwrap();
 
         {
-            let mut connection = origin.connect(Direction::Fetch, Some(callbacks), None).unwrap();
+            let mut connection = origin.connect_auth(Direction::Fetch, Some(callbacks), None).unwrap();
             assert!(connection.connected());
 
             let list = t!(connection.list());

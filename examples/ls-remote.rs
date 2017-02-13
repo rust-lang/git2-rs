@@ -35,7 +35,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     // Connect to the remote and call the printing function for each of the
     // remote references.
-    let connection = try!(remote.connect(Direction::Fetch, None, None));
+    let connection = try!(remote.connect_auth(Direction::Fetch, None, None));
 
     // Get the list of references on the remote and print out their name next to
     // what they point to.
