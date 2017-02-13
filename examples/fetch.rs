@@ -19,7 +19,7 @@ extern crate docopt;
 extern crate rustc_serialize;
 
 use docopt::Docopt;
-use git2::{Repository, RemoteCallbacks, Direction, AutotagOption, FetchOptions};
+use git2::{Repository, RemoteCallbacks, AutotagOption, FetchOptions};
 use std::io::{self, Write};
 use std::str;
 
@@ -73,10 +73,6 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         io::stdout().flush().unwrap();
         true
     });
-
-    // Connect to the remote end specifying that we want to fetch information
-    // from it.
-    try!(remote.connect(Direction::Fetch));
 
     // Download the packfile and index it. This function updates the amount of
     // received data and the indexer stats which lets you inform the user about

@@ -50,6 +50,13 @@ pub struct PushOptions<'cb> {
     pb_parallelism: u32,
 }
 
+/// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
+pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
+    _callbacks: Box<RemoteCallbacks<'cb>>,
+    _proxy: ProxyOptions<'cb>,
+    remote: &'connection mut Remote<'repo>,
+}
+
 impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
@@ -107,6 +114,31 @@ impl<'repo> Remote<'repo> {
                                               0 as *const _));
         }
         Ok(())
+    }
+
+    /// Open a connection to a remote with callbacks and proxy settings
+    ///
+    /// Returns a `RemoteConnection` that will disconnect once dropped
+    pub fn connect_auth<'connection, 'cb>(&'connection mut self,
+                                          dir: Direction,
+                                          cb: Option<RemoteCallbacks<'cb>>,
+                                          proxy_options: Option<ProxyOptions<'cb>>)
+                    -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
+
+        let cb = Box::new(cb.unwrap_or_else(|| RemoteCallbacks::new()));
+        let proxy_options = proxy_options.unwrap_or_else(|| ProxyOptions::new());
+        unsafe {
+            try_call!(raw::git_remote_connect(self.raw, dir,
+                                              &cb.raw(),
+                                              &proxy_options.raw(),
+                                              0 as *const _));
+        }
+
+        Ok(RemoteConnection {
+            _callbacks: cb,
+            _proxy: proxy_options,
+            remote: self,
+        })
     }
 
     /// Check whether the remote is connected
@@ -436,6 +468,27 @@ impl<'cb> Binding for PushOptions<'cb> {
     }
 }
 
+impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
+    /// Check whether the remote is (still) connected
+    pub fn connected(&mut self) -> bool {
+        self.remote.connected()
+    }
+
+    /// Get the remote repository's reference advertisement list.
+    ///
+    /// This list is available as soon as the connection to
+    /// the remote is initiated and it remains available after disconnecting.
+    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+        self.remote.list()
+    }
+}
+
+impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
+    fn drop(&mut self) {
+        self.remote.disconnect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
@@ -508,6 +561,18 @@ mod tests {
         origin.download(&[], None).unwrap();
         origin.disconnect();
 
+        {
+            let mut connection = origin.connect_auth(Direction::Push, None, None).unwrap();
+            assert!(connection.connected());
+        }
+        assert!(!origin.connected());
+
+        {
+            let mut connection = origin.connect_auth(Direction::Fetch, None, None).unwrap();
+            assert!(connection.connected());
+        }
+        assert!(!origin.connected());
+
         origin.fetch(&[], None, None).unwrap();
         origin.fetch(&[], None, Some("foo")).unwrap();
         origin.update_tips(None, true, AutotagOption::Unspecified, None).unwrap();
@@ -569,6 +634,37 @@ mod tests {
             assert!(!list[1].is_local());
         }
         assert!(progress_hit.get());
+    }
+
+    /// This test is meant to assure that the callbacks provided to connect will not cause
+    /// segfaults
+    #[test]
+    fn connect_list() {
+        let (td, _repo) = ::test::repo_init();
+        let td2 = TempDir::new("git").unwrap();
+        let url = ::test::path2url(&td.path());
+
+        let repo = Repository::init(td2.path()).unwrap();
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.sideband_progress(|_progress| {
+            // no-op
+            true
+        });
+
+        let mut origin = repo.remote("origin", &url).unwrap();
+
+        {
+            let mut connection = origin.connect_auth(Direction::Fetch, Some(callbacks), None).unwrap();
+            assert!(connection.connected());
+
+            let list = t!(connection.list());
+            assert_eq!(list.len(), 2);
+            assert_eq!(list[0].name(), "HEAD");
+            assert!(!list[0].is_local());
+            assert_eq!(list[1].name(), "refs/heads/master");
+            assert!(!list[1].is_local());
+        }
+        assert!(!origin.connected());
     }
 
     #[test]
