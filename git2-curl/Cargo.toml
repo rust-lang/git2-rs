@@ -6,7 +6,7 @@ authors = ["Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/alexcrichton/git2-rs"
 homepage = "https://github.com/alexcrichton/git2-rs"
-documentation = "http://alexcrichton.com/git2-rs/git2-curl"
+documentation = "https://docs.rs/git2-curl"
 description = """
 Backend for an HTTP transport in libgit2 powered by libcurl.
 
