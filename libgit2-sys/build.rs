@@ -136,16 +136,6 @@ fn main() {
         }
     }
 
-    if target.contains("windows") {
-        println!("cargo:rustc-link-lib=winhttp");
-        println!("cargo:rustc-link-lib=rpcrt4");
-        println!("cargo:rustc-link-lib=ole32");
-        println!("cargo:rustc-link-lib=crypt32");
-        println!("cargo:rustc-link-lib=static=git2");
-        println!("cargo:rustc-link-search=native={}/lib", dst.display());
-        return
-    }
-
     // libgit2 requires the http_parser library for the HTTP transport to be
     // implemented, and it will attempt to use the system http_parser if it's
     // available. Detect this situation and report using the system http parser
@@ -161,6 +151,16 @@ fn main() {
         if contents.contains("-lhttp_parser") {
             println!("cargo:rustc-link-lib=http_parser");
         }
+    }
+
+    if target.contains("windows") {
+        println!("cargo:rustc-link-lib=winhttp");
+        println!("cargo:rustc-link-lib=rpcrt4");
+        println!("cargo:rustc-link-lib=ole32");
+        println!("cargo:rustc-link-lib=crypt32");
+        println!("cargo:rustc-link-lib=static=git2");
+        println!("cargo:rustc-link-search=native={}/lib", dst.display());
+        return
     }
 
     println!("cargo:rustc-link-lib=static=git2");
