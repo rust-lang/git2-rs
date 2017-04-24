@@ -12,6 +12,12 @@ libgit2 bindings for Rust
 git2 = "0.6"
 ```
 
+## Version of libgit2
+
+Currently this library requires libgit2 0.25.1. The source for libgit2 is
+included in the libgit2-sys crate so there's no need to pre-install the libgit2
+library, the libgit2-sys crate will figure that and/or build that for you.
+
 ## Building git2-rs
 
 First, you'll need to install _CMake_. Afterwards, just run:
