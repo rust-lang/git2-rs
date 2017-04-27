@@ -120,6 +120,8 @@ fn main() {
     let _ = fs::remove_dir_all(env::var("OUT_DIR").unwrap());
     t!(fs::create_dir_all(env::var("OUT_DIR").unwrap()));
 
+    // Unset DESTDIR or libgit2.a ends up in it and cargo can't find it
+    env::remove_var("DESTDIR");
     let dst = cfg.define("BUILD_SHARED_LIBS", "OFF")
                  .define("BUILD_CLAR", "OFF")
                  .register_dep("Z")
