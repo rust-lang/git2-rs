@@ -247,6 +247,15 @@ impl Index {
         }
     }
 
+    /// Does this index have conflicts?
+    ///
+    /// Returns `true` if the index contains conflicts, `false` if it does not.
+    pub fn has_conflicts(&self) -> bool {
+        unsafe {
+            raw::git_index_has_conflicts(self.raw) == 1
+        }
+    }
+
     /// Get the full path to the index file on disk.
     ///
     /// Returns `None` if this is an in-memory index.
@@ -617,4 +626,3 @@ mod tests {
         }
     }
 }
-
