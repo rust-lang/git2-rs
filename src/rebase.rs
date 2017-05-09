@@ -85,7 +85,7 @@ impl<'repo> Rebase<'repo> {
 
     /// Aborts a rebase that is currently in progress,
     /// resetting the repository and working directory to their state before rebase began.
-    pub fn abort(&mut self) -> Result<(), Error> {
+    pub fn abort(&self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_rebase_abort(self.raw));
         }
@@ -95,7 +95,7 @@ impl<'repo> Rebase<'repo> {
     /// Commits the current patch.
     /// You must have resolved any conflicts
     /// that were introduced during the patch application from the `next` invocation.
-    pub fn commit(&mut self,
+    pub fn commit(&self,
                   author: &Signature,
                   committer: &Signature,
                   message: &str)
@@ -114,7 +114,7 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Finishes a rebase that is currently in progress once all patches have been applied.
-    pub fn finish(&mut self, signature: Option<&Signature>) -> Result<(), Error> {
+    pub fn finish(&self, signature: Option<&Signature>) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_rebase_finish(self.raw,
                                              signature
