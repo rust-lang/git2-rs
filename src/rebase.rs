@@ -114,9 +114,14 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Finishes a rebase that is currently in progress once all patches have been applied.
-    pub fn finish(&mut self, signature: &Signature) -> Result<(), Error> {
+    pub fn finish(&mut self, signature: Option<&Signature>) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_rebase_finish(self.raw, signature.raw()));
+            try_call!(raw::git_rebase_finish(self.raw,
+                                             signature
+                                                 .map(|s| {
+                                                          s.raw() as *const raw::git_signature
+                                                      })
+                                                 .unwrap_or(0 as *const raw::git_signature)));
         }
         Ok(())
     }
@@ -297,6 +302,5 @@ impl Binding for RebaseOperationType {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn smoke() {
-    }
+    fn smoke() {}
 }
