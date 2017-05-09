@@ -79,6 +79,7 @@ pub enum git_reflog {}
 pub enum git_reflog_entry {}
 pub enum git_describe_result {}
 pub enum git_packbuilder {}
+pub enum git_rebase {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1399,6 +1400,37 @@ pub type git_stash_cb = extern fn(index: size_t,
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
 
+#[repr(C)]
+pub struct git_rebase_options {
+    pub version: c_uint,
+    pub quiet: c_int,
+    pub inmemory: c_int,
+    pub rewrite_notes_ref: *const c_char,
+    pub merge_options: git_merge_options,
+    pub checkout_options: git_checkout_options,
+}
+
+git_enum! {
+    pub enum git_rebase_operation_t {
+        GIT_REBASE_OPERATION_PICK = 0,
+        GIT_REBASE_OPERATION_REWORD,
+        GIT_REBASE_OPERATION_EDIT,
+        GIT_REBASE_OPERATION_SQUASH,
+        GIT_REBASE_OPERATION_FIXUP,
+        GIT_REBASE_OPERATION_EXEC,
+    }
+}
+
+#[repr(C)]
+pub struct git_rebase_operation {
+    pub kind: git_rebase_operation_t,
+    pub id: git_oid,
+    pub exec: *const c_char
+}
+
+pub const GIT_REBASE_OPTIONS_VERSION: usize = 1;
+pub const GIT_REBASE_NO_OPERATION: usize = ::std::usize::MAX;
+
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -2623,6 +2655,38 @@ extern {
                                          progress_cb: Option<git_packbuilder_progress>,
                                          progress_cb_payload: *mut c_void) -> c_int;
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
+
+    // rebase
+    pub fn git_rebase_init_options(opts: *mut git_rebase_options, version: c_uint) -> c_int;
+    pub fn git_rebase_init(out: *mut *mut git_rebase,
+                           repo: *mut git_repository,
+                           branch: *const git_annotated_commit,
+                           upstream: *const git_annotated_commit,
+                           onto: *const git_annotated_commit,
+                           opts: *const git_rebase_options)
+                           -> c_int;
+    pub fn git_rebase_open(out: *mut *mut git_rebase,
+                           repo: *mut git_repository,
+                           opts: *const git_rebase_options)
+                           -> c_int;
+    pub fn git_rebase_operation_entrycount(rebase: *mut git_rebase) -> size_t;
+    pub fn git_rebase_operation_current(rebase: *mut git_rebase) -> size_t;
+    pub fn git_rebase_operation_byindex(rebase: *mut git_rebase,
+                                        idx: size_t)
+                                        -> *mut git_rebase_operation;
+    pub fn git_rebase_next(out: *mut *mut git_rebase_operation, rebase: *mut git_rebase) -> c_int;
+    pub fn git_rebase_inmemory_index(out: *mut *mut git_index, rebase: *mut git_rebase) -> c_int;
+    pub fn git_rebase_commit(id: *mut git_oid,
+                             rebase: *mut git_rebase,
+                             author: *const git_signature,
+                             committer: *const git_signature,
+                             message_encoding: *const c_char,
+                             message: *const c_char)
+                             -> c_int;
+    pub fn git_rebase_abort(rebase: *mut git_rebase) -> c_int;
+    pub fn git_rebase_finish(rebase: *mut git_rebase, signature: *const git_signature) -> c_int;
+    pub fn git_rebase_free(rebase: *mut git_rebase);
+
 }
 
 pub fn init() {
