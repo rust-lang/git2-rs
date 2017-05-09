@@ -1981,6 +1981,7 @@ extern {
     pub fn git_index_get_bypath(index: *mut git_index,
                                 path: *const c_char,
                                 stage: c_int) -> *const git_index_entry;
+    pub fn git_index_has_conflicts(index: *const git_index) -> c_int;
     pub fn git_index_new(index: *mut *mut git_index) -> c_int;
     pub fn git_index_open(index: *mut *mut git_index,
                           index_path: *const c_char) -> c_int;
