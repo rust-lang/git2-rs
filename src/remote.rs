@@ -192,6 +192,19 @@ impl<'repo> Remote<'repo> {
     ///
     /// Convenience function to connect to a remote, download the data,
     /// disconnect and update the remote-tracking branches.
+    ///
+    /// # Examples
+    ///
+    /// Example of functionality similar to `git fetch origin/master`:
+    ///
+    /// ```no_run
+    /// fn fetch_origin_master(repo: git2::Repository) -> Result<(), git2::Error> {
+    ///     repo.find_remote("origin")?.fetch(&["master"], None, None)
+    /// }
+    ///
+    /// let repo = git2::Repository::discover("rust").unwrap();
+    /// fetch_origin_master(repo).unwrap();
+    /// ```
     pub fn fetch(&mut self,
                  refspecs: &[&str],
                  opts: Option<&mut FetchOptions>,
