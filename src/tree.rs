@@ -27,9 +27,9 @@ pub struct TreeEntry<'tree> {
 }
 
 /// An iterator over the entries in a tree.
-pub struct TreeIter<'tree> {
+pub struct TreeIter<'tree,'repo:'tree> {
     range: Range<usize>,
-    tree: &'tree Tree<'tree>,
+    tree: &'tree Tree<'repo>,
 }
 
 impl<'repo> Tree<'repo> {
@@ -44,12 +44,12 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Returns an iterator over the entries in this tree.
-    pub fn iter(&self) -> TreeIter {
+    pub fn iter<'tree>(&'tree self) -> TreeIter<'tree,'repo> {
         TreeIter { range: 0..self.len(), tree: self }
     }
 
     /// Lookup a tree entry by SHA value.
-    pub fn get_id(&self, id: Oid) -> Option<TreeEntry> {
+    pub fn get_id(&self, id: Oid) -> Option<TreeEntry<'repo>> {
         unsafe {
             let ptr = raw::git_tree_entry_byid(&*self.raw(), &*id.raw());
             if ptr.is_null() {
@@ -61,7 +61,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Lookup a tree entry by its position in the tree
-    pub fn get(&self, n: usize) -> Option<TreeEntry> {
+    pub fn get(&self, n: usize) -> Option<TreeEntry<'repo>> {
         unsafe {
             let ptr = raw::git_tree_entry_byindex(&*self.raw(),
                                                   n as libc::size_t);
@@ -74,7 +74,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Lookup a tree entry by its filename
-    pub fn get_name(&self, filename: &str) -> Option<TreeEntry> {
+    pub fn get_name(&self, filename: &str) -> Option<TreeEntry<'repo>> {
         let filename = CString::new(filename).unwrap();
         unsafe {
             let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
@@ -259,19 +259,19 @@ impl<'a> Drop for TreeEntry<'a> {
     }
 }
 
-impl<'tree> Iterator for TreeIter<'tree> {
-    type Item = TreeEntry<'tree>;
-    fn next(&mut self) -> Option<TreeEntry<'tree>> {
+impl<'tree,'repo> Iterator for TreeIter<'tree,'repo> {
+    type Item = TreeEntry<'repo>;
+    fn next(&mut self) -> Option<TreeEntry<'repo>> {
         self.range.next().and_then(|i| self.tree.get(i))
     }
     fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
 }
-impl<'tree> DoubleEndedIterator for TreeIter<'tree> {
-    fn next_back(&mut self) -> Option<TreeEntry<'tree>> {
+impl<'tree,'repo> DoubleEndedIterator for TreeIter<'tree,'repo> {
+    fn next_back(&mut self) -> Option<TreeEntry<'repo>> {
         self.range.next_back().and_then(|i| self.tree.get(i))
     }
 }
-impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
+impl<'tree,'repo> ExactSizeIterator for TreeIter<'tree,'repo> {}
 
 #[cfg(test)]
 mod tests {
