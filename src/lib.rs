@@ -348,136 +348,136 @@ pub enum FileFavor {
 
 bitflags! {
     /// Orderings that may be specified for Revwalk iteration.
-    pub flags Sort: u32 {
+    pub struct Sort: u32 {
         /// Sort the repository contents in no particular ordering.
         ///
         /// This sorting is arbitrary, implementation-specific, and subject to
         /// change at any time. This is the default sorting for new walkers.
-        const SORT_NONE = raw::GIT_SORT_NONE as u32,
+        const SORT_NONE = raw::GIT_SORT_NONE as u32;
 
         /// Sort the repository contents in topological order (parents before
         /// children).
         ///
         /// This sorting mode can be combined with time sorting.
-        const SORT_TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as u32,
+        const SORT_TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as u32;
 
         /// Sort the repository contents by commit time.
         ///
         /// This sorting mode can be combined with topological sorting.
-        const SORT_TIME = raw::GIT_SORT_TIME as u32,
+        const SORT_TIME = raw::GIT_SORT_TIME as u32;
 
         /// Iterate through the repository contents in reverse order.
         ///
         /// This sorting mode can be combined with any others.
-        const SORT_REVERSE = raw::GIT_SORT_REVERSE as u32,
+        const SORT_REVERSE = raw::GIT_SORT_REVERSE as u32;
     }
 }
 
 bitflags! {
     /// Types of credentials that can be requested by a credential callback.
-    pub flags CredentialType: u32 {
+    pub struct CredentialType: u32 {
         #[allow(missing_docs)]
-        const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32,
+        const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32;
         #[allow(missing_docs)]
-        const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32,
+        const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32;
         #[allow(missing_docs)]
-        const SSH_MEMORY = raw::GIT_CREDTYPE_SSH_MEMORY as u32,
+        const SSH_MEMORY = raw::GIT_CREDTYPE_SSH_MEMORY as u32;
         #[allow(missing_docs)]
-        const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32,
+        const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32;
         #[allow(missing_docs)]
-        const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32,
+        const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32;
         #[allow(missing_docs)]
-        const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32,
+        const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32;
         #[allow(missing_docs)]
-        const USERNAME = raw::GIT_CREDTYPE_USERNAME as u32,
+        const USERNAME = raw::GIT_CREDTYPE_USERNAME as u32;
     }
 }
 
 bitflags! {
     /// Flags for the `flags` field of an IndexEntry.
-    pub flags IndexEntryFlag: u16 {
+    pub struct IndexEntryFlag: u16 {
         /// Set when the `extended_flags` field is valid.
-        const IDXENTRY_EXTENDED = raw::GIT_IDXENTRY_EXTENDED as u16,
+        const IDXENTRY_EXTENDED = raw::GIT_IDXENTRY_EXTENDED as u16;
         /// "Assume valid" flag
-        const IDXENTRY_VALID = raw::GIT_IDXENTRY_VALID as u16,
+        const IDXENTRY_VALID = raw::GIT_IDXENTRY_VALID as u16;
     }
 }
 
 bitflags! {
     /// Flags for the `extended_flags` field of an IndexEntry.
-    pub flags IndexEntryExtendedFlag: u16 {
+    pub struct IndexEntryExtendedFlag: u16 {
         /// An "intent to add" entry from "git add -N"
-        const IDXENTRY_INTENT_TO_ADD = raw::GIT_IDXENTRY_INTENT_TO_ADD as u16,
+        const IDXENTRY_INTENT_TO_ADD = raw::GIT_IDXENTRY_INTENT_TO_ADD as u16;
         /// Skip the associated worktree file, for sparse checkouts
-        const IDXENTRY_SKIP_WORKTREE = raw::GIT_IDXENTRY_SKIP_WORKTREE as u16,
+        const IDXENTRY_SKIP_WORKTREE = raw::GIT_IDXENTRY_SKIP_WORKTREE as u16;
         /// Reserved for a future on-disk extended flag
-        const IDXENTRY_EXTENDED2 = raw::GIT_IDXENTRY_EXTENDED2 as u16,
+        const IDXENTRY_EXTENDED2 = raw::GIT_IDXENTRY_EXTENDED2 as u16;
 
         #[allow(missing_docs)]
-        const IDXENTRY_UPDATE = raw::GIT_IDXENTRY_UPDATE as u16,
+        const IDXENTRY_UPDATE = raw::GIT_IDXENTRY_UPDATE as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_REMOVE = raw::GIT_IDXENTRY_REMOVE as u16,
+        const IDXENTRY_REMOVE = raw::GIT_IDXENTRY_REMOVE as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_UPTODATE = raw::GIT_IDXENTRY_UPTODATE as u16,
+        const IDXENTRY_UPTODATE = raw::GIT_IDXENTRY_UPTODATE as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_ADDED = raw::GIT_IDXENTRY_ADDED as u16,
+        const IDXENTRY_ADDED = raw::GIT_IDXENTRY_ADDED as u16;
 
         #[allow(missing_docs)]
-        const IDXENTRY_HASHED = raw::GIT_IDXENTRY_HASHED as u16,
+        const IDXENTRY_HASHED = raw::GIT_IDXENTRY_HASHED as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_UNHASHED = raw::GIT_IDXENTRY_UNHASHED as u16,
+        const IDXENTRY_UNHASHED = raw::GIT_IDXENTRY_UNHASHED as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_WT_REMOVE = raw::GIT_IDXENTRY_WT_REMOVE as u16,
+        const IDXENTRY_WT_REMOVE = raw::GIT_IDXENTRY_WT_REMOVE as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_CONFLICTED = raw::GIT_IDXENTRY_CONFLICTED as u16,
+        const IDXENTRY_CONFLICTED = raw::GIT_IDXENTRY_CONFLICTED as u16;
 
         #[allow(missing_docs)]
-        const IDXENTRY_UNPACKED = raw::GIT_IDXENTRY_UNPACKED as u16,
+        const IDXENTRY_UNPACKED = raw::GIT_IDXENTRY_UNPACKED as u16;
         #[allow(missing_docs)]
-        const IDXENTRY_NEW_SKIP_WORKTREE = raw::GIT_IDXENTRY_NEW_SKIP_WORKTREE as u16,
+        const IDXENTRY_NEW_SKIP_WORKTREE = raw::GIT_IDXENTRY_NEW_SKIP_WORKTREE as u16;
     }
 }
 
 bitflags! {
     /// Flags for APIs that add files matching pathspec
-    pub flags IndexAddOption: u32 {
+    pub struct IndexAddOption: u32 {
         #[allow(missing_docs)]
-        const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32,
+        const ADD_DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32;
         #[allow(missing_docs)]
-        const ADD_FORCE = raw::GIT_INDEX_ADD_FORCE as u32,
+        const ADD_FORCE = raw::GIT_INDEX_ADD_FORCE as u32;
         #[allow(missing_docs)]
         const ADD_DISABLE_PATHSPEC_MATCH =
-                raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32,
+                raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32;
         #[allow(missing_docs)]
-        const ADD_CHECK_PATHSPEC = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32,
+        const ADD_CHECK_PATHSPEC = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32;
     }
 }
 
 bitflags! {
     /// Flags for `Repository::open_ext`
-    pub flags RepositoryOpenFlags: u32 {
+    pub struct RepositoryOpenFlags: u32 {
         /// Only open the specified path; don't walk upward searching.
-        const REPOSITORY_OPEN_NO_SEARCH = raw::GIT_REPOSITORY_OPEN_NO_SEARCH as u32,
+        const REPOSITORY_OPEN_NO_SEARCH = raw::GIT_REPOSITORY_OPEN_NO_SEARCH as u32;
         /// Search across filesystem boundaries.
-        const REPOSITORY_OPEN_CROSS_FS = raw::GIT_REPOSITORY_OPEN_CROSS_FS as u32,
+        const REPOSITORY_OPEN_CROSS_FS = raw::GIT_REPOSITORY_OPEN_CROSS_FS as u32;
         /// Force opening as bare repository, and defer loading its config.
-        const REPOSITORY_OPEN_BARE = raw::GIT_REPOSITORY_OPEN_BARE as u32,
+        const REPOSITORY_OPEN_BARE = raw::GIT_REPOSITORY_OPEN_BARE as u32;
         /// Don't try appending `/.git` to the specified repository path.
-        const REPOSITORY_OPEN_NO_DOTGIT = raw::GIT_REPOSITORY_OPEN_NO_DOTGIT as u32,
+        const REPOSITORY_OPEN_NO_DOTGIT = raw::GIT_REPOSITORY_OPEN_NO_DOTGIT as u32;
         /// Respect environment variables like `$GIT_DIR`.
-        const REPOSITORY_OPEN_FROM_ENV = raw::GIT_REPOSITORY_OPEN_FROM_ENV as u32,
+        const REPOSITORY_OPEN_FROM_ENV = raw::GIT_REPOSITORY_OPEN_FROM_ENV as u32;
     }
 }
 
 bitflags! {
     /// Flags for the return value of `Repository::revparse`
-    pub flags RevparseMode: u32 {
+    pub struct RevparseMode: u32 {
         /// The spec targeted a single object
-        const REVPARSE_SINGLE = raw::GIT_REVPARSE_SINGLE as u32,
+        const REVPARSE_SINGLE = raw::GIT_REVPARSE_SINGLE as u32;
         /// The spec targeted a range of commits
-        const REVPARSE_RANGE = raw::GIT_REVPARSE_RANGE as u32,
+        const REVPARSE_RANGE = raw::GIT_REVPARSE_RANGE as u32;
         /// The spec used the `...` operator, which invokes special semantics.
-        const REVPARSE_MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32,
+        const REVPARSE_MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32;
     }
 }
 
@@ -746,52 +746,52 @@ bitflags! {
     /// represents the status of file in the index relative to the HEAD, and the
     /// `STATUS_WT_*` set of flags represent the status of the file in the
     /// working directory relative to the index.
-    pub flags Status: u32 {
+    pub struct Status: u32 {
         #[allow(missing_docs)]
-        const STATUS_CURRENT = raw::GIT_STATUS_CURRENT as u32,
+        const STATUS_CURRENT = raw::GIT_STATUS_CURRENT as u32;
 
         #[allow(missing_docs)]
-        const STATUS_INDEX_NEW = raw::GIT_STATUS_INDEX_NEW as u32,
+        const STATUS_INDEX_NEW = raw::GIT_STATUS_INDEX_NEW as u32;
         #[allow(missing_docs)]
-        const STATUS_INDEX_MODIFIED = raw::GIT_STATUS_INDEX_MODIFIED as u32,
+        const STATUS_INDEX_MODIFIED = raw::GIT_STATUS_INDEX_MODIFIED as u32;
         #[allow(missing_docs)]
-        const STATUS_INDEX_DELETED = raw::GIT_STATUS_INDEX_DELETED as u32,
+        const STATUS_INDEX_DELETED = raw::GIT_STATUS_INDEX_DELETED as u32;
         #[allow(missing_docs)]
-        const STATUS_INDEX_RENAMED = raw::GIT_STATUS_INDEX_RENAMED as u32,
+        const STATUS_INDEX_RENAMED = raw::GIT_STATUS_INDEX_RENAMED as u32;
         #[allow(missing_docs)]
-        const STATUS_INDEX_TYPECHANGE = raw::GIT_STATUS_INDEX_TYPECHANGE as u32,
+        const STATUS_INDEX_TYPECHANGE = raw::GIT_STATUS_INDEX_TYPECHANGE as u32;
 
         #[allow(missing_docs)]
-        const STATUS_WT_NEW = raw::GIT_STATUS_WT_NEW as u32,
+        const STATUS_WT_NEW = raw::GIT_STATUS_WT_NEW as u32;
         #[allow(missing_docs)]
-        const STATUS_WT_MODIFIED = raw::GIT_STATUS_WT_MODIFIED as u32,
+        const STATUS_WT_MODIFIED = raw::GIT_STATUS_WT_MODIFIED as u32;
         #[allow(missing_docs)]
-        const STATUS_WT_DELETED = raw::GIT_STATUS_WT_DELETED as u32,
+        const STATUS_WT_DELETED = raw::GIT_STATUS_WT_DELETED as u32;
         #[allow(missing_docs)]
-        const STATUS_WT_TYPECHANGE = raw::GIT_STATUS_WT_TYPECHANGE as u32,
+        const STATUS_WT_TYPECHANGE = raw::GIT_STATUS_WT_TYPECHANGE as u32;
         #[allow(missing_docs)]
-        const STATUS_WT_RENAMED = raw::GIT_STATUS_WT_RENAMED as u32,
+        const STATUS_WT_RENAMED = raw::GIT_STATUS_WT_RENAMED as u32;
 
         #[allow(missing_docs)]
-        const STATUS_IGNORED = raw::GIT_STATUS_IGNORED as u32,
+        const STATUS_IGNORED = raw::GIT_STATUS_IGNORED as u32;
         #[allow(missing_docs)]
-        const STATUS_CONFLICTED = raw::GIT_STATUS_CONFLICTED as u32,
+        const STATUS_CONFLICTED = raw::GIT_STATUS_CONFLICTED as u32;
     }
 }
 
 bitflags! {
     /// Mode options for RepositoryInitOptions
-    pub flags RepositoryInitMode: u32 {
+    pub struct RepositoryInitMode: u32 {
         /// Use permissions configured by umask - the default
         const REPOSITORY_INIT_SHARED_UMASK =
-                    raw::GIT_REPOSITORY_INIT_SHARED_UMASK as u32,
+                    raw::GIT_REPOSITORY_INIT_SHARED_UMASK as u32;
         /// Use `--shared=group` behavior, chmod'ing the new repo to be
         /// group writable and \"g+sx\" for sticky group assignment
         const REPOSITORY_INIT_SHARED_GROUP =
-                    raw::GIT_REPOSITORY_INIT_SHARED_GROUP as u32,
+                    raw::GIT_REPOSITORY_INIT_SHARED_GROUP as u32;
         /// Use `--shared=all` behavior, adding world readability.
         const REPOSITORY_INIT_SHARED_ALL =
-                    raw::GIT_REPOSITORY_INIT_SHARED_ALL as u32,
+                    raw::GIT_REPOSITORY_INIT_SHARED_ALL as u32;
     }
 }
 
@@ -863,49 +863,49 @@ bitflags! {
     /// Lastly, the following will only be returned for ignore "NONE".
     ///
     /// * WD_UNTRACKED      - wd contains untracked files
-    pub flags SubmoduleStatus: u32 {
+    pub struct SubmoduleStatus: u32 {
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_HEAD =
-                raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32,
+                raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_INDEX =
-                raw::GIT_SUBMODULE_STATUS_IN_INDEX as u32,
+                raw::GIT_SUBMODULE_STATUS_IN_INDEX as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_CONFIG =
-                raw::GIT_SUBMODULE_STATUS_IN_CONFIG as u32,
+                raw::GIT_SUBMODULE_STATUS_IN_CONFIG as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_IN_WD =
-                raw::GIT_SUBMODULE_STATUS_IN_WD as u32,
+                raw::GIT_SUBMODULE_STATUS_IN_WD as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_INDEX_ADDED =
-                raw::GIT_SUBMODULE_STATUS_INDEX_ADDED as u32,
+                raw::GIT_SUBMODULE_STATUS_INDEX_ADDED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_INDEX_DELETED =
-                raw::GIT_SUBMODULE_STATUS_INDEX_DELETED as u32,
+                raw::GIT_SUBMODULE_STATUS_INDEX_DELETED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_INDEX_MODIFIED =
-                raw::GIT_SUBMODULE_STATUS_INDEX_MODIFIED as u32,
+                raw::GIT_SUBMODULE_STATUS_INDEX_MODIFIED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_UNINITIALIZED =
-                raw::GIT_SUBMODULE_STATUS_WD_UNINITIALIZED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_UNINITIALIZED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_ADDED =
-                raw::GIT_SUBMODULE_STATUS_WD_ADDED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_ADDED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_DELETED =
-                raw::GIT_SUBMODULE_STATUS_WD_DELETED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_DELETED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_MODIFIED =
-                raw::GIT_SUBMODULE_STATUS_WD_MODIFIED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_MODIFIED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_INDEX_MODIFIED =
-                raw::GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_WD_MODIFIED =
-                raw::GIT_SUBMODULE_STATUS_WD_WD_MODIFIED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_WD_MODIFIED as u32;
         #[allow(missing_docs)]
         const SUBMODULE_STATUS_WD_UNTRACKED =
-                raw::GIT_SUBMODULE_STATUS_WD_UNTRACKED as u32,
+                raw::GIT_SUBMODULE_STATUS_WD_UNTRACKED as u32;
     }
 
 }
@@ -930,46 +930,46 @@ pub enum SubmoduleIgnore {
 
 bitflags! {
     /// ...
-    pub flags PathspecFlags: u32 {
+    pub struct PathspecFlags: u32 {
         /// Use the default pathspec matching configuration.
-        const PATHSPEC_DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32,
+        const PATHSPEC_DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32;
         /// Force matching to ignore case, otherwise matching will use native
         /// case sensitivity fo the platform filesystem.
-        const PATHSPEC_IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32,
+        const PATHSPEC_IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32;
         /// Force case sensitive matches, otherwise match will use the native
         /// case sensitivity of the platform filesystem.
-        const PATHSPEC_USE_CASE = raw::GIT_PATHSPEC_USE_CASE as u32,
+        const PATHSPEC_USE_CASE = raw::GIT_PATHSPEC_USE_CASE as u32;
         /// Disable glob patterns and just use simple string comparison for
         /// matching.
-        const PATHSPEC_NO_GLOB = raw::GIT_PATHSPEC_NO_GLOB as u32,
+        const PATHSPEC_NO_GLOB = raw::GIT_PATHSPEC_NO_GLOB as u32;
         /// Means that match functions return the error code `NotFound` if no
         /// matches are found. By default no matches is a success.
-        const PATHSPEC_NO_MATCH_ERROR = raw::GIT_PATHSPEC_NO_MATCH_ERROR as u32,
+        const PATHSPEC_NO_MATCH_ERROR = raw::GIT_PATHSPEC_NO_MATCH_ERROR as u32;
         /// Means that the list returned should track which patterns matched
         /// which files so that at the end of the match we can identify patterns
         /// that did not match any files.
-        const PATHSPEC_FIND_FAILURES = raw::GIT_PATHSPEC_FIND_FAILURES as u32,
+        const PATHSPEC_FIND_FAILURES = raw::GIT_PATHSPEC_FIND_FAILURES as u32;
         /// Means that the list returned does not need to keep the actual
         /// matching filenames. Use this to just test if there were any matches
         /// at all or in combination with `PATHSPEC_FAILURES` to validate a
         /// pathspec.
-        const PATHSPEC_FAILURES_ONLY = raw::GIT_PATHSPEC_FAILURES_ONLY as u32,
+        const PATHSPEC_FAILURES_ONLY = raw::GIT_PATHSPEC_FAILURES_ONLY as u32;
     }
 }
 
 bitflags! {
     /// Types of notifications emitted from checkouts.
-    pub flags CheckoutNotificationType: u32 {
+    pub struct CheckoutNotificationType: u32 {
         /// Notification about a conflict.
-        const CHECKOUT_NOTIFICATION_CONFLICT = raw::GIT_CHECKOUT_NOTIFY_CONFLICT as u32,
+        const CHECKOUT_NOTIFICATION_CONFLICT = raw::GIT_CHECKOUT_NOTIFY_CONFLICT as u32;
         /// Notification about a dirty file.
-        const CHECKOUT_NOTIFICATION_DIRTY = raw::GIT_CHECKOUT_NOTIFY_DIRTY as u32,
+        const CHECKOUT_NOTIFICATION_DIRTY = raw::GIT_CHECKOUT_NOTIFY_DIRTY as u32;
         /// Notification about an updated file.
-        const CHECKOUT_NOTIFICATION_UPDATED = raw::GIT_CHECKOUT_NOTIFY_UPDATED as u32,
+        const CHECKOUT_NOTIFICATION_UPDATED = raw::GIT_CHECKOUT_NOTIFY_UPDATED as u32;
         /// Notification about an untracked file.
-        const CHECKOUT_NOTIFICATION_UNTRACKED = raw::GIT_CHECKOUT_NOTIFY_UNTRACKED as u32,
+        const CHECKOUT_NOTIFICATION_UNTRACKED = raw::GIT_CHECKOUT_NOTIFY_UNTRACKED as u32;
         /// Notification about an ignored file.
-        const CHECKOUT_NOTIFICATION_IGNORED = raw::GIT_CHECKOUT_NOTIFY_IGNORED as u32,
+        const CHECKOUT_NOTIFICATION_IGNORED = raw::GIT_CHECKOUT_NOTIFY_IGNORED as u32;
     }
 }
 
@@ -990,19 +990,19 @@ pub enum DiffFormat {
 
 bitflags! {
     /// Formatting options for diff stats
-    pub flags DiffStatsFormat: raw::git_diff_stats_format_t {
+    pub struct DiffStatsFormat: raw::git_diff_stats_format_t {
         /// Don't generate any stats
-        const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE,
+        const DIFF_STATS_NONE = raw::GIT_DIFF_STATS_NONE;
         /// Equivalent of `--stat` in git
-        const DIFF_STATS_FULL = raw::GIT_DIFF_STATS_FULL,
+        const DIFF_STATS_FULL = raw::GIT_DIFF_STATS_FULL;
         /// Equivalent of `--shortstat` in git
-        const DIFF_STATS_SHORT = raw::GIT_DIFF_STATS_SHORT,
+        const DIFF_STATS_SHORT = raw::GIT_DIFF_STATS_SHORT;
         /// Equivalent of `--numstat` in git
-        const DIFF_STATS_NUMBER = raw::GIT_DIFF_STATS_NUMBER,
+        const DIFF_STATS_NUMBER = raw::GIT_DIFF_STATS_NUMBER;
         /// Extended header information such as creations, renames and mode
         /// changes, equivalent of `--summary` in git
         const DIFF_STATS_INCLUDE_SUMMARY =
-            raw::GIT_DIFF_STATS_INCLUDE_SUMMARY,
+            raw::GIT_DIFF_STATS_INCLUDE_SUMMARY;
     }
 }
 
@@ -1051,29 +1051,29 @@ pub enum StashApplyProgress {
 
 bitflags! {
     #[allow(missing_docs)]
-    pub flags StashApplyFlags: u32 {
+    pub struct StashApplyFlags: u32 {
         #[allow(missing_docs)]
-        const STASH_APPLY_DEFAULT = raw::GIT_STASH_APPLY_DEFAULT as u32,
+        const STASH_APPLY_DEFAULT = raw::GIT_STASH_APPLY_DEFAULT as u32;
         /// Try to reinstate not only the working tree's changes,
         /// but also the index's changes.
-        const STASH_APPLY_REINSTATE_INDEX = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32,
+        const STASH_APPLY_REINSTATE_INDEX = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32;
     }
 }
 
 bitflags! {
     #[allow(missing_docs)]
-    pub flags StashFlags: u32 {
+    pub struct StashFlags: u32 {
         #[allow(missing_docs)]
-        const STASH_DEFAULT = raw::GIT_STASH_DEFAULT as u32,
+        const STASH_DEFAULT = raw::GIT_STASH_DEFAULT as u32;
         /// All changes already added to the index are left intact in
         /// the working directory
-        const STASH_KEEP_INDEX = raw::GIT_STASH_KEEP_INDEX as u32,
+        const STASH_KEEP_INDEX = raw::GIT_STASH_KEEP_INDEX as u32;
         /// All untracked files are also stashed and then cleaned up
         /// from the working directory
-        const STASH_INCLUDE_UNTRACKED = raw::GIT_STASH_INCLUDE_UNTRACKED as u32,
+        const STASH_INCLUDE_UNTRACKED = raw::GIT_STASH_INCLUDE_UNTRACKED as u32;
         /// All ignored files are also stashed and then cleaned up from
         /// the working directory
-        const STASH_INCLUDE_IGNORED = raw::GIT_STASH_INCLUDE_IGNORED as u32,
+        const STASH_INCLUDE_IGNORED = raw::GIT_STASH_INCLUDE_IGNORED as u32;
     }
 }
 
