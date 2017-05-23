@@ -8,6 +8,7 @@ use libc;
 
 use {raw, Direction, Error, Refspec, Oid, FetchPrune, ProxyOptions};
 use {RemoteCallbacks, Progress, Repository, AutotagOption};
+use string_array::StringArray;
 use util::Binding;
 
 /// A structure representing a [remote][1] of a git repository.
@@ -278,6 +279,24 @@ impl<'repo> Remote<'repo> {
             let slice = slice::from_raw_parts(base as *const _, size as usize);
             Ok(mem::transmute::<&[*const raw::git_remote_head],
                                 &[RemoteHead]>(slice))
+        }
+    }
+    
+    /// Get the remote's list of fetch refspecs
+    pub fn fetch_refspecs(&self) -> Result<StringArray, Error> {
+        unsafe {
+            let mut raw: raw::git_strarray = mem::zeroed();
+            try_call!(raw::git_remote_get_fetch_refspecs(&mut raw, self.raw));
+            Ok(StringArray::from_raw(raw))
+        }
+    }
+
+    /// Get the remote's list of push refspecs
+    pub fn push_refspecs(&self) -> Result<StringArray, Error> {
+        unsafe {
+            let mut raw: raw::git_strarray = mem::zeroed();
+            try_call!(raw::git_remote_get_push_refspecs(&mut raw, self.raw));
+            Ok(StringArray::from_raw(raw))
         }
     }
 }

@@ -1519,6 +1519,8 @@ extern {
                           source: *mut git_remote) -> c_int;
     pub fn git_remote_get_fetch_refspecs(array: *mut git_strarray,
                                          remote: *const git_remote) -> c_int;
+    pub fn git_remote_get_push_refspecs(array: *mut git_strarray,
+                                         remote: *const git_remote) -> c_int;
     pub fn git_remote_get_refspec(remote: *const git_remote,
                                   n: size_t) -> *const git_refspec;
     pub fn git_remote_is_valid_name(remote_name: *const c_char) -> c_int;
