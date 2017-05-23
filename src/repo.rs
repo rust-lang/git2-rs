@@ -3,6 +3,7 @@ use std::ffi::{CStr, CString, OsStr};
 use std::iter::IntoIterator;
 use std::mem;
 use std::path::Path;
+use std::ptr;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
@@ -1817,31 +1818,34 @@ impl Repository {
                        from_branch: Option<AnnotatedCommit>,
                        upstream: Option<AnnotatedCommit>,
                        to_branch: Option<AnnotatedCommit>,
-                       options: Option<RebaseOptions>)
+                        options: Option<&mut RebaseOptions>)
                        -> Result<Rebase, Error> {
         unsafe {
             let mut ret = 0 as *mut raw::git_rebase;
-            let from_branch = from_branch
-                .map(|a| a.raw() as *const raw::git_annotated_commit)
-                .unwrap_or(0 as *const raw::git_annotated_commit);
-            let upstream = upstream
-                .map(|a| a.raw() as *const raw::git_annotated_commit)
-                .unwrap_or(0 as *const raw::git_annotated_commit);
-            let to_branch = to_branch
-                .map(|a| a.raw() as *const raw::git_annotated_commit)
-                .unwrap_or(0 as *const raw::git_annotated_commit);
-            let options = options
-                .map(|mut opts| {
-                         opts.raw()
-                             .map(|opts| &opts as *const raw::git_rebase_options)
-                     })
-                .unwrap_or(Ok(0 as *const raw::git_rebase_options))?;
+            /*let from_branch_raw: *const raw::git_annotated_commit;
+            if from_branch.is_ok() {
+                from_branch_raw
+            }*/
+            let from_branch_raw = from_branch.as_ref()
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit)
+                .unwrap_or(ptr::null());
+            let upstream_raw = upstream.as_ref()
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit)
+                .unwrap_or(ptr::null());
+            let to_branch_raw = to_branch.as_ref()
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit)
+                .unwrap_or(ptr::null());
+            let options_raw = options.map(|mut opts| opts.raw());
             try_call!(raw::git_rebase_init(&mut ret,
                                            self.raw(),
-                                           from_branch,
-                                           upstream,
-                                           to_branch,
-                                           options));
+                                           from_branch_raw,
+                                           upstream_raw,
+                                           to_branch_raw,
+                                           options_raw.as_ref().map(|opts| opts as *const _).unwrap_or(ptr::null())));
+            drop(from_branch);
+            drop(upstream);
+            drop(to_branch);
+            drop(options_raw);
             Ok(Binding::from_raw(ret))
         }
     }
@@ -1850,13 +1854,10 @@ impl Repository {
     pub fn rebase_open(&self, options: Option<RebaseOptions>) -> Result<Rebase, Error> {
         unsafe {
             let mut ret = 0 as *mut raw::git_rebase;
-            let options = options
-                .map(|mut opts| {
-                         opts.raw()
-                             .map(|opts| &opts as *const raw::git_rebase_options)
-                     })
-                .unwrap_or(Ok(0 as *const raw::git_rebase_options))?;
-            try_call!(raw::git_rebase_open(&mut ret, self.raw(), options));
+            let options_raw = options
+                .map(|mut opts| &opts.raw() as *const _ )
+                .unwrap_or(ptr::null());
+            try_call!(raw::git_rebase_open(&mut ret, self.raw(), options_raw));
             Ok(Binding::from_raw(ret))
         }
     }

@@ -136,7 +136,7 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Performs the next rebase operation and returns the `RebaseOperation` about it.
-    pub fn next(&mut self) -> Result<RebaseOperation, Error> {
+    pub fn next(&self) -> Result<RebaseOperation, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
             try_call!(raw::git_rebase_next(&mut ret, self.raw));
@@ -226,10 +226,9 @@ impl<'a> RebaseOptions<'a> {
     }
 
     /// raw value of options
-    pub unsafe fn raw(&mut self) -> Result<raw::git_rebase_options, Error> {
+    pub unsafe fn raw(&mut self) -> raw::git_rebase_options {
         let mut checkout_options: raw::git_checkout_options = mem::zeroed();
-        try_call!(raw::git_checkout_init_options(&mut checkout_options,
-                                                 raw::GIT_CHECKOUT_OPTIONS_VERSION));
+        raw::git_checkout_init_options(&mut checkout_options, raw::GIT_CHECKOUT_OPTIONS_VERSION);
         if let Some(ref mut opts) = self.checkout_options {
             opts.configure(&mut checkout_options);
         }
@@ -238,14 +237,14 @@ impl<'a> RebaseOptions<'a> {
             ptr::copy(opts.raw(), &mut merge_options, 1);
         }
 
-        Ok(raw::git_rebase_options {
-               version: self.version as c_uint,
-               quiet: self.quiet as c_int,
-               inmemory: self.in_memory as c_int,
-               rewrite_notes_ref: ::call::convert(&self.rewrite_notes_ref),
-               merge_options: merge_options,
-               checkout_options: checkout_options,
-           })
+        raw::git_rebase_options {
+            version: self.version as c_uint,
+            quiet: self.quiet as c_int,
+            inmemory: self.in_memory as c_int,
+            rewrite_notes_ref: ::call::convert(&self.rewrite_notes_ref),
+            merge_options: merge_options,
+            checkout_options: checkout_options,
+        }
     }
 }
 
