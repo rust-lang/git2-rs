@@ -1196,6 +1196,24 @@ git_enum! {
     }
 }
 
+git_enum! {
+    pub enum git_merge_analysis_t {
+        GIT_MERGE_ANALYSIS_NONE = 0,
+        GIT_MERGE_ANALYSIS_NORMAL = (1 << 0),
+        GIT_MERGE_ANALYSIS_UP_TO_DATE = (1 << 1),
+        GIT_MERGE_ANALYSIS_FASTFORWARD = (1 << 2),
+        GIT_MERGE_ANALYSIS_UNBORN = (1 << 3),
+    }
+}
+
+git_enum! {
+    pub enum git_merge_preference_t {
+        GIT_MERGE_PREFERENCE_NONE = 0,
+        GIT_MERGE_PREFERENCE_NO_FASTFORWARD = (1 << 0),
+        GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY = (1 << 1),
+    }
+}
+
 pub type git_transport_cb = extern fn(out: *mut *mut git_transport,
                                       owner: *mut git_remote,
                                       param: *mut c_void) -> c_int;
@@ -2217,6 +2235,14 @@ extern {
                              their_commit: *const git_commit,
                              opts: *const git_merge_options) -> c_int;
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
+
+    // merge analysis
+
+    pub fn git_merge_analysis(analysis_out: *mut git_merge_analysis_t, 
+                              pref_out: *mut git_merge_preference_t, 
+                              repo: *mut git_repository, 
+                              their_heads: *mut *const git_annotated_commit, 
+                              their_heads_len: usize) -> c_int;
 
     // notes
     pub fn git_note_author(note: *const git_note) -> *const git_signature;
