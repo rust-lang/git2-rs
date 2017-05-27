@@ -436,7 +436,7 @@ impl<'cb> CheckoutBuilder<'cb> {
         opts.dir_mode = self.dir_perm.unwrap_or(0) as c_uint;
         opts.file_mode = self.file_perm.unwrap_or(0) as c_uint;
 
-        if self.path_ptrs.len() > 0 {
+        if !self.path_ptrs.is_empty() {
             opts.paths.strings = self.path_ptrs.as_ptr() as *mut _;
             opts.paths.count = self.path_ptrs.len() as size_t;
         }

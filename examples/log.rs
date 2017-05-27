@@ -81,7 +81,7 @@ fn run(args: &Args) -> Result<(), Error> {
             try!(revwalk.hide(from));
         }
     }
-    if args.arg_commit.len() == 0 {
+    if args.arg_commit.is_empty() {
         try!(revwalk.push_head());
     }
 
@@ -105,7 +105,7 @@ fn run(args: &Args) -> Result<(), Error> {
         if let Some(n) = args.max_parents() {
             if parents >= n { return None }
         }
-        if args.arg_spec.len() > 0 {
+        if !args.arg_spec.is_empty() {
             match commit.parents().len() {
                 0 => {
                     let tree = filter_try!(commit.tree());
