@@ -121,8 +121,8 @@ fn run(args: &Args) -> Result<(), Error> {
                 }
             }
         }
-        if !sig_matches(commit.author(), &args.flag_author) { return None }
-        if !sig_matches(commit.committer(), &args.flag_committer) { return None }
+        if !sig_matches(&commit.author(), &args.flag_author) { return None }
+        if !sig_matches(&commit.committer(), &args.flag_committer) { return None }
         if !log_message_matches(commit.message(), &args.flag_grep) { return None }
         Some(Ok(commit))
     }).skip(args.flag_skip.unwrap_or(0)).take(args.flag_max_count.unwrap_or(!0));
@@ -154,7 +154,7 @@ fn run(args: &Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn sig_matches(sig: Signature, arg: &Option<String>) -> bool {
+fn sig_matches(sig: &Signature, arg: &Option<String>) -> bool {
     match *arg {
         Some(ref s) => {
             sig.name().map(|n| n.contains(s)).unwrap_or(false) ||

@@ -78,16 +78,16 @@ fn run(args: &Args) -> Result<(), Error> {
         let statuses = try!(repo.statuses(Some(&mut opts)));
 
         if args.flag_branch {
-            try!(show_branch(&repo, args.format()));
+            try!(show_branch(&repo, &args.format()));
         }
         if args.flag_list_submodules {
             try!(print_submodules(&repo));
         }
 
         if args.format() == Format::Long {
-            print_long(statuses);
+            print_long(&statuses);
         } else {
-            print_short(&repo, statuses);
+            print_short(&repo, &statuses);
         }
 
         if args.flag_repeat {
@@ -98,7 +98,7 @@ fn run(args: &Args) -> Result<(), Error> {
     }
 }
 
-fn show_branch(repo: &Repository, format: Format) -> Result<(), Error> {
+fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
         Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
@@ -107,7 +107,7 @@ fn show_branch(repo: &Repository, format: Format) -> Result<(), Error> {
     };
     let head = head.as_ref().and_then(|h| h.shorthand());
 
-    if format == Format::Long {
+    if format == &Format::Long {
         println!("# On branch {}",
                  head.unwrap_or("Not currently on any branch"));
     } else {
@@ -128,7 +128,7 @@ fn print_submodules(repo: &Repository) -> Result<(), Error> {
 
 // This function print out an output similar to git's status command in long
 // form, including the command-line hints.
-fn print_long(statuses: git2::Statuses) {
+fn print_long(statuses: &git2::Statuses) {
     let mut header = false;
     let mut rm_in_workdir = false;
     let mut changes_in_index = false;
@@ -256,7 +256,7 @@ fn print_long(statuses: git2::Statuses) {
 
 // This version of the output prefixes each path with two status columns and
 // shows submodule status information.
-fn print_short(repo: &Repository, statuses: git2::Statuses) {
+fn print_short(repo: &Repository, statuses: &git2::Statuses) {
     for entry in statuses.iter().filter(|e| e.status() != git2::STATUS_CURRENT) {
         let mut istatus = match entry.status() {
             s if s.contains(git2::STATUS_INDEX_NEW) => 'A',

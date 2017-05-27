@@ -290,7 +290,7 @@ extern fn stream_read(stream: *mut raw::git_smart_subtransport_stream,
     });
     match ret {
         Some(Ok(_)) => 0,
-        Some(Err(e)) => unsafe { set_err(e); -2 },
+        Some(Err(e)) => unsafe { set_err(&e); -2 },
         None => -1,
     }
 }
@@ -307,12 +307,12 @@ extern fn stream_write(stream: *mut raw::git_smart_subtransport_stream,
     });
     match ret {
         Some(Ok(())) => 0,
-        Some(Err(e)) => unsafe { set_err(e); -2 },
+        Some(Err(e)) => unsafe { set_err(&e); -2 },
         None => -1,
     }
 }
 
-unsafe fn set_err(e: io::Error) {
+unsafe fn set_err(e: &io::Error) {
     let s = CString::new(e.to_string()).unwrap();
     raw::giterr_set_str(raw::GITERR_NET as c_int, s.as_ptr())
 }
