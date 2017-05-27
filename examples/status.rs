@@ -43,7 +43,7 @@ struct Args {
 enum Format { Long, Short, Porcelain }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let path = args.flag_git_dir.clone().unwrap_or(".".to_string());
+    let path = args.flag_git_dir.clone().unwrap_or_else(|| ".".to_string());
     let repo = try!(Repository::open(&path));
     if repo.is_bare() {
         return Err(Error::from_str("cannot report status on bare repository"))
@@ -312,8 +312,8 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
             b = diff.new_file().path();
         }
         if let Some(diff) = entry.index_to_workdir() {
-            a = a.or(diff.old_file().path());
-            b = b.or(diff.old_file().path());
+            a.or_else(|| diff.old_file().path());
+            b.or_else(|| diff.old_file().path());
             c = diff.new_file().path();
         }
 

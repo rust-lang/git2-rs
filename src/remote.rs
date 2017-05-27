@@ -500,8 +500,9 @@ impl<'cb> Binding for PushOptions<'cb> {
     fn raw(&self) -> raw::git_push_options {
         raw::git_push_options {
             version: 1,
-            callbacks: self.callbacks.as_ref().map(|m| m.raw())
-                           .unwrap_or(RemoteCallbacks::new().raw()),
+            callbacks: self.callbacks.as_ref()
+                           .map(|m| m.raw())
+                           .unwrap_or_else(|| RemoteCallbacks::new().raw()),
             proxy_opts: self.proxy.as_ref().map(|m| m.raw())
                             .unwrap_or_else(|| ProxyOptions::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,

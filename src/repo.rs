@@ -1751,7 +1751,7 @@ impl Repository {
         unsafe {
             let mut raw_oid = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
             let message = try!(CString::new(message));
-            let flags = flags.unwrap_or(StashFlags::empty());
+            let flags = flags.unwrap_or_else(StashFlags::empty);
             try_call!(raw::git_stash_save(&mut raw_oid,
                                           self.raw(),
                                           stasher.raw(),
