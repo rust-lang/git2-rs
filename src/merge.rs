@@ -21,6 +21,39 @@ pub struct MergeOptions {
     raw: raw::git_merge_options,
 }
 
+/// The results of `merge_analysis` indicating the merge opportunities.
+pub enum MergeAnalysis {
+    /// No merge is possible.
+    None,
+    /// A "normal" merge; both HEAD and the given merge input have diverged
+    /// from their common ancestor. The divergent commits must be merged.
+    Normal,
+    /// All given merge inputs are reachable from HEAD, meaning the
+    /// repository is up-to-date and no merge needs to be performed.
+    UpToDate,
+    /// The given merge input is a fast-forward from HEAD and no merge
+    /// needs to be performed.  Instead, the client can check out the
+    /// given merge input.
+    Fastforward,
+    /// The HEAD of the current repository is "unborn" and does not point to
+    /// a valid commit.  No merge can be performed, but the caller may wish
+    /// to simply set HEAD to the target commit(s).
+    Unborn
+}
+
+/// The user's stated preference for merges.
+pub enum MergePreference {
+    /// No configuration was found that suggests a preferred behavior for
+    /// merge.
+    None,
+    /// There is a `merge.ff=false` configuration setting, suggesting that
+    /// the user does not want to allow a fast-forward merge.
+    NoFastforward,
+    /// There is a `merge.ff=only` configuration setting, suggesting that
+    /// the user only wants fast-forward merges.
+    FastforwardOnly,
+}
+
 impl<'repo> AnnotatedCommit<'repo> {
     /// Gets the commit ID that the given git_annotated_commit refers to
     pub fn id(&self) -> Oid {
@@ -150,5 +183,51 @@ impl<'repo> Binding for AnnotatedCommit<'repo> {
 impl<'repo> Drop for AnnotatedCommit<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_annotated_commit_free(self.raw) }
+    }
+}
+
+impl Binding for MergeAnalysis {
+    type Raw = raw::git_merge_analysis_t;
+
+    unsafe fn from_raw(raw: raw::git_merge_analysis_t) -> MergeAnalysis {
+        match raw {
+            raw::GIT_MERGE_ANALYSIS_NONE => MergeAnalysis::None,
+            raw::GIT_MERGE_ANALYSIS_NORMAL => MergeAnalysis::Normal,
+            raw::GIT_MERGE_ANALYSIS_UP_TO_DATE => MergeAnalysis::UpToDate,
+            raw::GIT_MERGE_ANALYSIS_FASTFORWARD => MergeAnalysis::Fastforward,
+            raw::GIT_MERGE_ANALYSIS_UNBORN => MergeAnalysis::Unborn,
+            _ => panic!("Unknown merge analysis type: {}", raw),
+        }
+    }
+
+    fn raw(&self) -> raw::git_merge_analysis_t {
+        match *self {
+            MergeAnalysis::None => raw::GIT_MERGE_ANALYSIS_NONE,
+            MergeAnalysis::Normal => raw::GIT_MERGE_ANALYSIS_NORMAL,
+            MergeAnalysis::UpToDate => raw::GIT_MERGE_ANALYSIS_UP_TO_DATE,
+            MergeAnalysis::Fastforward => raw::GIT_MERGE_ANALYSIS_FASTFORWARD,
+            MergeAnalysis::Unborn => raw::GIT_MERGE_ANALYSIS_UNBORN
+        }
+    }
+}
+
+impl Binding for MergePreference {
+    type Raw = raw::git_merge_preference_t;
+
+    unsafe fn from_raw(raw: raw::git_merge_preference_t) -> MergePreference {
+        match raw {
+            raw::GIT_MERGE_PREFERENCE_NONE => MergePreference::None,
+            raw::GIT_MERGE_PREFERENCE_NO_FASTFORWARD => MergePreference::NoFastforward,
+            raw::GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY => MergePreference::FastforwardOnly,
+            _ => panic!("Unknown merge preference type: {}", raw),
+        }
+    }
+
+    fn raw(&self) -> raw::git_merge_preference_t {
+        match *self {
+            MergePreference::None => raw::GIT_MERGE_PREFERENCE_NONE,
+            MergePreference::NoFastforward => raw::GIT_MERGE_PREFERENCE_NO_FASTFORWARD,
+            MergePreference::FastforwardOnly => raw::GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
+        }
     }
 }

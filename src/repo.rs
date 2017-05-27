@@ -9,7 +9,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf, StashFlags};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
-use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus};
+use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnalysis, MergePreference};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
@@ -1321,6 +1321,27 @@ impl Repository {
             try_call!(raw::git_repository_state_cleanup(self.raw));
         }
         Ok(())
+    }
+
+    /// Analyzes the given branch(es) and determines the opportunities for
+    /// merging them into the HEAD of the repository.
+    pub fn merge_analysis(&self,
+                          their_heads: &[&AnnotatedCommit])
+                          -> Result<(MergeAnalysis, MergePreference), Error> {
+        unsafe {
+            let mut raw_merge_analysis = 0 as raw::git_merge_analysis_t;
+            let mut raw_merge_preference = 0 as raw::git_merge_preference_t;
+            let mut their_heads = their_heads
+                .iter()
+                .map(|v| v.raw() as *const _)
+                .collect::<Vec<_>>();
+            try_call!(raw::git_merge_analysis(&mut raw_merge_analysis,
+                                              &mut raw_merge_preference,
+                                              self.raw,
+                                              their_heads.as_mut_ptr() as *mut _,
+                                              their_heads.len()));
+            Ok((Binding::from_raw(raw_merge_analysis), Binding::from_raw(raw_merge_preference)))
+        }
     }
 
     /// Add a note for an object
