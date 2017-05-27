@@ -856,6 +856,15 @@ impl Repository {
         }
     }
 
+    /// Creates a `AnnotatedCommit` from the given commit id.
+    pub fn find_annotated_commit(&self, id: Oid) -> Result<AnnotatedCommit, Error> {
+        unsafe {
+            let mut raw = 0 as *mut raw::git_annotated_commit;
+            try_call!(raw::git_annotated_commit_lookup(&mut raw, self.raw(), id.raw()));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_object(&self, oid: Oid,
                        kind: Option<ObjectType>) -> Result<Object, Error> {
