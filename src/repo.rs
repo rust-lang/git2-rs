@@ -1240,9 +1240,8 @@ impl Repository {
             let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(&mut raw_opts,
                                 raw::GIT_CHECKOUT_OPTIONS_VERSION));
-            match opts {
-                Some(c) => c.configure(&mut raw_opts),
-                None => {}
+            if let Some(c) = opts {
+                c.configure(&mut raw_opts);
             }
 
             try_call!(raw::git_checkout_index(self.raw,
@@ -1261,9 +1260,8 @@ impl Repository {
             let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(&mut raw_opts,
                                 raw::GIT_CHECKOUT_OPTIONS_VERSION));
-            match opts {
-                Some(c) => c.configure(&mut raw_opts),
-                None => {}
+            if let Some(c) = opts {
+                c.configure(&mut raw_opts);
             }
 
             try_call!(raw::git_checkout_tree(self.raw, &*treeish.raw(),

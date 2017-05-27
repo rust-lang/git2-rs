@@ -151,16 +151,14 @@ impl<'cb> RepoBuilder<'cb> {
         opts.checkout_opts.checkout_strategy =
             raw::GIT_CHECKOUT_SAFE as c_uint;
 
-        match self.fetch_opts {
-            Some(ref mut cbs) => {
-                opts.fetch_opts = cbs.raw();
-            },
-            None => {}
+        if let Some(ref mut cbs) = self.fetch_opts {
+            opts.fetch_opts = cbs.raw();
         }
 
-        match self.checkout {
-            Some(ref mut c) => unsafe { c.configure(&mut opts.checkout_opts) },
-            None => {}
+        if let Some(ref mut c) = self.checkout {
+            unsafe {
+                c.configure(&mut opts.checkout_opts);
+            }
         }
 
         let url = try!(CString::new(url));
@@ -443,21 +441,17 @@ impl<'cb> CheckoutBuilder<'cb> {
             opts.paths.count = self.path_ptrs.len() as size_t;
         }
 
-        match self.target_dir {
-            Some(ref c) => opts.target_directory = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.target_dir {
+            opts.target_directory = c.as_ptr();
         }
-        match self.ancestor_label {
-            Some(ref c) => opts.ancestor_label = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.ancestor_label {
+            opts.ancestor_label = c.as_ptr();
         }
-        match self.our_label {
-            Some(ref c) => opts.our_label = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.our_label {
+            opts.our_label = c.as_ptr();
         }
-        match self.their_label {
-            Some(ref c) => opts.their_label = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.their_label {
+            opts.their_label = c.as_ptr();
         }
         if self.progress.is_some() {
             let f: raw::git_checkout_progress_cb = progress_cb;

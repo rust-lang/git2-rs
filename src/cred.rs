@@ -217,12 +217,9 @@ impl CredentialHelper {
     fn config_helper(&mut self, config: &Config) {
         let exact = config.get_string(&self.exact_key("helper"));
         self.add_command(exact.as_ref().ok().map(|s| &s[..]));
-        match self.url_key("helper") {
-            Some(key) => {
-                let url = config.get_string(&key);
-                self.add_command(url.as_ref().ok().map(|s| &s[..]));
-            }
-            None => {}
+        if let Some(key) = self.url_key("helper") {
+            let url = config.get_string(&key);
+            self.add_command(url.as_ref().ok().map(|s| &s[..]));
         }
         let global = config.get_string("credential.helper");
         self.add_command(global.as_ref().ok().map(|s| &s[..]));
@@ -303,17 +300,14 @@ impl CredentialHelper {
         // stdin
         {
             let stdin = p.stdin.as_mut().unwrap();
-            match self.protocol {
-                Some(ref p) => { let _ = writeln!(stdin, "protocol={}", p); }
-                None => {}
+            if let Some(ref p)  = self.protocol {
+                let _ = writeln!(stdin, "protocol={}", p);
             }
-            match self.host {
-                Some(ref p) => { let _ = writeln!(stdin, "host={}", p); }
-                None => {}
+            if let Some(ref p)  = self.host {
+                let _ = writeln!(stdin, "host={}", p);
             }
-            match *username {
-                Some(ref p) => { let _ = writeln!(stdin, "username={}", p); }
-                None => {}
+            if let Some(ref p)  = *username {
+                let _ = writeln!(stdin, "username={}", p);
             }
         }
         let output = my_try!(p.wait_with_output());
