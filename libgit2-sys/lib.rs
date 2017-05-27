@@ -1922,6 +1922,9 @@ extern {
     pub fn git_commit_header_field(out: *mut git_buf,
                                    commit: *const git_commit,
                                    field: *const c_char) -> c_int;
+    pub fn git_annotated_commit_lookup(out: *mut *mut git_annotated_commit,
+                                       repo: *mut git_repository,
+                                       id: *const git_oid) -> c_int;
 
     // branch
     pub fn git_branch_create(out: *mut *mut git_reference,
