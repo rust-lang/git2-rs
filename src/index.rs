@@ -1,6 +1,7 @@
 use std::ffi::{CStr, OsString, CString};
 use std::ops::Range;
 use std::path::Path;
+use std::ptr;
 use std::slice;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char};
@@ -56,7 +57,7 @@ impl Index {
     /// used to perform in-memory index operations.
     pub fn new() -> Result<Index, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_index;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_index_new(&mut raw));
             Ok(Binding::from_raw(raw))
@@ -73,7 +74,7 @@ impl Index {
     /// on `Repository`.
     pub fn open(index_path: &Path) -> Result<Index, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_index;
+        let mut raw = ptr::null_mut();
         let index_path = try!(index_path.into_c_string());
         unsafe {
             try_call!(raw::git_index_open(&mut raw, index_path));
@@ -204,7 +205,7 @@ impl Index {
                                              flag.bits() as c_uint,
                                              callback,
                                              ptr.map(|p| p as *mut _)
-                                                .unwrap_or(0 as *mut _)
+                                                .unwrap_or(ptr::null_mut())
                                                     as *mut c_void));
         }
         return Ok(());
@@ -345,7 +346,7 @@ impl Index {
                                                 &raw_strarray,
                                                 callback,
                                                 ptr.map(|p| p as *mut _)
-                                                   .unwrap_or(0 as *mut _)
+                                                   .unwrap_or(ptr::null_mut())
                                                         as *mut c_void));
         }
         return Ok(());
@@ -380,7 +381,7 @@ impl Index {
                                                 &raw_strarray,
                                                 callback,
                                                 ptr.map(|p| p as *mut _)
-                                                   .unwrap_or(0 as *mut _)
+                                                   .unwrap_or(ptr::null_mut())
                                                         as *mut c_void));
         }
         return Ok(());

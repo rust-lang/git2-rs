@@ -3,6 +3,7 @@ use std::ffi::{CStr, CString, OsStr};
 use std::iter::IntoIterator;
 use std::mem;
 use std::path::Path;
+use std::ptr;
 use std::str;
 use libc::{c_int, c_char, size_t, c_void, c_uint};
 
@@ -54,7 +55,7 @@ impl Repository {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         init();
         let path = try!(path.as_ref().into_c_string());
-        let mut ret = 0 as *mut raw::git_repository;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_open(&mut ret, path));
             Ok(Binding::from_raw(ret))
@@ -68,13 +69,13 @@ impl Repository {
     /// the current directory.
     pub fn open_from_env() -> Result<Repository, Error> {
         init();
-        let mut ret = 0 as *mut raw::git_repository;
+        let mut ret = ptr::null_mut();
         let flags = raw::GIT_REPOSITORY_OPEN_FROM_ENV;
         unsafe {
             try_call!(raw::git_repository_open_ext(&mut ret,
-                                                   0 as *const _,
+                                                   ptr::null(),
                                                    flags as c_uint,
-                                                   0 as *const _));
+                                                   ptr::null()));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -115,7 +116,7 @@ impl Repository {
         let path = try!(path.as_ref().into_c_string());
         let ceiling_dirs_os = try!(env::join_paths(ceiling_dirs));
         let ceiling_dirs = try!(ceiling_dirs_os.into_c_string());
-        let mut ret = 0 as *mut raw::git_repository;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_open_ext(&mut ret,
                                                    path,
@@ -136,7 +137,7 @@ impl Repository {
         let path = try!(path.as_ref().into_c_string());
         unsafe {
             try_call!(raw::git_repository_discover(buf.raw(), path, 1,
-                                                   0 as *const _));
+                                                   ptr::null()));
         }
         Repository::open(util::bytes2path(&*buf))
     }
@@ -164,7 +165,7 @@ impl Repository {
                      -> Result<Repository, Error> {
         init();
         let path = try!(path.as_ref().into_c_string());
-        let mut ret = 0 as *mut raw::git_repository;
+        let mut ret = ptr::null_mut();
         unsafe {
             let mut opts = opts.raw();
             try_call!(raw::git_repository_init_ext(&mut ret, path, &mut opts));
@@ -188,8 +189,8 @@ impl Repository {
     /// returned if one occurs.
     pub fn revparse(&self, spec: &str) -> Result<Revspec, Error> {
         let mut raw = raw::git_revspec {
-            from: 0 as *mut _,
-            to: 0 as *mut _,
+            from: ptr::null_mut(),
+            to: ptr::null_mut(),
             flags: 0,
         };
         let spec = try!(CString::new(spec));
@@ -205,7 +206,7 @@ impl Repository {
     /// Find a single object, as specified by a revision string.
     pub fn revparse_single(&self, spec: &str) -> Result<Object, Error> {
         let spec = try!(CString::new(spec));
-        let mut obj = 0 as *mut raw::git_object;
+        let mut obj = ptr::null_mut();
         unsafe {
             try_call!(raw::git_revparse_single(&mut obj, self.raw, spec));
             assert!(!obj.is_null());
@@ -225,8 +226,8 @@ impl Repository {
     pub fn revparse_ext(&self, spec: &str)
                         -> Result<(Object, Option<Reference>), Error> {
         let spec = try!(CString::new(spec));
-        let mut git_obj = 0 as *mut raw::git_object;
-        let mut git_ref = 0 as *mut raw::git_reference;
+        let mut git_obj = ptr::null_mut();
+        let mut git_ref = ptr::null_mut();
         unsafe {
             try_call!(raw::git_revparse_ext(&mut git_obj, &mut git_ref,
                                             self.raw, spec));
@@ -348,7 +349,7 @@ impl Repository {
 
     /// Get the information for a particular remote
     pub fn find_remote(&self, name: &str) -> Result<Remote, Error> {
-        let mut ret = 0 as *mut raw::git_remote;
+        let mut ret = ptr::null_mut();
         let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_remote_lookup(&mut ret, self.raw, name));
@@ -359,7 +360,7 @@ impl Repository {
     /// Add a remote with the default fetch refspec to the repository's
     /// configuration.
     pub fn remote(&self, name: &str, url: &str) -> Result<Remote, Error> {
-        let mut ret = 0 as *mut raw::git_remote;
+        let mut ret = ptr::null_mut();
         let name = try!(CString::new(name));
         let url = try!(CString::new(url));
         unsafe {
@@ -374,7 +375,7 @@ impl Repository {
     /// this when you have a URL instead of a remote's name. Note that anonymous
     /// remotes cannot be converted to persisted remotes.
     pub fn remote_anonymous(&self, url: &str) -> Result<Remote, Error> {
-        let mut ret = 0 as *mut raw::git_remote;
+        let mut ret = ptr::null_mut();
         let url = try!(CString::new(url));
         unsafe {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw, url));
@@ -533,7 +534,7 @@ impl Repository {
 
     /// Retrieve and resolve the reference pointed at by HEAD.
     pub fn head(&self) -> Result<Reference, Error> {
-        let mut ret = 0 as *mut raw::git_reference;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_head(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
@@ -580,7 +581,7 @@ impl Repository {
 
     /// Create an iterator for the repo's references
     pub fn references(&self) -> Result<References, Error> {
-        let mut ret = 0 as *mut raw::git_reference_iterator;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_iterator_new(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
@@ -590,7 +591,7 @@ impl Repository {
     /// Create an iterator for the repo's references that match the specified
     /// glob
     pub fn references_glob(&self, glob: &str) -> Result<References, Error> {
-        let mut ret = 0 as *mut raw::git_reference_iterator;
+        let mut ret = ptr::null_mut();
         let glob = try!(CString::new(glob));
         unsafe {
             try_call!(raw::git_reference_iterator_glob_new(&mut ret, self.raw,
@@ -625,7 +626,7 @@ impl Repository {
                          data: *mut c_void) -> c_int {
             unsafe {
                 let data = &mut *(data as *mut Data);
-                let mut raw = 0 as *mut raw::git_submodule;
+                let mut raw = ptr::null_mut();
                 let rc = raw::git_submodule_lookup(&mut raw, data.repo.raw(),
                                                    name);
                 assert_eq!(rc, 0);
@@ -643,11 +644,11 @@ impl Repository {
     /// with no pathspec so that all files can be considered.
     pub fn statuses(&self, options: Option<&mut StatusOptions>)
                     -> Result<Statuses, Error> {
-        let mut ret = 0 as *mut raw::git_status_list;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_status_list_new(&mut ret, self.raw,
                                                options.map(|s| s.raw())
-                                                      .unwrap_or(0 as *const _)));
+                                                      .unwrap_or(ptr::null())));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -699,7 +700,7 @@ impl Repository {
     /// Create an iterator which loops over the requested branches.
     pub fn branches(&self, filter: Option<BranchType>)
                     -> Result<Branches, Error> {
-        let mut raw = 0 as *mut raw::git_branch_iterator;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_iterator_new(&mut raw, self.raw(), filter));
             Ok(Branches::from_raw(raw))
@@ -711,7 +712,7 @@ impl Repository {
     /// If a custom index has not been set, the default index for the repository
     /// will be returned (the one located in .git/index).
     pub fn index(&self) -> Result<Index, Error> {
-        let mut raw = 0 as *mut raw::git_index;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_index(&mut raw, self.raw()));
             Ok(Binding::from_raw(raw))
@@ -731,7 +732,7 @@ impl Repository {
     /// repository will be returned, including global and system configurations
     /// (if they are available).
     pub fn config(&self) -> Result<Config, Error> {
-        let mut raw = 0 as *mut raw::git_config;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_config(&mut raw, self.raw()));
             Ok(Binding::from_raw(raw))
@@ -770,7 +771,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_blob(&self, oid: Oid) -> Result<Blob, Error> {
-        let mut raw = 0 as *mut raw::git_blob;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_blob_lookup(&mut raw, self.raw(), oid.raw()));
             Ok(Binding::from_raw(raw))
@@ -787,7 +788,7 @@ impl Repository {
                   target: &Commit,
                   force: bool) -> Result<Branch, Error> {
         let branch_name = try!(CString::new(branch_name));
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_create(&mut raw,
                                              self.raw(),
@@ -802,7 +803,7 @@ impl Repository {
     pub fn find_branch(&self, name: &str, branch_type: BranchType)
                        -> Result<Branch, Error> {
         let name = try!(CString::new(name));
-        let mut ret = 0 as *mut raw::git_reference;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_lookup(&mut ret, self.raw(), name,
                                              branch_type));
@@ -837,7 +838,7 @@ impl Repository {
                                              update_ref,
                                              author.raw(),
                                              committer.raw(),
-                                             0 as *const c_char,
+                                             ptr::null(),
                                              message,
                                              tree.raw(),
                                              parents.len() as size_t,
@@ -849,7 +850,7 @@ impl Repository {
 
     /// Lookup a reference to one of the commits in a repository.
     pub fn find_commit(&self, oid: Oid) -> Result<Commit, Error> {
-        let mut raw = 0 as *mut raw::git_commit;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_commit_lookup(&mut raw, self.raw(), oid.raw()));
             Ok(Binding::from_raw(raw))
@@ -868,7 +869,7 @@ impl Repository {
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_object(&self, oid: Oid,
                        kind: Option<ObjectType>) -> Result<Object, Error> {
-        let mut raw = 0 as *mut raw::git_object;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_object_lookup(&mut raw, self.raw(), oid.raw(),
                                              kind));
@@ -885,7 +886,7 @@ impl Repository {
                      log_message: &str) -> Result<Reference, Error> {
         let name = try!(CString::new(name));
         let log_message = try!(CString::new(log_message));
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_create(&mut raw, self.raw(), name,
                                                 id.raw(), force,
@@ -932,7 +933,7 @@ impl Repository {
                               log_message: &str) -> Result<Reference, Error> {
         let name = try!(CString::new(name));
         let log_message = try!(CString::new(log_message));
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_create_matching(&mut raw,
                                                          self.raw(),
@@ -957,7 +958,7 @@ impl Repository {
         let name = try!(CString::new(name));
         let target = try!(CString::new(target));
         let log_message = try!(CString::new(log_message));
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_symbolic_create(&mut raw, self.raw(),
                                                          name, target, force,
@@ -986,7 +987,7 @@ impl Repository {
         let target = try!(CString::new(target));
         let current_value = try!(CString::new(current_value));
         let log_message = try!(CString::new(log_message));
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_symbolic_create_matching(&mut raw,
                                                                   self.raw(),
@@ -1002,7 +1003,7 @@ impl Repository {
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_reference(&self, name: &str) -> Result<Reference, Error> {
         let name = try!(CString::new(name));
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_lookup(&mut raw, self.raw(), name));
             Ok(Binding::from_raw(raw))
@@ -1026,7 +1027,7 @@ impl Repository {
     /// Creates a git_annotated_commit from the given reference.
     pub fn reference_to_annotated_commit(&self, reference: &Reference)
                                          -> Result<AnnotatedCommit, Error> {
-        let mut ret = 0 as *mut raw::git_annotated_commit;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_annotated_commit_from_ref(&mut ret,
                                                          self.raw(),
@@ -1042,7 +1043,7 @@ impl Repository {
     /// based on that information. It will return `NotFound` if either the
     /// user.name or user.email are not set.
     pub fn signature(&self) -> Result<Signature<'static>, Error> {
-        let mut ret = 0 as *mut raw::git_signature;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_signature_default(&mut ret, self.raw()));
             Ok(Binding::from_raw(ret))
@@ -1065,7 +1066,7 @@ impl Repository {
                      use_gitlink: bool) -> Result<Submodule, Error> {
         let url = try!(CString::new(url));
         let path = try!(path.into_c_string());
-        let mut raw = 0 as *mut raw::git_submodule;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_submodule_add_setup(&mut raw, self.raw(),
                                                    url, path, use_gitlink));
@@ -1079,7 +1080,7 @@ impl Repository {
     /// this returns a structure describing the submodule.
     pub fn find_submodule(&self, name: &str) -> Result<Submodule, Error> {
         let name = try!(CString::new(name));
-        let mut raw = 0 as *mut raw::git_submodule;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_submodule_lookup(&mut raw, self.raw(), name));
             Ok(Binding::from_raw(raw))
@@ -1103,7 +1104,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_tree(&self, oid: Oid) -> Result<Tree, Error> {
-        let mut raw = 0 as *mut raw::git_tree;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tree_lookup(&mut raw, self.raw(), oid.raw()));
             Ok(Binding::from_raw(raw))
@@ -1117,10 +1118,10 @@ impl Repository {
     /// write them as tree objects to the database.
     pub fn treebuilder(&self, tree: Option<&Tree>) -> Result<TreeBuilder, Error> {
         unsafe {
-            let mut ret = 0 as *mut raw::git_treebuilder;
+            let mut ret = ptr::null_mut();
             let tree = match tree {
                 Some(tree) => tree.raw(),
-                None => 0 as *mut raw::git_tree,
+                None => ptr::null_mut(),
             };
             try_call!(raw::git_treebuilder_new(&mut ret, self.raw, tree));
             Ok(Binding::from_raw(ret))
@@ -1173,7 +1174,7 @@ impl Repository {
 
     /// Lookup a tag object from the repository.
     pub fn find_tag(&self, id: Oid) -> Result<Tag, Error> {
-        let mut raw = 0 as *mut raw::git_tag;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tag_lookup(&mut raw, self.raw, id.raw()));
             Ok(Binding::from_raw(raw))
@@ -1301,7 +1302,7 @@ impl Repository {
                                      commit_ptrs.as_mut_ptr(),
                                      annotated_commits.len() as size_t,
                                      merge_opts.map(|o| o.raw())
-                                               .unwrap_or(0 as *const _),
+                                               .unwrap_or(ptr::null()),
                                      &raw_checkout_opts));
         }
         Ok(())
@@ -1313,7 +1314,7 @@ impl Repository {
     /// should resolve any conflicts that arose as part of the merge.
     pub fn merge_commits(&self, our_commit: &Commit, their_commit: &Commit,
                          opts: Option<&MergeOptions>) -> Result<Index, Error> {
-         let mut raw = 0 as *mut raw::git_index;
+         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_merge_commits(&mut raw, self.raw,
                                              our_commit.raw(),
@@ -1400,7 +1401,7 @@ impl Repository {
     /// annotating.
     pub fn notes(&self, notes_ref: Option<&str>) -> Result<Notes, Error> {
         let notes_ref = try!(::opt_cstr(notes_ref));
-        let mut ret = 0 as *mut raw::git_note_iterator;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_note_iterator_new(&mut ret, self.raw, notes_ref));
             Ok(Binding::from_raw(ret))
@@ -1416,7 +1417,7 @@ impl Repository {
     pub fn find_note(&self, notes_ref: Option<&str>, id: Oid)
                      -> Result<Note, Error> {
         let notes_ref = try!(::opt_cstr(notes_ref));
-        let mut ret = 0 as *mut raw::git_note;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_note_read(&mut ret, self.raw, notes_ref,
                                          id.raw()));
@@ -1445,7 +1446,7 @@ impl Repository {
 
     /// Create a revwalk that can be used to traverse the commit graph.
     pub fn revwalk(&self) -> Result<Revwalk, Error> {
-        let mut raw = 0 as *mut raw::git_revwalk;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
             Ok(Binding::from_raw(raw))
@@ -1456,7 +1457,7 @@ impl Repository {
     pub fn blame_file(&self, path: &Path, opts: Option<&mut BlameOptions>)
                       -> Result<Blame, Error> {
         let path = try!(path.into_c_string());
-        let mut raw = 0 as *mut raw::git_blame;
+        let mut raw = ptr::null_mut();
 
         unsafe {
             try_call!(raw::git_blame_file(&mut raw,
@@ -1480,7 +1481,7 @@ impl Repository {
     /// Find all merge bases between two commits
     pub fn merge_bases(&self, one: Oid, two: Oid) -> Result<OidArray, Error> {
         let mut arr = raw::git_oidarray {
-            ids: 0 as *mut raw::git_oid,
+            ids: ptr::null_mut(),
             count: 0,
         };
         unsafe {
@@ -1526,7 +1527,7 @@ impl Repository {
     /// object will be returned.
     pub fn reflog(&self, name: &str) -> Result<Reflog, Error> {
         let name = try!(CString::new(name));
-        let mut ret = 0 as *mut raw::git_reflog;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reflog_read(&mut ret, self.raw, name));
             Ok(Binding::from_raw(ret))
@@ -1577,7 +1578,7 @@ impl Repository {
     /// After performing a describe on HEAD, a status is run and description is
     /// considered to be dirty if there are.
     pub fn describe(&self, opts: &DescribeOptions) -> Result<Describe, Error> {
-        let mut ret = 0 as *mut _;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_describe_workdir(&mut ret, self.raw, opts.raw()));
             Ok(Binding::from_raw(ret))
@@ -1597,7 +1598,7 @@ impl Repository {
                              new_tree: Option<&Tree>,
                              opts: Option<&mut DiffOptions>)
                              -> Result<Diff, Error> {
-        let mut ret = 0 as *mut raw::git_diff;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_tree_to_tree(&mut ret,
                                                  self.raw(),
@@ -1626,7 +1627,7 @@ impl Repository {
                               index: Option<&Index>,
                               opts: Option<&mut DiffOptions>)
                               -> Result<Diff, Error> {
-        let mut ret = 0 as *mut raw::git_diff;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_tree_to_index(&mut ret,
                                                   self.raw(),
@@ -1646,7 +1647,7 @@ impl Repository {
                                new_index: &Index,
                                opts: Option<&mut DiffOptions>)
                                -> Result<Diff, Error> {
-        let mut ret = 0 as *mut raw::git_diff;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_index_to_index(&mut ret,
                                                    self.raw(),
@@ -1674,7 +1675,7 @@ impl Repository {
                                  index: Option<&Index>,
                                  opts: Option<&mut DiffOptions>)
                                  -> Result<Diff, Error> {
-        let mut ret = 0 as *mut raw::git_diff;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_index_to_workdir(&mut ret,
                                                      self.raw(),
@@ -1706,7 +1707,7 @@ impl Repository {
                                 old_tree: Option<&Tree>,
                                 opts: Option<&mut DiffOptions>)
                                 -> Result<Diff, Error> {
-        let mut ret = 0 as *mut raw::git_diff;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_tree_to_workdir(&mut ret,
                                                     self.raw(),
@@ -1726,7 +1727,7 @@ impl Repository {
                                            old_tree: Option<&Tree>,
                                            opts: Option<&mut DiffOptions>)
                                            -> Result<Diff, Error> {
-        let mut ret = 0 as *mut raw::git_diff;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_tree_to_workdir_with_index(&mut ret,
                     self.raw(), old_tree.map(|s| s.raw()), opts.map(|s| s.raw())));
@@ -1736,7 +1737,7 @@ impl Repository {
 
     /// Create a PackBuilder
     pub fn packbuilder(&self) -> Result<PackBuilder, Error> {
-        let mut ret = 0 as *mut raw::git_packbuilder;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_packbuilder_new(&mut ret, self.raw()));
             Ok(Binding::from_raw(ret))

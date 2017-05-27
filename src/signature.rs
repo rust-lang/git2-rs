@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::marker;
 use std::mem;
+use std::ptr;
 use std::str;
 use std::fmt;
 use libc;
@@ -29,7 +30,7 @@ impl<'a> Signature<'a> {
     /// See `new` for more information
     pub fn now(name: &str, email: &str) -> Result<Signature<'static>, Error> {
         ::init();
-        let mut ret = 0 as *mut raw::git_signature;
+        let mut ret = ptr::null_mut();
         let name = try!(CString::new(name));
         let email = try!(CString::new(email));
         unsafe {
@@ -47,7 +48,7 @@ impl<'a> Signature<'a> {
     pub fn new(name: &str, email: &str, time: &Time)
                -> Result<Signature<'static>, Error> {
         ::init();
-        let mut ret = 0 as *mut raw::git_signature;
+        let mut ret = ptr::null_mut();
         let name = try!(CString::new(name));
         let email = try!(CString::new(email));
         unsafe {
@@ -128,7 +129,7 @@ impl Clone for Signature<'static> {
     fn clone(&self) -> Signature<'static> {
         // TODO: can this be defined for 'a and just do a plain old copy if the
         //       lifetime isn't static?
-        let mut raw = 0 as *mut raw::git_signature;
+        let mut raw = ptr::null_mut();
         let rc = unsafe { raw::git_signature_dup(&mut raw, &*self.raw) };
         assert_eq!(rc, 0);
         unsafe { Binding::from_raw(raw) }

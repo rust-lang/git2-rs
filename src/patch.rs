@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::ptr;
 use libc::{c_char, c_int, c_void};
 
 use {raw, Blob, Buf, Diff, DiffDelta, DiffHunk, DiffLine, DiffOptions, Error};
@@ -33,7 +34,7 @@ impl Patch {
     ///
     /// Returns Ok(None) for an unchanged or binary file.
     pub fn from_diff(diff: &Diff, idx: usize) -> Result<Option<Patch>, Error> {
-        let mut ret = 0 as *mut raw::git_patch;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_patch_from_diff(&mut ret, diff.raw(), idx));
             Ok(Binding::from_raw_opt(ret))
@@ -48,7 +49,7 @@ impl Patch {
                       opts: Option<&mut DiffOptions>)
                       -> Result<Patch, Error>
     {
-        let mut ret = 0 as *mut raw::git_patch;
+        let mut ret = ptr::null_mut();
         let old_path = try!(into_opt_c_string(old_path));
         let new_path = try!(into_opt_c_string(new_path));
         unsafe {
@@ -70,7 +71,7 @@ impl Patch {
                                 opts: Option<&mut DiffOptions>)
                                 -> Result<Patch, Error>
     {
-        let mut ret = 0 as *mut raw::git_patch;
+        let mut ret = ptr::null_mut();
         let old_path = try!(into_opt_c_string(old_path));
         let new_path = try!(into_opt_c_string(new_path));
         unsafe {
@@ -93,7 +94,7 @@ impl Patch {
                         opts: Option<&mut DiffOptions>)
                         -> Result<Patch, Error>
     {
-        let mut ret = 0 as *mut raw::git_patch;
+        let mut ret = ptr::null_mut();
         let old_path = try!(into_opt_c_string(old_path));
         let new_path = try!(into_opt_c_string(new_path));
         unsafe {
@@ -139,7 +140,7 @@ impl Patch {
 
     /// Get a DiffHunk and its total line count from the Patch.
     pub fn hunk(&mut self, hunk_idx: usize) -> Result<(DiffHunk, usize), Error> {
-        let mut ret = 0 as *const raw::git_diff_hunk;
+        let mut ret = ptr::null();
         let mut lines = 0;
         unsafe {
             try_call!(raw::git_patch_get_hunk(&mut ret, &mut lines, self.raw, hunk_idx));
@@ -158,7 +159,7 @@ impl Patch {
     pub fn line_in_hunk(&mut self,
                         hunk_idx: usize,
                         line_of_hunk: usize) -> Result<DiffLine, Error> {
-        let mut ret = 0 as *const raw::git_diff_line;
+        let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_patch_get_line_in_hunk(&mut ret,
                                                       self.raw,

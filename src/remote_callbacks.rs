@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::marker;
 use std::mem;
 use std::slice;
+use std::ptr;
 use std::str;
 use libc::{c_void, c_int, c_char, c_uint};
 
@@ -258,7 +259,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             let payload = &mut *(payload as *mut RemoteCallbacks);
             let callback = try!(payload.credentials.as_mut()
                                        .ok_or(raw::GIT_PASSTHROUGH as c_int));
-            *ret = 0 as *mut raw::git_cred;
+            *ret = ptr::null_mut();
             let url = try!(str::from_utf8(CStr::from_ptr(url).to_bytes())
                               .map_err(|_| raw::GIT_PASSTHROUGH as c_int));
             let username_from_url = match ::opt_bytes(&url, username_from_url) {

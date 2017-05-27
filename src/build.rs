@@ -3,6 +3,7 @@
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::path::Path;
+use std::ptr;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
 use {raw, panic, Error, Repository, FetchOptions, IntoCString};
@@ -133,7 +134,7 @@ impl<'cb> RepoBuilder<'cb> {
         opts.bare = self.bare as c_int;
         opts.checkout_branch = self.branch.as_ref().map(|s| {
             s.as_ptr()
-        }).unwrap_or(0 as *const _);
+        }).unwrap_or(ptr::null());
 
         opts.local = match (self.local, self.hardlinks) {
             (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
@@ -157,7 +158,7 @@ impl<'cb> RepoBuilder<'cb> {
 
         let url = try!(CString::new(url));
         let into = try!(into.into_c_string());
-        let mut raw = 0 as *mut raw::git_repository;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
             Ok(Binding::from_raw(raw))

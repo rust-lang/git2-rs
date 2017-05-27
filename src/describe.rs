@@ -1,6 +1,7 @@
 use std::marker;
 use std::mem;
 use std::ffi::CString;
+use std::ptr;
 
 use libc::{c_uint, c_int};
 
@@ -31,7 +32,7 @@ impl<'repo> Describe<'repo> {
     pub fn format(&self, opts: Option<&DescribeFormatOptions>)
                   -> Result<String, Error> {
         let buf = Buf::new();
-        let opts = opts.map(|o| &o.raw as *const _).unwrap_or(0 as *const _);
+        let opts = opts.map(|o| &o.raw as *const _).unwrap_or(ptr::null());
         unsafe {
             try_call!(raw::git_describe_format(buf.raw(), self.raw, opts));
         }

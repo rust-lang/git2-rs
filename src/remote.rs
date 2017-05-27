@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::ops::Range;
 use std::marker;
 use std::mem;
+use std::ptr;
 use std::slice;
 use std::str;
 use libc;
@@ -110,9 +111,9 @@ impl<'repo> Remote<'repo> {
         // TODO: can callbacks be exposed safely?
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
-                                              0 as *const _,
-                                              0 as *const _,
-                                              0 as *const _));
+                                              ptr::null(),
+                                              ptr::null(),
+                                              ptr::null()));
         }
         Ok(())
     }
@@ -132,7 +133,7 @@ impl<'repo> Remote<'repo> {
             try_call!(raw::git_remote_connect(self.raw, dir,
                                               &cb.raw(),
                                               &proxy_options.raw(),
-                                              0 as *const _));
+                                              ptr::null()));
         }
 
         Ok(RemoteConnection {
@@ -271,7 +272,7 @@ impl<'repo> Remote<'repo> {
     /// the remote is initiated and it remains available after disconnecting.
     pub fn list(&self) -> Result<&[RemoteHead], Error> {
         let mut size = 0;
-        let mut base = 0 as *mut _;
+        let mut base = ptr::null_mut();
         unsafe {
             try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
             assert_eq!(mem::size_of::<RemoteHead>(),
@@ -303,7 +304,7 @@ impl<'repo> Remote<'repo> {
 
 impl<'repo> Clone for Remote<'repo> {
     fn clone(&self) -> Remote<'repo> {
-        let mut ret = 0 as *mut raw::git_remote;
+        let mut ret = ptr::null_mut();
         let rc = unsafe { call!(raw::git_remote_dup(&mut ret, self.raw)) };
         assert_eq!(rc, 0);
         Remote {
@@ -437,7 +438,7 @@ impl<'cb> Binding for FetchOptions<'cb> {
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
                 count: 0,
-                strings: 0 as *mut _,
+                strings: ptr::null_mut(),
             },
         }
     }
@@ -494,7 +495,7 @@ impl<'cb> Binding for PushOptions<'cb> {
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
                 count: 0,
-                strings: 0 as *mut _,
+                strings: ptr::null_mut(),
             },
         }
     }

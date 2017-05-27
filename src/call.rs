@@ -52,6 +52,8 @@ pub fn last_error(code: libc::c_int) -> Error {
 
 mod impls {
     use std::ffi::CString;
+    use std::ptr;
+
     use libc;
 
     use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
@@ -81,13 +83,13 @@ mod impls {
 
     impl<T, U: Convert<*const T>> Convert<*const T> for Option<U> {
         fn convert(&self) -> *const T {
-            self.as_ref().map(|s| s.convert()).unwrap_or(0 as *const _)
+            self.as_ref().map(|s| s.convert()).unwrap_or(ptr::null())
         }
     }
 
     impl<T, U: Convert<*mut T>> Convert<*mut T> for Option<U> {
         fn convert(&self) -> *mut T {
-            self.as_ref().map(|s| s.convert()).unwrap_or(0 as *mut _)
+            self.as_ref().map(|s| s.convert()).unwrap_or(ptr::null_mut())
         }
     }
 

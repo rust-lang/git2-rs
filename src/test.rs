@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::io;
+use std::ptr;
 use tempdir::TempDir;
 use url::Url;
 
@@ -48,7 +49,7 @@ pub fn realpath(original: &Path) -> io::Result<PathBuf> {
     }
     unsafe {
         let cstr = try!(CString::new(original.as_os_str().as_bytes()));
-        let ptr = realpath(cstr.as_ptr(), 0 as *mut _);
+        let ptr = realpath(cstr.as_ptr(), ptr::null_mut());
         if ptr.is_null() {
             return Err(io::Error::last_os_error())
         }

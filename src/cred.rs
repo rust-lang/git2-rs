@@ -3,6 +3,7 @@ use std::io::Write;
 use std::mem;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::ptr;
 use url;
 
 use {raw, Error, Config, IntoCString};
@@ -29,7 +30,7 @@ impl Cred {
     /// or Kerberos authentication.
     pub fn default() -> Result<Cred, Error> {
         ::init();
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_default_new(&mut out));
             Ok(Binding::from_raw(out))
@@ -41,7 +42,7 @@ impl Cred {
     /// The username specified is the username to authenticate.
     pub fn ssh_key_from_agent(username: &str) -> Result<Cred, Error> {
         ::init();
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         let username = try!(CString::new(username));
         unsafe {
             try_call!(raw::git_cred_ssh_key_from_agent(&mut out, username));
@@ -59,7 +60,7 @@ impl Cred {
         let publickey = try!(::opt_cstr(publickey));
         let privatekey = try!(privatekey.into_c_string());
         let passphrase = try!(::opt_cstr(passphrase));
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_ssh_key_new(&mut out, username, publickey,
                                                 privatekey, passphrase));
@@ -73,7 +74,7 @@ impl Cred {
         ::init();
         let username = try!(CString::new(username));
         let password = try!(CString::new(password));
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_userpass_plaintext_new(&mut out, username,
                                                            password));
@@ -112,7 +113,7 @@ impl Cred {
     pub fn username(username: &str) -> Result<Cred, Error> {
         ::init();
         let username = try!(CString::new(username));
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_username_new(&mut out, username));
             Ok(Binding::from_raw(out))
@@ -131,7 +132,7 @@ impl Cred {
 
     /// Unwrap access to the underlying raw pointer, canceling the destructor
     pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
-        mem::replace(&mut self.raw, 0 as *mut raw::git_cred)
+        mem::replace(&mut self.raw, ptr::null_mut())
     }
 }
 

@@ -1,5 +1,6 @@
 use std::ffi::CString;
 use std::marker;
+use std::ptr;
 
 use raw;
 use util::Binding;
@@ -49,10 +50,10 @@ impl<'a> Binding for ProxyOptions<'a> {
         raw::git_proxy_options {
             version: raw::GIT_PROXY_OPTIONS_VERSION,
             kind: self.proxy_kind,
-            url: self.url.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as *const _),
+            url: self.url.as_ref().map(|s| s.as_ptr()).unwrap_or(ptr::null()),
             credentials: None,
             certificate_check: None,
-            payload: 0 as *mut _,
+            payload: ptr::null_mut(),
         }
     }
 }

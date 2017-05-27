@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::io;
 use std::mem;
 use std::slice;
+use std::ptr;
 use std::str;
 use libc::{c_int, c_void, c_uint, c_char, size_t};
 
@@ -134,7 +135,7 @@ impl Transport {
                     subtransport: S) -> Result<Transport, Error>
         where S: SmartSubtransport
     {
-        let mut ret = 0 as *mut _;
+        let mut ret = ptr::null_mut();
 
         let mut raw = Box::new(RawSmartSubtransport {
             raw: raw::git_smart_subtransport {

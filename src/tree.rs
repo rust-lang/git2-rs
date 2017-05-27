@@ -4,6 +4,7 @@ use std::ffi::CString;
 use std::ops::Range;
 use std::marker;
 use std::path::Path;
+use std::ptr;
 use std::str;
 use libc;
 
@@ -90,7 +91,7 @@ impl<'repo> Tree<'repo> {
     /// given its relative path.
     pub fn get_path(&self, path: &Path) -> Result<TreeEntry<'static>, Error> {
         let path = try!(path.into_c_string());
-        let mut ret = 0 as *mut raw::git_tree_entry;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tree_entry_bypath(&mut ret, &*self.raw(), path));
             Ok(Binding::from_raw(ret))
@@ -172,7 +173,7 @@ impl<'tree> TreeEntry<'tree> {
     /// Convert a tree entry to the object it points to.
     pub fn to_object<'a>(&self, repo: &'a Repository)
                          -> Result<Object<'a>, Error> {
-        let mut ret = 0 as *mut raw::git_object;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tree_entry_to_object(&mut ret, repo.raw(),
                                                     &*self.raw()));
@@ -221,7 +222,7 @@ impl<'a> Binding for TreeEntry<'a> {
 
 impl<'a> Clone for TreeEntry<'a> {
     fn clone(&self) -> TreeEntry<'a> {
-        let mut ret = 0 as *mut raw::git_tree_entry;
+        let mut ret = ptr::null_mut();
         unsafe {
             assert_eq!(raw::git_tree_entry_dup(&mut ret, &*self.raw()), 0);
             Binding::from_raw(ret)

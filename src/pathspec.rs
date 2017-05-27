@@ -2,6 +2,7 @@ use std::iter::IntoIterator;
 use std::marker;
 use std::ops::Range;
 use std::path::Path;
+use std::ptr;
 use libc::size_t;
 
 use {raw, Error, Diff, Tree, PathspecFlags, Index, Repository, DiffDelta, IntoCString};
@@ -43,7 +44,7 @@ impl Pathspec {
                      where T: IntoCString, I: IntoIterator<Item=T> {
         let (_a, _b, arr) = try!(::util::iter2cstrs(specs));
         unsafe {
-            let mut ret = 0 as *mut raw::git_pathspec;
+            let mut ret = ptr::null_mut();
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
             Ok(Binding::from_raw(ret))
         }
@@ -57,7 +58,7 @@ impl Pathspec {
     /// specified.
     pub fn match_diff(&self, diff: &Diff, flags: PathspecFlags)
                       -> Result<PathspecMatchList, Error> {
-        let mut ret = 0 as *mut raw::git_pathspec_match_list;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_diff(&mut ret, diff.raw(),
                                                    flags.bits(), self.raw));
@@ -73,7 +74,7 @@ impl Pathspec {
     /// specified.
     pub fn match_tree(&self, tree: &Tree, flags: PathspecFlags)
                       -> Result<PathspecMatchList, Error> {
-        let mut ret = 0 as *mut raw::git_pathspec_match_list;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_tree(&mut ret, tree.raw(),
                                                    flags.bits(), self.raw));
@@ -89,7 +90,7 @@ impl Pathspec {
     /// specified.
     pub fn match_index(&self, index: &Index, flags: PathspecFlags)
                        -> Result<PathspecMatchList, Error> {
-        let mut ret = 0 as *mut raw::git_pathspec_match_list;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_index(&mut ret, index.raw(),
                                                     flags.bits(), self.raw));
@@ -111,7 +112,7 @@ impl Pathspec {
     /// specified.
     pub fn match_workdir(&self, repo: &Repository, flags: PathspecFlags)
                          -> Result<PathspecMatchList, Error> {
-        let mut ret = 0 as *mut raw::git_pathspec_match_list;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_workdir(&mut ret, repo.raw(),
                                                       flags.bits(), self.raw));

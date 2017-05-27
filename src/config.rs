@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::marker;
 use std::path::{Path, PathBuf};
+use std::ptr;
 use std::str;
 use libc;
 
@@ -34,7 +35,7 @@ impl Config {
     /// anything with it.
     pub fn new() -> Result<Config, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_config;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_new(&mut raw));
             Ok(Binding::from_raw(raw))
@@ -44,7 +45,7 @@ impl Config {
     /// Create a new config instance containing a single on-disk file
     pub fn open(path: &Path) -> Result<Config, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_config;
+        let mut raw = ptr::null_mut();
         let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_config_open_ondisk(&mut raw, path));
@@ -59,7 +60,7 @@ impl Config {
     /// be used when accessing default config data outside a repository.
     pub fn open_default() -> Result<Config, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_config;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_open_default(&mut raw));
             Ok(Binding::from_raw(raw))
@@ -192,7 +193,7 @@ impl Config {
     ///
     /// This method will return an error if this `Config` is not a snapshot.
     pub fn get_bytes(&self, name: &str) -> Result<&[u8], Error> {
-        let mut ret = 0 as *const libc::c_char;
+        let mut ret = ptr::null();
         let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_string(&mut ret, &*self.raw, name));
@@ -226,7 +227,7 @@ impl Config {
 
     /// Get the ConfigEntry for a config variable.
     pub fn get_entry(&self, name: &str) -> Result<ConfigEntry, Error> {
-        let mut ret = 0 as *mut raw::git_config_entry;
+        let mut ret = ptr::null_mut();
         let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_entry(&mut ret, self.raw, name));
@@ -253,7 +254,7 @@ impl Config {
     /// }
     /// ```
     pub fn entries(&self, glob: Option<&str>) -> Result<ConfigEntries, Error> {
-        let mut ret = 0 as *mut raw::git_config_iterator;
+        let mut ret = ptr::null_mut();
         unsafe {
             match glob {
                 Some(s) => {
@@ -277,7 +278,7 @@ impl Config {
     /// shouldn't be used unless the use has created it explicitly. With this
     /// function you'll open the correct one to write to.
     pub fn open_global(&mut self) -> Result<Config, Error> {
-        let mut raw = 0 as *mut raw::git_config;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_open_global(&mut raw, self.raw));
             Ok(Binding::from_raw(raw))
@@ -289,7 +290,7 @@ impl Config {
     /// The returned config object can be used to perform get/set/delete
     /// operations on a single specific level.
     pub fn open_level(&self, level: ConfigLevel) -> Result<Config, Error> {
-        let mut raw = 0 as *mut raw::git_config;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_open_level(&mut raw, &*self.raw, level));
             Ok(Binding::from_raw(raw))
@@ -355,7 +356,7 @@ impl Config {
     /// you to look into a consistent view of the configuration for looking up
     /// complex values (e.g. a remote, submodule).
     pub fn snapshot(&mut self) -> Result<Config, Error> {
-        let mut ret = 0 as *mut raw::git_config;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_snapshot(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
@@ -476,7 +477,7 @@ impl<'cfg> Binding for ConfigEntries<'cfg> {
 impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
     type Item = Result<ConfigEntry<'b>, Error>;
     fn next(&mut self) -> Option<Result<ConfigEntry<'b>, Error>> {
-        let mut raw = 0 as *mut raw::git_config_entry;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call_iter!(raw::git_config_next(&mut raw, self.raw));
             Some(Ok(ConfigEntry {

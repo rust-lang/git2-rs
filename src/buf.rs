@@ -1,7 +1,7 @@
 use std::slice;
 use std::str;
+use std::ptr;
 use std::ops::{Deref, DerefMut};
-use libc;
 
 use raw;
 use util::Binding;
@@ -20,7 +20,7 @@ impl Buf {
         ::init();
         unsafe {
             Binding::from_raw(&mut raw::git_buf {
-                ptr: 0 as *mut libc::c_char,
+                ptr: ptr::null_mut(),
                 size: 0,
                 asize: 0,
             } as *mut _)
