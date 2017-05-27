@@ -192,7 +192,7 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 callbacks.update_tips = Some(f);
             }
             callbacks.payload = self as *const _ as *mut _;
-            return callbacks;
+            callbacks
         }
     }
 }

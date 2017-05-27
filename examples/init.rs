@@ -116,7 +116,7 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
             if shared.starts_with("0") {
                 match u32::from_str_radix(&shared[1..], 8).ok() {
                     Some(n) => {
-                        return Ok(RepositoryInitMode::from_bits_truncate(n))
+                        Ok(RepositoryInitMode::from_bits_truncate(n))
                     }
                     None => {
                         Err(Error::from_str("invalid octal value for --shared"))

@@ -208,7 +208,7 @@ impl Index {
                                                 .unwrap_or(ptr::null_mut())
                                                     as *mut c_void));
         }
-        return Ok(());
+        Ok(())
     }
 
     /// Clear the contents (all the entries) of an index object.
@@ -349,7 +349,7 @@ impl Index {
                                                    .unwrap_or(ptr::null_mut())
                                                         as *mut c_void));
         }
-        return Ok(());
+        Ok(())
     }
 
     /// Update all index entries to match the working directory
@@ -384,7 +384,7 @@ impl Index {
                                                    .unwrap_or(ptr::null_mut())
                                                         as *mut c_void));
         }
-        return Ok(());
+        Ok(())
     }
 
     /// Write an existing index object from memory back to disk using an atomic

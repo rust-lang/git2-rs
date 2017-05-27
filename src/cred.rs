@@ -175,7 +175,7 @@ impl CredentialHelper {
             }
             ret.protocol = Some(url.scheme().to_string())
         }
-        return ret;
+        ret
     }
 
     /// Set the username that this credential helper will query with.
@@ -318,7 +318,7 @@ impl CredentialHelper {
         }
         let output = my_try!(p.wait_with_output());
         if !output.status.success() { return (None, None) }
-        return self.parse_output(output.stdout)
+        self.parse_output(output.stdout)
     }
 
     // Parse the output of a command into the username/password found

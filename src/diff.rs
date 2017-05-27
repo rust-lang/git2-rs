@@ -162,7 +162,7 @@ impl<'repo> Diff<'repo> {
         unsafe {
             try_call!(raw::git_diff_print(self.raw, format, print_cb,
                                           ptr as *mut _));
-            return Ok(())
+            Ok(())
         }
     }
 
@@ -201,7 +201,7 @@ impl<'repo> Diff<'repo> {
             try_call!(raw::git_diff_foreach(self.raw, file_cb_c, binary_cb_c,
                                             hunk_cb_c, line_cb_c,
                                             ptr as *mut _));
-            return Ok(())
+            Ok(())
         }
     }
 

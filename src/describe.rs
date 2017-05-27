@@ -70,7 +70,7 @@ impl DescribeFormatOptions {
         };
         opts.raw.version = 1;
         opts.raw.abbreviated_size = 7;
-        return opts
+        opts
     }
 
     /// Sets the size of the abbreviated commit id to use.
@@ -113,7 +113,7 @@ impl DescribeOptions {
         };
         opts.raw.version = 1;
         opts.raw.max_candidates_tags = 10;
-        return opts
+        opts
     }
 
     #[allow(missing_docs)]

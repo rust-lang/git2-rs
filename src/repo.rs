@@ -1973,7 +1973,7 @@ impl RepositoryInitOptions {
         opts.template_path = ::call::convert(&self.template_path);
         opts.initial_head = ::call::convert(&self.initial_head);
         opts.origin_url = ::call::convert(&self.origin_url);
-        return opts;
+        opts
     }
 }
 

@@ -187,7 +187,7 @@ impl Patch {
         let ptr = &mut line_cb as *mut _ as *mut c_void;
         unsafe {
             try_call!(raw::git_patch_print(self.raw, print_cb, ptr));
-            return Ok(())
+            Ok(())
         }
     }
 

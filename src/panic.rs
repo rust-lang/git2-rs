@@ -40,7 +40,7 @@ pub fn wrap<T, F: FnOnce() -> T>(f: F) -> Option<T> {
     let mut bomb = Bomb { enabled: true };
     let ret = Some(f());
     bomb.enabled = false;
-    return ret;
+    ret
 }
 
 pub fn check() {
