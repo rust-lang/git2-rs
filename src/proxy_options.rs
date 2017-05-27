@@ -6,6 +6,7 @@ use raw;
 use util::Binding;
 
 /// Options which can be specified to various fetch operations.
+#[derive(Default)]
 pub struct ProxyOptions<'a> {
     url: Option<CString>,
     proxy_kind: raw::git_proxy_t,
@@ -15,11 +16,7 @@ pub struct ProxyOptions<'a> {
 impl<'a> ProxyOptions<'a> {
     /// Creates a new set of proxy options ready to be configured.
     pub fn new() -> ProxyOptions<'a> {
-        ProxyOptions {
-            url: None,
-            proxy_kind: raw::GIT_PROXY_NONE,
-            _marker: marker::PhantomData,
-        }
+        Default::default()
     }
 
     /// Try to auto-detect the proxy from the git configuration.
