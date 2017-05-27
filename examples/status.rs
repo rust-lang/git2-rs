@@ -27,7 +27,6 @@ use git2::{Repository, Error, StatusOptions, ErrorCode, SubmoduleIgnore};
 struct Args {
     arg_spec: Vec<String>,
     flag_short: bool,
-    flag_long: bool,
     flag_porcelain: bool,
     flag_branch: bool,
     flag_z: bool,
