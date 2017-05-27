@@ -49,7 +49,7 @@ fn print(state: &mut State) {
         0
     };
     let kbytes = stats.received_bytes() / 1024;
-    if stats.received_objects() == stats.total_objects() && false {
+    if stats.received_objects() == stats.total_objects() {
         if !state.newline {
             println!("");
             state.newline = true;
