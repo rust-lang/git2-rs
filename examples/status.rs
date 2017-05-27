@@ -66,7 +66,7 @@ fn run(args: &Args) -> Result<(), Error> {
         None => {}
     }
     opts.include_untracked(!args.flag_ignored);
-    for spec in args.arg_spec.iter() {
+    for spec in &args.arg_spec {
         opts.pathspec(spec);
     }
 
@@ -119,7 +119,7 @@ fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
 fn print_submodules(repo: &Repository) -> Result<(), Error> {
     let modules = try!(repo.submodules());
     println!("# Submodules");
-    for sm in modules.iter() {
+    for sm in &modules {
         println!("# - submodule '{}' at {}", sm.name().unwrap(),
                  sm.path().display());
     }

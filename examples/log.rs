@@ -60,7 +60,7 @@ fn run(args: &Args) -> Result<(), Error> {
     } else {
         git2::SORT_NONE
     });
-    for commit in args.arg_commit.iter() {
+    for commit in &args.arg_commit {
         if commit.starts_with('^') {
             let obj = try!(repo.revparse_single(&commit[1..]));
             try!(revwalk.hide(obj.id()));
@@ -87,7 +87,7 @@ fn run(args: &Args) -> Result<(), Error> {
 
     // Prepare our diff options and pathspec matcher
     let (mut diffopts, mut diffopts2) = (DiffOptions::new(), DiffOptions::new());
-    for spec in args.arg_spec.iter() {
+    for spec in &args.arg_spec {
         diffopts.pathspec(spec);
         diffopts2.pathspec(spec);
     }
