@@ -1340,7 +1340,7 @@ impl Repository {
                                               self.raw,
                                               their_heads.as_mut_ptr() as *mut _,
                                               their_heads.len()));
-            Ok((Binding::from_raw(raw_merge_analysis), Binding::from_raw(raw_merge_preference)))
+            Ok((MergeAnalysis::from_bits_truncate(raw_merge_analysis), MergePreference::from_bits_truncate(raw_merge_preference)))
         }
     }
 
