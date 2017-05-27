@@ -297,9 +297,7 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
         if let Some(status) = status {
             if status.contains(git2::SUBMODULE_STATUS_WD_MODIFIED) {
                 extra = " (new commits)";
-            } else if status.contains(git2::SUBMODULE_STATUS_WD_INDEX_MODIFIED) {
-                extra = " (modified content)";
-            } else if status.contains(git2::SUBMODULE_STATUS_WD_WD_MODIFIED) {
+            } else if status.contains(git2::SUBMODULE_STATUS_WD_INDEX_MODIFIED) || status.contains(git2::SUBMODULE_STATUS_WD_WD_MODIFIED) {
                 extra = " (modified content)";
             } else if status.contains(git2::SUBMODULE_STATUS_WD_UNTRACKED) {
                 extra = " (untracked content)";
@@ -338,9 +336,7 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
 impl Args {
     fn format(&self) -> Format {
         if self.flag_short { Format::Short }
-        else if self.flag_long { Format::Long }
-        else if self.flag_porcelain { Format::Porcelain }
-        else if self.flag_z { Format::Porcelain }
+        else if self.flag_porcelain || self.flag_z { Format::Porcelain }
         else { Format::Long }
     }
 }

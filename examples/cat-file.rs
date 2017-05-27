@@ -46,9 +46,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     if args.flag_t {
         println!("{}", obj.kind().unwrap().str());
-    } else if args.flag_s {
-        /* ... */
-    } else if args.flag_e {
+    } else if args.flag_s || args.flag_e {
         /* ... */
     } else if args.flag_p {
         match obj.kind() {
