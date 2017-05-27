@@ -106,7 +106,6 @@ pub extern fn stash_cb(index: size_t,
 
 fn convert_progress(progress: raw::git_stash_apply_progress_t) -> StashApplyProgress {
     match progress {
-        raw::GIT_STASH_APPLY_PROGRESS_NONE => StashApplyProgress::None,
         raw::GIT_STASH_APPLY_PROGRESS_LOADING_STASH => StashApplyProgress::LoadingStash,
         raw::GIT_STASH_APPLY_PROGRESS_ANALYZE_INDEX => StashApplyProgress::AnalyzeIndex,
         raw::GIT_STASH_APPLY_PROGRESS_ANALYZE_MODIFIED => StashApplyProgress::AnalyzeModified,
