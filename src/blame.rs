@@ -140,6 +140,13 @@ impl<'blame> BlameHunk<'blame> {
     }
 }
 
+
+impl Default for BlameOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BlameOptions {
 
     /// Initialize options

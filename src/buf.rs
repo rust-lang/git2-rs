@@ -14,6 +14,12 @@ pub struct Buf {
     raw: raw::git_buf,
 }
 
+impl Default for Buf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Buf {
     /// Creates a new empty buffer.
     pub fn new() -> Buf {

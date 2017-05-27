@@ -54,6 +54,13 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
                             DiffFile, DiffFile) -> bool + 'a;
 
+
+impl<'cb> Default for RepoBuilder<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
     ///
@@ -163,6 +170,12 @@ impl<'cb> RepoBuilder<'cb> {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
             Ok(Binding::from_raw(raw))
         }
+    }
+}
+
+impl<'cb> Default for CheckoutBuilder<'cb> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

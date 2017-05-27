@@ -55,6 +55,12 @@ impl<'repo> Drop for Describe<'repo> {
     }
 }
 
+impl Default for DescribeFormatOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DescribeFormatOptions {
     /// Creates a new blank set of formatting options for a description.
     pub fn new() -> DescribeFormatOptions {
@@ -89,6 +95,12 @@ impl DescribeFormatOptions {
         self.dirty_suffix = CString::new(suffix).unwrap();
         self.raw.dirty_suffix = self.dirty_suffix.as_ptr();
         self
+    }
+}
+
+impl Default for DescribeOptions {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

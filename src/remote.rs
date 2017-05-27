@@ -371,6 +371,12 @@ impl<'remote> RemoteHead<'remote> {
     }
 }
 
+impl<'cb> Default for FetchOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'cb> FetchOptions<'cb> {
     /// Creates a new blank set of fetch options
     pub fn new() -> FetchOptions<'cb> {
@@ -441,6 +447,13 @@ impl<'cb> Binding for FetchOptions<'cb> {
                 strings: ptr::null_mut(),
             },
         }
+    }
+}
+
+
+impl<'cb> Default for PushOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

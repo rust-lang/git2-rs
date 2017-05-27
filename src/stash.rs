@@ -23,6 +23,12 @@ pub struct StashApplyOptions<'cb> {
     raw_opts: raw::git_stash_apply_options
 }
 
+impl<'cb> Default for StashApplyOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'cb> StashApplyOptions<'cb> {
     /// Creates a default set of merge options.
     pub fn new() -> StashApplyOptions<'cb> {

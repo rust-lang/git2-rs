@@ -58,6 +58,12 @@ pub struct StatusEntry<'statuses> {
     _marker: marker::PhantomData<&'statuses DiffDelta<'statuses>>,
 }
 
+impl Default for StatusOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StatusOptions {
     /// Creates a new blank set of status options.
     pub fn new() -> StatusOptions {

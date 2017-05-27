@@ -77,6 +77,12 @@ pub type CertificateCheck<'a> = FnMut(&Cert, &str) -> bool + 'a;
 /// was rejected by the remote server with a reason why.
 pub type PushUpdateReference<'a> = FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
 
+impl<'a> Default for RemoteCallbacks<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
     pub fn new() -> RemoteCallbacks<'a> {

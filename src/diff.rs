@@ -433,6 +433,12 @@ impl<'a> Binding for DiffFile<'a> {
     fn raw(&self) -> *const raw::git_diff_file { self.raw }
 }
 
+impl Default for DiffOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DiffOptions {
     /// Creates a new set of empty diff options.
     ///
@@ -954,6 +960,12 @@ impl Binding for DiffBinaryKind {
             DiffBinaryKind::Literal => raw::GIT_DIFF_BINARY_LITERAL,
             DiffBinaryKind::Delta => raw::GIT_DIFF_BINARY_DELTA,
         }
+    }
+}
+
+impl Default for DiffFindOptions {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
