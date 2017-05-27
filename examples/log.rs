@@ -61,7 +61,7 @@ fn run(args: &Args) -> Result<(), Error> {
         git2::SORT_NONE
     });
     for commit in args.arg_commit.iter() {
-        if commit.starts_with("^") {
+        if commit.starts_with('^') {
             let obj = try!(repo.revparse_single(&commit[1..]));
             try!(revwalk.hide(obj.id()));
             continue

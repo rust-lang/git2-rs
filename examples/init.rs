@@ -113,7 +113,7 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
         "true" | "group" => Ok(git2::REPOSITORY_INIT_SHARED_GROUP),
         "all" | "world" => Ok(git2::REPOSITORY_INIT_SHARED_ALL),
         _ => {
-            if shared.starts_with("0") {
+            if shared.starts_with('0') {
                 match u32::from_str_radix(&shared[1..], 8).ok() {
                     Some(n) => {
                         Ok(RepositoryInitMode::from_bits_truncate(n))

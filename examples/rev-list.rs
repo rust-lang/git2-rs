@@ -47,7 +47,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let specs = args.flag_not.iter().map(|s| (s, true))
                     .chain(args.arg_spec.iter().map(|s| (s, false)))
                     .map(|(spec, hide)| {
-        if spec.starts_with("^") {(&spec[1..], !hide)} else {(&spec[..], hide)}
+        if spec.starts_with('^') {(&spec[1..], !hide)} else {(&spec[..], hide)}
     });
     for (spec, hide) in specs {
         let id = if spec.contains("..") {

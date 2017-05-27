@@ -235,9 +235,9 @@ impl CredentialHelper {
             Some(s) => s,
         };
 
-        if cmd.starts_with("!") {
+        if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
-        } else if cmd.starts_with("/") || cmd.starts_with("\\") ||
+        } else if cmd.starts_with('/') || cmd.starts_with('\\') ||
                   cmd[1..].starts_with(":\\") {
             self.commands.push(format!("\"{}\"", cmd));
         } else {
