@@ -66,7 +66,7 @@ fn run(args: &Args) -> Result<(), Error> {
             try!(revwalk.hide(obj.id()));
             continue
         }
-        let revspec = try!(repo.revparse(&commit));
+        let revspec = try!(repo.revparse(commit));
         if revspec.mode().contains(git2::REVPARSE_SINGLE) {
             try!(revwalk.push(revspec.from().unwrap().id()));
         } else {

@@ -266,7 +266,7 @@ impl CredentialHelper {
         let mut username = self.username.clone();
         let mut password = None;
         for cmd in &self.commands {
-            let (u, p) = self.execute_cmd(&cmd, &username);
+            let (u, p) = self.execute_cmd(cmd, &username);
             if u.is_some() && username.is_none() {
                 username = u;
             }

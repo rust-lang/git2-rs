@@ -157,7 +157,7 @@ fn print_long(statuses: &git2::Statuses) {
         let old_path = entry.head_to_index().unwrap().old_file().path();
         let new_path = entry.head_to_index().unwrap().new_file().path();
         match (old_path, new_path) {
-            (Some(ref old), Some(ref new)) if old != new => {
+            (Some(old), Some(new)) if old != new => {
                 println!("#\t{}  {} -> {}", istatus, old.display(),
                          new.display());
             }
@@ -204,7 +204,7 @@ fn print_long(statuses: &git2::Statuses) {
         let old_path = entry.index_to_workdir().unwrap().old_file().path();
         let new_path = entry.index_to_workdir().unwrap().new_file().path();
         match (old_path, new_path) {
-            (Some(ref old), Some(ref new)) if old != new => {
+            (Some(old), Some(new)) if old != new => {
                 println!("#\t{}  {} -> {}", istatus, old.display(),
                          new.display());
             }
