@@ -25,7 +25,7 @@ fn _message_prettify(message: CString, comment_char: Option<u8>)
 }
 
 /// The default comment character for message_prettify ('#')
-pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some('#' as u8);
+pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 
 #[cfg(test)]
 mod tests {
