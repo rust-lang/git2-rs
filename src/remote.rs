@@ -127,8 +127,8 @@ impl<'repo> Remote<'repo> {
                                           proxy_options: Option<ProxyOptions<'cb>>)
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
-        let cb = Box::new(cb.unwrap_or_else(|| RemoteCallbacks::new()));
-        let proxy_options = proxy_options.unwrap_or_else(|| ProxyOptions::new());
+        let cb = Box::new(cb.unwrap_or_else(RemoteCallbacks::new));
+        let proxy_options = proxy_options.unwrap_or_else(ProxyOptions::new);
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
                                               &cb.raw(),
