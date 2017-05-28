@@ -147,7 +147,7 @@ impl Config {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw, name));
 
         }
-        Ok(if out == 0 {false} else {true})
+        Ok(!(out == 0))
     }
 
     /// Get the value of an integer config variable.
