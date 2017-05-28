@@ -8,7 +8,7 @@ use {raw, Error};
 use util::Binding;
 
 /// Unique identity of any object (commit, tree, blob, tag).
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Oid {
     raw: raw::git_oid,
 }
@@ -114,10 +114,6 @@ impl Ord for Oid {
             _ => Ordering::Greater,
         }
     }
-}
-
-impl Clone for Oid {
-    fn clone(&self) -> Oid { *self }
 }
 
 impl Hash for Oid {
