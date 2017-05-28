@@ -1827,21 +1827,18 @@ impl Repository {
                 from_branch_raw
             }*/
             let from_branch_raw = from_branch.as_ref()
-                .map(|ref a| a.raw() as *const raw::git_annotated_commit)
-                .unwrap_or(ptr::null());
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
             let upstream_raw = upstream.as_ref()
-                .map(|ref a| a.raw() as *const raw::git_annotated_commit)
-                .unwrap_or(ptr::null());
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
             let to_branch_raw = to_branch.as_ref()
-                .map(|ref a| a.raw() as *const raw::git_annotated_commit)
-                .unwrap_or(ptr::null());
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
             let options_raw = options.map(|mut opts| opts.raw());
             try_call!(raw::git_rebase_init(&mut ret,
                                            self.raw(),
                                            from_branch_raw,
                                            upstream_raw,
                                            to_branch_raw,
-                                           options_raw.as_ref().map(|opts| opts as *const _).unwrap_or(ptr::null())));
+                                           options_raw.as_ref().map(|opts| opts as *const _)));
             drop(from_branch);
             drop(upstream);
             drop(to_branch);
