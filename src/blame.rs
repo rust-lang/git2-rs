@@ -35,6 +35,11 @@ impl<'repo> Blame<'repo> {
         unsafe { raw::git_blame_get_hunk_count(self.raw) as usize }
     }
 
+    /// Return `true` is there is no hunk in the blame structure.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Gets the blame hunk at the given index.
     pub fn get_index(&self, index: usize) -> Option<BlameHunk> {
         unsafe {

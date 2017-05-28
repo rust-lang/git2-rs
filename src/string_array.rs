@@ -61,6 +61,9 @@ impl StringArray {
 
     /// Returns the number of strings in this array.
     pub fn len(&self) -> usize { self.raw.count as usize }
+
+    /// Return `true` if this array is empty.
+    pub fn is_empty(&self) -> bool { self.len() == 0 }
 }
 
 impl Binding for StringArray {

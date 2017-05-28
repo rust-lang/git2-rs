@@ -225,6 +225,11 @@ impl Index {
         unsafe { raw::git_index_entrycount(&*self.raw) as usize }
     }
 
+    /// Return `true` is there is no entry in the index
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Get one of the entries in the index by its position.
     pub fn get(&self, n: usize) -> Option<IndexEntry> {
         unsafe {

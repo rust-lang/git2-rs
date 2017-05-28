@@ -23,6 +23,11 @@ impl<'repo> TreeBuilder<'repo> {
         unsafe { raw::git_treebuilder_entrycount(self.raw) as usize }
     }
 
+    /// Return `true` if there is no entry
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Get en entry from the builder from its filename
     pub fn get<P>(&self, filename: P) -> Result<Option<TreeEntry>, Error>
         where P: IntoCString

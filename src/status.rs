@@ -258,6 +258,11 @@ impl<'repo> Statuses<'repo> {
         unsafe { raw::git_status_list_entrycount(self.raw) as usize }
     }
 
+    /// Return `true` is there is not status entry in this list.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns an iterator over the statuses in this list.
     pub fn iter(&self) -> StatusIter {
         StatusIter {

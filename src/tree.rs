@@ -44,6 +44,11 @@ impl<'repo> Tree<'repo> {
         unsafe { raw::git_tree_entrycount(&*self.raw) as usize }
     }
 
+    /// Return `true` if there is not entry
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns an iterator over the entries in this tree.
     pub fn iter(&self) -> TreeIter {
         TreeIter { range: 0..self.len(), tree: self }

@@ -66,6 +66,11 @@ impl Reflog {
         unsafe { raw::git_reflog_entrycount(self.raw) as usize }
     }
 
+    /// Return `true ` is there is no log entry in a reflog
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Get an iterator to all entries inside of this reflog
     pub fn iter(&self) -> ReflogIter {
         ReflogIter { range: 0..self.len(), reflog: self }
