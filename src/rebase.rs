@@ -74,7 +74,7 @@ pub struct RebaseOptions<'a> {
     pub merge_options: Option<MergeOptions>,
 
     /// Options to control how files are written during a `rebase`.
-    pub checkout_options: Option<CheckoutBuilder<'a>>,
+    pub checkout_builder: Option<CheckoutBuilder<'a>>,
 }
 
 impl<'repo> Rebase<'repo> {
@@ -96,16 +96,16 @@ impl<'repo> Rebase<'repo> {
     /// You must have resolved any conflicts
     /// that were introduced during the patch application from the `next` invocation.
     pub fn commit(&self,
-                  author: &Signature,
+                  author: Option<&Signature>,
                   committer: &Signature,
-                  message: &str)
+                  message: Option<&str>)
                   -> Result<Oid, Error> {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
-        let message = try!(CString::new(message));
+        let message = try!(::opt_cstr(message));
         unsafe {
             try_call!(raw::git_rebase_commit(&mut raw,
                                              self.raw,
-                                             author.raw(),
+                                             author.map(|s|s.raw() as *const _),
                                              committer.raw(),
                                              0 as *const c_char,
                                              message));
@@ -221,16 +221,50 @@ impl<'a> RebaseOptions<'a> {
             in_memory: false,
             rewrite_notes_ref: None,
             merge_options: None,
-            checkout_options: None,
+            checkout_builder: None,
         }
+    }
+
+    /// this will instruct other clients working
+    /// on this `rebase` that you want a quiet rebase experience.
+    /// This is provided for interoperability between Git tools
+    pub fn quiet(&mut self, quiet: bool) -> &mut Self {
+        self.quiet = quiet;
+        self
+    }
+
+    /// Perform an in-memory rebase, will not updated the repository to be in a rebasing-state
+    /// or modify the working directory.
+    pub fn in_memory(&mut self, in_memory: bool) -> &mut Self {
+        self.in_memory = in_memory;
+        self
+    }
+
+    /// The name of the notes reference used to rewrite notes
+    /// for rebased commits when finishing the rebase
+    pub fn rewrite_notes_ref(&mut self, rewrite_notes_ref: Option<CString>) -> &mut Self {
+        self.rewrite_notes_ref = rewrite_notes_ref;
+        self
+    }
+
+    /// Options to control how trees are merged during a `rebase`.
+    pub fn merge_options(&mut self, merge_options: Option<MergeOptions>) -> &mut Self {
+        self.merge_options = merge_options;
+        self
+    }
+
+    /// Options to control how files are written during a `rebase`.
+    pub fn checkout_builder(&mut self, checkout_builder: Option<CheckoutBuilder<'a>>) -> &mut Self {
+        self.checkout_builder = checkout_builder;
+        self
     }
 
     /// raw value of options
     pub unsafe fn raw(&mut self) -> raw::git_rebase_options {
         let mut checkout_options: raw::git_checkout_options = mem::zeroed();
         raw::git_checkout_init_options(&mut checkout_options, raw::GIT_CHECKOUT_OPTIONS_VERSION);
-        if let Some(ref mut opts) = self.checkout_options {
-            opts.configure(&mut checkout_options);
+        if let Some(ref mut checkout_builder) = self.checkout_builder {
+            checkout_builder.configure(&mut checkout_options);
         }
         let mut merge_options: raw::git_merge_options = mem::zeroed();
         if let Some(ref opts) = self.merge_options {
