@@ -295,13 +295,15 @@ impl<'rebase, 'repo: 'rebase> RebaseOperation<'rebase, 'repo> {
     }
     /// The executable the user has requested be run.  This will only
     /// be populated for operations of type `Exec`
-    pub fn exec(&self) -> Option<CString> {
+    ///Returns `None` if `exec` is not valid utf-8
+    pub fn exec(&self) -> Option<&str> {
+        ::std::str::from_utf8(self.exec_bytes()).ok()
+    }
+    /// Corresponding bytes of the `exec` that has been requested to run.
+    /// Only populated for operation of type `Exec`
+    pub fn exec_bytes(&self) -> &[u8] {
         unsafe {
-            if !(*self.raw).exec.is_null() {
-                Some(CString::from_raw((*self.raw).exec as *mut c_char))
-            } else {
-                None
-            }
+            ::opt_bytes(self, (*self.raw).exec).unwrap()
         }
     }
 }
