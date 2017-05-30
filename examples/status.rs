@@ -309,8 +309,8 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
             b = diff.new_file().path();
         }
         if let Some(diff) = entry.index_to_workdir() {
-            a.or_else(|| diff.old_file().path());
-            b.or_else(|| diff.old_file().path());
+            a = a.or_else(|| diff.old_file().path());
+            b = b.or_else(|| diff.old_file().path());
             c = diff.new_file().path();
         }
 
