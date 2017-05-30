@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::io;
+#[cfg(unix)]
 use std::ptr;
 use tempdir::TempDir;
 use url::Url;
