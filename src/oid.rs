@@ -49,7 +49,7 @@ impl Oid {
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {
-        unsafe { raw::git_oid_iszero(&self.raw) == 1 }
+        self.raw.id == [0; 20]
     }
 }
 
@@ -71,13 +71,11 @@ impl fmt::Debug for Oid {
 impl fmt::Display for Oid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
-        unsafe {
-            raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
-                               dst.len() as libc::size_t, &self.raw);
+        for byte in &self.raw.id {
+            try!(write!(f, "{:x}", *byte))
         }
-        let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
-        str::from_utf8(s).unwrap().fmt(f)
+
+        Ok(())
     }
 }
 
@@ -95,7 +93,7 @@ impl str::FromStr for Oid {
 
 impl PartialEq for Oid {
     fn eq(&self, other: &Oid) -> bool {
-        unsafe { raw::git_oid_equal(&self.raw, &other.raw) != 0 }
+        self.raw.id == other.raw.id
     }
 }
 impl Eq for Oid {}
@@ -108,11 +106,7 @@ impl PartialOrd for Oid {
 
 impl Ord for Oid {
     fn cmp(&self, other: &Oid) -> Ordering {
-        match unsafe { raw::git_oid_cmp(&self.raw, &other.raw) } {
-            0 => Ordering::Equal,
-            n if n < 0 => Ordering::Less,
-            _ => Ordering::Greater,
-        }
+        Ord::cmp(&self.raw.id, &other.raw.id)
     }
 }
 
