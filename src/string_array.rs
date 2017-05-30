@@ -1,4 +1,4 @@
-//! Bindings to libgit2's raw git_strarray type
+//! Bindings to libgit2's raw `git_strarray` type
 
 use std::str;
 use std::ops::Range;

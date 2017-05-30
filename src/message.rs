@@ -6,7 +6,7 @@ use {raw, Buf, Error, IntoCString};
 use util::Binding;
 
 /// Clean up a message, removing extraneous whitespace, and ensure that the
-/// message ends with a newline. If comment_char is Some, also remove comment
+/// message ends with a newline. If `comment_char` is `Some`, also remove comment
 /// lines starting with that character.
 pub fn message_prettify<T: IntoCString>(message: T, comment_char: Option<u8>)
                                         -> Result<String, Error> {
@@ -24,7 +24,7 @@ fn _message_prettify(message: CString, comment_char: Option<u8>)
     Ok(ret.as_str().unwrap().to_string())
 }
 
-/// The default comment character for message_prettify ('#')
+/// The default comment character for `message_prettify` ('#')
 pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 
 #[cfg(test)]
