@@ -152,8 +152,10 @@ fn run(args: &Args) -> Result<(), Error> {
         try!(diff.print(args.diff_format(), |_delta, _hunk, line| {
             if args.color() {
                 let next = match line.origin() {
-                    '+' | '>' => Some(GREEN),
-                    '-' | '<' => Some(RED),
+                    '+' => Some(GREEN),
+                    '-' => Some(RED),
+                    '>' => Some(GREEN),
+                    '<' => Some(RED),
                     'F' => Some(BOLD),
                     'H' => Some(CYAN),
                     _ => None
@@ -224,7 +226,8 @@ impl Args {
             match self.flag_format.as_ref().map(|s| &s[..]) {
                 Some("name") => DiffFormat::NameOnly,
                 Some("name-status") => DiffFormat::NameStatus,
-                Some("raw") | Some("diff-index") => DiffFormat::Raw,
+                Some("raw") => DiffFormat::Raw,
+                Some("diff-index") => DiffFormat::Raw,
                 _ => DiffFormat::Patch,
             }
         }

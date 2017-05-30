@@ -47,6 +47,8 @@ impl Error {
     /// Return the error code associated with this error.
     pub fn code(&self) -> ErrorCode {
         match self.raw_code() {
+            raw::GIT_OK => super::ErrorCode::GenericError,
+            raw::GIT_ERROR => super::ErrorCode::GenericError,
             raw::GIT_ENOTFOUND => super::ErrorCode::NotFound,
             raw::GIT_EEXISTS => super::ErrorCode::Exists,
             raw::GIT_EAMBIGUOUS => super::ErrorCode::Ambiguous,
@@ -60,6 +62,8 @@ impl Error {
             raw::GIT_ECONFLICT => super::ErrorCode::Conflict,
             raw::GIT_ELOCKED => super::ErrorCode::Locked,
             raw::GIT_EMODIFIED => super::ErrorCode::Modified,
+            raw::GIT_PASSTHROUGH => super::ErrorCode::GenericError,
+            raw::GIT_ITEROVER => super::ErrorCode::GenericError,
             raw::GIT_EAUTH => super::ErrorCode::Auth,
             raw::GIT_ECERTIFICATE => super::ErrorCode::Certificate,
             raw::GIT_EAPPLIED => super::ErrorCode::Applied,
@@ -75,6 +79,7 @@ impl Error {
     /// Return the error class associated with this error.
     pub fn class(&self) -> ErrorClass {
         match self.raw_class() {
+            raw::GITERR_NONE => super::ErrorClass::None,
             raw::GITERR_NOMEMORY => super::ErrorClass::NoMemory,
             raw::GITERR_OS => super::ErrorClass::Os,
             raw::GITERR_INVALID => super::ErrorClass::Invalid,
