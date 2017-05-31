@@ -43,9 +43,9 @@ fn run(args: &Args) -> Result<(), Error> {
 
         if let Some(ref message) = args.flag_message {
             let sig = try!(repo.signature());
-            try!(repo.tag(&name, &obj, &sig, &message, args.flag_force));
+            try!(repo.tag(name, &obj, &sig, message, args.flag_force));
         } else {
-            try!(repo.tag_lightweight(&name, &obj, args.flag_force));
+            try!(repo.tag_lightweight(name, &obj, args.flag_force));
         }
 
     } else if let Some(ref name) = args.flag_delete {

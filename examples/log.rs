@@ -60,13 +60,13 @@ fn run(args: &Args) -> Result<(), Error> {
     } else {
         git2::SORT_NONE
     });
-    for commit in args.arg_commit.iter() {
-        if commit.starts_with("^") {
+    for commit in &args.arg_commit {
+        if commit.starts_with('^') {
             let obj = try!(repo.revparse_single(&commit[1..]));
             try!(revwalk.hide(obj.id()));
             continue
         }
-        let revspec = try!(repo.revparse(&commit));
+        let revspec = try!(repo.revparse(commit));
         if revspec.mode().contains(git2::REVPARSE_SINGLE) {
             try!(revwalk.push(revspec.from().unwrap().id()));
         } else {
@@ -81,13 +81,13 @@ fn run(args: &Args) -> Result<(), Error> {
             try!(revwalk.hide(from));
         }
     }
-    if args.arg_commit.len() == 0 {
+    if args.arg_commit.is_empty() {
         try!(revwalk.push_head());
     }
 
     // Prepare our diff options and pathspec matcher
     let (mut diffopts, mut diffopts2) = (DiffOptions::new(), DiffOptions::new());
-    for spec in args.arg_spec.iter() {
+    for spec in &args.arg_spec {
         diffopts.pathspec(spec);
         diffopts2.pathspec(spec);
     }
@@ -105,7 +105,7 @@ fn run(args: &Args) -> Result<(), Error> {
         if let Some(n) = args.max_parents() {
             if parents >= n { return None }
         }
-        if args.arg_spec.len() > 0 {
+        if !args.arg_spec.is_empty() {
             match commit.parents().len() {
                 0 => {
                     let tree = filter_try!(commit.tree());
@@ -121,8 +121,8 @@ fn run(args: &Args) -> Result<(), Error> {
                 }
             }
         }
-        if !sig_matches(commit.author(), &args.flag_author) { return None }
-        if !sig_matches(commit.committer(), &args.flag_committer) { return None }
+        if !sig_matches(&commit.author(), &args.flag_author) { return None }
+        if !sig_matches(&commit.committer(), &args.flag_committer) { return None }
         if !log_message_matches(commit.message(), &args.flag_grep) { return None }
         Some(Ok(commit))
     }).skip(args.flag_skip.unwrap_or(0)).take(args.flag_max_count.unwrap_or(!0));
@@ -154,7 +154,7 @@ fn run(args: &Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn sig_matches(sig: Signature, arg: &Option<String>) -> bool {
+fn sig_matches(sig: &Signature, arg: &Option<String>) -> bool {
     match *arg {
         Some(ref s) => {
             sig.name().map(|n| n.contains(s)).unwrap_or(false) ||

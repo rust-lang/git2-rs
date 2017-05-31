@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::marker;
 use std::mem;
 use std::slice;
+use std::ptr;
 use std::str;
 use libc::{c_void, c_int, c_char, c_uint};
 
@@ -75,6 +76,12 @@ pub type CertificateCheck<'a> = FnMut(&Cert, &str) -> bool + 'a;
 /// the status message sent by a server. If the status is `Some` then the update
 /// was rejected by the remote server with a reason why.
 pub type PushUpdateReference<'a> = FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
+
+impl<'a> Default for RemoteCallbacks<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
@@ -185,7 +192,7 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 callbacks.update_tips = Some(f);
             }
             callbacks.payload = self as *const _ as *mut _;
-            return callbacks;
+            callbacks
         }
     }
 }
@@ -258,7 +265,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             let payload = &mut *(payload as *mut RemoteCallbacks);
             let callback = try!(payload.credentials.as_mut()
                                        .ok_or(raw::GIT_PASSTHROUGH as c_int));
-            *ret = 0 as *mut raw::git_cred;
+            *ret = ptr::null_mut();
             let url = try!(str::from_utf8(CStr::from_ptr(url).to_bytes())
                               .map_err(|_| raw::GIT_PASSTHROUGH as c_int));
             let username_from_url = match ::opt_bytes(&url, username_from_url) {

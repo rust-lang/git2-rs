@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use std::ffi::CString;
 use std::marker;
 use std::mem;
+use std::ptr;
 use std::str;
-use libc;
 
 use {raw, Error, Oid, Repository, Object, ObjectType};
 use util::Binding;
@@ -142,7 +142,7 @@ impl<'repo> Reference<'repo> {
     /// If a direct reference is passed as an argument, a copy of that
     /// reference is returned.
     pub fn resolve(&self) -> Result<Reference<'repo>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_resolve(&mut raw, &*self.raw));
             Ok(Binding::from_raw(raw))
@@ -154,7 +154,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// an object of the specified type.
     pub fn peel(&self, kind: ObjectType) -> Result<Object<'repo>, Error> {
-        let mut raw = 0 as *mut raw::git_object;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_peel(&mut raw, self.raw, kind));
             Ok(Binding::from_raw(raw))
@@ -169,7 +169,7 @@ impl<'repo> Reference<'repo> {
     /// the given name, the renaming will fail.
     pub fn rename(&mut self, new_name: &str, force: bool,
                   msg: &str) -> Result<Reference<'repo>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         let new_name = try!(CString::new(new_name));
         let msg = try!(CString::new(msg));
         unsafe {
@@ -187,7 +187,7 @@ impl<'repo> Reference<'repo> {
     /// reference.
     pub fn set_target(&mut self, id: Oid, reflog_msg: &str)
                       -> Result<Reference<'repo>, Error> {
-        let mut raw = 0 as *mut raw::git_reference;
+        let mut raw = ptr::null_mut();
         let msg = try!(CString::new(reflog_msg));
         unsafe {
             try_call!(raw::git_reference_set_target(&mut raw, self.raw,
@@ -261,7 +261,7 @@ impl<'repo> Binding for References<'repo> {
 impl<'repo> Iterator for References<'repo> {
     type Item = Result<Reference<'repo>, Error>;
     fn next(&mut self) -> Option<Result<Reference<'repo>, Error>> {
-        let mut out = 0 as *mut raw::git_reference;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call_iter!(raw::git_reference_next(&mut out, self.raw));
             Some(Ok(Binding::from_raw(out)))
@@ -278,7 +278,7 @@ impl<'repo> Drop for References<'repo> {
 impl<'repo> Iterator for ReferenceNames<'repo> {
     type Item = Result<&'repo str, Error>;
     fn next(&mut self) -> Option<Result<&'repo str, Error>> {
-        let mut out = 0 as *const libc::c_char;
+        let mut out = ptr::null();
         unsafe {
             try_call_iter!(raw::git_reference_next_name(&mut out,
                                                         self.inner.raw));

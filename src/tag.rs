@@ -1,5 +1,6 @@
 use std::marker;
 use std::mem;
+use std::ptr;
 use std::str;
 
 use {raw, signature, Error, Oid, Object, Signature, ObjectType};
@@ -47,7 +48,7 @@ impl<'repo> Tag<'repo> {
 
     /// Recursively peel a tag until a non tag git_object is found
     pub fn peel(&self) -> Result<Object<'repo>, Error> {
-        let mut ret = 0 as *mut raw::git_object;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tag_peel(&mut ret, &*self.raw));
             Ok(Binding::from_raw(ret))
@@ -73,7 +74,7 @@ impl<'repo> Tag<'repo> {
     /// This method performs a repository lookup for the given object and
     /// returns it
     pub fn target(&self) -> Result<Object<'repo>, Error> {
-        let mut ret = 0 as *mut raw::git_object;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tag_target(&mut ret, &*self.raw));
             Ok(Binding::from_raw(ret))

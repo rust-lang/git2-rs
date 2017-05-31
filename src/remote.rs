@@ -2,6 +2,7 @@ use std::ffi::CString;
 use std::ops::Range;
 use std::marker;
 use std::mem;
+use std::ptr;
 use std::slice;
 use std::str;
 use libc;
@@ -110,9 +111,9 @@ impl<'repo> Remote<'repo> {
         // TODO: can callbacks be exposed safely?
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
-                                              0 as *const _,
-                                              0 as *const _,
-                                              0 as *const _));
+                                              ptr::null(),
+                                              ptr::null(),
+                                              ptr::null()));
         }
         Ok(())
     }
@@ -126,13 +127,13 @@ impl<'repo> Remote<'repo> {
                                           proxy_options: Option<ProxyOptions<'cb>>)
                     -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
 
-        let cb = Box::new(cb.unwrap_or_else(|| RemoteCallbacks::new()));
-        let proxy_options = proxy_options.unwrap_or_else(|| ProxyOptions::new());
+        let cb = Box::new(cb.unwrap_or_else(RemoteCallbacks::new));
+        let proxy_options = proxy_options.unwrap_or_else(ProxyOptions::new);
         unsafe {
             try_call!(raw::git_remote_connect(self.raw, dir,
                                               &cb.raw(),
                                               &proxy_options.raw(),
-                                              0 as *const _));
+                                              ptr::null()));
         }
 
         Ok(RemoteConnection {
@@ -271,7 +272,7 @@ impl<'repo> Remote<'repo> {
     /// the remote is initiated and it remains available after disconnecting.
     pub fn list(&self) -> Result<&[RemoteHead], Error> {
         let mut size = 0;
-        let mut base = 0 as *mut _;
+        let mut base = ptr::null_mut();
         unsafe {
             try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
             assert_eq!(mem::size_of::<RemoteHead>(),
@@ -303,7 +304,7 @@ impl<'repo> Remote<'repo> {
 
 impl<'repo> Clone for Remote<'repo> {
     fn clone(&self) -> Remote<'repo> {
-        let mut ret = 0 as *mut raw::git_remote;
+        let mut ret = ptr::null_mut();
         let rc = unsafe { call!(raw::git_remote_dup(&mut ret, self.raw)) };
         assert_eq!(rc, 0);
         Remote {
@@ -367,6 +368,12 @@ impl<'remote> RemoteHead<'remote> {
     pub fn symref_target(&self) -> Option<&str> {
         let b = unsafe { ::opt_bytes(self, (*self.raw).symref_target) };
         b.map(|b| str::from_utf8(b).unwrap())
+    }
+}
+
+impl<'cb> Default for FetchOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -437,9 +444,16 @@ impl<'cb> Binding for FetchOptions<'cb> {
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
                 count: 0,
-                strings: 0 as *mut _,
+                strings: ptr::null_mut(),
             },
         }
+    }
+}
+
+
+impl<'cb> Default for PushOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -486,15 +500,16 @@ impl<'cb> Binding for PushOptions<'cb> {
     fn raw(&self) -> raw::git_push_options {
         raw::git_push_options {
             version: 1,
-            callbacks: self.callbacks.as_ref().map(|m| m.raw())
-                           .unwrap_or(RemoteCallbacks::new().raw()),
+            callbacks: self.callbacks.as_ref()
+                           .map(|m| m.raw())
+                           .unwrap_or_else(|| RemoteCallbacks::new().raw()),
             proxy_opts: self.proxy.as_ref().map(|m| m.raw())
                             .unwrap_or_else(|| ProxyOptions::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
                 count: 0,
-                strings: 0 as *mut _,
+                strings: ptr::null_mut(),
             },
         }
     }

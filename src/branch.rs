@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::marker;
+use std::ptr;
 use std::str;
-use libc;
 
 use {raw, Error, Reference, BranchType, References};
 use util::Binding;
@@ -46,7 +46,7 @@ impl<'repo> Branch<'repo> {
     /// Move/rename an existing local branch reference.
     pub fn rename(&mut self, new_branch_name: &str, force: bool)
                   -> Result<Branch<'repo>, Error> {
-        let mut ret = 0 as *mut raw::git_reference;
+        let mut ret = ptr::null_mut();
         let new_branch_name = try!(CString::new(new_branch_name));
         unsafe {
             try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
@@ -64,7 +64,7 @@ impl<'repo> Branch<'repo> {
 
     /// Return the name of the given local or remote branch.
     pub fn name_bytes(&self) -> Result<&[u8], Error> {
-        let mut ret = 0 as *const libc::c_char;
+        let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_branch_name(&mut ret, &*self.get().raw()));
             Ok(::opt_bytes(self, ret).unwrap())
@@ -74,7 +74,7 @@ impl<'repo> Branch<'repo> {
     /// Return the reference supporting the remote tracking branch, given a
     /// local branch reference.
     pub fn upstream<'a>(&'a self) -> Result<Branch<'a>, Error> {
-        let mut ret = 0 as *mut raw::git_reference;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_upstream(&mut ret, &*self.get().raw()));
             Ok(Branch::wrap(Binding::from_raw(ret)))
@@ -113,7 +113,7 @@ impl<'repo> Branches<'repo> {
 impl<'repo> Iterator for Branches<'repo> {
     type Item = Result<(Branch<'repo>, BranchType), Error>;
     fn next(&mut self) -> Option<Result<(Branch<'repo>, BranchType), Error>> {
-        let mut ret = 0 as *mut raw::git_reference;
+        let mut ret = ptr::null_mut();
         let mut typ = raw::GIT_BRANCH_LOCAL;
         unsafe {
             try_call_iter!(raw::git_branch_next(&mut ret, &mut typ, self.raw));

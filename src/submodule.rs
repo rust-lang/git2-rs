@@ -1,4 +1,5 @@
 use std::marker;
+use std::ptr;
 use std::str;
 use std::path::Path;
 
@@ -108,7 +109,7 @@ impl<'repo> Submodule<'repo> {
     /// This will only work if the submodule is checked out into the working
     /// directory.
     pub fn open(&self) -> Result<Repository, Error> {
-        let mut raw = 0 as *mut raw::git_repository;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_submodule_open(&mut raw, self.raw));
             Ok(Binding::from_raw(raw))

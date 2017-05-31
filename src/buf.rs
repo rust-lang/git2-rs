@@ -1,7 +1,7 @@
 use std::slice;
 use std::str;
+use std::ptr;
 use std::ops::{Deref, DerefMut};
-use libc;
 
 use raw;
 use util::Binding;
@@ -14,13 +14,19 @@ pub struct Buf {
     raw: raw::git_buf,
 }
 
+impl Default for Buf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Buf {
     /// Creates a new empty buffer.
     pub fn new() -> Buf {
         ::init();
         unsafe {
             Binding::from_raw(&mut raw::git_buf {
-                ptr: 0 as *mut libc::c_char,
+                ptr: ptr::null_mut(),
                 size: 0,
                 asize: 0,
             } as *mut _)

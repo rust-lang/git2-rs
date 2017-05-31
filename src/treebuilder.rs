@@ -1,4 +1,5 @@
 use std::marker;
+use std::ptr;
 
 use libc::{c_int, c_void};
 
@@ -20,6 +21,11 @@ impl<'repo> TreeBuilder<'repo> {
     /// Get the number of entries
     pub fn len(&self) -> usize {
         unsafe { raw::git_treebuilder_entrycount(self.raw) as usize }
+    }
+
+    /// Return `true` if there is no entry
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Get en entry from the builder from its filename
@@ -49,7 +55,7 @@ impl<'repo> TreeBuilder<'repo> {
         let filename = try!(filename.into_c_string());
         let filemode = filemode as raw::git_filemode_t;
 
-        let mut ret = 0 as *const raw::git_tree_entry;
+        let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_treebuilder_insert(&mut ret, self.raw, filename,
                                                   oid.raw(), filemode));

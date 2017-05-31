@@ -55,7 +55,7 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if let Some(ref s) = args.flag_shared {
-            opts.mode(try!(parse_shared(&s)));
+            opts.mode(try!(parse_shared(s)));
         }
         try!(Repository::init_opts(&path, &opts))
     };
@@ -113,10 +113,10 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
         "true" | "group" => Ok(git2::REPOSITORY_INIT_SHARED_GROUP),
         "all" | "world" => Ok(git2::REPOSITORY_INIT_SHARED_ALL),
         _ => {
-            if shared.starts_with("0") {
+            if shared.starts_with('0') {
                 match u32::from_str_radix(&shared[1..], 8).ok() {
                     Some(n) => {
-                        return Ok(RepositoryInitMode::from_bits_truncate(n))
+                        Ok(RepositoryInitMode::from_bits_truncate(n))
                     }
                     None => {
                         Err(Error::from_str("invalid octal value for --shared"))

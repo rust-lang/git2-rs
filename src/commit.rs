@@ -1,6 +1,7 @@
 use std::marker;
 use std::mem;
 use std::ops::Range;
+use std::ptr;
 use std::str;
 use libc;
 
@@ -42,7 +43,7 @@ impl<'repo> Commit<'repo> {
 
     /// Get the tree pointed to by a commit.
     pub fn tree(&self) -> Result<Tree<'repo>, Error> {
-        let mut ret = 0 as *mut raw::git_tree;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_commit_tree(&mut ret, &*self.raw));
             Ok(Binding::from_raw(ret))
@@ -210,7 +211,7 @@ impl<'repo> Commit<'repo> {
     /// Use the `parents` iterator to return an iterator over all parents.
     pub fn parent(&self, i: usize) -> Result<Commit<'repo>, Error> {
         unsafe {
-            let mut raw = 0 as *mut raw::git_commit;
+            let mut raw = ptr::null_mut();
             try_call!(raw::git_commit_parent(&mut raw, &*self.raw,
                                              i as libc::c_uint));
             Ok(Binding::from_raw(raw))

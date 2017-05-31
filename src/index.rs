@@ -1,6 +1,7 @@
 use std::ffi::{CStr, OsString, CString};
 use std::ops::Range;
 use std::path::Path;
+use std::ptr;
 use std::slice;
 
 use libc::{c_int, c_uint, size_t, c_void, c_char};
@@ -56,7 +57,7 @@ impl Index {
     /// used to perform in-memory index operations.
     pub fn new() -> Result<Index, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_index;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_index_new(&mut raw));
             Ok(Binding::from_raw(raw))
@@ -73,7 +74,7 @@ impl Index {
     /// on `Repository`.
     pub fn open(index_path: &Path) -> Result<Index, Error> {
         ::init();
-        let mut raw = 0 as *mut raw::git_index;
+        let mut raw = ptr::null_mut();
         let index_path = try!(index_path.into_c_string());
         unsafe {
             try_call!(raw::git_index_open(&mut raw, index_path));
@@ -204,10 +205,10 @@ impl Index {
                                              flag.bits() as c_uint,
                                              callback,
                                              ptr.map(|p| p as *mut _)
-                                                .unwrap_or(0 as *mut _)
+                                                .unwrap_or(ptr::null_mut())
                                                     as *mut c_void));
         }
-        return Ok(());
+        Ok(())
     }
 
     /// Clear the contents (all the entries) of an index object.
@@ -222,6 +223,11 @@ impl Index {
     /// Get the count of entries currently in the index
     pub fn len(&self) -> usize {
         unsafe { raw::git_index_entrycount(&*self.raw) as usize }
+    }
+
+    /// Return `true` is there is no entry in the index
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Get one of the entries in the index by its position.
@@ -345,10 +351,10 @@ impl Index {
                                                 &raw_strarray,
                                                 callback,
                                                 ptr.map(|p| p as *mut _)
-                                                   .unwrap_or(0 as *mut _)
+                                                   .unwrap_or(ptr::null_mut())
                                                         as *mut c_void));
         }
-        return Ok(());
+        Ok(())
     }
 
     /// Update all index entries to match the working directory
@@ -380,10 +386,10 @@ impl Index {
                                                 &raw_strarray,
                                                 callback,
                                                 ptr.map(|p| p as *mut _)
-                                                   .unwrap_or(0 as *mut _)
+                                                   .unwrap_or(ptr::null_mut())
                                                         as *mut c_void));
         }
-        return Ok(());
+        Ok(())
     }
 
     /// Write an existing index object from memory back to disk using an atomic

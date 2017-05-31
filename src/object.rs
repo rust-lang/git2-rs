@@ -35,7 +35,7 @@ impl<'repo> Object<'repo> {
     /// peeled until the type changes (e.g. a tag will be chased until the
     /// referenced object is no longer a tag).
     pub fn peel(&self, kind: ObjectType) -> Result<Object<'repo>, Error> {
-        let mut raw = 0 as *mut raw::git_object;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_object_peel(&mut raw, &*self.raw(), kind));
             Ok(Binding::from_raw(raw))
@@ -117,7 +117,7 @@ impl<'repo> Object<'repo> {
     /// Performs a describe operation on this commitish object.
     pub fn describe(&self, opts: &DescribeOptions)
                     -> Result<Describe, Error> {
-        let mut ret = 0 as *mut _;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_describe_commit(&mut ret, self.raw, opts.raw()));
             Ok(Binding::from_raw(ret))
@@ -149,7 +149,7 @@ impl<'repo> Object<'repo> {
 
 impl<'repo> Clone for Object<'repo> {
     fn clone(&self) -> Object<'repo> {
-        let mut raw = 0 as *mut raw::git_object;
+        let mut raw = ptr::null_mut();
         unsafe {
             let rc = raw::git_object_dup(&mut raw, self.raw);
             assert_eq!(rc, 0);

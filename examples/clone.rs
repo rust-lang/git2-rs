@@ -49,7 +49,7 @@ fn print(state: &mut State) {
         0
     };
     let kbytes = stats.received_bytes() / 1024;
-    if stats.received_objects() == stats.total_objects() && false {
+    if stats.received_objects() == stats.total_objects() {
         if !state.newline {
             println!("");
             state.newline = true;
@@ -63,8 +63,10 @@ fn print(state: &mut State) {
                stats.total_objects(),
                index_pct, stats.indexed_objects(), stats.total_objects(),
                co_pct, state.current, state.total,
-               state.path.as_ref().map(|s| s.to_string_lossy().into_owned())
-                                  .unwrap_or(String::new()));
+               state.path
+                    .as_ref()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_default())
     }
     io::stdout().flush().unwrap();
 }

@@ -3,6 +3,7 @@ use std::io::Write;
 use std::mem;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::ptr;
 use url;
 
 use {raw, Error, Config, IntoCString};
@@ -29,7 +30,7 @@ impl Cred {
     /// or Kerberos authentication.
     pub fn default() -> Result<Cred, Error> {
         ::init();
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_default_new(&mut out));
             Ok(Binding::from_raw(out))
@@ -41,7 +42,7 @@ impl Cred {
     /// The username specified is the username to authenticate.
     pub fn ssh_key_from_agent(username: &str) -> Result<Cred, Error> {
         ::init();
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         let username = try!(CString::new(username));
         unsafe {
             try_call!(raw::git_cred_ssh_key_from_agent(&mut out, username));
@@ -59,7 +60,7 @@ impl Cred {
         let publickey = try!(::opt_cstr(publickey));
         let privatekey = try!(privatekey.into_c_string());
         let passphrase = try!(::opt_cstr(passphrase));
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_ssh_key_new(&mut out, username, publickey,
                                                 privatekey, passphrase));
@@ -73,7 +74,7 @@ impl Cred {
         ::init();
         let username = try!(CString::new(username));
         let password = try!(CString::new(password));
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_userpass_plaintext_new(&mut out, username,
                                                            password));
@@ -112,7 +113,7 @@ impl Cred {
     pub fn username(username: &str) -> Result<Cred, Error> {
         ::init();
         let username = try!(CString::new(username));
-        let mut out = 0 as *mut raw::git_cred;
+        let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_username_new(&mut out, username));
             Ok(Binding::from_raw(out))
@@ -131,7 +132,7 @@ impl Cred {
 
     /// Unwrap access to the underlying raw pointer, canceling the destructor
     pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
-        mem::replace(&mut self.raw, 0 as *mut raw::git_cred)
+        mem::replace(&mut self.raw, ptr::null_mut())
     }
 }
 
@@ -174,7 +175,7 @@ impl CredentialHelper {
             }
             ret.protocol = Some(url.scheme().to_string())
         }
-        return ret;
+        ret
     }
 
     /// Set the username that this credential helper will query with.
@@ -216,12 +217,9 @@ impl CredentialHelper {
     fn config_helper(&mut self, config: &Config) {
         let exact = config.get_string(&self.exact_key("helper"));
         self.add_command(exact.as_ref().ok().map(|s| &s[..]));
-        match self.url_key("helper") {
-            Some(key) => {
-                let url = config.get_string(&key);
-                self.add_command(url.as_ref().ok().map(|s| &s[..]));
-            }
-            None => {}
+        if let Some(key) = self.url_key("helper") {
+            let url = config.get_string(&key);
+            self.add_command(url.as_ref().ok().map(|s| &s[..]));
         }
         let global = config.get_string("credential.helper");
         self.add_command(global.as_ref().ok().map(|s| &s[..]));
@@ -237,9 +235,9 @@ impl CredentialHelper {
             Some(s) => s,
         };
 
-        if cmd.starts_with("!") {
+        if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
-        } else if cmd.starts_with("/") || cmd.starts_with("\\") ||
+        } else if cmd.starts_with('/') || cmd.starts_with('\\') ||
                   cmd[1..].starts_with(":\\") {
             self.commands.push(format!("\"{}\"", cmd));
         } else {
@@ -267,8 +265,8 @@ impl CredentialHelper {
     pub fn execute(&self) -> Option<(String, String)> {
         let mut username = self.username.clone();
         let mut password = None;
-        for cmd in self.commands.iter() {
-            let (u, p) = self.execute_cmd(&cmd, &username);
+        for cmd in &self.commands {
+            let (u, p) = self.execute_cmd(cmd, &username);
             if u.is_some() && username.is_none() {
                 username = u;
             }
@@ -302,22 +300,19 @@ impl CredentialHelper {
         // stdin
         {
             let stdin = p.stdin.as_mut().unwrap();
-            match self.protocol {
-                Some(ref p) => { let _ = writeln!(stdin, "protocol={}", p); }
-                None => {}
+            if let Some(ref p)  = self.protocol {
+                let _ = writeln!(stdin, "protocol={}", p);
             }
-            match self.host {
-                Some(ref p) => { let _ = writeln!(stdin, "host={}", p); }
-                None => {}
+            if let Some(ref p)  = self.host {
+                let _ = writeln!(stdin, "host={}", p);
             }
-            match *username {
-                Some(ref p) => { let _ = writeln!(stdin, "username={}", p); }
-                None => {}
+            if let Some(ref p)  = *username {
+                let _ = writeln!(stdin, "username={}", p);
             }
         }
         let output = my_try!(p.wait_with_output());
         if !output.status.success() { return (None, None) }
-        return self.parse_output(output.stdout)
+        self.parse_output(output.stdout)
     }
 
     // Parse the output of a command into the username/password found

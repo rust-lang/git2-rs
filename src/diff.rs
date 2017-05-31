@@ -3,6 +3,7 @@ use std::marker;
 use std::mem;
 use std::ops::Range;
 use std::path::Path;
+use std::ptr;
 use std::slice;
 use libc::{c_char, size_t, c_void, c_int};
 
@@ -161,7 +162,7 @@ impl<'repo> Diff<'repo> {
         unsafe {
             try_call!(raw::git_diff_print(self.raw, format, print_cb,
                                           ptr as *mut _));
-            return Ok(())
+            Ok(())
         }
     }
 
@@ -200,13 +201,13 @@ impl<'repo> Diff<'repo> {
             try_call!(raw::git_diff_foreach(self.raw, file_cb_c, binary_cb_c,
                                             hunk_cb_c, line_cb_c,
                                             ptr as *mut _));
-            return Ok(())
+            Ok(())
         }
     }
 
     /// Accumulate diff statistics for all patches.
     pub fn stats(&self) -> Result<DiffStats, Error> {
-        let mut ret = 0 as *mut raw::git_diff_stats;
+        let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_diff_get_stats(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
@@ -430,6 +431,12 @@ impl<'a> Binding for DiffFile<'a> {
         }
     }
     fn raw(&self) -> *const raw::git_diff_file { self.raw }
+}
+
+impl Default for DiffOptions {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DiffOptions {
@@ -689,9 +696,9 @@ impl DiffOptions {
     /// structure is not moved, modified, or used elsewhere.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_options {
         self.raw.old_prefix = self.old_prefix.as_ref().map(|s| s.as_ptr())
-                                  .unwrap_or(0 as *const _);
+                                  .unwrap_or(ptr::null());
         self.raw.new_prefix = self.new_prefix.as_ref().map(|s| s.as_ptr())
-                                  .unwrap_or(0 as *const _);
+                                  .unwrap_or(ptr::null());
         self.raw.pathspec.count = self.pathspec_ptrs.len() as size_t;
         self.raw.pathspec.strings = self.pathspec_ptrs.as_ptr() as *mut _;
         &self.raw as *const _
@@ -953,6 +960,12 @@ impl Binding for DiffBinaryKind {
             DiffBinaryKind::Literal => raw::GIT_DIFF_BINARY_LITERAL,
             DiffBinaryKind::Delta => raw::GIT_DIFF_BINARY_DELTA,
         }
+    }
+}
+
+impl Default for DiffFindOptions {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

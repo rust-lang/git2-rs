@@ -58,6 +58,12 @@ pub struct StatusEntry<'statuses> {
     _marker: marker::PhantomData<&'statuses DiffDelta<'statuses>>,
 }
 
+impl Default for StatusOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StatusOptions {
     /// Creates a new blank set of status options.
     pub fn new() -> StatusOptions {
@@ -250,6 +256,11 @@ impl<'repo> Statuses<'repo> {
     /// when the status list was created), this can return 0.
     pub fn len(&self) -> usize {
         unsafe { raw::git_status_list_entrycount(self.raw) as usize }
+    }
+
+    /// Return `true` is there is not status entry in this list.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns an iterator over the statuses in this list.

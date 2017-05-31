@@ -27,7 +27,6 @@ use git2::{Repository, Error, StatusOptions, ErrorCode, SubmoduleIgnore};
 struct Args {
     arg_spec: Vec<String>,
     flag_short: bool,
-    flag_long: bool,
     flag_porcelain: bool,
     flag_branch: bool,
     flag_z: bool,
@@ -43,7 +42,7 @@ struct Args {
 enum Format { Long, Short, Porcelain }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let path = args.flag_git_dir.clone().unwrap_or(".".to_string());
+    let path = args.flag_git_dir.clone().unwrap_or_else(|| ".".to_string());
     let repo = try!(Repository::open(&path));
     if repo.is_bare() {
         return Err(Error::from_str("cannot report status on bare repository"))
@@ -66,7 +65,7 @@ fn run(args: &Args) -> Result<(), Error> {
         None => {}
     }
     opts.include_untracked(!args.flag_ignored);
-    for spec in args.arg_spec.iter() {
+    for spec in &args.arg_spec {
         opts.pathspec(spec);
     }
 
@@ -78,16 +77,16 @@ fn run(args: &Args) -> Result<(), Error> {
         let statuses = try!(repo.statuses(Some(&mut opts)));
 
         if args.flag_branch {
-            try!(show_branch(&repo, args.format()));
+            try!(show_branch(&repo, &args.format()));
         }
         if args.flag_list_submodules {
             try!(print_submodules(&repo));
         }
 
         if args.format() == Format::Long {
-            print_long(statuses);
+            print_long(&statuses);
         } else {
-            print_short(&repo, statuses);
+            print_short(&repo, &statuses);
         }
 
         if args.flag_repeat {
@@ -98,7 +97,7 @@ fn run(args: &Args) -> Result<(), Error> {
     }
 }
 
-fn show_branch(repo: &Repository, format: Format) -> Result<(), Error> {
+fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
         Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
@@ -107,7 +106,7 @@ fn show_branch(repo: &Repository, format: Format) -> Result<(), Error> {
     };
     let head = head.as_ref().and_then(|h| h.shorthand());
 
-    if format == Format::Long {
+    if format == &Format::Long {
         println!("# On branch {}",
                  head.unwrap_or("Not currently on any branch"));
     } else {
@@ -119,7 +118,7 @@ fn show_branch(repo: &Repository, format: Format) -> Result<(), Error> {
 fn print_submodules(repo: &Repository) -> Result<(), Error> {
     let modules = try!(repo.submodules());
     println!("# Submodules");
-    for sm in modules.iter() {
+    for sm in &modules {
         println!("# - submodule '{}' at {}", sm.name().unwrap(),
                  sm.path().display());
     }
@@ -128,7 +127,7 @@ fn print_submodules(repo: &Repository) -> Result<(), Error> {
 
 // This function print out an output similar to git's status command in long
 // form, including the command-line hints.
-fn print_long(statuses: git2::Statuses) {
+fn print_long(statuses: &git2::Statuses) {
     let mut header = false;
     let mut rm_in_workdir = false;
     let mut changes_in_index = false;
@@ -158,7 +157,7 @@ fn print_long(statuses: git2::Statuses) {
         let old_path = entry.head_to_index().unwrap().old_file().path();
         let new_path = entry.head_to_index().unwrap().new_file().path();
         match (old_path, new_path) {
-            (Some(ref old), Some(ref new)) if old != new => {
+            (Some(old), Some(new)) if old != new => {
                 println!("#\t{}  {} -> {}", istatus, old.display(),
                          new.display());
             }
@@ -205,7 +204,7 @@ fn print_long(statuses: git2::Statuses) {
         let old_path = entry.index_to_workdir().unwrap().old_file().path();
         let new_path = entry.index_to_workdir().unwrap().new_file().path();
         match (old_path, new_path) {
-            (Some(ref old), Some(ref new)) if old != new => {
+            (Some(old), Some(new)) if old != new => {
                 println!("#\t{}  {} -> {}", istatus, old.display(),
                          new.display());
             }
@@ -256,7 +255,7 @@ fn print_long(statuses: git2::Statuses) {
 
 // This version of the output prefixes each path with two status columns and
 // shows submodule status information.
-fn print_short(repo: &Repository, statuses: git2::Statuses) {
+fn print_short(repo: &Repository, statuses: &git2::Statuses) {
     for entry in statuses.iter().filter(|e| e.status() != git2::STATUS_CURRENT) {
         let mut istatus = match entry.status() {
             s if s.contains(git2::STATUS_INDEX_NEW) => 'A',
@@ -297,9 +296,7 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
         if let Some(status) = status {
             if status.contains(git2::SUBMODULE_STATUS_WD_MODIFIED) {
                 extra = " (new commits)";
-            } else if status.contains(git2::SUBMODULE_STATUS_WD_INDEX_MODIFIED) {
-                extra = " (modified content)";
-            } else if status.contains(git2::SUBMODULE_STATUS_WD_WD_MODIFIED) {
+            } else if status.contains(git2::SUBMODULE_STATUS_WD_INDEX_MODIFIED) || status.contains(git2::SUBMODULE_STATUS_WD_WD_MODIFIED) {
                 extra = " (modified content)";
             } else if status.contains(git2::SUBMODULE_STATUS_WD_UNTRACKED) {
                 extra = " (untracked content)";
@@ -312,8 +309,8 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
             b = diff.new_file().path();
         }
         if let Some(diff) = entry.index_to_workdir() {
-            a = a.or(diff.old_file().path());
-            b = b.or(diff.old_file().path());
+            a = a.or_else(|| diff.old_file().path());
+            b = b.or_else(|| diff.old_file().path());
             c = diff.new_file().path();
         }
 
@@ -338,9 +335,7 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
 impl Args {
     fn format(&self) -> Format {
         if self.flag_short { Format::Short }
-        else if self.flag_long { Format::Long }
-        else if self.flag_porcelain { Format::Porcelain }
-        else if self.flag_z { Format::Porcelain }
+        else if self.flag_porcelain || self.flag_z { Format::Porcelain }
         else { Format::Long }
     }
 }

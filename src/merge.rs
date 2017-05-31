@@ -28,6 +28,12 @@ impl<'repo> AnnotatedCommit<'repo> {
     }
 }
 
+impl Default for MergeOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MergeOptions {
     /// Creates a default set of merge options.
     pub fn new() -> MergeOptions {

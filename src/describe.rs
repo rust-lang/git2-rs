@@ -1,6 +1,7 @@
 use std::marker;
 use std::mem;
 use std::ffi::CString;
+use std::ptr;
 
 use libc::{c_uint, c_int};
 
@@ -31,7 +32,7 @@ impl<'repo> Describe<'repo> {
     pub fn format(&self, opts: Option<&DescribeFormatOptions>)
                   -> Result<String, Error> {
         let buf = Buf::new();
-        let opts = opts.map(|o| &o.raw as *const _).unwrap_or(0 as *const _);
+        let opts = opts.map(|o| &o.raw as *const _).unwrap_or(ptr::null());
         unsafe {
             try_call!(raw::git_describe_format(buf.raw(), self.raw, opts));
         }
@@ -54,6 +55,12 @@ impl<'repo> Drop for Describe<'repo> {
     }
 }
 
+impl Default for DescribeFormatOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DescribeFormatOptions {
     /// Creates a new blank set of formatting options for a description.
     pub fn new() -> DescribeFormatOptions {
@@ -63,7 +70,7 @@ impl DescribeFormatOptions {
         };
         opts.raw.version = 1;
         opts.raw.abbreviated_size = 7;
-        return opts
+        opts
     }
 
     /// Sets the size of the abbreviated commit id to use.
@@ -91,6 +98,12 @@ impl DescribeFormatOptions {
     }
 }
 
+impl Default for DescribeOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DescribeOptions {
     /// Creates a new blank set of formatting options for a description.
     pub fn new() -> DescribeOptions {
@@ -100,7 +113,7 @@ impl DescribeOptions {
         };
         opts.raw.version = 1;
         opts.raw.max_candidates_tags = 10;
-        return opts
+        opts
     }
 
     #[allow(missing_docs)]

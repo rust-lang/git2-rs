@@ -3,6 +3,7 @@
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::path::Path;
+use std::ptr;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
 use {raw, panic, Error, Repository, FetchOptions, IntoCString};
@@ -52,6 +53,13 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 /// continue.
 pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
                             DiffFile, DiffFile) -> bool + 'a;
+
+
+impl<'cb> Default for RepoBuilder<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
@@ -133,7 +141,7 @@ impl<'cb> RepoBuilder<'cb> {
         opts.bare = self.bare as c_int;
         opts.checkout_branch = self.branch.as_ref().map(|s| {
             s.as_ptr()
-        }).unwrap_or(0 as *const _);
+        }).unwrap_or(ptr::null());
 
         opts.local = match (self.local, self.hardlinks) {
             (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
@@ -143,25 +151,29 @@ impl<'cb> RepoBuilder<'cb> {
         opts.checkout_opts.checkout_strategy =
             raw::GIT_CHECKOUT_SAFE as c_uint;
 
-        match self.fetch_opts {
-            Some(ref mut cbs) => {
-                opts.fetch_opts = cbs.raw();
-            },
-            None => {}
+        if let Some(ref mut cbs) = self.fetch_opts {
+            opts.fetch_opts = cbs.raw();
         }
 
-        match self.checkout {
-            Some(ref mut c) => unsafe { c.configure(&mut opts.checkout_opts) },
-            None => {}
+        if let Some(ref mut c) = self.checkout {
+            unsafe {
+                c.configure(&mut opts.checkout_opts);
+            }
         }
 
         let url = try!(CString::new(url));
         let into = try!(into.into_c_string());
-        let mut raw = 0 as *mut raw::git_repository;
+        let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
             Ok(Binding::from_raw(raw))
         }
+    }
+}
+
+impl<'cb> Default for CheckoutBuilder<'cb> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -424,26 +436,22 @@ impl<'cb> CheckoutBuilder<'cb> {
         opts.dir_mode = self.dir_perm.unwrap_or(0) as c_uint;
         opts.file_mode = self.file_perm.unwrap_or(0) as c_uint;
 
-        if self.path_ptrs.len() > 0 {
+        if !self.path_ptrs.is_empty() {
             opts.paths.strings = self.path_ptrs.as_ptr() as *mut _;
             opts.paths.count = self.path_ptrs.len() as size_t;
         }
 
-        match self.target_dir {
-            Some(ref c) => opts.target_directory = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.target_dir {
+            opts.target_directory = c.as_ptr();
         }
-        match self.ancestor_label {
-            Some(ref c) => opts.ancestor_label = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.ancestor_label {
+            opts.ancestor_label = c.as_ptr();
         }
-        match self.our_label {
-            Some(ref c) => opts.our_label = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.our_label {
+            opts.our_label = c.as_ptr();
         }
-        match self.their_label {
-            Some(ref c) => opts.their_label = c.as_ptr(),
-            None => {}
+        if let Some(ref c) = self.their_label {
+            opts.their_label = c.as_ptr();
         }
         if self.progress.is_some() {
             let f: raw::git_checkout_progress_cb = progress_cb;

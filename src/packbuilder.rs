@@ -6,7 +6,7 @@ use libc::{c_int, c_uint, c_void, size_t};
 use {raw, panic, Repository, Error, Oid, Revwalk, Buf};
 use util::Binding;
 
-/// Stages that are reported by the PackBuilder progress callback.
+/// Stages that are reported by the `PackBuilder` progress callback.
 pub enum PackBuilderStage {
     /// Adding objects to the pack
     AddingObjects,
