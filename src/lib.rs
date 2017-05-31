@@ -491,7 +491,7 @@ bitflags! {
         const MERGE_ANALYSIS_NORMAL = raw::GIT_MERGE_ANALYSIS_NORMAL as u32;
         /// All given merge inputs are reachable from HEAD, meaning the
         /// repository is up-to-date and no merge needs to be performed.
-        const MERGE_ANALYSIS_UP_TO_DATE = raw::GIT_MERGE_ANALYSIS_UP_TO_DATE as u32;   
+        const MERGE_ANALYSIS_UP_TO_DATE = raw::GIT_MERGE_ANALYSIS_UP_TO_DATE as u32;
         /// The given merge input is a fast-forward from HEAD and no merge
         /// needs to be performed.  Instead, the client can check out the
         /// given merge input.
@@ -508,13 +508,13 @@ bitflags! {
     pub struct MergePreference: u32 {
         /// No configuration was found that suggests a preferred behavior for
         /// merge.
-        const MERGE_PREFERENCE_NONE = raw::GIT_MERGE_PREFERENCE_NONE;
+        const MERGE_PREFERENCE_NONE = raw::GIT_MERGE_PREFERENCE_NONE as u32;
         /// There is a `merge.ff=false` configuration setting, suggesting that
         /// the user does not want to allow a fast-forward merge.
-        const MERGE_PREFERENCE_NO_FAST_FORWARD = raw::GIT_MERGE_PREFERENCE_NO_FASTFORWARD;
+        const MERGE_PREFERENCE_NO_FAST_FORWARD = raw::GIT_MERGE_PREFERENCE_NO_FASTFORWARD as u32;
         /// There is a `merge.ff=only` configuration setting, suggesting that
         /// the user only wants fast-forward merges.
-        const MERGE_PREFERENCE_FASTFORWARD_ONLY = raw::GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY;
+        const MERGE_PREFERENCE_FASTFORWARD_ONLY = raw::GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY as u32;
     }
 }
 
