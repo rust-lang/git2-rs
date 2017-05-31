@@ -29,6 +29,11 @@ pub struct RebaseOperation<'rebase, 'repo: 'rebase> {
     _marker: marker::PhantomData<&'rebase Rebase<'repo>>,
 }
 
+pub struct RebaseOperations<'rebase, 'repo: 'rebase> {
+    rebase: &'rebase Rebase<'repo>,
+    count: usize,
+}
+
 /// Type of rebase operation
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum RebaseOperationType {
@@ -105,7 +110,7 @@ impl<'repo> Rebase<'repo> {
         unsafe {
             try_call!(raw::git_rebase_commit(&mut raw,
                                              self.raw,
-                                             author.map(|s|s.raw() as *const _),
+                                             author.map(|s| s.raw() as *const _),
                                              committer.raw(),
                                              0 as *const c_char,
                                              message));
@@ -136,11 +141,19 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Performs the next rebase operation and returns the `RebaseOperation` about it.
-    pub fn next(&self) -> Result<RebaseOperation, Error> {
+    fn next<'rebase>(&self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
             try_call!(raw::git_rebase_next(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Iterator of rebase operations
+    pub fn operation_iter(&self) -> RebaseOperations {
+        RebaseOperations {
+            rebase: self,
+            count: 0,
         }
     }
 
@@ -176,6 +189,18 @@ impl<'repo> Rebase<'repo> {
             self.operation_at_index(index)
         } else {
             None
+        }
+    }
+}
+
+impl<'rebase, 'repo: 'rebase> Iterator for RebaseOperations<'rebase, 'repo> {
+    type Item = Result<RebaseOperation<'rebase, 'repo>, Error>;
+    fn next(&mut self) -> Option<Result<RebaseOperation<'rebase, 'repo>, Error>> {
+        if self.count >= self.rebase.operation_count() {
+            None
+        } else {
+            self.count += 1;
+            Some(self.rebase.next())
         }
     }
 }
@@ -302,9 +327,7 @@ impl<'rebase, 'repo: 'rebase> RebaseOperation<'rebase, 'repo> {
     /// Corresponding bytes of the `exec` that has been requested to run.
     /// Only populated for operation of type `Exec`
     pub fn exec_bytes(&self) -> &[u8] {
-        unsafe {
-            ::opt_bytes(self, (*self.raw).exec).unwrap()
-        }
+        unsafe { ::opt_bytes(self, (*self.raw).exec).unwrap() }
     }
 }
 
@@ -333,6 +356,7 @@ impl Binding for RebaseOperationType {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
