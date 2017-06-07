@@ -1348,7 +1348,7 @@ impl Repository {
                                               self.raw,
                                               their_heads.as_mut_ptr() as *mut _,
                                               their_heads.len()));
-            Ok((MergeAnalysis::from_bits_truncate(raw_merge_analysis), MergePreference::from_bits_truncate(raw_merge_preference)))
+            Ok((MergeAnalysis::from_bits_truncate(raw_merge_analysis as u32), MergePreference::from_bits_truncate(raw_merge_preference as u32)))
         }
     }
 
