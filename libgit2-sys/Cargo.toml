@@ -14,7 +14,7 @@ name = "libgit2_sys"
 path = "lib.rs"
 
 [dependencies]
-curl-sys = { git = 'https://github.com/alexcrichton/curl-rust', optional = true }
+curl-sys = { version = "0.3.12", optional = true }
 libc = "0.2"
 libssh2-sys = { version = "0.2.4", optional = true }
 libz-sys = ">= 0"
