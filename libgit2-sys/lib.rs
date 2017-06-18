@@ -1398,7 +1398,6 @@ pub type git_stash_cb = extern fn(index: size_t,
 
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
-
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -2238,10 +2237,10 @@ extern {
 
     // merge analysis
 
-    pub fn git_merge_analysis(analysis_out: *mut git_merge_analysis_t, 
-                              pref_out: *mut git_merge_preference_t, 
-                              repo: *mut git_repository, 
-                              their_heads: *mut *const git_annotated_commit, 
+    pub fn git_merge_analysis(analysis_out: *mut git_merge_analysis_t,
+                              pref_out: *mut git_merge_preference_t,
+                              repo: *mut git_repository,
+                              their_heads: *mut *const git_annotated_commit,
                               their_heads_len: usize) -> c_int;
 
     // notes
@@ -2623,6 +2622,9 @@ extern {
                                          progress_cb: Option<git_packbuilder_progress>,
                                          progress_cb_payload: *mut c_void) -> c_int;
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
+
+    // hash
+    pub fn git_hash_buf(out : *mut git_oid, data : *const c_void, len : size_t) -> c_int;
 }
 
 pub fn init() {
