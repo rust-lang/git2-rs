@@ -22,6 +22,7 @@ pub const GIT_REMOTE_CALLBACKS_VERSION: c_uint = 1;
 pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_PROXY_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_SUBMODULE_UPDATE_OPTIONS_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -798,6 +799,14 @@ git_enum! {
 pub type git_submodule_cb = extern fn(*mut git_submodule,
                                       *const c_char,
                                       *mut c_void) -> c_int;
+
+#[repr(C)]
+pub struct git_submodule_update_options {
+    pub version: c_uint,
+    pub checkout_opts: git_checkout_options,
+    pub fetch_opts: git_fetch_options,
+    pub allow_fetch: c_int,
+}
 
 #[repr(C)]
 pub struct git_cred {
@@ -1793,10 +1802,12 @@ extern {
     pub fn git_submodule_sync(submodule: *mut git_submodule) -> c_int;
     pub fn git_submodule_update_strategy(submodule: *mut git_submodule)
                                          -> git_submodule_update_t;
-    // pub fn git_submodule_update(submodule: *mut git_submodule,
-    //                             init: c_int,
-    //                             options: *mut git_submodule_update_options)
-    //                             -> c_int;
+    pub fn git_submodule_update(submodule: *mut git_submodule,
+                                init: c_int,
+                                options: *mut git_submodule_update_options)
+                                -> c_int;
+    pub fn git_submodule_update_init_options(options: *mut git_submodule_update_options,
+                                             version: c_uint) -> c_int;
     pub fn git_submodule_url(submodule: *mut git_submodule) -> *const c_char;
     pub fn git_submodule_wd_id(submodule: *mut git_submodule) -> *const git_oid;
     pub fn git_submodule_status(status: *mut c_uint,
@@ -2238,10 +2249,10 @@ extern {
 
     // merge analysis
 
-    pub fn git_merge_analysis(analysis_out: *mut git_merge_analysis_t, 
-                              pref_out: *mut git_merge_preference_t, 
-                              repo: *mut git_repository, 
-                              their_heads: *mut *const git_annotated_commit, 
+    pub fn git_merge_analysis(analysis_out: *mut git_merge_analysis_t,
+                              pref_out: *mut git_merge_preference_t,
+                              repo: *mut git_repository,
+                              their_heads: *mut *const git_annotated_commit,
                               their_heads_len: usize) -> c_int;
 
     // notes
