@@ -1,9 +1,12 @@
 use std::marker;
+use std::mem;
 use std::ptr;
 use std::str;
+use std::os::raw::c_int;
 use std::path::Path;
 
-use {raw, Oid, Repository, Error};
+use {raw, Oid, Repository, Error, FetchOptions};
+use build::CheckoutBuilder;
 use util::{self, Binding};
 
 /// A structure to represent a git [submodule][1]
@@ -163,6 +166,26 @@ impl<'repo> Submodule<'repo> {
         unsafe { try_call!(raw::git_submodule_add_finalize(self.raw)); }
         Ok(())
     }
+
+    /// Update submodule.
+    ///
+    /// This will clone a missing submodule and check out the subrepository to
+    /// the commit specified in the index of the containing repository. If
+    /// the submodule repository doesn't contain the target commit, then the
+    /// submodule is fetched using the fetch options supplied in `opts`.
+    ///
+    /// `init` indicates if the submodule should be initialized first if it has
+    /// not been initialized yet.
+    pub fn update(&mut self, init: bool,
+                  opts: Option<&mut SubmoduleUpdateOptions>)
+                  -> Result<(), Error> {
+        unsafe {
+            let mut raw_opts = opts.map(|o| o.raw());
+            try_call!(raw::git_submodule_update(self.raw, init as c_int,
+                raw_opts.as_mut().map_or(ptr::null_mut(), |o| o)));
+        }
+        Ok(())
+    }
 }
 
 impl<'repo> Binding for Submodule<'repo> {
@@ -176,6 +199,64 @@ impl<'repo> Binding for Submodule<'repo> {
 impl<'repo> Drop for Submodule<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_submodule_free(self.raw) }
+    }
+}
+
+/// Options to update a submodule.
+pub struct SubmoduleUpdateOptions<'cb> {
+    checkout_builder: CheckoutBuilder<'cb>,
+    fetch_opts: FetchOptions<'cb>,
+    allow_fetch: bool,
+}
+
+impl<'cb> SubmoduleUpdateOptions<'cb> {
+    /// Return default options.
+    pub fn new() -> Self {
+        SubmoduleUpdateOptions {
+            checkout_builder: CheckoutBuilder::new(),
+            fetch_opts: FetchOptions::new(),
+            allow_fetch: true,
+        }
+    }
+
+    unsafe fn raw(&mut self) -> raw::git_submodule_update_options {
+        let mut checkout_opts: raw::git_checkout_options = mem::zeroed();
+        let init_res = raw::git_checkout_init_options(&mut checkout_opts,
+            raw::GIT_CHECKOUT_OPTIONS_VERSION);
+        assert_eq!(0, init_res);
+        self.checkout_builder.configure(&mut checkout_opts);
+        let opts = raw::git_submodule_update_options {
+            version: raw::GIT_SUBMODULE_UPDATE_OPTIONS_VERSION,
+            checkout_opts,
+            fetch_opts: self.fetch_opts.raw(),
+            allow_fetch: self.allow_fetch as c_int,
+        };
+        opts
+    }
+
+    /// Set checkout options.
+    pub fn checkout(&mut self, opts: CheckoutBuilder<'cb>) -> &mut Self {
+        self.checkout_builder = opts;
+        self
+    }
+
+    /// Set fetch options and allow fetching.
+    pub fn fetch(&mut self, opts: FetchOptions<'cb>) -> &mut Self {
+        self.fetch_opts = opts;
+        self.allow_fetch = true;
+        self
+    }
+
+    /// Allow or disallow fetching.
+    pub fn allow_fetch(&mut self, b: bool) -> &mut Self {
+        self.allow_fetch = b;
+        self
+    }
+}
+
+impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
