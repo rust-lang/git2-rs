@@ -1060,8 +1060,8 @@ impl Repository {
     ///
     /// To fully emulate "git submodule add" call this function, then `open()`
     /// the submodule repo and perform the clone step as needed. Lastly, call
-    /// `finalize()` to wrap up adding the new submodule and `.gitmodules` to
-    /// the index to be ready to commit.
+    /// `add_finalize()` to wrap up adding the new submodule and `.gitmodules`
+    /// to the index to be ready to commit.
     pub fn submodule(&self, url: &str, path: &Path,
                      use_gitlink: bool) -> Result<Submodule, Error> {
         let url = try!(CString::new(url));
