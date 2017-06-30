@@ -183,6 +183,39 @@ impl Repository {
         RepoBuilder::new().clone(url, into.as_ref())
     }
 
+    /// Clone a remote repository, initialize and update its submodules
+    /// recursively.
+    ///
+    /// This is similar to `git clone --recursive`.
+    pub fn clone_recurse<P: AsRef<Path>>(url: &str, into: P)
+                                         -> Result<Repository, Error> {
+        let repo = Repository::clone(url, into)?;
+        repo.update_submodules()?;
+        Ok(repo)
+    }
+
+    /// Update submodules recursively.
+    ///
+    /// Uninitialized submodules will be initialized.
+    pub fn update_submodules(&self) -> Result<(), Error> {
+
+        fn add_subrepos(repo: &Repository, list: &mut Vec<Repository>)
+                        -> Result<(), Error> {
+            for mut subm in repo.submodules()? {
+                subm.update(true, None)?;
+                list.push(subm.open()?);
+            }
+            Ok(())
+        }
+
+        let mut repos = Vec::new();
+        add_subrepos(self, &mut repos)?;
+        while let Some(repo) = repos.pop() {
+            add_subrepos(&repo, &mut repos)?;
+        }
+        Ok(())
+    }
+
     /// Execute a rev-parse operation against the `spec` listed.
     ///
     /// The resulting revision specification is returned, or an error is
