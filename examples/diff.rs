@@ -16,7 +16,8 @@
 
 extern crate git2;
 extern crate docopt;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 
 use std::str;
 
@@ -24,7 +25,7 @@ use docopt::Docopt;
 use git2::{Repository, Error, Object, ObjectType, DiffOptions, Diff};
 use git2::{DiffFindOptions, DiffFormat};
 
-#[derive(RustcDecodable)] #[allow(non_snake_case)]
+#[derive(Deserialize)] #[allow(non_snake_case)]
 struct Args {
     arg_from_oid: Option<String>,
     arg_to_oid: Option<String>,
@@ -274,7 +275,7 @@ Options:
     -h, --help                  show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
                                  .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}

@@ -14,7 +14,8 @@
 
 #![deny(warnings)]
 
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 extern crate docopt;
 extern crate git2;
 extern crate time;
@@ -24,7 +25,7 @@ use docopt::Docopt;
 use git2::{Repository, Signature, Commit, ObjectType, Time, DiffOptions};
 use git2::{Pathspec, Error, DiffFormat};
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Args {
     arg_commit: Vec<String>,
     arg_spec: Vec<String>,
@@ -253,7 +254,7 @@ Options:
     -h, --help              show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
                                  .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
