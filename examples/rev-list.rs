@@ -17,12 +17,13 @@
 
 extern crate git2;
 extern crate docopt;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 
 use docopt::Docopt;
 use git2::{Repository, Error, Revwalk, Oid};
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Args {
     arg_spec: Vec<String>,
     flag_topo_order: bool,
@@ -86,7 +87,7 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
                                  .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}

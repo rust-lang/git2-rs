@@ -16,12 +16,13 @@
 
 extern crate git2;
 extern crate docopt;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 
 use docopt::Docopt;
 use git2::Repository;
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Args {
     arg_spec: String,
     flag_git_dir: Option<String>,
@@ -60,7 +61,7 @@ Options:
     --git-dir           directory for the git repository to check
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
                                  .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}

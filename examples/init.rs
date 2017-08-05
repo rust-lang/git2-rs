@@ -16,13 +16,14 @@
 
 extern crate git2;
 extern crate docopt;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 
 use docopt::Docopt;
 use git2::{Repository, RepositoryInitOptions, RepositoryInitMode, Error};
 use std::path::{PathBuf, Path};
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Args {
     arg_directory: String,
     flag_quiet: bool,
@@ -142,7 +143,7 @@ Options:
     --shared <perms>            permissions to create the repository with
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
                                  .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}

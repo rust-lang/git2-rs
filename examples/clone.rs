@@ -16,7 +16,8 @@
 
 extern crate git2;
 extern crate docopt;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 
 use docopt::Docopt;
 use git2::build::{RepoBuilder, CheckoutBuilder};
@@ -25,7 +26,7 @@ use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Args {
     arg_url: String,
     arg_path: String,
@@ -113,7 +114,7 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
+    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
                                  .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
