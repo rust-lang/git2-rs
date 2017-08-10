@@ -35,8 +35,8 @@ pub enum StatusShow {
 
 /// A container for a list of status information about a repository.
 ///
-/// Each instances appears as a if it were a collection, having a length and
-/// allowing indexing as well as provding an iterator.
+/// Each instance appears as if it were a collection, having a length and
+/// allowing indexing, as well as providing an iterator.
 pub struct Statuses<'repo> {
     raw: *mut raw::git_status_list,
 
@@ -252,13 +252,13 @@ impl<'repo> Statuses<'repo> {
 
     /// Gets the count of status entries in this list.
     ///
-    /// If there are no changes in status (at least according the options given
-    /// when the status list was created), this can return 0.
+    /// If there are no changes in status (according to the options given
+    /// when the status list was created), this should return 0.
     pub fn len(&self) -> usize {
         unsafe { raw::git_status_list_entrycount(self.raw) as usize }
     }
 
-    /// Return `true` is there is not status entry in this list.
+    /// Return `true` if there is no status entry in this list.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
