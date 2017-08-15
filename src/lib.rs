@@ -80,7 +80,7 @@ use std::str;
 use std::sync::{Once, ONCE_INIT};
 
 pub use blame::{Blame, BlameHunk, BlameIter, BlameOptions};
-pub use blob::Blob;
+pub use blob::{Blob, BlobWriter};
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};

@@ -9,7 +9,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 
 use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf, StashFlags};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
-use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
+use {Branches, BranchType, Index, Config, Oid, Blob, BlobWriter, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnalysis, MergePreference};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
@@ -799,6 +799,19 @@ impl Repository {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
                                                     path));
             Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
+    /// Create stream to write blob
+    pub fn blob_writer(&self, hintpath: Option<&Path>) -> Result<BlobWriter, Error> {
+        let path = match hintpath {
+            Some(path) => try!(path.into_c_string()).into_raw(),
+            None => ptr::null(),
+        };
+        let mut out = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_blob_create_fromstream(&mut out, self.raw(), path));
+            Ok(BlobWriter::from_raw(out))
         }
     }
 

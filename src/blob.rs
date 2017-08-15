@@ -1,8 +1,9 @@
 use std::marker;
 use std::mem;
 use std::slice;
+use std::io;
 
-use {raw, Oid, Object};
+use {raw, Oid, Object, Error};
 use util::Binding;
 
 /// A structure to represent a git [blob][1]
@@ -68,10 +69,54 @@ impl<'repo> Drop for Blob<'repo> {
     }
 }
 
+/// A structure to represent a git writestream for blobs
+pub struct BlobWriter<'repo> {
+    raw: *mut raw::git_writestream,
+    _marker: marker::PhantomData<Object<'repo>>,
+}
+
+impl<'repo> BlobWriter<'repo> {
+    /// Finalize blob writing stream and write the blob to the object db
+    pub fn commit(&mut self) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_blob_create_fromstream_commit(&mut raw, self.raw));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+}
+
+impl<'repo> Binding for BlobWriter<'repo> {
+    type Raw = *mut raw::git_writestream;
+
+    unsafe fn from_raw(raw: *mut raw::git_writestream) -> BlobWriter<'repo> {
+        BlobWriter {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_writestream { self.raw }
+}
+
+impl<'repo> io::Write for BlobWriter<'repo> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unsafe {
+            let res = ((*self.raw).write)(self.raw, buf.as_ptr() as *const i8, buf.len());
+            if res < 0 {
+                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            } else {
+                Ok(buf.len())
+            }
+        }
+    }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::prelude::*;
     use std::fs::File;
+    use std::path::Path;
     use tempdir::TempDir;
     use Repository;
 
@@ -99,6 +144,19 @@ mod tests {
         let id = repo.blob_path(&path).unwrap();
         let blob = repo.find_blob(id).unwrap();
         assert_eq!(blob.content(), [7, 8, 9]);
+        blob.into_object();
+    }
+
+    #[test]
+    fn stream() {
+        let td = TempDir::new("test").unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+        let mut ws = repo.blob_writer(Some(Path::new("foo"))).unwrap();
+        let wl = ws.write(&[10, 11, 12]).unwrap();
+        assert_eq!(wl, 3);
+        let id = ws.commit().unwrap();
+        let blob = repo.find_blob(id).unwrap();
+        assert_eq!(blob.content(), [10, 11, 12]);
         blob.into_object();
     }
 }

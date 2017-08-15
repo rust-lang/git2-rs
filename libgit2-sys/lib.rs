@@ -809,6 +809,15 @@ pub struct git_submodule_update_options {
 }
 
 #[repr(C)]
+pub struct git_writestream {
+    pub write: extern fn(*mut git_writestream,
+                         *const c_char,
+                         size_t) -> c_int,
+    pub close: extern fn(*mut git_writestream) -> c_int,
+    pub free: extern fn(*mut git_writestream),
+}
+
+#[repr(C)]
 pub struct git_cred {
     pub credtype: git_credtype_t,
     pub free: extern fn(*mut git_cred),
@@ -1840,6 +1849,11 @@ extern {
     pub fn git_blob_create_fromworkdir(id: *mut git_oid,
                                        repo: *mut git_repository,
                                        relative_path: *const c_char) -> c_int;
+    pub fn git_blob_create_fromstream(out: *mut *mut git_writestream,
+                                      repo: *mut git_repository,
+                                      hintpath: *const c_char) -> c_int;
+    pub fn git_blob_create_fromstream_commit(id: *mut git_oid,
+                                             stream: *mut git_writestream) -> c_int;
 
     // tree
     pub fn git_tree_entry_byid(tree: *const git_tree,
