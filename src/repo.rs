@@ -14,6 +14,7 @@ use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnaly
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
+use {OdbReader, OdbWriter};
 use build::{RepoBuilder, CheckoutBuilder};
 use stash::{StashApplyOptions, StashCbData, stash_cb};
 use string_array::StringArray;
@@ -835,6 +836,30 @@ impl Repository {
         unsafe {
             try_call!(raw::git_blob_lookup(&mut raw, self.raw(), oid.raw()));
             Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Create object database reading stream
+    pub fn odb_reader(&self, oid: Oid) -> Result<OdbReader, Error> {
+        let mut out = ptr::null_mut();
+        unsafe {
+            let mut db = ptr::null_mut();
+            try_call!(raw::git_repository_odb(&mut db, self.raw()));
+            try_call!(raw::git_odb_open_rstream(&mut out, db, oid.raw()));
+            raw::git_odb_free(db);
+            Ok(OdbReader::from_raw(out))
+        }
+    }
+
+    /// Create object database writing stream
+    pub fn odb_writer(&self, size: usize, obj_type: ObjectType) -> Result<OdbWriter, Error> {
+        let mut out = ptr::null_mut();
+        unsafe {
+            let mut db = ptr::null_mut();
+            try_call!(raw::git_repository_odb(&mut db, self.raw()));
+            try_call!(raw::git_odb_open_wstream(&mut out, db, size as raw::git_off_t, obj_type.raw()));
+            raw::git_odb_free(db);
+            Ok(OdbWriter::from_raw(out))
         }
     }
 
