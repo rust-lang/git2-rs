@@ -845,8 +845,11 @@ impl Repository {
         unsafe {
             let mut db = ptr::null_mut();
             try_call!(raw::git_repository_odb(&mut db, self.raw()));
-            try_call!(raw::git_odb_open_rstream(&mut out, db, oid.raw()));
+            let res = ::call::try(raw::git_odb_open_rstream(&mut out, db, oid.raw()));
             raw::git_odb_free(db);
+            if let Err(err) = res {
+                return Err(err);
+            }
             Ok(OdbReader::from_raw(out))
         }
     }
@@ -857,8 +860,11 @@ impl Repository {
         unsafe {
             let mut db = ptr::null_mut();
             try_call!(raw::git_repository_odb(&mut db, self.raw()));
-            try_call!(raw::git_odb_open_wstream(&mut out, db, size as raw::git_off_t, obj_type.raw()));
+            let res = ::call::try(raw::git_odb_open_wstream(&mut out, db, size as raw::git_off_t, obj_type.raw()));
             raw::git_odb_free(db);
+            if let Err(err) = res {
+                return Err(err);
+            }
             Ok(OdbWriter::from_raw(out))
         }
     }
