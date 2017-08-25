@@ -51,7 +51,12 @@ pub struct OdbWriter<'repo> {
 }
 
 impl<'repo> OdbWriter<'repo> {
-    /// Finalize ODB writing stream and write the object to the object database
+    /// Finish writing to an ODB stream
+    ///
+    /// This method can be used to finalize writing object to the database and get an identifier.
+    /// The object will take its final name and will be available to the odb.
+    /// This method will fail if the total number of received bytes differs from the size declared with odb_writer()
+    /// Attepting write after finishing will be ignored.
     pub fn finalize(&mut self) -> Result<Oid, Error> {
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
