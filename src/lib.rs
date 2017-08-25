@@ -119,7 +119,7 @@ pub use tag::Tag;
 pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry, TreeIter};
 pub use treebuilder::TreeBuilder;
-pub use odb::{OdbReader, OdbWriter};
+pub use odb::{Odb, OdbReader, OdbWriter};
 pub use util::IntoCString;
 
 /// An enumeration of possible errors that can happen when working with a git

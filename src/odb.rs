@@ -1,9 +1,58 @@
 use std::marker;
 use std::io;
+use std::ptr;
 use libc::{c_char};
 
-use {raw, Oid, Object, Error};
+use {raw, Oid, Object, ObjectType, Error};
 use util::Binding;
+
+/// A structure to represent a git object database
+pub struct Odb<'repo> {
+    raw: *mut raw::git_odb,
+    _marker: marker::PhantomData<Object<'repo>>,
+}
+
+impl<'repo> Binding for Odb<'repo> {
+    type Raw = *mut raw::git_odb;
+
+    unsafe fn from_raw(raw: *mut raw::git_odb) -> Odb<'repo> {
+        Odb {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_odb { self.raw }
+}
+
+impl<'repo> Drop for Odb<'repo> {
+    fn drop(&mut self) {
+        unsafe { raw::git_odb_free(self.raw) }
+    }
+}
+
+impl<'repo> Odb<'repo> {
+    /// Create object database reading stream
+    ///
+    /// Note that most backends do not support streaming reads because they store their objects as compressed/delta'ed blobs.
+    pub fn reader(&self, oid: Oid) -> Result<OdbReader, Error> {
+        let mut out = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_odb_open_rstream(&mut out, self.raw, oid.raw()));
+            Ok(OdbReader::from_raw(out))
+        }
+    }
+
+    /// Create object database writing stream
+    ///
+    /// The type and final length of the object must be specified when opening the stream.
+    pub fn writer(&self, size: usize, obj_type: ObjectType) -> Result<OdbWriter, Error> {
+        let mut out = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_odb_open_wstream(&mut out, self.raw, size as raw::git_off_t, obj_type.raw()));
+            Ok(OdbWriter::from_raw(out))
+        }
+    }
+}
 
 /// A structure to represent a git ODB rstream
 pub struct OdbReader<'repo> {
@@ -113,7 +162,8 @@ mod tests {
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let id = repo.blob(&dat).unwrap();
-        let mut rs = repo.odb_reader(id).unwrap();
+        let db = repo.odb().unwrap();
+        let mut rs = db.reader(id).unwrap();
         let mut buf = [3];
         let rl = rs.read(&mut buf).unwrap();
         assert_eq!(rl, 3);
@@ -128,7 +178,8 @@ mod tests {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
-        let mut ws = repo.odb_writer(dat.len(), ObjectType::Blob).unwrap();
+        let db = repo.odb().unwrap();
+        let mut ws = db.writer(dat.len(), ObjectType::Blob).unwrap();
         let wl = ws.write(&dat[0..3]).unwrap();
         assert_eq!(wl, 3);
         let wl = ws.write(&dat[3..5]).unwrap();
