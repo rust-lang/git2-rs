@@ -804,8 +804,12 @@ impl Repository {
 
     /// Create stream to write blob
     pub fn blob_writer(&self, hintpath: Option<&Path>) -> Result<BlobWriter, Error> {
-        let path = match hintpath {
-            Some(path) => try!(path.into_c_string()).into_raw(),
+        let path_str = match hintpath {
+            Some(path) => Some(try!(path.into_c_string())),
+            None => None,
+        };
+        let path = match path_str {
+            Some(path) => path.as_ptr(),
             None => ptr::null(),
         };
         let mut out = ptr::null_mut();
