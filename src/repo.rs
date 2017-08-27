@@ -9,7 +9,7 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 
 use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf, StashFlags};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
-use {Branches, BranchType, Index, Config, Oid, Blob, Branch, Commit, Tree};
+use {Branches, BranchType, Index, Config, Oid, Blob, BlobWriter, Branch, Commit, Tree};
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnalysis, MergePreference};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
@@ -799,6 +799,33 @@ impl Repository {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(),
                                                     path));
             Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
+    /// Create a stream to write blob
+    ///
+    /// This function may need to buffer the data on disk and will in general
+    /// not be the right choice if you know the size of the data to write.
+    ///
+    /// Use `BlobWriter::commit()` to commit the write to the object db
+    /// and get the object id.
+    ///
+    /// If the `hintpath` parameter is filled, it will be used to determine
+    /// what git filters should be applied to the object before it is written
+    /// to the object database.
+    pub fn blob_writer(&self, hintpath: Option<&Path>) -> Result<BlobWriter, Error> {
+        let path_str = match hintpath {
+            Some(path) => Some(try!(path.into_c_string())),
+            None => None,
+        };
+        let path = match path_str {
+            Some(ref path) => path.as_ptr(),
+            None => ptr::null(),
+        };
+        let mut out = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_blob_create_fromstream(&mut out, self.raw(), path));
+            Ok(BlobWriter::from_raw(out))
         }
     }
 
