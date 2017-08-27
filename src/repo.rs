@@ -819,7 +819,7 @@ impl Repository {
             None => None,
         };
         let path = match path_str {
-            Some(path) => path.as_ptr(),
+            Some(ref path) => path.as_ptr(),
             None => ptr::null(),
         };
         let mut out = ptr::null_mut();

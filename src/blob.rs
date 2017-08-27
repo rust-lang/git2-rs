@@ -78,7 +78,7 @@ pub struct BlobWriter<'repo> {
 
 impl<'repo> BlobWriter<'repo> {
     /// Finalize blob writing stream and write the blob to the object db
-    pub fn commit(&mut self) -> Result<Oid, Error> {
+    pub fn commit(mut self) -> Result<Oid, Error> {
         // After commit we already doesn't need cleanup on drop
         self.need_cleanup = false;
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
