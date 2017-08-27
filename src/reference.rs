@@ -25,8 +25,8 @@ pub struct References<'repo> {
 }
 
 /// An iterator over the names of references in a repository.
-pub struct ReferenceNames<'repo> {
-    inner: References<'repo>,
+pub struct ReferenceNames<'repo: 'references, 'references> {
+    inner: &'references mut References<'repo>,
 }
 
 impl<'repo> Reference<'repo> {
@@ -244,7 +244,7 @@ impl<'repo> References<'repo> {
     /// the references themselves don't have to be allocated and deallocated.
     ///
     /// The returned iterator will yield strings as opposed to a `Reference`.
-    pub fn names(self) -> ReferenceNames<'repo> {
+    pub fn names<'a>(&'a mut self) -> ReferenceNames<'repo, 'a> {
         ReferenceNames { inner: self }
     }
 }
@@ -275,16 +275,16 @@ impl<'repo> Drop for References<'repo> {
     }
 }
 
-impl<'repo> Iterator for ReferenceNames<'repo> {
-    type Item = Result<&'repo str, Error>;
-    fn next(&mut self) -> Option<Result<&'repo str, Error>> {
+impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
+    type Item = Result<&'references str, Error>;
+    fn next(&mut self) -> Option<Result<&'references str, Error>> {
         let mut out = ptr::null();
         unsafe {
             try_call_iter!(raw::git_reference_next_name(&mut out,
                                                         self.inner.raw));
             let bytes = ::opt_bytes(self, out).unwrap();
             let s = str::from_utf8(bytes).unwrap();
-            Some(Ok(mem::transmute::<&str, &'repo str>(s)))
+            Some(Ok(mem::transmute::<&str, &'references str>(s)))
         }
     }
 }
@@ -340,7 +340,8 @@ mod tests {
         {
             assert!(repo.references().unwrap().count() == 1);
             assert!(repo.references().unwrap().next().unwrap().unwrap() == head);
-            let mut names = repo.references().unwrap().names();
+            let mut names = repo.references().unwrap();
+            let mut names = names.names();
             assert_eq!(names.next().unwrap().unwrap(), "refs/heads/master");
             assert!(names.next().is_none());
             assert!(repo.references_glob("foo").unwrap().count() == 0);
