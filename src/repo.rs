@@ -197,7 +197,7 @@ impl Repository {
     /// Update submodules recursively.
     ///
     /// Uninitialized submodules will be initialized.
-    fn update_submodules(&self) -> Result<(), Error> {
+    pub fn update_submodules(&self) -> Result<(), Error> {
 
         fn add_subrepos(repo: &Repository, list: &mut Vec<Repository>)
                         -> Result<(), Error> {
