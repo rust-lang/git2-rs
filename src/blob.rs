@@ -114,7 +114,7 @@ impl<'repo> Drop for BlobWriter<'repo> {
 impl<'repo> io::Write for BlobWriter<'repo> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {
-            let res = ((*self.raw).write)(self.raw, buf.as_ptr() as *const i8, buf.len());
+            let res = ((*self.raw).write)(self.raw, buf.as_ptr() as *const _, buf.len());
             if res < 0 {
                 Err(io::Error::new(io::ErrorKind::Other, "Write error"))
             } else {
