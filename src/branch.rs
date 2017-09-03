@@ -23,7 +23,7 @@ pub struct Branches<'repo> {
 }
 
 impl<'repo> Branch<'repo> {
-    /// Creates a new branch from a reference
+    /// Creates Branch type from a Reference
     pub fn wrap(reference: Reference) -> Branch { Branch { inner: reference } }
 
     /// Gain access to the reference that is this branch
