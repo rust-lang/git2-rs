@@ -1,4 +1,4 @@
-//! Bindings to libgit2's raw `git_strarray` type
+//! Bindings to libgit2's raw `git_oidarray` type
 
 use std::ops::Deref;
 
