@@ -1419,6 +1419,8 @@ pub type git_stash_cb = extern fn(index: size_t,
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
 
+pub type git_odb_foreach_cb = extern fn(id: *const git_oid, payload: *mut c_void) -> c_int;
+
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -1470,7 +1472,7 @@ extern {
                                    start_path: *const c_char,
                                    across_fs: c_int,
                                    ceiling_dirs: *const c_char) -> c_int;
-    
+
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
                         repo: *mut git_repository,
@@ -2671,6 +2673,7 @@ extern {
     pub fn git_odb_stream_finalize_write(id: *mut git_oid,
                                          stream: *mut git_odb_stream) -> c_int;
     pub fn git_odb_stream_free(stream: *mut git_odb_stream);
+    pub fn git_odb_foreach(db: *mut git_odb, cb: git_odb_foreach_cb, payload: *mut c_void) -> c_int;
 }
 
 pub fn init() {

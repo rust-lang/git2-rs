@@ -13,8 +13,7 @@ use {Branches, BranchType, Index, Config, Oid, Blob, BlobWriter, Branch, Commit,
 use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnalysis, MergePreference};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
-use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
-use {Odb};
+use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder, Odb};
 use build::{RepoBuilder, CheckoutBuilder};
 use stash::{StashApplyOptions, StashCbData, stash_cb};
 use string_array::StringArray;
