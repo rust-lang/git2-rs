@@ -1,5 +1,5 @@
 extern crate cmake;
-extern crate gcc;
+extern crate cc;
 extern crate pkg_config;
 
 use std::env;
@@ -85,7 +85,7 @@ fn main() {
     // When cross-compiling, we're pretty unlikely to find a `dlltool` binary
     // lying around, so try to find another if it exists
     if windows && !host.contains("windows") {
-        let c_compiler = gcc::Config::new().cargo_metadata(false)
+        let c_compiler = cc::Build::new().cargo_metadata(false)
                                            .get_compiler();
         let exe = c_compiler.path();
         let path = env::var_os("PATH").unwrap_or(OsString::new());
