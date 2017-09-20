@@ -74,6 +74,14 @@ impl Binding for StringArray {
     fn raw(&self) -> raw::git_strarray { self.raw }
 }
 
+impl<'a> IntoIterator for &'a StringArray {
+    type Item = Option<&'a str>;
+    type IntoIter = Iter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 impl<'a> Iterator for Iter<'a> {
     type Item = Option<&'a str>;
     fn next(&mut self) -> Option<Option<&'a str>> {
