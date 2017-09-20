@@ -295,6 +295,12 @@ impl<'commit> DoubleEndedIterator for ParentIds<'commit> {
 
 impl<'commit> ExactSizeIterator for ParentIds<'commit> {}
 
+impl<'repo> Clone for Commit<'repo> {
+    fn clone(&self) -> Self {
+        self.as_object().clone().into_commit().ok().unwrap()
+    }
+}
+
 impl<'repo> Drop for Commit<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_commit_free(self.raw) }

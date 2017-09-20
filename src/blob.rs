@@ -62,6 +62,11 @@ impl<'repo> Binding for Blob<'repo> {
     fn raw(&self) -> *mut raw::git_blob { self.raw }
 }
 
+impl<'repo> Clone for Blob<'repo> {
+    fn clone(&self) -> Self {
+        self.as_object().clone().into_blob().ok().unwrap()
+    }
+}
 
 impl<'repo> Drop for Blob<'repo> {
     fn drop(&mut self) {

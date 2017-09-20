@@ -128,6 +128,12 @@ impl<'repo> Binding for Tree<'repo> {
     fn raw(&self) -> *mut raw::git_tree { self.raw }
 }
 
+impl<'repo> Clone for Tree<'repo> {
+    fn clone(&self) -> Self {
+        self.as_object().clone().into_tree().ok().unwrap()
+    }
+}
+
 impl<'repo> Drop for Tree<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_tree_free(self.raw) }
