@@ -14,6 +14,7 @@ use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnaly
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
+use {Rebase, RebaseOptions};
 use build::{RepoBuilder, CheckoutBuilder};
 use stash::{StashApplyOptions, StashCbData, stash_cb};
 use string_array::StringArray;
@@ -1865,6 +1866,54 @@ impl Repository {
             let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_pop(self.raw(), index, opts));
             Ok(())
+        }
+    }
+
+    /// Initializes a rebase operation to rebase the changes in `from_branch`
+    /// relative to `upstream` onto '`to_branch`. To begin the rebase
+    /// process, call `next`
+    pub fn rebase_init(&self,
+                       from_branch: Option<AnnotatedCommit>,
+                       upstream: Option<AnnotatedCommit>,
+                       to_branch: Option<AnnotatedCommit>,
+                        options: Option<&mut RebaseOptions>)
+                       -> Result<Rebase, Error> {
+        unsafe {
+            let mut ret = 0 as *mut raw::git_rebase;
+            /*let from_branch_raw: *const raw::git_annotated_commit;
+            if from_branch.is_ok() {
+                from_branch_raw
+            }*/
+            let from_branch_raw = from_branch.as_ref()
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
+            let upstream_raw = upstream.as_ref()
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
+            let to_branch_raw = to_branch.as_ref()
+                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
+            let options_raw = options.map(|mut opts| opts.raw());
+            try_call!(raw::git_rebase_init(&mut ret,
+                                           self.raw(),
+                                           from_branch_raw,
+                                           upstream_raw,
+                                           to_branch_raw,
+                                           options_raw.as_ref().map(|opts| opts as *const _)));
+            drop(from_branch);
+            drop(upstream);
+            drop(to_branch);
+            drop(options_raw);
+            Ok(Binding::from_raw(ret))
+        }
+    }
+    /// Opens an existing rebase that was previously started by either an
+    /// invocation of `rebase_init` or by another client.
+    pub fn rebase_open(&self, options: Option<RebaseOptions>) -> Result<Rebase, Error> {
+        unsafe {
+            let mut ret = 0 as *mut raw::git_rebase;
+            let options_raw = options
+                .map(|mut opts| &opts.raw() as *const _ )
+                .unwrap_or(ptr::null());
+            try_call!(raw::git_rebase_open(&mut ret, self.raw(), options_raw));
+            Ok(Binding::from_raw(ret))
         }
     }
 }
