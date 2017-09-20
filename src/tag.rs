@@ -115,6 +115,12 @@ impl<'repo> Binding for Tag<'repo> {
     fn raw(&self) -> *mut raw::git_tag { self.raw }
 }
 
+impl<'repo> Clone for Tag<'repo> {
+    fn clone(&self) -> Self {
+        self.as_object().clone().into_tag().ok().unwrap()
+    }
+}
+
 impl<'repo> Drop for Tag<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_tag_free(self.raw) }
