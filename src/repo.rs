@@ -14,6 +14,7 @@ use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnaly
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
+use CherrypickOptions;
 use build::{RepoBuilder, CheckoutBuilder};
 use stash::{StashApplyOptions, StashCbData, stash_cb};
 use string_array::StringArray;
@@ -1864,6 +1865,18 @@ impl Repository {
         unsafe {
             let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_pop(self.raw(), index, opts));
+            Ok(())
+        }
+    }
+
+    /// Perform a cherrypick
+    pub fn cherrypick(&self, commit: &Commit, options: Option<&mut CherrypickOptions>) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_cherrypick(self.raw(),
+                                          commit.raw(),
+                                          options.map(|s| s.raw())
+                                                 .unwrap_or(0 as *const _)));
+
             Ok(())
         }
     }

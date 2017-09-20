@@ -1417,6 +1417,14 @@ pub type git_stash_cb = extern fn(index: size_t,
 pub type git_packbuilder_foreach_cb = extern fn(*const c_void, size_t,
                                                 *mut c_void) -> c_int;
 
+#[repr(C)]
+pub struct git_cherrypick_options {
+    pub version: c_uint,
+    pub mainline: c_uint,
+    pub merge_opts: git_merge_options,
+    pub checkout_opts: git_checkout_options
+}
+
 extern {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -2648,6 +2656,13 @@ extern {
                                          progress_cb: Option<git_packbuilder_progress>,
                                          progress_cb_payload: *mut c_void) -> c_int;
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
+
+    // cherrypick
+    pub fn git_cherrypick_init_options(opts: *mut git_cherrypick_options,
+                                       version: c_uint) -> c_int;
+    pub fn git_cherrypick(repo: *mut git_repository,
+                          commit: *mut git_commit,
+                          options: *const git_cherrypick_options) -> c_int;
 }
 
 pub fn init() {
