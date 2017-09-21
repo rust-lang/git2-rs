@@ -1,9 +1,10 @@
 use std::marker;
 use std::io;
 use std::ptr;
-use libc::{c_char};
+use libc::{c_char, c_int, c_void};
 
 use {raw, Oid, Object, ObjectType, Error};
+use panic;
 use util::Binding;
 
 /// A structure to represent a git object database
@@ -50,6 +51,19 @@ impl<'repo> Odb<'repo> {
         unsafe {
             try_call!(raw::git_odb_open_wstream(&mut out, self.raw, size as raw::git_off_t, obj_type.raw()));
             Ok(OdbWriter::from_raw(out))
+        }
+    }
+
+    /// Iterate over all objects in the object database
+    pub fn foreach<C>(&self, mut callback: C) -> Result<(), Error>
+        where C: FnMut(&Oid) -> bool
+    {
+        unsafe {
+            let mut data = ForeachCbData { callback: &mut callback };
+            try_call!(raw::git_odb_foreach(self.raw(),
+                                           foreach_cb,
+                                           &mut data as *mut _ as *mut _));
+            Ok(())
         }
     }
 }
@@ -147,6 +161,27 @@ impl<'repo> io::Write for OdbWriter<'repo> {
         }
     }
     fn flush(&mut self) -> io::Result<()> { Ok(()) }
+}
+
+pub type ForeachCb<'a> = FnMut(&Oid) -> bool + 'a;
+
+struct ForeachCbData<'a> {
+    pub callback: &'a mut ForeachCb<'a>
+}
+
+extern fn foreach_cb(id: *const raw::git_oid,
+                        payload: *mut c_void)
+                        -> c_int
+{
+    panic::wrap(|| unsafe {
+        let mut data = &mut *(payload as *mut ForeachCbData);
+        let res = {
+            let mut callback = &mut data.callback;
+            callback(&Binding::from_raw(id))
+        };
+
+        if res { 0 } else { 1 }
+    }).unwrap_or(1)
 }
 
 #[cfg(test)]

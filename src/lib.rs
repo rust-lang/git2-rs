@@ -545,6 +545,7 @@ mod merge;
 mod message;
 mod note;
 mod object;
+mod odb;
 mod oid;
 mod packbuilder;
 mod pathspec;
@@ -566,7 +567,6 @@ mod tag;
 mod time;
 mod tree;
 mod treebuilder;
-mod odb;
 
 fn init() {
     static INIT: Once = ONCE_INIT;
