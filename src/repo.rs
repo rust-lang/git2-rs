@@ -14,6 +14,7 @@ use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnaly
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder};
+use {Odb};
 use build::{RepoBuilder, CheckoutBuilder};
 use stash::{StashApplyOptions, StashCbData, stash_cb};
 use string_array::StringArray;
@@ -835,6 +836,15 @@ impl Repository {
         unsafe {
             try_call!(raw::git_blob_lookup(&mut raw, self.raw(), oid.raw()));
             Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Get the object database for this repository
+    pub fn odb(&self) -> Result<Odb, Error> {
+        let mut odb = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_odb(&mut odb, self.raw()));
+            Ok(Odb::from_raw(odb))
         }
     }
 

@@ -80,6 +80,8 @@ pub enum git_reflog {}
 pub enum git_reflog_entry {}
 pub enum git_describe_result {}
 pub enum git_packbuilder {}
+pub enum git_odb {}
+pub enum git_odb_stream {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1468,7 +1470,7 @@ extern {
                                    start_path: *const c_char,
                                    across_fs: c_int,
                                    ceiling_dirs: *const c_char) -> c_int;
-
+    
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
                         repo: *mut git_repository,
@@ -2648,6 +2650,27 @@ extern {
                                          progress_cb: Option<git_packbuilder_progress>,
                                          progress_cb_payload: *mut c_void) -> c_int;
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
+
+    // odb
+    pub fn git_repository_odb(out: *mut *mut git_odb,
+                              repo: *mut git_repository) -> c_int;
+    pub fn git_odb_free(db: *mut git_odb);
+    pub fn git_odb_open_rstream(out: *mut *mut git_odb_stream,
+                                db: *mut git_odb,
+                                oid: *const git_oid) -> c_int;
+    pub fn git_odb_stream_read(stream: *mut git_odb_stream,
+                               buffer: *mut c_char,
+                               len: size_t) -> c_int;
+    pub fn git_odb_open_wstream(out: *mut *mut git_odb_stream,
+                                db: *mut git_odb,
+                                size: git_off_t,
+                                obj_type: git_otype) -> c_int;
+    pub fn git_odb_stream_write(stream: *mut git_odb_stream,
+                                buffer: *const c_char,
+                                len: size_t) -> c_int;
+    pub fn git_odb_stream_finalize_write(id: *mut git_oid,
+                                         stream: *mut git_odb_stream) -> c_int;
+    pub fn git_odb_stream_free(stream: *mut git_odb_stream);
 }
 
 pub fn init() {
