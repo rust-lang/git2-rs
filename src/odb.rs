@@ -174,9 +174,9 @@ extern fn foreach_cb(id: *const raw::git_oid,
                         -> c_int
 {
     panic::wrap(|| unsafe {
-        let mut data = &mut *(payload as *mut ForeachCbData);
+        let data = &mut *(payload as *mut ForeachCbData);
         let res = {
-            let mut callback = &mut data.callback;
+            let callback = &mut data.callback;
             callback(&Binding::from_raw(id))
         };
 

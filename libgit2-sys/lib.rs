@@ -1,5 +1,5 @@
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
-#![allow(non_camel_case_types)]
+#![allow(non_camel_case_types, unused_extern_crates)]
 
 extern crate libc;
 #[cfg(feature = "ssh")]
