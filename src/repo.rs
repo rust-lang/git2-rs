@@ -1391,6 +1391,21 @@ impl Repository {
         }
     }
 
+    /// Merge two trees, producing an index that reflects the result of
+    /// the merge. The index may be written as-is to the working directory or
+    /// checked out. If the index is to be converted to a tree, the caller
+    /// should resolve any conflicts that arose as part of the merge.
+    pub fn merge_trees(&self, ancestor_tree: &Tree, our_tree: &Tree,
+                       their_tree: &Tree, opts: Option<&MergeOptions>) -> Result<Index, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_merge_trees(&mut raw, self.raw, ancestor_tree.raw(),
+                                           our_tree.raw(), their_tree.raw(),
+                                           opts.map(|o| o.raw())));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Remove all the metadata associated with an ongoing command like merge,
     /// revert, cherry-pick, etc. For example: MERGE_HEAD, MERGE_MSG, etc.
     pub fn cleanup_state(&self) -> Result<(), Error> {
