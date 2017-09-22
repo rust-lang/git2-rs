@@ -107,6 +107,17 @@ impl<'repo> Tag<'repo> {
     }
 }
 
+impl<'repo> ::std::fmt::Debug for Tag<'repo> {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        let mut ds = f.debug_struct("Tag");
+        if let Some(name) = self.name() {
+            ds.field("name", &name);
+        }
+        ds.field("id", &self.id());
+        ds.finish()
+    }
+}
+
 impl<'repo> Binding for Tag<'repo> {
     type Raw = *mut raw::git_tag;
     unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {

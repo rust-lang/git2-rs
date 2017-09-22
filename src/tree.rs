@@ -128,6 +128,12 @@ impl<'repo> Binding for Tree<'repo> {
     fn raw(&self) -> *mut raw::git_tree { self.raw }
 }
 
+impl<'repo> ::std::fmt::Debug for Tree<'repo> {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        f.debug_struct("Tree").field("id", &self.id()).finish()
+    }
+}
+
 impl<'repo> Clone for Tree<'repo> {
     fn clone(&self) -> Self {
         self.as_object().clone().into_tree().ok().unwrap()
