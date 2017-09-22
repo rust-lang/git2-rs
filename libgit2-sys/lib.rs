@@ -2263,6 +2263,12 @@ extern {
                              our_commit: *const git_commit,
                              their_commit: *const git_commit,
                              opts: *const git_merge_options) -> c_int;
+    pub fn git_merge_trees(out: *mut *mut git_index,
+                           repo: *mut git_repository,
+                           ancestor_tree: *const git_tree,
+                           our_tree: *const git_tree,
+                           their_tree: *const git_tree,
+                           opts: *const git_merge_options) -> c_int;
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
 
     // merge analysis
