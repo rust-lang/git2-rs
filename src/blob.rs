@@ -62,6 +62,12 @@ impl<'repo> Binding for Blob<'repo> {
     fn raw(&self) -> *mut raw::git_blob { self.raw }
 }
 
+impl<'repo> ::std::fmt::Debug for Blob<'repo> {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+		f.debug_struct("Blob").field("id", &self.id()).finish()
+    }
+}
+
 impl<'repo> Clone for Blob<'repo> {
     fn clone(&self) -> Self {
         self.as_object().clone().into_blob().ok().unwrap()

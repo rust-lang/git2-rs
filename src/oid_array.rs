@@ -37,6 +37,12 @@ impl Binding for OidArray {
     fn raw(&self) -> raw::git_oidarray { self.raw }
 }
 
+impl<'repo> ::std::fmt::Debug for OidArray {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+		f.debug_tuple("OidArray").field(&self.deref()).finish()
+    }
+}
+
 impl Drop for OidArray {
     fn drop(&mut self) {
         unsafe { raw::git_oidarray_free(&mut self.raw) }

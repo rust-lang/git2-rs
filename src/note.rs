@@ -61,6 +61,11 @@ impl<'repo> Binding for Note<'repo> {
     fn raw(&self) -> *mut raw::git_note { self.raw }
 }
 
+impl<'repo> ::std::fmt::Debug for Note<'repo> {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        f.debug_struct("Note").field("id", &self.id()).finish()
+    }
+}
 
 impl<'repo> Drop for Note<'repo> {
     fn drop(&mut self) {
