@@ -5,7 +5,8 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use {raw, Error, Oid, Repository, Object, ObjectType};
+use {raw, Error, Oid, Repository, Object, ObjectType, Blob, Commit, Tree, Tag};
+use object::CastOrPanic;
 use util::Binding;
 
 struct Refdb<'repo>(&'repo Repository);
@@ -159,6 +160,38 @@ impl<'repo> Reference<'repo> {
             try_call!(raw::git_reference_peel(&mut raw, self.raw, kind));
             Ok(Binding::from_raw(raw))
         }
+    }
+
+    /// Peel a reference to a blob
+    ///
+    /// This method recursively peels the reference until it reaches
+    /// a blob.
+    pub fn peel_to_blob(&self) -> Result<Blob<'repo>, Error> {
+        try!(self.peel(ObjectType::Blob)).cast_or_panic(ObjectType::Blob)
+    }
+
+    /// Peel a reference to a commit
+    ///
+    /// This method recursively peels the reference until it reaches
+    /// a blob.
+    pub fn peel_to_commit(&self) -> Result<Commit<'repo>, Error> {
+        try!(self.peel(ObjectType::Commit)).cast_or_panic(ObjectType::Commit)
+    }
+
+    /// Peel a reference to a tree
+    ///
+    /// This method recursively peels the reference until it reaches
+    /// a blob.
+    pub fn peel_to_tree(&self) -> Result<Tree<'repo>, Error> {
+        try!(self.peel(ObjectType::Tree)).cast_or_panic(ObjectType::Tree)
+    }
+
+    /// Peel a reference to a tag
+    ///
+    /// This method recursively peels the reference until it reaches
+    /// a tag.
+    pub fn peel_to_tag(&self) -> Result<Tag<'repo>, Error> {
+        try!(self.peel(ObjectType::Tag)).cast_or_panic(ObjectType::Tag)
     }
 
     /// Rename an existing reference.

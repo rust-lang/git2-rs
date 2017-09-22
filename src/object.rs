@@ -42,6 +42,26 @@ impl<'repo> Object<'repo> {
         }
     }
 
+    /// Recursively peel an object until a blob is found
+    pub fn peel_to_blob(&self) -> Result<Blob, Error> {
+        self.peel(ObjectType::Blob).map(|o| o.cast_or_panic(ObjectType::Blob))
+    }
+
+    /// Recursively peel an object until a commit is found
+    pub fn peel_to_commit(&self) -> Result<Commit, Error> {
+        self.peel(ObjectType::Commit).map(|o| o.cast_or_panic(ObjectType::Commit))
+    }
+
+    /// Recursively peel an object until a tag is found
+    pub fn peel_to_tag(&self) -> Result<Tag, Error> {
+        self.peel(ObjectType::Tag).map(|o| o.cast_or_panic(ObjectType::Tag))
+    }
+
+    /// Recursively peel an object until a tree is found
+    pub fn peel_to_tree(&self) -> Result<Tree, Error> {
+        self.peel(ObjectType::Tree).map(|o| o.cast_or_panic(ObjectType::Tree))
+    }
+
     /// Get a short abbreviated OID string for the object
     ///
     /// This starts at the "core.abbrev" length (default 7 characters) and
@@ -143,6 +163,34 @@ impl<'repo> Object<'repo> {
             })
         } else {
             Err(self)
+        }
+    }
+}
+
+/// This trait is useful to export cast_or_panic into crate but not outside
+pub trait CastOrPanic {
+    fn cast_or_panic<T>(self, kind: ObjectType) -> T;
+}
+
+impl<'repo> CastOrPanic for Object<'repo> {
+    fn cast_or_panic<T>(self, kind: ObjectType) -> T {
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<T>());
+        if self.kind() == Some(kind) {
+            unsafe {
+                let other = ptr::read(&self as *const _ as *const T);
+                mem::forget(self);
+                other
+            }
+        } else {
+            let buf;
+            let akind = match self.kind() {
+                Some(akind) => akind.str(),
+                None => {
+                    buf = format!("unknown ({})", unsafe { raw::git_object_type(&*self.raw) });
+                    &buf
+                }
+            };
+            panic!("Expected object {} to be {} but it is {}", self.id(), kind.str(), akind)
         }
     }
 }
