@@ -119,7 +119,7 @@ impl<'repo> Commit<'repo> {
     ///
     /// `None` may be returned if an error occurs or if the summary is not valid
     /// utf-8.
-    pub fn summary(&mut self) -> Option<&str> {
+    pub fn summary(&self) -> Option<&str> {
         self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
@@ -129,7 +129,7 @@ impl<'repo> Commit<'repo> {
     /// paragraph of the message with whitespace trimmed and squashed.
     ///
     /// `None` may be returned if an error occurs
-    pub fn summary_bytes(&mut self) -> Option<&[u8]> {
+    pub fn summary_bytes(&self) -> Option<&[u8]> {
         unsafe { ::opt_bytes(self, raw::git_commit_summary(self.raw)) }
     }
 
@@ -314,7 +314,7 @@ mod tests {
         let (_td, repo) = ::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
-        let mut commit = repo.find_commit(target).unwrap();
+        let commit = repo.find_commit(target).unwrap();
         assert_eq!(commit.message(), Some("initial"));
         assert_eq!(commit.id(), target);
         commit.message_raw().unwrap();
