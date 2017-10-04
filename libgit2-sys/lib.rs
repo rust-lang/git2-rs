@@ -6,7 +6,7 @@ extern crate libc;
 extern crate libssh2_sys as libssh2;
 #[cfg(feature = "curl")]
 extern crate curl_sys;
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
+#[cfg(all(unix, feature = "https"))]
 extern crate openssl_sys;
 extern crate libz_sys as libz;
 
@@ -2699,13 +2699,13 @@ pub fn init() {
     }
 }
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
+#[cfg(all(unix, feature = "https"))]
 #[doc(hidden)]
 pub fn openssl_init() {
     openssl_sys::init();
 }
 
-#[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
+#[cfg(any(windows, not(feature = "https")))]
 #[doc(hidden)]
 pub fn openssl_init() {}
 
