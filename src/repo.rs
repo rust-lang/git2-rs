@@ -36,6 +36,7 @@ pub struct Repository {
 // It is the current belief that a `Repository` can be sent among threads, or
 // even shared among threads in a mutex.
 unsafe impl Send for Repository {}
+unsafe impl Sync for Repository {}
 
 /// Options which can be used to configure how a repository is initialized
 pub struct RepositoryInitOptions {
