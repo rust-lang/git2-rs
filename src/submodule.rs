@@ -268,6 +268,7 @@ mod tests {
     use url::Url;
 
     use Repository;
+    use SubmoduleUpdateOptions;
 
     #[test]
     fn smoke() {
@@ -311,5 +312,33 @@ mod tests {
                              td.path().join("bar")));
         t!(s.add_to_index(false));
         t!(s.add_finalize());
+    }
+
+    #[test]
+    fn update_submodule() {
+        // -----------------------------------
+        // Same as `add_a_submodule()`
+        let (_td, repo1) = ::test::repo_init();
+        let (td, repo2) = ::test::repo_init();
+
+        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let mut s = repo2.submodule(&url.to_string(), Path::new("bar"),
+                                    true).unwrap();
+        t!(fs::remove_dir_all(td.path().join("bar")));
+        t!(Repository::clone(&url.to_string(),
+                             td.path().join("bar")));
+        t!(s.add_to_index(false));
+        t!(s.add_finalize());
+        // -----------------------------------
+
+        // Attempt to update submodule
+        let submodules = t!(repo1.submodules());
+        for mut submodule in submodules {
+            let mut submodule_options = SubmoduleUpdateOptions::new();
+            let init = true;
+            let opts = Some(&mut submodule_options);
+
+            t!(submodule.update(init, opts));
+        }
     }
 }
