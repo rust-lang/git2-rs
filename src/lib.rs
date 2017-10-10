@@ -520,6 +520,7 @@ bitflags! {
 }
 
 #[cfg(test)] #[macro_use] mod test;
+#[cfg(test)] mod test_use_pub_structs;
 #[macro_use] mod panic;
 mod call;
 mod util;
