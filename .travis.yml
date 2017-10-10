@@ -10,6 +10,7 @@ before_script:
   - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
 script:
   - git submodule update --init
+  - ./generate_pub_use_test.sh > src/test_use_pub_structs.rs
   - cargo test --no-default-features
   - cargo test
   - cargo run --manifest-path systest/Cargo.toml --release
