@@ -83,7 +83,7 @@ pub use blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use blob::{Blob, BlobWriter};
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
-pub use commit::{Commit, Parents};
+pub use commit::{Commit, Parents, ParentIds};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
