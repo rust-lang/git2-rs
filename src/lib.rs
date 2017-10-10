@@ -114,7 +114,7 @@ pub use revwalk::Revwalk;
 pub use signature::Signature;
 pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
 pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
-pub use submodule::Submodule;
+pub use submodule::{Submodule, SubmoduleUpdateOptions};
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry, TreeIter};
