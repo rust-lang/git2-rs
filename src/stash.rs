@@ -80,6 +80,7 @@ impl<'cb> StashApplyOptions<'cb> {
 }
 
 #[allow(unused)]
+#[allow(missing_docs)]
 pub struct StashCbData<'a> {
     pub callback: &'a mut StashCb<'a>
 }
