@@ -47,6 +47,31 @@ fn use_buf_buf() {
 }
 
 #[test]
+fn use_build_repobuilder() {
+    use build::RepoBuilder;
+}
+
+#[test]
+fn use_build_checkoutbuilder() {
+    use build::CheckoutBuilder;
+}
+
+#[test]
+fn use_cert_cert() {
+    use cert::Cert;
+}
+
+#[test]
+fn use_cert_certhostkey() {
+    use cert::CertHostkey;
+}
+
+#[test]
+fn use_cert_certx509() {
+    use cert::CertX509;
+}
+
+#[test]
 fn use_commit_commit() {
     use Commit;
 }
@@ -222,6 +247,11 @@ fn use_oid_oid() {
 }
 
 #[test]
+fn use_oid_array_oidarray() {
+    use oid_array::OidArray;
+}
+
+#[test]
 fn use_packbuilder_packbuilder() {
     use PackBuilder;
 }
@@ -392,6 +422,21 @@ fn use_status_statusentry() {
 }
 
 #[test]
+fn use_string_array_stringarray() {
+    use string_array::StringArray;
+}
+
+#[test]
+fn use_string_array_iter() {
+    use string_array::Iter;
+}
+
+#[test]
+fn use_string_array_iterbytes() {
+    use string_array::IterBytes;
+}
+
+#[test]
 fn use_submodule_submodule() {
     use Submodule;
 }
@@ -414,6 +459,11 @@ fn use_time_time() {
 #[test]
 fn use_time_indextime() {
     use IndexTime;
+}
+
+#[test]
+fn use_transport_transport() {
+    use transport::Transport;
 }
 
 #[test]
