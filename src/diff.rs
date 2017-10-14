@@ -997,7 +997,7 @@ impl DiffFindOptions {
     /// `diff.renames` should be used instead. This is overridden once any flag
     /// is set.
     pub fn by_config(&mut self) -> &mut DiffFindOptions {
-        self.flag(0xffffffff, false)
+        self.flag(0xffff_ffff, false)
     }
 
     /// Look for renames?
