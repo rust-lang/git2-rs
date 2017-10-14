@@ -115,9 +115,9 @@ impl<'a> Binding for Signature<'a> {
 ///
 /// This function is unsafe as there is no guarantee that `raw` is valid for
 /// `'a` nor if it's a valid pointer.
-pub unsafe fn from_raw_const<'b, T>(_lt: &'b T,
+pub unsafe fn from_raw_const<T>(_lt: &T,
                                     raw: *const raw::git_signature)
-                                    -> Signature<'b> {
+                                    -> Signature {
     Signature {
         raw: raw as *mut raw::git_signature,
         _marker: marker::PhantomData,

@@ -73,7 +73,7 @@ impl<'repo> Branch<'repo> {
 
     /// Return the reference supporting the remote tracking branch, given a
     /// local branch reference.
-    pub fn upstream<'a>(&'a self) -> Result<Branch<'a>, Error> {
+    pub fn upstream(&self) -> Result<Branch, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_upstream(&mut ret, &*self.get().raw()));

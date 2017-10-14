@@ -174,7 +174,7 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Get the number of refspecs for a remote
-    pub fn refspecs<'a>(&'a self) -> Refspecs<'a> {
+    pub fn refspecs(&self) -> Refspecs {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
         Refspecs { range: 0..cnt, remote: self }
     }
@@ -282,7 +282,7 @@ impl<'repo> Remote<'repo> {
                                 &[RemoteHead]>(slice))
         }
     }
-    
+
     /// Get the remote's list of fetch refspecs
     pub fn fetch_refspecs(&self) -> Result<StringArray, Error> {
         unsafe {
