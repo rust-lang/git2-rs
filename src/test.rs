@@ -26,8 +26,8 @@ pub fn repo_init() -> (TempDir, Repository) {
 
         let tree = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial",
-                    &tree, &[]).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
+            .unwrap();
     }
     (td, repo)
 }
@@ -42,17 +42,17 @@ pub fn realpath(original: &Path) -> io::Result<PathBuf> {
 }
 #[cfg(unix)]
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
-    use std::ffi::{CStr, OsString, CString};
+    use std::ffi::{CStr, CString, OsString};
     use std::os::unix::prelude::*;
     use libc::{self, c_char};
-    extern {
+    extern "C" {
         fn realpath(name: *const c_char, resolved: *mut c_char) -> *mut c_char;
     }
     unsafe {
         let cstr = try!(CString::new(original.as_os_str().as_bytes()));
         let ptr = realpath(cstr.as_ptr(), ptr::null_mut());
         if ptr.is_null() {
-            return Err(io::Error::last_os_error())
+            return Err(io::Error::last_os_error());
         }
         let bytes = CStr::from_ptr(ptr).to_bytes().to_vec();
         libc::free(ptr as *mut _);

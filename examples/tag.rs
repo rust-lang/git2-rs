@@ -14,14 +14,14 @@
 
 #![deny(warnings)]
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
 use std::str;
 use docopt::Docopt;
-use git2::{Repository, Error, Tag, Commit};
+use git2::{Commit, Error, Repository, Tag};
 
 #[derive(Deserialize)]
 struct Args {
@@ -48,14 +48,15 @@ fn run(args: &Args) -> Result<(), Error> {
         } else {
             try!(repo.tag_lightweight(name, &obj, args.flag_force));
         }
-
     } else if let Some(ref name) = args.flag_delete {
         let obj = try!(repo.revparse_single(name));
         let id = try!(obj.short_id());
         try!(repo.tag_delete(name));
-        println!("Deleted tag '{}' (was {})", name,
-                 str::from_utf8(&*id).unwrap());
-
+        println!(
+            "Deleted tag '{}' (was {})",
+            name,
+            str::from_utf8(&*id).unwrap()
+        );
     } else if args.flag_list {
         let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
         for name in try!(repo.tag_names(Some(pattern))).iter() {
@@ -97,7 +98,10 @@ fn print_name(name: &str) {
 }
 
 fn print_list_lines(message: Option<&str>, args: &Args) {
-    let message = match message { Some(s) => s, None => return };
+    let message = match message {
+        Some(s) => s,
+        None => return,
+    };
     let mut lines = message.lines().filter(|l| !l.trim().is_empty());
     if let Some(first) = lines.next() {
         print!("{}", first);
@@ -125,8 +129,9 @@ Options:
     -h, --help              show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

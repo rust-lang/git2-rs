@@ -68,11 +68,13 @@
 #![deny(missing_docs)]
 #![cfg_attr(test, deny(warnings))]
 
+#[macro_use]
+extern crate bitflags;
 extern crate libc;
-extern crate url;
 extern crate libgit2_sys as raw;
-#[macro_use] extern crate bitflags;
-#[cfg(test)] extern crate tempdir;
+#[cfg(test)]
+extern crate tempdir;
+extern crate url;
 
 use std::ffi::{CStr, CString};
 use std::fmt;
@@ -84,39 +86,39 @@ pub use blob::{Blob, BlobWriter};
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};
-pub use config::{Config, ConfigEntry, ConfigEntries};
+pub use config::{Config, ConfigEntries, ConfigEntry};
 pub use cred::{Cred, CredentialHelper};
 pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
-pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
+pub use diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
-pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
+pub use diff::{DiffFindOptions, DiffHunk, DiffLine, DiffStats};
 pub use error::Error;
-pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
+pub use index::{Index, IndexEntries, IndexEntry, IndexMatchedPath};
 pub use merge::{AnnotatedCommit, MergeOptions};
 pub use message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use note::{Note, Notes};
 pub use object::Object;
 pub use oid::Oid;
 pub use packbuilder::{PackBuilder, PackBuilderStage};
-pub use pathspec::{Pathspec, PathspecMatchList, PathspecFailedEntries};
+pub use pathspec::{Pathspec, PathspecFailedEntries, PathspecMatchList};
 pub use pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use patch::Patch;
 pub use proxy_options::ProxyOptions;
-pub use reference::{Reference, References, ReferenceNames};
+pub use reference::{Reference, ReferenceNames, References};
 pub use reflog::{Reflog, ReflogEntry, ReflogIter};
 pub use refspec::Refspec;
-pub use remote::{Remote, RemoteConnection, Refspecs, RemoteHead, FetchOptions, PushOptions};
-pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
-pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
+pub use remote::{FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead};
+pub use remote_callbacks::{Credentials, RemoteCallbacks, TransferProgress};
+pub use remote_callbacks::{Progress, TransportMessage, UpdateTips};
 pub use repo::{Repository, RepositoryInitOptions};
 pub use revspec::Revspec;
 pub use revwalk::Revwalk;
 pub use signature::Signature;
-pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
-pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
+pub use status::{StatusEntry, StatusIter, StatusOptions, StatusShow, Statuses};
+pub use stash::{StashApplyOptions, StashApplyProgressCb, StashCb};
 pub use submodule::{Submodule, SubmoduleUpdateOptions};
 pub use tag::Tag;
-pub use time::{Time, IndexTime};
+pub use time::{IndexTime, Time};
 pub use tree::{Tree, TreeEntry, TreeIter};
 pub use treebuilder::TreeBuilder;
 pub use odb::{Odb, OdbReader, OdbWriter};
@@ -519,8 +521,11 @@ bitflags! {
     }
 }
 
-#[cfg(test)] #[macro_use] mod test;
-#[macro_use] mod panic;
+#[cfg(test)]
+#[macro_use]
+mod test;
+#[macro_use]
+mod panic;
 mod call;
 mod util;
 
@@ -699,8 +704,7 @@ fn openssl_env_init() {
 #[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<T>(_anchor: &T,
-                           c: *const libc::c_char) -> Option<&[u8]> {
+unsafe fn opt_bytes<T>(_anchor: &T, c: *const libc::c_char) -> Option<&[u8]> {
     if c.is_null() {
         None
     } else {
@@ -711,7 +715,7 @@ unsafe fn opt_bytes<T>(_anchor: &T,
 fn opt_cstr<T: IntoCString>(o: Option<T>) -> Result<Option<CString>, Error> {
     match o {
         Some(s) => s.into_c_string().map(Some),
-        None => Ok(None)
+        None => Ok(None),
     }
 }
 

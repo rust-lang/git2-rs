@@ -14,13 +14,13 @@
 
 #![deny(warnings)]
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
 use docopt::Docopt;
-use git2::{Repository, Direction};
+use git2::{Direction, Repository};
 
 #[derive(Deserialize)]
 struct Args {
@@ -30,9 +30,10 @@ struct Args {
 fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open("."));
     let remote = &args.arg_remote;
-    let mut remote = try!(repo.find_remote(remote).or_else(|_| {
-        repo.remote_anonymous(remote)
-    }));
+    let mut remote = try!(
+        repo.find_remote(remote)
+            .or_else(|_| { repo.remote_anonymous(remote) })
+    );
 
     // Connect to the remote and call the printing function for each of the
     // remote references.
@@ -54,8 +55,9 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

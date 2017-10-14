@@ -14,8 +14,8 @@
 
 #![deny(warnings)]
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
@@ -48,7 +48,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
         println!("^{}", from.id());
     } else {
-        return Err(git2::Error::from_str("invalid results from revparse"))
+        return Err(git2::Error::from_str("invalid results from revparse"));
     }
     Ok(())
 }
@@ -61,8 +61,9 @@ Options:
     --git-dir           directory for the git repository to check
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

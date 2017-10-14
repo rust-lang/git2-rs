@@ -50,20 +50,30 @@ impl StringArray {
     /// The iterator yields `Option<&str>` as it is unknown whether the contents
     /// are utf-8 or not.
     pub fn iter(&self) -> Iter {
-        Iter { range: 0..self.len(), arr: self }
+        Iter {
+            range: 0..self.len(),
+            arr: self,
+        }
     }
 
     /// Returns an iterator over the strings contained within this array,
     /// yielding byte slices.
     pub fn iter_bytes(&self) -> IterBytes {
-        IterBytes { range: 0..self.len(), arr: self }
+        IterBytes {
+            range: 0..self.len(),
+            arr: self,
+        }
     }
 
     /// Returns the number of strings in this array.
-    pub fn len(&self) -> usize { self.raw.count as usize }
+    pub fn len(&self) -> usize {
+        self.raw.count as usize
+    }
 
     /// Return `true` if this array is empty.
-    pub fn is_empty(&self) -> bool { self.len() == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl Binding for StringArray {
@@ -71,7 +81,9 @@ impl Binding for StringArray {
     unsafe fn from_raw(raw: raw::git_strarray) -> StringArray {
         StringArray { raw: raw }
     }
-    fn raw(&self) -> raw::git_strarray { self.raw }
+    fn raw(&self) -> raw::git_strarray {
+        self.raw
+    }
 }
 
 impl<'a> IntoIterator for &'a StringArray {
@@ -87,7 +99,9 @@ impl<'a> Iterator for Iter<'a> {
     fn next(&mut self) -> Option<Option<&'a str>> {
         self.range.next().map(|i| self.arr.get(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'a> DoubleEndedIterator for Iter<'a> {
     fn next_back(&mut self) -> Option<Option<&'a str>> {
@@ -101,7 +115,9 @@ impl<'a> Iterator for IterBytes<'a> {
     fn next(&mut self) -> Option<&'a [u8]> {
         self.range.next().and_then(|i| self.arr.get_bytes(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'a> DoubleEndedIterator for IterBytes<'a> {
     fn next_back(&mut self) -> Option<&'a [u8]> {

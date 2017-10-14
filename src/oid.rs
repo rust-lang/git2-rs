@@ -1,6 +1,6 @@
 use std::fmt;
 use std::cmp::Ordering;
-use std::hash::{Hasher, Hash};
+use std::hash::{Hash, Hasher};
 use std::str;
 use libc;
 
@@ -20,12 +20,15 @@ impl Oid {
     /// returned.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         ::init();
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
-            try_call!(raw::git_oid_fromstrn(&mut raw,
-                                            s.as_bytes().as_ptr()
-                                                as *const libc::c_char,
-                                            s.len() as libc::size_t));
+            try_call!(raw::git_oid_fromstrn(
+                &mut raw,
+                s.as_bytes().as_ptr() as *const libc::c_char,
+                s.len() as libc::size_t
+            ));
         }
         Ok(Oid { raw: raw })
     }
@@ -35,7 +38,9 @@ impl Oid {
     /// If the array given is not 20 bytes in length, an error is returned.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
         ::init();
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         if bytes.len() != raw::GIT_OID_RAWSZ {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
@@ -45,7 +50,9 @@ impl Oid {
     }
 
     /// View this OID as a byte-slice 20 bytes in length.
-    pub fn as_bytes(&self) -> &[u8] { &self.raw.id }
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.raw.id
+    }
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {
@@ -59,7 +66,9 @@ impl Binding for Oid {
     unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
         Oid { raw: *oid }
     }
-    fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
+    fn raw(&self) -> *const raw::git_oid {
+        &self.raw as *const _
+    }
 }
 
 impl fmt::Debug for Oid {
@@ -73,8 +82,11 @@ impl fmt::Display for Oid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
         unsafe {
-            raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
-                               dst.len() as libc::size_t, &self.raw);
+            raw::git_oid_tostr(
+                dst.as_mut_ptr() as *mut libc::c_char,
+                dst.len() as libc::size_t,
+                &self.raw,
+            );
         }
         let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
         str::from_utf8(s).unwrap().fmt(f)
@@ -123,7 +135,9 @@ impl Hash for Oid {
 }
 
 impl AsRef<[u8]> for Oid {
-    fn as_ref(&self) -> &[u8] { self.as_bytes() }
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
 }
 
 #[cfg(test)]

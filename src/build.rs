@@ -4,9 +4,9 @@ use std::ffi::{CStr, CString};
 use std::mem;
 use std::path::Path;
 use std::ptr;
-use libc::{c_char, size_t, c_void, c_uint, c_int};
+use libc::{c_char, c_int, c_uint, c_void, size_t};
 
-use {raw, panic, Error, Repository, FetchOptions, IntoCString};
+use {panic, raw, Error, FetchOptions, IntoCString, Repository};
 use {CheckoutNotificationType, DiffFile};
 use util::{self, Binding};
 
@@ -51,8 +51,9 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 ///
 /// The callback must return a bool specifying whether the checkout should
 /// continue.
-pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
-                            DiffFile, DiffFile) -> bool + 'a;
+pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile)
+    -> bool
+                          + 'a;
 
 
 impl<'cb> Default for RepoBuilder<'cb> {
@@ -112,8 +113,7 @@ impl<'cb> RepoBuilder<'cb> {
 
     /// Configure the checkout which will be performed by consuming a checkout
     /// builder.
-    pub fn with_checkout(&mut self, checkout: CheckoutBuilder<'cb>)
-                         -> &mut RepoBuilder<'cb> {
+    pub fn with_checkout(&mut self, checkout: CheckoutBuilder<'cb>) -> &mut RepoBuilder<'cb> {
         self.checkout = Some(checkout);
         self
     }
@@ -122,8 +122,7 @@ impl<'cb> RepoBuilder<'cb> {
     ///
     /// The callbacks are used for reporting fetch progress, and for acquiring
     /// credentials in the event they are needed.
-    pub fn fetch_options(&mut self, fetch_opts: FetchOptions<'cb>)
-                            -> &mut RepoBuilder<'cb> {
+    pub fn fetch_options(&mut self, fetch_opts: FetchOptions<'cb>) -> &mut RepoBuilder<'cb> {
         self.fetch_opts = Some(fetch_opts);
         self
     }
@@ -135,21 +134,23 @@ impl<'cb> RepoBuilder<'cb> {
     pub fn clone(&mut self, url: &str, into: &Path) -> Result<Repository, Error> {
         let mut opts: raw::git_clone_options = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_clone_init_options(&mut opts,
-                                                  raw::GIT_CLONE_OPTIONS_VERSION));
+            try_call!(raw::git_clone_init_options(
+                &mut opts,
+                raw::GIT_CLONE_OPTIONS_VERSION
+            ));
         }
         opts.bare = self.bare as c_int;
-        opts.checkout_branch = self.branch.as_ref().map(|s| {
-            s.as_ptr()
-        }).unwrap_or(ptr::null());
+        opts.checkout_branch = self.branch
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
 
         opts.local = match (self.local, self.hardlinks) {
             (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
             (false, _) => raw::GIT_CLONE_NO_LOCAL,
             (true, _) => raw::GIT_CLONE_LOCAL_AUTO,
         };
-        opts.checkout_opts.checkout_strategy =
-            raw::GIT_CHECKOUT_SAFE as c_uint;
+        opts.checkout_opts.checkout_strategy = raw::GIT_CHECKOUT_SAFE as c_uint;
 
         if let Some(ref mut cbs) = self.fetch_opts {
             opts.fetch_opts = cbs.raw();
@@ -225,8 +226,7 @@ impl<'cb> CheckoutBuilder<'cb> {
         self
     }
 
-    fn flag(&mut self, bit: raw::git_checkout_strategy_t,
-            on: bool) -> &mut CheckoutBuilder<'cb> {
+    fn flag(&mut self, bit: raw::git_checkout_strategy_t, on: bool) -> &mut CheckoutBuilder<'cb> {
         if on {
             self.checkout_opts |= bit as u32;
         } else {
@@ -253,8 +253,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Remove untracked files from the working dir.
     ///
     /// Defaults to false.
-    pub fn remove_untracked(&mut self, remove: bool)
-                            -> &mut CheckoutBuilder<'cb> {
+    pub fn remove_untracked(&mut self, remove: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_REMOVE_UNTRACKED, remove)
     }
 
@@ -316,16 +315,14 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Indicate whether ignored files should be overwritten during the checkout.
     ///
     /// Defaults to true.
-    pub fn overwrite_ignored(&mut self, overwrite: bool)
-                             -> &mut CheckoutBuilder<'cb> {
+    pub fn overwrite_ignored(&mut self, overwrite: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_DONT_OVERWRITE_IGNORED, !overwrite)
     }
 
     /// Indicate whether a normal merge file should be written for conflicts.
     ///
     /// Defaults to false.
-    pub fn conflict_style_merge(&mut self, on: bool)
-                                -> &mut CheckoutBuilder<'cb> {
+    pub fn conflict_style_merge(&mut self, on: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_MERGE, on)
     }
 
@@ -333,8 +330,10 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// callback.
     ///
     /// Defaults to none.
-    pub fn notify_on(&mut self, notification_types: CheckoutNotificationType)
-                     -> &mut CheckoutBuilder<'cb> {
+    pub fn notify_on(
+        &mut self,
+        notification_types: CheckoutNotificationType,
+    ) -> &mut CheckoutBuilder<'cb> {
         self.notify_flags = notification_types;
         self
     }
@@ -343,14 +342,12 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// for conflicts.
     ///
     /// Defaults to false.
-    pub fn conflict_style_diff3(&mut self, on: bool)
-                                -> &mut CheckoutBuilder<'cb> {
+    pub fn conflict_style_diff3(&mut self, on: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_DIFF3, on)
     }
 
     /// Indicate whether to apply filters like CRLF conversion.
-    pub fn disable_filters(&mut self, disable: bool)
-                           -> &mut CheckoutBuilder<'cb> {
+    pub fn disable_filters(&mut self, disable: bool) -> &mut CheckoutBuilder<'cb> {
         self.disable_filters = disable;
         self
     }
@@ -375,8 +372,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     ///
     /// If no paths are specified, then all files are checked out. Otherwise
     /// only these specified paths are checked out.
-    pub fn path<T: IntoCString>(&mut self, path: T)
-                                   -> &mut CheckoutBuilder<'cb> {
+    pub fn path<T: IntoCString>(&mut self, path: T) -> &mut CheckoutBuilder<'cb> {
         let path = path.into_c_string().unwrap();
         self.path_ptrs.push(path.as_ptr());
         self.paths.push(path);
@@ -409,7 +405,9 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set a callback to receive notifications of checkout progress.
     pub fn progress<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-                       where F: FnMut(Option<&Path>, usize, usize) + 'cb {
+    where
+        F: FnMut(Option<&Path>, usize, usize) + 'cb,
+    {
         self.progress = Some(Box::new(cb) as Box<Progress<'cb>>);
         self
     }
@@ -419,8 +417,8 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Callbacks are invoked prior to modifying any files on disk.
     /// Returning `false` from the callback will cancel the checkout.
     pub fn notify<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-        where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
-                       DiffFile, DiffFile) -> bool + 'cb
+    where
+        F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile, DiffFile, DiffFile) -> bool + 'cb,
     {
         self.notify = Some(Box::new(cb) as Box<Notify<'cb>>);
         self
@@ -468,10 +466,12 @@ impl<'cb> CheckoutBuilder<'cb> {
     }
 }
 
-extern fn progress_cb(path: *const c_char,
-                      completed: size_t,
-                      total: size_t,
-                      data: *mut c_void) {
+extern "C" fn progress_cb(
+    path: *const c_char,
+    completed: size_t,
+    total: size_t,
+    data: *mut c_void,
+) {
     panic::wrap(|| unsafe {
         let payload = &mut *(data as *mut CheckoutBuilder);
         let callback = match payload.progress {
@@ -487,12 +487,14 @@ extern fn progress_cb(path: *const c_char,
     });
 }
 
-extern fn notify_cb(why: raw::git_checkout_notify_t,
-                    path: *const c_char,
-                    baseline: *const raw::git_diff_file,
-                    target: *const raw::git_diff_file,
-                    workdir: *const raw::git_diff_file,
-                    data: *mut c_void) -> c_int {
+extern "C" fn notify_cb(
+    why: raw::git_checkout_notify_t,
+    path: *const c_char,
+    baseline: *const raw::git_diff_file,
+    target: *const raw::git_diff_file,
+    workdir: *const raw::git_diff_file,
+    data: *mut c_void,
+) -> c_int {
     // pack callback etc
     panic::wrap(|| unsafe {
         let payload = &mut *(data as *mut CheckoutBuilder);
@@ -507,12 +509,18 @@ extern fn notify_cb(why: raw::git_checkout_notify_t,
         };
 
         let why = CheckoutNotificationType::from_bits_truncate(why as u32);
-        let keep_going = callback(why,
-                                  path,
-                                  DiffFile::from_raw(baseline),
-                                  DiffFile::from_raw(target),
-                                  DiffFile::from_raw(workdir));
-        if keep_going {0} else {1}
+        let keep_going = callback(
+            why,
+            path,
+            DiffFile::from_raw(baseline),
+            DiffFile::from_raw(target),
+            DiffFile::from_raw(workdir),
+        );
+        if keep_going {
+            0
+        } else {
+            1
+        }
     }).unwrap_or(2)
 }
 
@@ -537,8 +545,10 @@ mod tests {
         let url = if cfg!(unix) {
             format!("file://{}/bare", td.path().display())
         } else {
-            format!("file:///{}/bare", td.path().display().to_string()
-                                         .replace("\\", "/"))
+            format!(
+                "file:///{}/bare",
+                td.path().display().to_string().replace("\\", "/")
+            )
         };
 
         let dst = td.path().join("foo");
@@ -546,11 +556,14 @@ mod tests {
         fs::remove_dir_all(&dst).unwrap();
         RepoBuilder::new().local(false).clone(&url, &dst).unwrap();
         fs::remove_dir_all(&dst).unwrap();
-        RepoBuilder::new().local(false).hardlinks(false).bare(true)
-                          .clone(&url, &dst).unwrap();
+        RepoBuilder::new()
+            .local(false)
+            .hardlinks(false)
+            .bare(true)
+            .clone(&url, &dst)
+            .unwrap();
         fs::remove_dir_all(&dst).unwrap();
-        assert!(RepoBuilder::new().branch("foo")
-                                  .clone(&url, &dst).is_err());
+        assert!(RepoBuilder::new().branch("foo").clone(&url, &dst).is_err());
     }
 
 }

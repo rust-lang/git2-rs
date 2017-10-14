@@ -15,8 +15,8 @@
 #![deny(warnings)]
 #![allow(trivial_casts)]
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
@@ -39,15 +39,19 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
         let status = repo.status_file(path).unwrap();
 
-        let ret = if status.contains(git2::STATUS_WT_MODIFIED) ||
-                     status.contains(git2::STATUS_WT_NEW) {
-            println!("add '{}'", path.display());
-            0
-        } else {
-            1
-        };
+        let ret =
+            if status.contains(git2::STATUS_WT_MODIFIED) || status.contains(git2::STATUS_WT_NEW) {
+                println!("add '{}'", path.display());
+                0
+            } else {
+                1
+            };
 
-        if args.flag_dry_run {1} else {ret}
+        if args.flag_dry_run {
+            1
+        } else {
+            ret
+        }
     };
     let cb = if args.flag_verbose || args.flag_update {
         Some(cb as &mut git2::IndexMatchedPath)
@@ -76,8 +80,9 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
