@@ -371,7 +371,7 @@ impl Repository {
     /// List all remotes for a given repository
     pub fn remotes(&self) -> Result<StringArray, Error> {
         let mut arr = raw::git_strarray {
-            strings: 0 as *mut *mut c_char,
+            strings: ptr::null_mut(),
             count: 0,
         };
         unsafe {
@@ -435,7 +435,7 @@ impl Repository {
         let new_name = try!(CString::new(new_name));
         let mut problems = raw::git_strarray {
             count: 0,
-            strings: 0 as *mut *mut c_char,
+            strings: ptr::null_mut(),
         };
         unsafe {
             try_call!(raw::git_remote_rename(&mut problems, self.raw, name,
@@ -929,7 +929,7 @@ impl Repository {
     /// Creates a `AnnotatedCommit` from the given commit id.
     pub fn find_annotated_commit(&self, id: Oid) -> Result<AnnotatedCommit, Error> {
         unsafe {
-            let mut raw = 0 as *mut raw::git_annotated_commit;
+            let mut raw = ptr::null_mut();
             try_call!(raw::git_annotated_commit_lookup(&mut raw, self.raw(), id.raw()));
             Ok(Binding::from_raw(raw))
         }
@@ -1267,7 +1267,7 @@ impl Repository {
     /// An optional fnmatch pattern can also be specified.
     pub fn tag_names(&self, pattern: Option<&str>) -> Result<StringArray, Error> {
         let mut arr = raw::git_strarray {
-            strings: 0 as *mut *mut c_char,
+            strings: ptr::null_mut(),
             count: 0,
         };
         unsafe {
