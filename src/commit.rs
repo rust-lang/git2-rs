@@ -220,7 +220,7 @@ impl<'repo> Commit<'repo> {
 
     /// Get the specified parent id of the commit.
     ///
-    /// This is different from `parent`, which will attemptstempt to load the
+    /// This is different from `parent`, which will attempt to load the
     /// parent commit from the ODB.
     ///
     /// Use the `parent_ids` iterator to return an iterator over all parents.
