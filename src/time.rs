@@ -29,10 +29,14 @@ impl Time {
     }
 
     /// Return the time, in seconds, from epoch
-    pub fn seconds(&self) -> i64 { self.raw.time as i64 }
+    pub fn seconds(&self) -> i64 {
+        self.raw.time as i64
+    }
 
     /// Return the timezone offset, in minutes
-    pub fn offset_minutes(&self) -> i32 { self.raw.offset as i32 }
+    pub fn offset_minutes(&self) -> i32 {
+        self.raw.offset as i32
+    }
 }
 
 impl PartialOrd for Time {
@@ -52,7 +56,9 @@ impl Binding for Time {
     unsafe fn from_raw(raw: raw::git_time) -> Time {
         Time { raw: raw }
     }
-    fn raw(&self) -> raw::git_time { self.raw }
+    fn raw(&self) -> raw::git_time {
+        self.raw
+    }
 }
 
 impl IndexTime {
@@ -67,9 +73,13 @@ impl IndexTime {
     }
 
     /// Returns the number of seconds in the second component of this time.
-    pub fn seconds(&self) -> i32 { self.raw.seconds }
+    pub fn seconds(&self) -> i32 {
+        self.raw.seconds
+    }
     /// Returns the nanosecond component of this time.
-    pub fn nanoseconds(&self) -> u32 { self.raw.nanoseconds }
+    pub fn nanoseconds(&self) -> u32 {
+        self.raw.nanoseconds
+    }
 }
 
 impl Binding for IndexTime {
@@ -77,7 +87,9 @@ impl Binding for IndexTime {
     unsafe fn from_raw(raw: raw::git_index_time) -> IndexTime {
         IndexTime { raw: raw }
     }
-    fn raw(&self) -> raw::git_index_time { self.raw }
+    fn raw(&self) -> raw::git_index_time {
+        self.raw
+    }
 }
 
 impl PartialOrd for IndexTime {

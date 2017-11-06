@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 use std::ptr;
 use url;
 
-use {raw, Error, Config, IntoCString};
+use {raw, Config, Error, IntoCString};
 use util::Binding;
 
 /// A structure to represent git credentials in libgit2.
@@ -51,10 +51,12 @@ impl Cred {
     }
 
     /// Create a new passphrase-protected ssh key credential object.
-    pub fn ssh_key(username: &str,
-                   publickey: Option<&Path>,
-                   privatekey: &Path,
-                   passphrase: Option<&str>) -> Result<Cred, Error> {
+    pub fn ssh_key(
+        username: &str,
+        publickey: Option<&Path>,
+        privatekey: &Path,
+        passphrase: Option<&str>,
+    ) -> Result<Cred, Error> {
         ::init();
         let username = try!(CString::new(username));
         let publickey = try!(::opt_cstr(publickey));
@@ -62,22 +64,29 @@ impl Cred {
         let passphrase = try!(::opt_cstr(passphrase));
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_ssh_key_new(&mut out, username, publickey,
-                                                privatekey, passphrase));
+            try_call!(raw::git_cred_ssh_key_new(
+                &mut out,
+                username,
+                publickey,
+                privatekey,
+                passphrase
+            ));
             Ok(Binding::from_raw(out))
         }
     }
 
     /// Create a new plain-text username and password credential object.
-    pub fn userpass_plaintext(username: &str,
-                              password: &str) -> Result<Cred, Error> {
+    pub fn userpass_plaintext(username: &str, password: &str) -> Result<Cred, Error> {
         ::init();
         let username = try!(CString::new(username));
         let password = try!(CString::new(password));
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_userpass_plaintext_new(&mut out, username,
-                                                           password));
+            try_call!(raw::git_cred_userpass_plaintext_new(
+                &mut out,
+                username,
+                password
+            ));
             Ok(Binding::from_raw(out))
         }
     }
@@ -92,17 +101,21 @@ impl Cred {
     /// successful.
     ///
     /// [1]: https://www.kernel.org/pub/software/scm/git/docs/gitcredentials.html
-    pub fn credential_helper(config: &Config,
-                             url: &str,
-                             username: Option<&str>)
-                             -> Result<Cred, Error> {
-        match CredentialHelper::new(url).config(config).username(username)
-                               .execute() {
-            Some((username, password)) => {
-                Cred::userpass_plaintext(&username, &password)
-            }
-            None => Err(Error::from_str("failed to acquire username/password \
-                                         from local configuration"))
+    pub fn credential_helper(
+        config: &Config,
+        url: &str,
+        username: Option<&str>,
+    ) -> Result<Cred, Error> {
+        match CredentialHelper::new(url)
+            .config(config)
+            .username(username)
+            .execute()
+        {
+            Some((username, password)) => Cred::userpass_plaintext(&username, &password),
+            None => Err(Error::from_str(
+                "failed to acquire username/password \
+                 from local configuration",
+            )),
         }
     }
 
@@ -142,7 +155,9 @@ impl Binding for Cred {
     unsafe fn from_raw(raw: *mut raw::git_cred) -> Cred {
         Cred { raw: raw }
     }
-    fn raw(&self) -> *mut raw::git_cred { self.raw }
+    fn raw(&self) -> *mut raw::git_cred {
+        self.raw
+    }
 }
 
 impl Drop for Cred {
@@ -204,13 +219,14 @@ impl CredentialHelper {
     // Configure the queried username from `config`
     fn config_username(&mut self, config: &Config) {
         let key = self.exact_key("username");
-        self.username = config.get_string(&key).ok().or_else(|| {
-            self.url_key("username").and_then(|s| {
-                config.get_string(&s).ok()
+        self.username = config
+            .get_string(&key)
+            .ok()
+            .or_else(|| {
+                self.url_key("username")
+                    .and_then(|s| config.get_string(&s).ok())
             })
-        }).or_else(|| {
-            config.get_string("credential.username").ok()
-        })
+            .or_else(|| config.get_string("credential.username").ok())
     }
 
     // Discover all `helper` directives from `config`
@@ -237,8 +253,7 @@ impl CredentialHelper {
 
         if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
-        } else if cmd.starts_with('/') || cmd.starts_with('\\') ||
-                  cmd[1..].starts_with(":\\") {
+        } else if cmd.starts_with('/') || cmd.starts_with('\\') || cmd[1..].starts_with(":\\") {
             self.commands.push(format!("\"{}\"", cmd));
         } else {
             self.commands.push(format!("git credential-{}", cmd));
@@ -254,7 +269,7 @@ impl CredentialHelper {
             (&Some(ref host), &Some(ref protocol)) => {
                 Some(format!("credential.{}://{}.{}", protocol, host, name))
             }
-            _ => None
+            _ => None,
         }
     }
 
@@ -273,7 +288,9 @@ impl CredentialHelper {
             if p.is_some() && password.is_none() {
                 password = p;
             }
-            if username.is_some() && password.is_some() { break }
+            if username.is_some() && password.is_some() {
+                break;
+            }
         }
 
         match (username, password) {
@@ -284,34 +301,42 @@ impl CredentialHelper {
 
     // Execute the given `cmd`, providing the appropriate variables on stdin and
     // then afterwards parsing the output into the username/password on stdout.
-    fn execute_cmd(&self, cmd: &str, username: &Option<String>)
-                   -> (Option<String>, Option<String>) {
+    fn execute_cmd(
+        &self,
+        cmd: &str,
+        username: &Option<String>,
+    ) -> (Option<String>, Option<String>) {
         macro_rules! my_try( ($e:expr) => (
             match $e { Ok(e) => e, Err(..) => return (None, None) }
         ) );
 
-        let mut p = my_try!(Command::new("sh").arg("-c")
-                                              .arg(&format!("{} get", cmd))
-                                              .stdin(Stdio::piped())
-                                              .stdout(Stdio::piped())
-                                              .stderr(Stdio::piped())
-                                              .spawn());
+        let mut p = my_try!(
+            Command::new("sh")
+                .arg("-c")
+                .arg(&format!("{} get", cmd))
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+        );
         // Ignore write errors as the command may not actually be listening for
         // stdin
         {
             let stdin = p.stdin.as_mut().unwrap();
-            if let Some(ref p)  = self.protocol {
+            if let Some(ref p) = self.protocol {
                 let _ = writeln!(stdin, "protocol={}", p);
             }
-            if let Some(ref p)  = self.host {
+            if let Some(ref p) = self.host {
                 let _ = writeln!(stdin, "host={}", p);
             }
-            if let Some(ref p)  = *username {
+            if let Some(ref p) = *username {
                 let _ = writeln!(stdin, "username={}", p);
             }
         }
         let output = my_try!(p.wait_with_output());
-        if !output.status.success() { return (None, None) }
+        if !output.status.success() {
+            return (None, None);
+        }
         self.parse_output(output.stdout)
     }
 
@@ -323,7 +348,10 @@ impl CredentialHelper {
         for line in output.split(|t| *t == b'\n') {
             let mut parts = line.splitn(2, |t| *t == b'=');
             let key = parts.next().unwrap();
-            let value = match parts.next() { Some(s) => s, None => continue };
+            let value = match parts.next() {
+                Some(s) => s,
+                None => continue,
+            };
             let value = match String::from_utf8(value.to_vec()) {
                 Ok(s) => s,
                 Err(..) => continue,
@@ -346,7 +374,7 @@ mod test {
     use std::path::Path;
     use tempdir::TempDir;
 
-    use {Cred, Config, CredentialHelper, ConfigLevel};
+    use {Config, ConfigLevel, Cred, CredentialHelper};
 
     macro_rules! cfg( ($($k:expr => $v:expr),*) => ({
         let td = TempDir::new("git2-rs").unwrap();
@@ -367,18 +395,22 @@ mod test {
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
-                                      .config(&cfg)
-                                      .execute().unwrap();
+            .config(&cfg)
+            .execute()
+            .unwrap();
         assert_eq!(u, "a");
         assert_eq!(p, "b");
     }
 
     #[test]
     fn credential_helper2() {
-        let cfg = cfg! {};
-        assert!(CredentialHelper::new("https://example.com/foo/bar")
-                                 .config(&cfg)
-                                 .execute().is_none());
+        let cfg = cfg!{};
+        assert!(
+            CredentialHelper::new("https://example.com/foo/bar")
+                .config(&cfg)
+                .execute()
+                .is_none()
+        );
     }
 
     #[test]
@@ -389,8 +421,9 @@ mod test {
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
-                                      .config(&cfg)
-                                      .execute().unwrap();
+            .config(&cfg)
+            .execute()
+            .unwrap();
         assert_eq!(u, "c");
         assert_eq!(p, "b");
     }
@@ -399,10 +432,15 @@ mod test {
     fn credential_helper4() {
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("script");
-        File::create(&path).unwrap().write(br"\
+        File::create(&path)
+            .unwrap()
+            .write(
+                br"\
 #!/bin/sh
 echo username=c
-").unwrap();
+",
+            )
+            .unwrap();
         chmod(&path);
         let cfg = cfg! {
             "credential.https://example.com.helper" =>
@@ -410,8 +448,9 @@ echo username=c
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
-                                      .config(&cfg)
-                                      .execute().unwrap();
+            .config(&cfg)
+            .execute()
+            .unwrap();
         assert_eq!(u, "c");
         assert_eq!(p, "b");
     }
@@ -420,15 +459,20 @@ echo username=c
     fn credential_helper5() {
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("git-credential-script");
-        File::create(&path).unwrap().write(br"\
+        File::create(&path)
+            .unwrap()
+            .write(
+                br"\
 #!/bin/sh
 echo username=c
-").unwrap();
+",
+            )
+            .unwrap();
         chmod(&path);
 
         let paths = env::var("PATH").unwrap();
-        let paths = env::split_paths(&paths)
-                        .chain(path.parent().map(|p| p.to_path_buf()).into_iter());
+        let paths =
+            env::split_paths(&paths).chain(path.parent().map(|p| p.to_path_buf()).into_iter());
         env::set_var("PATH", &env::join_paths(paths).unwrap());
 
         let cfg = cfg! {
@@ -436,8 +480,9 @@ echo username=c
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
-                                      .config(&cfg)
-                                      .execute().unwrap();
+            .config(&cfg)
+            .execute()
+            .unwrap();
         assert_eq!(u, "c");
         assert_eq!(p, "b");
     }
@@ -447,9 +492,12 @@ echo username=c
         let cfg = cfg! {
             "credential.helper" => ""
         };
-        assert!(CredentialHelper::new("https://example.com/foo/bar")
+        assert!(
+            CredentialHelper::new("https://example.com/foo/bar")
                 .config(&cfg)
-                .execute().is_none());
+                .execute()
+                .is_none()
+        );
     }
 
     #[cfg(unix)]

@@ -4,9 +4,9 @@ use std::mem;
 use std::slice;
 use std::ptr;
 use std::str;
-use libc::{c_void, c_int, c_char, c_uint};
+use libc::{c_char, c_int, c_uint, c_void};
 
-use {raw, panic, Error, Cred, CredentialType, Oid};
+use {panic, raw, Cred, CredentialType, Error, Oid};
 use cert::Cert;
 use util::Binding;
 
@@ -42,7 +42,8 @@ enum ProgressState {
 ///                         if it was not included.
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
 pub type Credentials<'a> = FnMut(&str, Option<&str>, CredentialType)
-                                 -> Result<Cred, Error> + 'a;
+    -> Result<Cred, Error>
+                               + 'a;
 
 /// Callback to be invoked while a transfer is in progress.
 ///
@@ -75,7 +76,9 @@ pub type CertificateCheck<'a> = FnMut(&Cert, &str) -> bool + 'a;
 /// The first argument here is the `refname` of the reference, and the second is
 /// the status message sent by a server. If the status is `Some` then the update
 /// was rejected by the remote server with a reason why.
-pub type PushUpdateReference<'a> = FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
+pub type PushUpdateReference<'a> = FnMut(&str, Option<&str>)
+    -> Result<(), Error>
+                                       + 'a;
 
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {
@@ -98,8 +101,8 @@ impl<'a> RemoteCallbacks<'a> {
 
     /// The callback through which to fetch credentials if required.
     pub fn credentials<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-                          where F: FnMut(&str, Option<&str>, CredentialType)
-                                         -> Result<Cred, Error> + 'a
+    where
+        F: FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a,
     {
         self.credentials = Some(Box::new(cb) as Box<Credentials<'a>>);
         self
@@ -107,7 +110,9 @@ impl<'a> RemoteCallbacks<'a> {
 
     /// The callback through which progress is monitored.
     pub fn transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-                                where F: FnMut(Progress) -> bool + 'a {
+    where
+        F: FnMut(Progress) -> bool + 'a,
+    {
         self.progress = Some(Box::new(cb) as Box<TransferProgress<'a>>);
         self
     }
@@ -117,7 +122,9 @@ impl<'a> RemoteCallbacks<'a> {
     /// Text sent over the progress side-band will be passed to this function
     /// (this is the 'counting objects' output.
     pub fn sideband_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-                                where F: FnMut(&[u8]) -> bool + 'a {
+    where
+        F: FnMut(&[u8]) -> bool + 'a,
+    {
         self.sideband_progress = Some(Box::new(cb) as Box<TransportMessage<'a>>);
         self
     }
@@ -125,7 +132,9 @@ impl<'a> RemoteCallbacks<'a> {
     /// Each time a reference is updated locally, the callback will be called
     /// with information about it.
     pub fn update_tips<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-                          where F: FnMut(&str, Oid, Oid) -> bool + 'a {
+    where
+        F: FnMut(&str, Oid, Oid) -> bool + 'a,
+    {
         self.update_tips = Some(Box::new(cb) as Box<UpdateTips<'a>>);
         self
     }
@@ -134,7 +143,8 @@ impl<'a> RemoteCallbacks<'a> {
     /// let the caller make the final decision of whether to allow the
     /// connection to proceed.
     pub fn certificate_check<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-        where F: FnMut(&Cert, &str) -> bool + 'a
+    where
+        F: FnMut(&Cert, &str) -> bool + 'a,
     {
         self.certificate_check = Some(Box::new(cb) as Box<CertificateCheck<'a>>);
         self
@@ -146,7 +156,8 @@ impl<'a> RemoteCallbacks<'a> {
     /// second is a status message sent by the server. If the status is `Some`
     /// then the push was rejected.
     pub fn push_update_reference<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
-        where F: FnMut(&str, Option<&str>) -> Result<(), Error> + 'a,
+    where
+        F: FnMut(&str, Option<&str>) -> Result<(), Error> + 'a,
     {
         self.push_update_reference = Some(Box::new(cb) as Box<PushUpdateReference<'a>>);
         self
@@ -162,8 +173,10 @@ impl<'a> Binding for RemoteCallbacks<'a> {
     fn raw(&self) -> raw::git_remote_callbacks {
         unsafe {
             let mut callbacks: raw::git_remote_callbacks = mem::zeroed();
-            assert_eq!(raw::git_remote_init_callbacks(&mut callbacks,
-                                        raw::GIT_REMOTE_CALLBACKS_VERSION), 0);
+            assert_eq!(
+                raw::git_remote_init_callbacks(&mut callbacks, raw::GIT_REMOTE_CALLBACKS_VERSION),
+                0
+            );
             if self.progress.is_some() {
                 let f: raw::git_transfer_progress_cb = transfer_progress_cb;
                 callbacks.transfer_progress = Some(f);
@@ -177,18 +190,20 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 callbacks.sideband_progress = Some(f);
             }
             if self.certificate_check.is_some() {
-                let f: raw::git_transport_certificate_check_cb =
-                        certificate_check_cb;
+                let f: raw::git_transport_certificate_check_cb = certificate_check_cb;
                 callbacks.certificate_check = Some(f);
             }
             if self.push_update_reference.is_some() {
-                let f: extern fn(_, _, _) -> c_int = push_update_reference_cb;
+                let f: extern "C" fn(_, _, _) -> c_int = push_update_reference_cb;
                 callbacks.push_update_reference = Some(f);
             }
             if self.update_tips.is_some() {
-                let f: extern fn(*const c_char, *const raw::git_oid,
-                                 *const raw::git_oid, *mut c_void) -> c_int
-                                = update_tips_cb;
+                let f: extern "C" fn(
+                    *const c_char,
+                    *const raw::git_oid,
+                    *const raw::git_oid,
+                    *mut c_void,
+                ) -> c_int = update_tips_cb;
                 callbacks.update_tips = Some(f);
             }
             callbacks.payload = self as *const _ as *mut _;
@@ -239,8 +254,7 @@ impl<'a> Progress<'a> {
 
 impl<'a> Binding for Progress<'a> {
     type Raw = *const raw::git_transfer_progress;
-    unsafe fn from_raw(raw: *const raw::git_transfer_progress)
-                           -> Progress<'a> {
+    unsafe fn from_raw(raw: *const raw::git_transfer_progress) -> Progress<'a> {
         Progress {
             raw: ProgressState::Borrowed(raw),
             _marker: marker::PhantomData,
@@ -255,32 +269,37 @@ impl<'a> Binding for Progress<'a> {
     }
 }
 
-extern fn credentials_cb(ret: *mut *mut raw::git_cred,
-                         url: *const c_char,
-                         username_from_url: *const c_char,
-                         allowed_types: c_uint,
-                         payload: *mut c_void) -> c_int {
+extern "C" fn credentials_cb(
+    ret: *mut *mut raw::git_cred,
+    url: *const c_char,
+    username_from_url: *const c_char,
+    allowed_types: c_uint,
+    payload: *mut c_void,
+) -> c_int {
     unsafe {
         let ok = panic::wrap(|| {
             let payload = &mut *(payload as *mut RemoteCallbacks);
-            let callback = try!(payload.credentials.as_mut()
-                                       .ok_or(raw::GIT_PASSTHROUGH as c_int));
+            let callback = try!(
+                payload
+                    .credentials
+                    .as_mut()
+                    .ok_or(raw::GIT_PASSTHROUGH as c_int)
+            );
             *ret = ptr::null_mut();
-            let url = try!(str::from_utf8(CStr::from_ptr(url).to_bytes())
-                              .map_err(|_| raw::GIT_PASSTHROUGH as c_int));
+            let url = try!(
+                str::from_utf8(CStr::from_ptr(url).to_bytes())
+                    .map_err(|_| raw::GIT_PASSTHROUGH as c_int)
+            );
             let username_from_url = match ::opt_bytes(&url, username_from_url) {
-                Some(username) => {
-                    Some(try!(str::from_utf8(username)
-                                 .map_err(|_| raw::GIT_PASSTHROUGH as c_int)))
-                }
+                Some(username) => Some(try!(
+                    str::from_utf8(username).map_err(|_| raw::GIT_PASSTHROUGH as c_int)
+                )),
                 None => None,
             };
 
             let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
 
-            callback(url, username_from_url, cred_type).map_err(|e| {
-                e.raw_code() as c_int
-            })
+            callback(url, username_from_url, cred_type).map_err(|e| e.raw_code() as c_int)
         });
         match ok {
             Some(Ok(cred)) => {
@@ -299,8 +318,10 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
     }
 }
 
-extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
-                               payload: *mut c_void) -> c_int {
+extern "C" fn transfer_progress_cb(
+    stats: *const raw::git_transfer_progress,
+    payload: *mut c_void,
+) -> c_int {
     let ok = panic::wrap(|| unsafe {
         let payload = &mut *(payload as *mut RemoteCallbacks);
         let callback = match payload.progress {
@@ -310,12 +331,14 @@ extern fn transfer_progress_cb(stats: *const raw::git_transfer_progress,
         let progress = Binding::from_raw(stats);
         callback(progress)
     });
-    if ok == Some(true) {0} else {-1}
+    if ok == Some(true) {
+        0
+    } else {
+        -1
+    }
 }
 
-extern fn sideband_progress_cb(str: *const c_char,
-                               len: c_int,
-                               payload: *mut c_void) -> c_int {
+extern "C" fn sideband_progress_cb(str: *const c_char, len: c_int, payload: *mut c_void) -> c_int {
     let ok = panic::wrap(|| unsafe {
         let payload = &mut *(payload as *mut RemoteCallbacks);
         let callback = match payload.sideband_progress {
@@ -325,32 +348,43 @@ extern fn sideband_progress_cb(str: *const c_char,
         let buf = slice::from_raw_parts(str as *const u8, len as usize);
         callback(buf)
     });
-    if ok == Some(true) {0} else {-1}
+    if ok == Some(true) {
+        0
+    } else {
+        -1
+    }
 }
 
-extern fn update_tips_cb(refname: *const c_char,
-                         a: *const raw::git_oid,
-                         b: *const raw::git_oid,
-                         data: *mut c_void) -> c_int {
+extern "C" fn update_tips_cb(
+    refname: *const c_char,
+    a: *const raw::git_oid,
+    b: *const raw::git_oid,
+    data: *mut c_void,
+) -> c_int {
     let ok = panic::wrap(|| unsafe {
         let payload = &mut *(data as *mut RemoteCallbacks);
         let callback = match payload.update_tips {
             Some(ref mut c) => c,
             None => return true,
         };
-        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes())
-                          .unwrap();
+        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes()).unwrap();
         let a = Binding::from_raw(a);
         let b = Binding::from_raw(b);
         callback(refname, a, b)
     });
-    if ok == Some(true) {0} else {-1}
+    if ok == Some(true) {
+        0
+    } else {
+        -1
+    }
 }
 
-extern fn certificate_check_cb(cert: *mut raw::git_cert,
-                               _valid: c_int,
-                               hostname: *const c_char,
-                               data: *mut c_void) -> c_int {
+extern "C" fn certificate_check_cb(
+    cert: *mut raw::git_cert,
+    _valid: c_int,
+    hostname: *const c_char,
+    data: *mut c_void,
+) -> c_int {
     let ok = panic::wrap(|| unsafe {
         let payload = &mut *(data as *mut RemoteCallbacks);
         let callback = match payload.certificate_check {
@@ -358,24 +392,28 @@ extern fn certificate_check_cb(cert: *mut raw::git_cert,
             None => return true,
         };
         let cert = Binding::from_raw(cert);
-        let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes())
-                           .unwrap();
+        let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes()).unwrap();
         callback(&cert, hostname)
     });
-    if ok == Some(true) {0} else {-1}
+    if ok == Some(true) {
+        0
+    } else {
+        -1
+    }
 }
 
-extern fn push_update_reference_cb(refname: *const c_char,
-                                   status: *const c_char,
-                                   data: *mut c_void) -> c_int {
+extern "C" fn push_update_reference_cb(
+    refname: *const c_char,
+    status: *const c_char,
+    data: *mut c_void,
+) -> c_int {
     panic::wrap(|| unsafe {
         let payload = &mut *(data as *mut RemoteCallbacks);
         let callback = match payload.push_update_reference {
             Some(ref mut c) => c,
             None => return 0,
         };
-        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes())
-                           .unwrap();
+        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes()).unwrap();
         let status = if status.is_null() {
             None
         } else {

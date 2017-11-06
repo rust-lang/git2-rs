@@ -9,7 +9,7 @@ thread_local!(static LAST_ERROR: RefCell<Option<Box<Any + Send>>> = {
 pub fn wrap<T, F: FnOnce() -> T + ::std::panic::UnwindSafe>(f: F) -> Option<T> {
     use std::panic;
     if LAST_ERROR.with(|slot| slot.borrow().is_some()) {
-        return None
+        return None;
     }
     match panic::catch_unwind(f) {
         Ok(ret) => Some(ret),
@@ -30,11 +30,12 @@ pub fn wrap<T, F: FnOnce() -> T>(f: F) -> Option<T> {
     impl Drop for Bomb {
         fn drop(&mut self) {
             if !self.enabled {
-                return
+                return;
             }
-            panic!("callback has panicked, and continuing to unwind into C \
-                    is not safe, so aborting the process");
-
+            panic!(
+                "callback has panicked, and continuing to unwind into C \
+                 is not safe, so aborting the process"
+            );
         }
     }
     let mut bomb = Bomb { enabled: true };

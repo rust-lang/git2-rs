@@ -3,7 +3,7 @@ use std::io;
 use std::ptr;
 use libc::{c_char, c_int, c_void};
 
-use {raw, Oid, Object, ObjectType, Error};
+use {raw, Error, Object, ObjectType, Oid};
 use panic;
 use util::Binding;
 
@@ -22,7 +22,9 @@ impl<'repo> Binding for Odb<'repo> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_odb { self.raw }
+    fn raw(&self) -> *mut raw::git_odb {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Odb<'repo> {
@@ -49,20 +51,30 @@ impl<'repo> Odb<'repo> {
     pub fn writer(&self, size: usize, obj_type: ObjectType) -> Result<OdbWriter, Error> {
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_odb_open_wstream(&mut out, self.raw, size as raw::git_off_t, obj_type.raw()));
+            try_call!(raw::git_odb_open_wstream(
+                &mut out,
+                self.raw,
+                size as raw::git_off_t,
+                obj_type.raw()
+            ));
             Ok(OdbWriter::from_raw(out))
         }
     }
 
     /// Iterate over all objects in the object database
     pub fn foreach<C>(&self, mut callback: C) -> Result<(), Error>
-        where C: FnMut(&Oid) -> bool
+    where
+        C: FnMut(&Oid) -> bool,
     {
         unsafe {
-            let mut data = ForeachCbData { callback: &mut callback };
-            try_call!(raw::git_odb_foreach(self.raw(),
-                                           foreach_cb,
-                                           &mut data as *mut _ as *mut _));
+            let mut data = ForeachCbData {
+                callback: &mut callback,
+            };
+            try_call!(raw::git_odb_foreach(
+                self.raw(),
+                foreach_cb,
+                &mut data as *mut _ as *mut _
+            ));
             Ok(())
         }
     }
@@ -83,7 +95,9 @@ impl<'repo> Binding for OdbReader<'repo> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_odb_stream { self.raw }
+    fn raw(&self) -> *mut raw::git_odb_stream {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for OdbReader<'repo> {
@@ -121,7 +135,9 @@ impl<'repo> OdbWriter<'repo> {
     /// This method will fail if the total number of received bytes differs from the size declared with odb_writer()
     /// Attepting write after finishing will be ignored.
     pub fn finalize(&mut self) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
             try_call!(raw::git_odb_stream_finalize_write(&mut raw, self.raw));
             Ok(Binding::from_raw(&raw as *const _))
@@ -138,7 +154,9 @@ impl<'repo> Binding for OdbWriter<'repo> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_odb_stream { self.raw }
+    fn raw(&self) -> *mut raw::git_odb_stream {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for OdbWriter<'repo> {
@@ -160,19 +178,18 @@ impl<'repo> io::Write for OdbWriter<'repo> {
             }
         }
     }
-    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 pub type ForeachCb<'a> = FnMut(&Oid) -> bool + 'a;
 
 struct ForeachCbData<'a> {
-    pub callback: &'a mut ForeachCb<'a>
+    pub callback: &'a mut ForeachCb<'a>,
 }
 
-extern fn foreach_cb(id: *const raw::git_oid,
-                        payload: *mut c_void)
-                        -> c_int
-{
+extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int {
     panic::wrap(|| unsafe {
         let data = &mut *(payload as *mut ForeachCbData);
         let res = {
@@ -180,7 +197,11 @@ extern fn foreach_cb(id: *const raw::git_oid,
             callback(&Binding::from_raw(id))
         };
 
-        if res { 0 } else { 1 }
+        if res {
+            0
+        } else {
+            1
+        }
     }).unwrap_or(1)
 }
 
@@ -188,7 +209,7 @@ extern fn foreach_cb(id: *const raw::git_oid,
 mod tests {
     use std::io::prelude::*;
     use tempdir::TempDir;
-    use {Repository, ObjectType};
+    use {ObjectType, Repository};
 
     #[test]
     #[ignore]

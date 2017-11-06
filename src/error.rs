@@ -8,7 +8,7 @@ use libc::c_int;
 use {raw, ErrorClass, ErrorCode};
 
 /// A structure to represent errors coming out of libgit2.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Error {
     code: c_int,
     klass: c_int,
@@ -32,7 +32,11 @@ impl Error {
     unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Error {
         let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
         let msg = str::from_utf8(msg).unwrap();
-        Error { code: code, klass: (*ptr).klass, message: msg.to_string() }
+        Error {
+            code: code,
+            klass: (*ptr).klass,
+            message: msg.to_string(),
+        }
     }
 
     /// Creates a new error from the given string as the error.
@@ -194,11 +198,15 @@ impl Error {
     }
 
     /// Return the message associated with this error
-    pub fn message(&self) -> &str { &self.message }
+    pub fn message(&self) -> &str {
+        &self.message
+    }
 }
 
 impl error::Error for Error {
-    fn description(&self) -> &str { &self.message }
+    fn description(&self) -> &str {
+        &self.message
+    }
 }
 
 impl fmt::Display for Error {
@@ -210,8 +218,10 @@ impl fmt::Display for Error {
 
 impl From<NulError> for Error {
     fn from(_: NulError) -> Error {
-        Error::from_str("data contained a nul byte that could not be \
-                         represented as a string")
+        Error::from_str(
+            "data contained a nul byte that could not be \
+             represented as a string",
+        )
     }
 }
 
