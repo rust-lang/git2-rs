@@ -5,7 +5,7 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use {raw, Error, Oid, Repository, Object, ObjectType, Blob, Commit, Tree, Tag};
+use {raw, Error, Oid, Repository, ReferenceType, Object, ObjectType, Blob, Commit, Tree, Tag};
 use object::CastOrPanic;
 use util::Binding;
 
@@ -71,6 +71,13 @@ impl<'repo> Reference<'repo> {
     /// Check if a reference is a tag
     pub fn is_tag(&self) -> bool {
         unsafe { raw::git_reference_is_tag(&*self.raw) == 1 }
+    }
+
+    /// Get the reference type of a reference.
+    ///
+    /// If the type is unknown, then `None` is returned.
+    pub fn kind(&self) -> Option<ReferenceType> {
+        ReferenceType::from_raw(unsafe { raw::git_reference_type(&*self.raw) })
     }
 
     /// Get the full name of a reference.
@@ -324,7 +331,7 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
 
 #[cfg(test)]
 mod tests {
-    use {Reference, ObjectType};
+    use {Reference, ObjectType, ReferenceType};
 
     #[test]
     fn smoke() {
@@ -340,6 +347,10 @@ mod tests {
         assert!(!head.is_remote());
         assert!(!head.is_tag());
         assert!(!head.is_note());
+
+        // HEAD is a symbolic reference but git_repository_head resolves it
+        // so it is a GIT_REF_OID.
+        assert_eq!(head.kind().unwrap(), ReferenceType::Oid);
 
         assert!(head == repo.head().unwrap());
         assert_eq!(head.name(), Some("refs/heads/master"));
@@ -358,6 +369,7 @@ mod tests {
                                       head.target().unwrap(),
                                       false, "test").unwrap();
         assert!(tag1.is_tag());
+        assert_eq!(tag1.kind().unwrap(), ReferenceType::Oid);
 
         let peeled_commit = tag1.peel(ObjectType::Commit).unwrap();
         assert_eq!(ObjectType::Commit, peeled_commit.kind().unwrap());
@@ -368,6 +380,7 @@ mod tests {
         let mut sym1 = repo.reference_symbolic("refs/tags/tag1",
                                                "refs/heads/master", false,
                                                "test").unwrap();
+        assert_eq!(sym1.kind().unwrap(), ReferenceType::Symbolic);
         sym1.delete().unwrap();
 
         {
