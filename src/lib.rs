@@ -294,6 +294,16 @@ pub enum ObjectType {
     Tag,
 }
 
+/// An enumeration of all possile kinds of references.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum ReferenceType {
+    /// A reference which points at an object id.
+    Oid,
+
+    /// A reference which points at another reference.
+    Symbolic,
+}
+
 /// An enumeration for the possible types of branches
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum BranchType {
@@ -755,6 +765,31 @@ impl ObjectType {
 }
 
 impl fmt::Display for ObjectType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.str().fmt(f)
+    }
+}
+
+impl ReferenceType {
+    /// Convert an object type to its string representation.
+    pub fn str(&self) -> &'static str {
+        match self {
+            &ReferenceType::Oid => "oid",
+            &ReferenceType::Symbolic => "symbolic",
+        }
+    }
+
+    /// Convert a raw git_ref_t to a ReferenceType.
+    pub fn from_raw(raw: raw::git_ref_t) -> Option<ReferenceType> {
+        match raw {
+            raw::GIT_REF_OID => Some(ReferenceType::Oid),
+            raw::GIT_REF_SYMBOLIC => Some(ReferenceType::Symbolic),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for ReferenceType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.str().fmt(f)
     }
