@@ -880,7 +880,7 @@ pub enum Delta {
     Deleted,
     /// Entry content changed between old and new
     Modified,
-    /// Entry was renamed wbetween old and new
+    /// Entry was renamed between old and new
     Renamed,
     /// Entry was copied from another old entry
     Copied,
