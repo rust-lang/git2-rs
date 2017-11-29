@@ -23,7 +23,7 @@ pub struct Transport {
     owned: bool,
 }
 
-/// Interfaced used by smart transports.
+/// Interface used by smart transports.
 ///
 /// The full-fledged definiton of transports has to deal with lots of
 /// nitty-gritty details of the git protocol, but "smart transports" largely
@@ -45,7 +45,7 @@ pub trait SmartSubtransport: Send + 'static {
     /// Terminates a connection with the remote.
     ///
     /// Each subtransport is guaranteed a call to close() between calls to
-    /// action(), except for the following tow natural progressions of actions
+    /// action(), except for the following two natural progressions of actions
     /// against a constant URL.
     ///
     /// 1. UploadPackLs -> UploadPack
@@ -151,7 +151,7 @@ impl Transport {
             param: &mut *raw as *mut _ as *mut _,
         };
 
-        // Currently there's no way to pass a paload via the
+        // Currently there's no way to pass a payload via the
         // git_smart_subtransport_definition structure, but it's only used as a
         // configuration for the initial creation of the smart transport (verified
         // by reading the current code, hopefully it doesn't change!).
