@@ -1,13 +1,30 @@
 language: rust
-rust:
-  - stable
-  - beta
-  - nightly
 sudo: false
 git:
   submodules: false
-before_script:
-  - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+
+matrix:
+  include:
+    - rust: 1.21.0
+    - rust: stable
+    - os: osx
+      rust: stable
+      before_install:
+        - export OPENSSL_INCLUDE_DIR=`brew --prefix openssl`/include
+        - export OPENSSL_LIB_DIR=`brew --prefix openssl`/lib
+    - rust: beta
+    - rust: nightly
+
+    - rust: nightly
+      before_script:
+        - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+      script:
+        - cargo doc --no-deps
+        - cargo doc --manifest-path=git2-curl/Cargo.toml --no-deps
+        - cargo doc --manifest-path=libgit2-sys/Cargo.toml --no-deps
+      after_success:
+        - travis-cargo --only nightly doc-upload
+
 script:
   - git submodule update --init
   - cargo test --no-default-features
@@ -17,22 +34,15 @@ script:
       cargo test --features unstable;
       cargo test --manifest-path git2-curl/Cargo.toml;
     fi
-  - cargo doc --no-deps
-  - cargo doc --manifest-path=git2-curl/Cargo.toml --no-deps
-  - cargo doc --manifest-path=libgit2-sys/Cargo.toml --no-deps
-after_success:
-  - travis-cargo --only nightly doc-upload
-  - travis-cargo coveralls --no-sudo
+
+env:
+  global:
+    secure: "SVk5cv4VnBQAoaBXt9pIHk+FQ7Z58zT5EaPo7Ac81LltKztwHovhN/R1otKzgrAJqFsZ/nKR4cGyQGbYtfVJcsqweQVM75LI6Oh6lYyEdfX211ZI3SWQ50JO93CmwLtanC5UpECdXvJLCgXrHGJXuL1oi7hySGy47/yQlKH6eaM="
+
 notifications:
   email:
     on_success: never
-matrix:
-  include:
-    - os: osx
-      rust: stable
-      before_install:
-        - export OPENSSL_INCLUDE_DIR=`brew --prefix openssl`/include
-        - export OPENSSL_LIB_DIR=`brew --prefix openssl`/lib
+
 addons:
   apt:
     sources:
@@ -42,6 +52,3 @@ addons:
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
-env:
-  global:
-    secure: "SVk5cv4VnBQAoaBXt9pIHk+FQ7Z58zT5EaPo7Ac81LltKztwHovhN/R1otKzgrAJqFsZ/nKR4cGyQGbYtfVJcsqweQVM75LI6Oh6lYyEdfX211ZI3SWQ50JO93CmwLtanC5UpECdXvJLCgXrHGJXuL1oi7hySGy47/yQlKH6eaM="
