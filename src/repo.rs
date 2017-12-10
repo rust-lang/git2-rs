@@ -1893,6 +1893,8 @@ impl Repository {
     }
 
     /// Add ignore rules for a repository.
+    ///
+    /// The format of the rules is the same one of the .gitignore file.
     pub fn add_ignore_rule(&self, rules: &str) -> Result<(), Error> {
         let rules = CString::new(rules)?;
         unsafe {
