@@ -1472,6 +1472,12 @@ extern {
                                    start_path: *const c_char,
                                    across_fs: c_int,
                                    ceiling_dirs: *const c_char) -> c_int;
+    pub fn git_ignore_add_rule(repo: *mut git_repository,
+                               rules: *const c_char) -> c_int;
+    pub fn git_ignore_clear_internal_rules(repo: *mut git_repository) -> c_int;
+    pub fn git_ignore_path_is_ignored(ignored: *mut c_int,
+                                      repo: *mut git_repository,
+                                      path: *const c_char) -> c_int;
 
     // revparse
     pub fn git_revparse(revspec: *mut git_revspec,
