@@ -16,16 +16,40 @@ pub struct Error {
 }
 
 impl Error {
-    /// Returns the last error, or `None` if one is not available.
+    /// Returns the last error that happened with the code specified by `code`.
+    ///
+    /// Historically this function returned `Some` or `None` based on the return
+    /// value of `giterr_last` but nowadays it always returns `Some` so it's
+    /// safe to unwrap the return value. This API will change in the next major
+    /// version.
     pub fn last_error(code: c_int) -> Option<Error> {
         ::init();
         unsafe {
+            // Note that whenever libgit2 returns an error any negative value
+            // indicates that an error happened. Auxiliary information is
+            // *usually* in `giterr_last` but unfortunately that's not always
+            // the case. Sometimes a negative error code is returned from
+            // libgit2 *without* calling `giterr_set` internally to configure
+            // the error.
+            //
+            // To handle this case and hopefully provide better error messages
+            // on our end we unconditionally call `giterr_clear` when we're done
+            // with an error. This is an attempt to clear it as aggressively as
+            // possible when we can to ensure that error information from one
+            // api invocation doesn't leak over to the next api invocation.
+            //
+            // Additionally if `giterr_last` returns null then we returned a
+            // canned error out.
             let ptr = raw::giterr_last();
-            if ptr.is_null() {
-                None
+            let err = if ptr.is_null() {
+                let mut error = Error::from_str("an unknown git error occurred");
+                error.code = code;
+                error
             } else {
-                Some(Error::from_raw(code, ptr))
-            }
+                Error::from_raw(code, ptr)
+            };
+            raw::giterr_clear();
+            Some(err)
         }
     }
 
@@ -203,8 +227,16 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "[{}/{}] ", self.klass, self.code));
-        f.write_str(&self.message)
+        write!(f, "{}", self.message)?;
+        match self.class() {
+            ErrorClass::None => {}
+            other => write!(f, "; class={:?} ({})", other, self.klass)?,
+        }
+        match self.code() {
+            ErrorCode::GenericError => {}
+            other => write!(f, "; code={:?} ({})", other, self.code)?,
+        }
+        Ok(())
     }
 }
 
