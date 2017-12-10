@@ -1891,6 +1891,42 @@ impl Repository {
             Ok(())
         }
     }
+
+    /// Add an ignore rule for a repository.
+    pub fn add_ignore_rule(&self, rule: &str) -> Result<(), Error> {
+        let rules = CString::new(rule)?;
+        unsafe {
+            try_call!(raw::git_ignore_add_rule(self.raw, rules));
+        }
+        Ok(())
+    }
+
+    /// Add ignore rules for a repository.
+    pub fn add_ignore_rules(&self, rules: &Vec<&str>) -> Result<(), Error> {
+        let rules = CString::new(rules.join("\n"))?;
+        unsafe {
+            try_call!(raw::git_ignore_add_rule(self.raw, rules));
+        }
+        Ok(())
+    }
+
+    /// Clear ignore rules that were explicitly added.
+    pub fn clear_ignore_rules(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_ignore_clear_internal_rules(self.raw));
+        }
+        Ok(())
+    }
+
+    /// Test if the ignore rules apply to a given path.
+    pub fn is_path_ignored<P: AsRef<Path>>(&self, path: P) -> Result<bool, Error> {
+        let path = try!(path.as_ref().into_c_string());
+        let mut ignored: c_int = 0;
+        unsafe {
+            try_call!(raw::git_ignore_path_is_ignored(&mut ignored, self.raw, path));
+        }
+        Ok(ignored == 1)
+    }
 }
 
 impl Binding for Repository {
@@ -2366,5 +2402,18 @@ mod tests {
             let (_obj, reference) = repo.revparse_ext("HEAD^").unwrap();
             assert!(reference.is_none());
         }
+    }
+
+    #[test]
+    fn smoke_is_path_ignored() {
+        let (_td, repo) = graph_repo_init();
+
+        assert!(!repo.is_path_ignored(Path::new("/foo")).unwrap());
+
+        let _ = repo.add_ignore_rule("/foo");
+        assert!(repo.is_path_ignored(Path::new("/foo")).unwrap());
+
+        let _ = repo.clear_ignore_rules();
+        assert!(!repo.is_path_ignored(Path::new("/foo")).unwrap());
     }
 }
