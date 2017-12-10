@@ -1892,18 +1892,9 @@ impl Repository {
         }
     }
 
-    /// Add an ignore rule for a repository.
-    pub fn add_ignore_rule(&self, rule: &str) -> Result<(), Error> {
-        let rules = CString::new(rule)?;
-        unsafe {
-            try_call!(raw::git_ignore_add_rule(self.raw, rules));
-        }
-        Ok(())
-    }
-
     /// Add ignore rules for a repository.
-    pub fn add_ignore_rules(&self, rules: &Vec<&str>) -> Result<(), Error> {
-        let rules = CString::new(rules.join("\n"))?;
+    pub fn add_ignore_rule(&self, rules: &str) -> Result<(), Error> {
+        let rules = CString::new(rules)?;
         unsafe {
             try_call!(raw::git_ignore_add_rule(self.raw, rules));
         }
