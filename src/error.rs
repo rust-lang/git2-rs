@@ -18,6 +18,9 @@ pub struct Error {
 impl Error {
     /// Returns the last error that happened with the code specified by `code`.
     ///
+    /// The `code` argument typically comes from the return value of a function
+    /// call. This code will later be returned from the `code` function.
+    ///
     /// Historically this function returned `Some` or `None` based on the return
     /// value of `giterr_last` but nowadays it always returns `Some` so it's
     /// safe to unwrap the return value. This API will change in the next major
@@ -60,6 +63,9 @@ impl Error {
     }
 
     /// Creates a new error from the given string as the error.
+    ///
+    /// The error returned will have the code `GIT_ERROR` and the class
+    /// `GITERR_NONE`.
     pub fn from_str(s: &str) -> Error {
         Error {
             code: raw::GIT_ERROR as c_int,
@@ -69,6 +75,11 @@ impl Error {
     }
 
     /// Return the error code associated with this error.
+    ///
+    /// An error code is intended to be programmatically actionable most of the
+    /// time. For example the code `GIT_EAGAIN` indicates that an error could be
+    /// fixed by trying again, while the code `GIT_ERROR` is more bland and
+    /// doesn't convey anything in particular.
     pub fn code(&self) -> ErrorCode {
         match self.raw_code() {
             raw::GIT_OK => super::ErrorCode::GenericError,
@@ -101,6 +112,10 @@ impl Error {
     }
 
     /// Return the error class associated with this error.
+    ///
+    /// Error classes are in general mostly just informative. For example the
+    /// class will show up in the error message but otherwise an error class is
+    /// typically not directly actionable.
     pub fn class(&self) -> ErrorClass {
         match self.raw_class() {
             raw::GITERR_NONE => super::ErrorClass::None,
