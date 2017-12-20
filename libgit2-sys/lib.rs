@@ -2698,6 +2698,10 @@ pub fn init() {
         let r = git_libgit2_init();
         assert!(r >= 0,
                 "couldn't initialize the libgit2 library: {}", r);
+
+        // Note that we intentionally never schedule `git_libgit2_shutdown` to
+        // get called. There's not really a great tiem to call that and #276 has
+        // some more info about how automatically doing it can cause problems.
     });
 }
 
