@@ -2698,11 +2698,7 @@ pub fn init() {
         let r = git_libgit2_init();
         assert!(r >= 0,
                 "couldn't initialize the libgit2 library: {}", r);
-        assert_eq!(libc::atexit(shutdown), 0);
     });
-    extern fn shutdown() {
-        unsafe { git_libgit2_shutdown(); }
-    }
 }
 
 #[cfg(all(unix, feature = "https"))]
