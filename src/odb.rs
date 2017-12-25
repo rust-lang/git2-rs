@@ -1,6 +1,8 @@
 use std::marker;
 use std::io;
 use std::ptr;
+use std::slice;
+
 use libc::{c_char, c_int, c_void};
 
 use {raw, Oid, Object, ObjectType, Error};
@@ -64,6 +66,65 @@ impl<'repo> Odb<'repo> {
                                            foreach_cb,
                                            &mut data as *mut _ as *mut _));
             Ok(())
+        }
+    }
+
+    /// Read object from the database.
+    pub fn read(&self, oid: Oid) -> Result<OdbObject, Error> {
+        let mut out = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_odb_read(&mut out, self.raw, oid.raw()));
+            Ok(OdbObject::from_raw(out))
+        }
+    }
+}
+
+/// An object from the Object Database.
+pub struct OdbObject<'a> {
+    raw: *mut raw::git_odb_object,
+    _marker: marker::PhantomData<Object<'a>>,
+}
+
+impl<'a> Binding for OdbObject<'a> {
+    type Raw = *mut raw::git_odb_object;
+
+    unsafe fn from_raw(raw: *mut raw::git_odb_object) -> OdbObject<'a> {
+        OdbObject {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+
+    fn raw(&self) -> *mut raw::git_odb_object { self.raw }
+}
+
+impl<'a> Drop for OdbObject<'a> {
+    fn drop(&mut self) {
+        unsafe { raw::git_odb_object_free(self.raw) }
+    }
+}
+
+impl<'a> OdbObject<'a> {
+    /// Get the object type.
+    pub fn get_type(&self) -> Result<ObjectType, Error> {
+        unsafe { Ok(ObjectType::from_raw(raw::git_odb_object_type(self.raw)).unwrap()) }
+    }
+
+    /// Get the object size.
+    pub fn len(&self) -> Result<usize, Error> {
+        unsafe { Ok(raw::git_odb_object_size(self.raw)) }
+    }
+
+    /// Get the object data.
+    pub fn data(&self) -> Result<&[u8], Error> {
+        unsafe {
+            let result = self.len();
+            if result.is_err() {
+                return Err(result.err().unwrap());
+            }
+            let ptr : *const u8 = raw::git_odb_object_data(self.raw);
+            let buffer = slice::from_raw_parts(ptr, result.unwrap());
+            return Ok(buffer);
         }
     }
 }
@@ -191,21 +252,17 @@ mod tests {
     use {Repository, ObjectType};
 
     #[test]
-    #[ignore]
     fn reader() {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let id = repo.blob(&dat).unwrap();
         let db = repo.odb().unwrap();
-        let mut rs = db.reader(id).unwrap();
-        let mut buf = [3];
-        let rl = rs.read(&mut buf).unwrap();
-        assert_eq!(rl, 3);
-        assert_eq!(buf, &dat[0..3]);
-        let rl = rs.read(&mut buf).unwrap();
-        assert_eq!(rl, 2);
-        assert_eq!(buf, &dat[3..5]);
+        let obj = db.read(id).unwrap();
+        let data = obj.data().unwrap();
+        let size = obj.len().unwrap();
+        assert_eq!(size, 5);
+        assert_eq!(dat, data);
     }
 
     #[test]

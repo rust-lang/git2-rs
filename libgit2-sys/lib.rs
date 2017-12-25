@@ -82,6 +82,7 @@ pub enum git_describe_result {}
 pub enum git_packbuilder {}
 pub enum git_odb {}
 pub enum git_odb_stream {}
+pub enum git_odb_object {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -2686,6 +2687,15 @@ extern {
                                          stream: *mut git_odb_stream) -> c_int;
     pub fn git_odb_stream_free(stream: *mut git_odb_stream);
     pub fn git_odb_foreach(db: *mut git_odb, cb: git_odb_foreach_cb, payload: *mut c_void) -> c_int;
+
+    pub fn git_odb_read(out: *mut *mut git_odb_object,
+                        odb: *mut git_odb,
+                        oid: *const git_oid) -> c_int;
+
+    pub fn git_odb_object_size(obj: *mut git_odb_object) -> size_t;
+    pub fn git_odb_object_type(obj: *mut git_odb_object) -> git_otype;
+    pub fn git_odb_object_data(obj: *mut git_odb_object) -> *const u8;
+    pub fn git_odb_object_free(obj: *mut git_odb_object);
 }
 
 pub fn init() {
