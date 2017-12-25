@@ -79,8 +79,8 @@ impl<'repo> Odb<'repo> {
     }
 
     /// Checks if the object database has an object.
-    pub fn exists(&self, oid: Oid) -> Result<bool, Error> {
-        unsafe { Ok(raw::git_odb_exists(self.raw, oid.raw()) != -1) }
+    pub fn exists(&self, oid: Oid) -> bool {
+        unsafe { raw::git_odb_exists(self.raw, oid.raw()) != -1 }
     }
 }
 
@@ -111,24 +111,21 @@ impl<'a> Drop for OdbObject<'a> {
 
 impl<'a> OdbObject<'a> {
     /// Get the object type.
-    pub fn get_type(&self) -> Result<ObjectType, Error> {
-        unsafe { Ok(ObjectType::from_raw(raw::git_odb_object_type(self.raw)).unwrap()) }
+    pub fn kind(&self) -> ObjectType {
+        unsafe { ObjectType::from_raw(raw::git_odb_object_type(self.raw)).unwrap() }
     }
 
     /// Get the object size.
-    pub fn len(&self) -> Result<usize, Error> {
-        unsafe { Ok(raw::git_odb_object_size(self.raw)) }
+    pub fn len(&self) -> usize {
+        unsafe { raw::git_odb_object_size(self.raw) }
     }
 
     /// Get the object data.
     pub fn data(&self) -> Result<&[u8], Error> {
         unsafe {
-            let result = self.len();
-            if result.is_err() {
-                return Err(result.err().unwrap());
-            }
+            let size = self.len();
             let ptr : *const u8 = raw::git_odb_object_data(self.raw) as *const u8;
-            let buffer = slice::from_raw_parts(ptr, result.unwrap());
+            let buffer = slice::from_raw_parts(ptr, size);
             return Ok(buffer);
         }
     }
@@ -265,7 +262,7 @@ mod tests {
         let db = repo.odb().unwrap();
         let obj = db.read(id).unwrap();
         let data = obj.data().unwrap();
-        let size = obj.len().unwrap();
+        let size = obj.len();
         assert_eq!(size, 5);
         assert_eq!(dat, data);
     }
