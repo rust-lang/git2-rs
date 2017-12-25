@@ -121,12 +121,12 @@ impl<'a> OdbObject<'a> {
     }
 
     /// Get the object data.
-    pub fn data(&self) -> Result<&[u8], Error> {
+    pub fn data(&self) -> &[u8] {
         unsafe {
             let size = self.len();
             let ptr : *const u8 = raw::git_odb_object_data(self.raw) as *const u8;
             let buffer = slice::from_raw_parts(ptr, size);
-            return Ok(buffer);
+            return buffer;
         }
     }
 }
@@ -261,7 +261,7 @@ mod tests {
         let id = repo.blob(&dat).unwrap();
         let db = repo.odb().unwrap();
         let obj = db.read(id).unwrap();
-        let data = obj.data().unwrap();
+        let data = obj.data();
         let size = obj.len();
         assert_eq!(size, 5);
         assert_eq!(dat, data);
