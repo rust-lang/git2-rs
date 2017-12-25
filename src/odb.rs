@@ -122,7 +122,7 @@ impl<'a> OdbObject<'a> {
             if result.is_err() {
                 return Err(result.err().unwrap());
             }
-            let ptr : *const u8 = raw::git_odb_object_data(self.raw);
+            let ptr : *const u8 = raw::git_odb_object_data(self.raw) as *const u8;
             let buffer = slice::from_raw_parts(ptr, result.unwrap());
             return Ok(buffer);
         }
