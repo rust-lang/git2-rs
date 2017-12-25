@@ -77,6 +77,11 @@ impl<'repo> Odb<'repo> {
             Ok(OdbObject::from_raw(out))
         }
     }
+
+    /// Checks if the object database has an object.
+    pub fn exists(&self, oid: Oid) -> Result<bool, Error> {
+        unsafe { Ok(raw::git_odb_exists(self.raw, oid.raw()) != -1) }
+    }
 }
 
 /// An object from the Object Database.

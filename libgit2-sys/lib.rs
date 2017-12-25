@@ -2692,6 +2692,9 @@ extern {
                         odb: *mut git_odb,
                         oid: *const git_oid) -> c_int;
 
+    pub fn git_odb_exists(odb: *mut git_odb,
+                          oid: *const git_oid) -> c_int;
+
     pub fn git_odb_object_size(obj: *mut git_odb_object) -> size_t;
     pub fn git_odb_object_type(obj: *mut git_odb_object) -> git_otype;
     pub fn git_odb_object_data(obj: *mut git_odb_object) -> *const c_void;
