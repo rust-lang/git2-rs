@@ -34,6 +34,15 @@ impl<'repo> Drop for Odb<'repo> {
 }
 
 impl<'repo> Odb<'repo> {
+    /// Creates an object database without any backends.
+    pub fn new<'a>() -> Result<Odb<'a>, Error> {
+        unsafe {
+            let mut out = ptr::null_mut();
+            try_call!(raw::git_odb_new(&mut out));
+            Ok(Odb::from_raw(out))
+        }
+    }
+
     /// Create object database reading stream.
     ///
     /// Note that most backends do not support streaming reads because they store their objects as compressed/delta'ed blobs.

@@ -1441,6 +1441,8 @@ extern {
                                    ceiling_dirs: *const c_char) -> c_int;
     pub fn git_repository_open_from_worktree(repo: *mut *mut git_repository,
                                              worktree: *mut git_worktree) -> c_int;
+    pub fn git_repository_wrap_odb(repo: *mut *mut git_repository,
+                                   odb: *mut git_odb) -> c_int;
     pub fn git_repository_init(repo: *mut *mut git_repository,
                                path: *const c_char,
                                is_bare: c_uint) -> c_int;
@@ -1461,6 +1463,7 @@ extern {
     pub fn git_repository_is_bare(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_empty(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_shallow(repo: *mut git_repository) -> c_int;
+    pub fn git_repository_is_worktree(repo: *mut git_repository) -> c_int;
     pub fn git_repository_path(repo: *mut git_repository) -> *const c_char;
     pub fn git_repository_state(repo: *mut git_repository) -> c_int;
     pub fn git_repository_workdir(repo: *mut git_repository) -> *const c_char;
@@ -2675,6 +2678,7 @@ extern {
     // odb
     pub fn git_repository_odb(out: *mut *mut git_odb,
                               repo: *mut git_repository) -> c_int;
+    pub fn git_odb_new(db: *mut *mut git_odb) -> c_int;
     pub fn git_odb_free(db: *mut git_odb);
     pub fn git_odb_open_rstream(out: *mut *mut git_odb_stream,
                                 db: *mut git_odb,

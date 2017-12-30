@@ -207,6 +207,16 @@ impl Repository {
         Ok(repo)
     }
 
+    /// Attempt to wrap an object database as a repository.
+    pub fn from_odb(odb: Odb) -> Result<Repository, Error> {
+        init();
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_wrap_odb(&mut ret, odb.raw()));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Update submodules recursively.
     ///
     /// Uninitialized submodules will be initialized.
@@ -290,6 +300,11 @@ impl Repository {
     /// Tests whether this repository is a shallow clone.
     pub fn is_shallow(&self) -> bool {
         unsafe { raw::git_repository_is_shallow(self.raw) == 1 }
+    }
+
+    /// Tests whether this repository is a worktree.
+    pub fn is_worktree(&self) -> bool {
+        unsafe { raw::git_repository_is_worktree(self.raw) == 1 }
     }
 
     /// Tests whether this repository is empty.
@@ -1585,7 +1600,6 @@ impl Repository {
             Ok(Binding::from_raw(arr))
         }
     }
-
 
     /// Count the number of unique commits between two commit objects
     ///
