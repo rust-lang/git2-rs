@@ -83,6 +83,7 @@ pub enum git_packbuilder {}
 pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
+pub enum git_odb_backend {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -2692,13 +2693,59 @@ extern {
                         odb: *mut git_odb,
                         oid: *const git_oid) -> c_int;
 
+    pub fn git_odb_read_header(len_out: *mut size_t,
+                               type_out: *mut git_otype,
+                               odb: *mut git_odb,
+                               oid: *const git_oid) -> c_int;
+
+    pub fn git_odb_write(out: *mut git_oid,
+                         odb: *mut git_odb,
+                         data: *const c_void,
+                         len: size_t,
+                         otype: git_otype) -> c_int;
+
+    pub fn git_odb_hash(out: *mut git_oid,
+                        data: *const c_void,
+                        len: size_t,
+                        otype: git_otype) -> c_int;
+    
+    pub fn git_odb_hashfile(out: *mut git_oid,
+                            path: *const c_char,
+                            otype: git_otype) -> c_int;
+
+    pub fn git_odb_exists_prefix(out: *mut git_oid,
+                                 odb: *mut git_odb,
+                                 short_oid: *const git_oid,
+                                 len: size_t) -> c_int;
+
     pub fn git_odb_exists(odb: *mut git_odb,
                           oid: *const git_oid) -> c_int;
 
+    pub fn git_odb_refresh(odb: *mut git_odb) -> c_int;
+
+    pub fn git_odb_object_id(obj: *mut git_odb_object) -> *const git_oid;
     pub fn git_odb_object_size(obj: *mut git_odb_object) -> size_t;
     pub fn git_odb_object_type(obj: *mut git_odb_object) -> git_otype;
     pub fn git_odb_object_data(obj: *mut git_odb_object) -> *const c_void;
+    pub fn git_odb_object_dup(out: *mut *mut git_odb_object,
+                              obj: *mut git_odb_object) -> c_int;
     pub fn git_odb_object_free(obj: *mut git_odb_object);
+
+    pub fn git_odb_add_backend(odb: *mut git_odb,
+                               backend: *mut git_odb_backend,
+                               priority: c_int) -> c_int;
+
+    pub fn git_odb_add_alternate(odb: *mut git_odb,
+                                 backend: *mut git_odb_backend,
+                                 priority: c_int) -> c_int;
+
+    pub fn git_odb_num_backends(odb: *mut git_odb) -> size_t;
+    pub fn git_odb_get_backend(backend: *mut *mut git_odb_backend,
+                               odb: *mut git_odb,
+                               position: size_t) -> c_int;
+
+    // mempack
+    pub fn git_mempack_new(out: *mut *mut git_odb_backend) -> c_int;
 }
 
 pub fn init() {
