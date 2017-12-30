@@ -62,6 +62,19 @@ impl Repository {
         }
     }
 
+    /// Attempt to open an already-existing bare repository at `path`.
+    ///
+    /// The path can point to only a bare repository.
+    pub fn open_bare<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
+        init();
+        let path = try!(path.as_ref().into_c_string());
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_open_bare(&mut ret, path));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Find and open an existing repository, respecting git environment
     /// variables.  This acts like `open_ext` with the
     /// `REPOSITORY_OPEN_FROM_ENV` flag, but additionally respects `$GIT_DIR`.

@@ -117,6 +117,18 @@ impl<'repo> Odb<'repo> {
         unsafe { raw::git_odb_exists(self.raw, oid.raw()) != -1 }
     }
 
+    /// Potentially finds an object that starts with the given prefix.
+    pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
+        unsafe {
+            let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+            try_call!(raw::git_odb_exists_prefix(&mut out,
+                                                 self.raw,
+                                                 short_oid.raw(),
+                                                 len));
+            Ok(Oid::from_raw(&out))
+        }
+    } 
+
     /// Refresh the object database.
     /// This should never be needed, and is
     /// provided purely for convenience.
@@ -175,6 +187,11 @@ impl<'a> OdbObject<'a> {
             let buffer = slice::from_raw_parts(ptr, size);
             return buffer;
         }
+    }
+
+    /// Get the object id.
+    pub fn id(&self) -> Oid {
+        unsafe { Oid::from_raw(raw::git_odb_object_id(self.raw)) }
     }
 }
 
@@ -298,7 +315,7 @@ extern fn foreach_cb(id: *const raw::git_oid,
 mod tests {
     use std::io::prelude::*;
     use tempdir::TempDir;
-    use {Repository, ObjectType};
+    use {Repository, ObjectType, Oid};
 
     #[test]
     fn read() {
@@ -312,6 +329,7 @@ mod tests {
         let size = obj.len();
         assert_eq!(size, 5);
         assert_eq!(dat, data);
+        assert_eq!(id, obj.id());
     }
 
     #[test]
@@ -362,5 +380,18 @@ mod tests {
         let db = repo.odb().unwrap();
         let id = db.write(ObjectType::Blob, &dat).unwrap();
         assert!(db.exists(id));
+    }
+
+    #[test]
+    fn exists_prefix() {
+        let td = TempDir::new("test").unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+        let dat = [4, 3, 5, 6, 9];
+        let db = repo.odb().unwrap();
+        let id = db.write(ObjectType::Blob, &dat).unwrap();
+        let id_prefix_str = &id.to_string()[0..10];
+        let id_prefix = Oid::from_str(id_prefix_str).unwrap();
+        let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
+        assert_eq!(found_oid, id);
     }
 }

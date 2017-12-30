@@ -2,9 +2,10 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::hash::{Hasher, Hash};
 use std::str;
+use std::path::Path;
 use libc;
 
-use {raw, Error, ObjectType};
+use {raw, Error, ObjectType, IntoCString};
 
 use util::Binding;
 
@@ -74,14 +75,15 @@ impl Oid {
     /// Hashes the content of the provided file as an object of the provided type,
     /// and returns an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
-    pub fn hash_file(kind: ObjectType, path: &str) -> Result<Oid, Error> {
+    pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
         ::init();
+
+        let rpath = try!(path.as_ref().into_c_string());
 
         let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         unsafe {
             try_call!(raw::git_odb_hashfile(&mut out,
-                                            path.as_ptr()
-                                                as *const libc::c_char,
+                                            rpath,
                                             kind.raw()));
         }
 
@@ -201,11 +203,10 @@ mod tests {
     #[test]
     fn hash_file() {
         let td = TempDir::new("test").unwrap();
-        let rpath = td.path().join("hello.txt");
-        let path = rpath.to_str().unwrap();
-        let mut file = File::create(path).unwrap();
-        write!(file, "Hello").unwrap();
-        assert!(Oid::hash_file(ObjectType::Blob, path).is_ok()); 
+        let path = td.path().join("hello.txt");
+        let mut file = File::create(&path).unwrap();
+        file.write_all("Hello".as_bytes()).unwrap();
+        assert!(Oid::hash_file(ObjectType::Blob, &path).is_ok());
     }
 }
 

@@ -84,6 +84,7 @@ pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
 pub enum git_odb_backend {}
+pub enum git_worktree {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1432,10 +1433,14 @@ extern {
     pub fn git_repository_free(repo: *mut git_repository);
     pub fn git_repository_open(repo: *mut *mut git_repository,
                                path: *const c_char) -> c_int;
+    pub fn git_repository_open_bare(repo: *mut *mut git_repository,
+                                    path: *const c_char) -> c_int;
     pub fn git_repository_open_ext(repo: *mut *mut git_repository,
                                    path: *const c_char,
                                    flags: c_uint,
                                    ceiling_dirs: *const c_char) -> c_int;
+    pub fn git_repository_open_from_worktree(repo: *mut *mut git_repository,
+                                             worktree: *mut git_worktree) -> c_int;
     pub fn git_repository_init(repo: *mut *mut git_repository,
                                path: *const c_char,
                                is_bare: c_uint) -> c_int;
