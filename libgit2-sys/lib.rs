@@ -58,6 +58,7 @@ pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
 pub enum git_annotated_commit {}
+pub enum git_refdb {}
 pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
@@ -83,7 +84,7 @@ pub enum git_packbuilder {}
 pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
-pub enum git_odb_backend {}
+pub enum git_odb_writepack {}
 pub enum git_worktree {}
 
 #[repr(C)]
@@ -1277,6 +1278,126 @@ pub struct git_transport {
     pub cancel: extern fn(*mut git_transport),
     pub close: extern fn(*mut git_transport) -> c_int,
     pub free: extern fn(*mut git_transport),
+}
+
+#[repr(C)]
+pub struct git_odb_backend {
+    pub version: c_uint,
+    pub odb: *mut git_odb,
+    pub read: extern fn(*mut *mut c_void,
+                        *mut size_t,
+                        *mut git_otype,
+                        *mut git_odb_backend,
+                        *const git_oid) -> c_int,
+
+    pub read_prefix: extern fn(*mut git_oid,
+                               *mut *mut c_void,
+                               *mut size_t,
+                               *mut git_otype,
+                               *mut git_odb_backend,
+                               *const git_oid,
+                               size_t) -> c_int,
+    pub read_header: extern fn(*mut size_t,
+                               *mut git_otype,
+                               *mut git_odb_backend,
+                               *const git_oid) -> c_int,
+
+    pub write: extern fn(*mut git_odb_backend,
+                         *const git_oid,
+                         *const c_void,
+                         size_t,
+                         git_otype) -> c_int,
+
+    pub writestream: extern fn(*mut *mut git_odb_stream,
+                               *mut git_odb_backend,
+                               git_off_t,
+                               git_otype) -> c_int,
+
+    pub readstream: extern fn(*mut *mut git_odb_stream,
+                              *mut git_odb_backend,
+                              *const git_oid) -> c_int,
+
+    pub exists: extern fn(*mut git_odb_backend,
+                          *const git_oid) -> c_int,
+
+    pub exists_prefix: extern fn(*mut git_oid,
+                                 *mut git_odb_backend,
+                                 *const git_oid,
+                                 size_t) -> c_int,
+
+    pub refresh: extern fn(*mut git_odb_backend) -> c_int,
+
+    pub foreach: extern fn(*mut git_odb_backend,
+                           git_odb_foreach_cb,
+                           *mut c_void) -> c_int,
+
+    pub writepack: extern fn(*mut *mut git_odb_writepack,
+                             *mut git_odb_backend,
+                             *mut git_odb,
+                             git_transfer_progress_cb,
+                             *mut c_void) -> c_int,
+
+    pub freshen: extern fn(*mut git_odb_backend,
+                           *const git_oid) -> c_int,
+
+    pub free: extern fn(*mut git_odb_backend),
+}
+
+#[repr(C)]
+pub struct git_refdb_backend {
+    pub version: c_uint,
+    pub exists: extern fn(*mut c_int,
+                          *mut git_refdb_backend,
+                          *const c_char) -> c_int,
+    pub lookup: extern fn(*mut *mut git_reference,
+                          *mut git_refdb_backend,
+                          *mut c_char) -> c_int,
+    pub iterator: extern fn(*mut *mut git_reference_iterator,
+                            *mut git_refdb_backend,
+                            *const c_char) -> c_int,
+    pub write: extern fn(*mut git_refdb_backend,
+                         *const git_reference,
+                         c_int,
+                         *const git_signature,
+                         *const c_char,
+                         *const git_oid,
+                         *const c_char) -> c_int,
+    pub rename: extern fn(*mut *mut git_reference,
+                          *mut git_refdb_backend,
+                          *const c_char,
+                          *const c_char,
+                          c_int,
+                          *const git_signature,
+                          *const c_char) -> c_int,
+    pub del: extern fn(*mut git_refdb_backend,
+                       *const c_char,
+                       *const git_oid,
+                       *const c_char) -> c_int,
+    pub compress: extern fn(*mut git_refdb_backend) -> c_int,
+    pub has_log: extern fn(*mut git_refdb_backend,
+                           *const c_char) -> c_int,
+    pub ensure_log: extern fn(*mut git_refdb_backend,
+                              *const c_char) -> c_int,
+    pub free: extern fn(*mut git_refdb_backend),
+    pub reflog_read: extern fn(*mut *mut git_reflog,
+                               *mut git_refdb_backend,
+                               *const c_char) -> c_int,
+    pub reflog_write: extern fn(*mut git_refdb_backend,
+                                *mut git_reflog) -> c_int,
+    pub reflog_rename: extern fn(*mut git_refdb_backend,
+                                 *const c_char) -> c_int,
+    pub reflog_delete: extern fn(*mut git_refdb_backend,
+                                 *const c_char) -> c_int,
+    pub lock: extern fn(*mut *mut c_void,
+                        *mut git_refdb_backend,
+                        *const c_char) -> c_int,
+    pub unlock: extern fn(*mut git_refdb_backend,
+                          *mut c_void,
+                          c_int,
+                          c_int,
+                          *const git_reference,
+                          *const git_signature,
+                          *const c_char) -> c_int
 }
 
 #[repr(C)]
@@ -2755,6 +2876,14 @@ extern {
 
     // mempack
     pub fn git_mempack_new(out: *mut *mut git_odb_backend) -> c_int;
+
+    // refdb
+    pub fn git_refdb_new(out: *mut *mut git_refdb, repo: *mut git_repository) -> c_int;
+    pub fn git_refdb_open(out: *mut *mut git_refdb, repo: *mut git_repository) -> c_int;
+    pub fn git_refdb_backend_fs(out: *mut *mut git_refdb_backend, repo: *mut git_repository) -> c_int;
+    pub fn git_refdb_set_backend(refdb: *mut git_refdb, backend: *mut git_refdb_backend) -> c_int;
+    pub fn git_refdb_compress(refdb: *mut git_refdb) -> c_int;
+    pub fn git_refdb_free(refdb: *mut git_refdb);
 }
 
 pub fn init() {
