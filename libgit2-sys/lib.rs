@@ -2861,6 +2861,9 @@ extern {
                               obj: *mut git_odb_object) -> c_int;
     pub fn git_odb_object_free(obj: *mut git_odb_object);
 
+    pub fn git_odb_init_backend(odb: *mut git_odb_backend,
+                                version: c_uint) -> c_int;
+
     pub fn git_odb_add_backend(odb: *mut git_odb,
                                backend: *mut git_odb_backend,
                                priority: c_int) -> c_int;
