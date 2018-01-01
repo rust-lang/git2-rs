@@ -3,15 +3,15 @@ use {raw};
 use util::Binding;
 
 /// A structure to represent a git object database backend.
-pub struct OdbBackend {
+pub struct OdbBackendHolder {
     raw: *mut raw::git_odb_backend
 }
 
-impl Binding for OdbBackend {
+impl Binding for OdbBackendHolder {
     type Raw = *mut raw::git_odb_backend;
 
-    unsafe fn from_raw(raw: *mut raw::git_odb_backend) -> OdbBackend {
-        OdbBackend {
+    unsafe fn from_raw(raw: *mut raw::git_odb_backend) -> OdbBackendHolder {
+        OdbBackendHolder {
             raw: raw
         }
     }
