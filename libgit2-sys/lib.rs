@@ -1552,6 +1552,7 @@ extern {
     pub fn git_libgit2_shutdown() -> c_int;
 
     // repository
+    pub fn git_repository_new(out: *mut *mut git_repository) -> c_int;
     pub fn git_repository_free(repo: *mut git_repository);
     pub fn git_repository_open(repo: *mut *mut git_repository,
                                path: *const c_char) -> c_int;
@@ -1576,12 +1577,15 @@ extern {
                                             version: c_uint) -> c_int;
     pub fn git_repository_get_namespace(repo: *mut git_repository)
                                         -> *const c_char;
+    pub fn git_repository_set_namespace(repo: *mut git_repository,
+                                        namespace: *const c_char) -> c_int;
     pub fn git_repository_head(out: *mut *mut git_reference,
                                repo: *mut git_repository) -> c_int;
     pub fn git_repository_set_head(repo: *mut git_repository,
                                    refname: *const c_char) -> c_int;
     pub fn git_repository_set_head_detached(repo: *mut git_repository,
                                             commitish: *const git_oid) -> c_int;
+    pub fn git_repository_set_bare(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_bare(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_empty(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_shallow(repo: *mut git_repository) -> c_int;
@@ -1596,14 +1600,31 @@ extern {
                                 repo: *mut git_repository) -> c_int;
     pub fn git_repository_set_index(repo: *mut git_repository,
                                     index: *mut git_index);
+
+    pub fn git_repository_message(buf: *mut git_buf,
+                                  repo: *mut git_repository) -> c_int;
+
+    pub fn git_repository_message_remove(repo: *mut git_repository) -> c_int; 
     pub fn git_repository_config(out: *mut *mut git_config,
                                  repo: *mut git_repository) -> c_int;
+    pub fn git_repository_set_config(repo: *mut git_repository,
+                                     config: *mut git_config);
     pub fn git_repository_config_snapshot(out: *mut *mut git_config,
                                           repo: *mut git_repository) -> c_int;
     pub fn git_repository_discover(out: *mut git_buf,
                                    start_path: *const c_char,
                                    across_fs: c_int,
                                    ceiling_dirs: *const c_char) -> c_int;
+    pub fn git_repository_set_odb(repo: *mut git_repository,
+                                  odb: *mut git_odb);
+
+    pub fn git_repository_refdb(out: *mut *mut git_refdb,
+                                repo: *mut git_repository) -> c_int;
+    pub fn git_repository_set_refdb(repo: *mut git_repository,
+                                    refdb: *mut git_refdb);
+
+    pub fn git_repository_reinit_filesystem(repo: *mut git_repository,
+                                            recurse_submodules: c_int) -> c_int;
     pub fn git_ignore_add_rule(repo: *mut git_repository,
                                rules: *const c_char) -> c_int;
     pub fn git_ignore_clear_internal_rules(repo: *mut git_repository) -> c_int;
@@ -2885,6 +2906,7 @@ extern {
     pub fn git_refdb_new(out: *mut *mut git_refdb, repo: *mut git_repository) -> c_int;
     pub fn git_refdb_open(out: *mut *mut git_refdb, repo: *mut git_repository) -> c_int;
     pub fn git_refdb_backend_fs(out: *mut *mut git_refdb_backend, repo: *mut git_repository) -> c_int;
+    pub fn git_refdb_init_backend(backend: *mut git_refdb_backend, version: c_uint) -> c_int;
     pub fn git_refdb_set_backend(refdb: *mut git_refdb, backend: *mut git_refdb_backend) -> c_int;
     pub fn git_refdb_compress(refdb: *mut git_refdb) -> c_int;
     pub fn git_refdb_free(refdb: *mut git_refdb);

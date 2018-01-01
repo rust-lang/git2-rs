@@ -120,7 +120,7 @@ pub use time::{Time, IndexTime};
 pub use tree::{Tree, TreeEntry, TreeIter};
 pub use treebuilder::TreeBuilder;
 pub use odb::{Odb, OdbObject, OdbReader, OdbWriter};
-pub use odb_backend::{OdbBackend};
+pub use odb_backend::{OdbBackendHolder};
 pub use util::IntoCString;
 
 /// An enumeration of possible errors that can happen when working with a git
