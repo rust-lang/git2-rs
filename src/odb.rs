@@ -5,7 +5,7 @@ use std::slice;
 
 use libc::{c_char, c_int, c_void, size_t};
 
-use {raw, Oid, Object, ObjectType, Error};
+use {raw, Oid, Object, ObjectType, OdbBackendHolder, Error};
 use panic;
 use util::Binding;
 
@@ -148,6 +148,46 @@ impl<'repo> Odb<'repo> {
         unsafe {
             try_call!(raw::git_odb_refresh(self.raw));
             Ok(())
+        }
+    }
+
+    /// Adds a backend to the object database.
+    pub fn add_backend(&self, backend: OdbBackendHolder, priority: i32) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_odb_add_backend(self.raw, backend.raw(), priority));
+            Ok(())
+        }
+    }
+
+    /// Adds an alternate backend to the object database.
+    pub fn add_alternate_backend(&self, backend: OdbBackendHolder, priority: i32) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_odb_add_alternate(self.raw, backend.raw(), priority));
+            Ok(())
+        }
+    }
+
+    /// Adds an alternate disk backend to the object database.
+    pub fn add_disk_alternate(&self, path: &str) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_odb_add_disk_alternate(self.raw, path.as_ptr() as *mut _));
+            Ok(())
+        }
+    }
+
+    /// Gets the backend for the object database at the given index.
+    pub fn get_backend(&self, index: usize) -> Result<OdbBackendHolder, Error> {
+        unsafe {
+            let mut out = ptr::null_mut();
+            try_call!(raw::git_odb_get_backend(&mut out as *mut _, self.raw, index));
+            Ok(OdbBackendHolder::from_raw(out as *mut raw::git_odb_backend))
+        }
+    }
+
+    /// Gets the number of backends for the object database.
+    pub fn backend_count(&self) -> usize {
+        unsafe {
+            return raw::git_odb_num_backends(self.raw);
         }
     }
 }

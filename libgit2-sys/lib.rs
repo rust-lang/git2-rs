@@ -2890,6 +2890,22 @@ extern {
                                backend: *mut git_odb_backend,
                                priority: c_int) -> c_int;
 
+    pub fn git_odb_backend_pack(out: *mut *mut git_odb_backend,
+                                objects_dir: *const c_char) -> c_int;
+
+    pub fn git_odb_backend_one_pack(out: *mut *mut git_odb_backend,
+                                objects_dir: *const c_char) -> c_int;
+
+    pub fn git_odb_add_disk_alternate(odb: *mut git_odb,
+                                      path: *const c_char) -> c_int;
+
+    pub fn git_odb_backend_loose(out: *mut *mut git_odb_backend,
+                                 objects_dir: *const c_char,
+                                 compression_level: c_int,
+                                 do_fsync: c_int,
+                                 dir_mode: c_uint,
+                                 file_mode: c_uint) -> c_int;
+
     pub fn git_odb_add_alternate(odb: *mut git_odb,
                                  backend: *mut git_odb_backend,
                                  priority: c_int) -> c_int;
