@@ -396,6 +396,47 @@ impl Repository {
         unsafe { ::opt_bytes(self, raw::git_repository_get_namespace(self.raw)) }
     }
 
+    /// Set the active namespace for this repository.
+    pub fn set_namespace(&self, namespace: &str) -> Result<(), Error> {
+        self.set_namespace_bytes(namespace.as_bytes())
+    }
+
+    /// Set the active namespace for this repository as a byte array.
+    pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_namespace(self.raw,
+                                                        namespace.as_ptr() as *mut c_char));
+            Ok(())
+        }
+    }
+
+    /// Remove the active namespace for this repository.
+    pub fn remove_namespace(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_namespace(self.raw,
+                                                        ptr::null()));
+            Ok(())
+        }
+    }
+
+    /// Retrieves the Git merge message.
+    /// Remember to remove the message when finished.
+    pub fn message(&self) -> Result<String, Error> {
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_repository_message(buf.raw(), self.raw));
+            Ok(str::from_utf8(&buf).unwrap().to_string())
+        }
+    }
+
+    /// Remove the Git merge message.
+    pub fn remove_message(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_message_remove(self.raw));
+            Ok(())
+        }
+    }
+
     /// List all remotes for a given repository
     pub fn remotes(&self) -> Result<StringArray, Error> {
         let mut arr = raw::git_strarray {
@@ -620,6 +661,18 @@ impl Repository {
             try_call!(raw::git_repository_set_head(self.raw, refname));
         }
         Ok(())
+    }
+
+    /// Determines whether the repository HEAD is detached.
+    pub fn head_detached(&self) -> Result<bool, Error> {
+        unsafe {
+            let value = raw::git_repository_head_detached(self.raw);
+            match value {
+                0 => Ok(false),
+                1 => Ok(true),
+                _ => Err(Error::last_error(value).unwrap())
+            }
+        }
     }
 
     /// Make the repository HEAD directly point to the commit.

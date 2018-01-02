@@ -26,6 +26,7 @@ impl OdbBackendHolder {
     /// Creates an object database backend for a loose object directory.
     pub fn loose(objects_dir: &str, compression_level: i32,
                  do_fsync: bool, dir_mode: u32, file_mode: u32) -> Result<OdbBackendHolder, Error> {
+        ::init();
         unsafe {
             let mut out = ptr::null_mut();
             try_call!(raw::git_odb_backend_loose(
@@ -43,6 +44,7 @@ impl OdbBackendHolder {
 
     /// Creates an object database backend that uses pack in a given directory.
     pub fn pack(objects_dir: &str) -> Result<OdbBackendHolder, Error> {
+        ::init();
         unsafe {
             let mut out = ptr::null_mut();
             try_call!(raw::git_odb_backend_pack(
@@ -56,6 +58,7 @@ impl OdbBackendHolder {
 
     /// Creates an object database backend from a single pack.
     pub fn one_pack(index_file: &str) -> Result<OdbBackendHolder, Error> {
+        ::init();
         unsafe {
             let mut out = ptr::null_mut();
             try_call!(raw::git_odb_backend_one_pack(
