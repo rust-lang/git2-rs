@@ -1,9 +1,9 @@
-use {raw, Error};
+use {raw, Buf, Error, Repository};
 
 use std::ptr;
 
 use util::Binding;
-use libc::{c_char};
+use libc;
 
 /// A structure to represent a git object database backend.
 pub struct OdbBackendHolder {
@@ -30,7 +30,7 @@ impl OdbBackendHolder {
             let mut out = ptr::null_mut();
             try_call!(raw::git_odb_backend_loose(
                 &mut out as *mut _,
-                objects_dir.as_ptr() as *const c_char,
+                objects_dir.as_ptr() as *const libc::c_char,
                 compression_level,
                 do_fsync,
                 dir_mode,
@@ -47,7 +47,7 @@ impl OdbBackendHolder {
             let mut out = ptr::null_mut();
             try_call!(raw::git_odb_backend_pack(
                 &mut out as *mut _,
-                objects_dir.as_ptr() as *const c_char
+                objects_dir.as_ptr() as *const libc::c_char
             ));
 
             Ok(OdbBackendHolder::from_raw(out as *mut raw::git_odb_backend))
@@ -60,10 +60,32 @@ impl OdbBackendHolder {
             let mut out = ptr::null_mut();
             try_call!(raw::git_odb_backend_one_pack(
                 &mut out as *mut _,
-                index_file.as_ptr() as *const c_char
+                index_file.as_ptr() as *const libc::c_char
             ));
 
             Ok(OdbBackendHolder::from_raw(out as *mut raw::git_odb_backend))
+        }
+    }
+
+    /// Resets the mempack backend.
+    /// NOTE: Only to be used on mempack backends.
+    pub fn mempack_reset(&self) {
+        unsafe {
+            raw::git_mempack_reset(self.raw);
+        }
+    }
+
+    /// Dumps the generated pack into the given buffer.
+    /// NOTE: Only to be used on mempack backends.
+    pub fn mempack_dump(&self, buf: &Buf, repository: &Repository) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_mempack_dump(
+                buf.raw(),
+                repository.raw(),
+                self.raw
+            ));
+
+            Ok(())
         }
     }
 }

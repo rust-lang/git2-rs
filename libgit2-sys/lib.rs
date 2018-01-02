@@ -23,6 +23,8 @@ pub const GIT_STATUS_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_BLAME_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_PROXY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_SUBMODULE_UPDATE_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_ODB_BACKEND_VERSION: c_uint = 1;
+pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -2917,6 +2919,10 @@ extern {
 
     // mempack
     pub fn git_mempack_new(out: *mut *mut git_odb_backend) -> c_int;
+    pub fn git_mempack_reset(backend: *mut git_odb_backend);
+    pub fn git_mempack_dump(pack: *mut git_buf,
+                            repo: *mut git_repository,
+                            backend: *mut git_odb_backend) -> c_int;
 
     // refdb
     pub fn git_refdb_new(out: *mut *mut git_refdb, repo: *mut git_repository) -> c_int;
@@ -2940,7 +2946,7 @@ pub fn init() {
                 "couldn't initialize the libgit2 library: {}", r);
 
         // Note that we intentionally never schedule `git_libgit2_shutdown` to
-        // get called. There's not really a great tiem to call that and #276 has
+        // get called. There's not really a great time to call that and #276 has
         // some more info about how automatically doing it can cause problems.
     });
 }
