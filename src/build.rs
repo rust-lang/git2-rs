@@ -7,7 +7,7 @@ use std::ptr;
 use libc::{c_char, size_t, c_void, c_uint, c_int};
 
 use {raw, panic, Error, Repository, FetchOptions, IntoCString};
-use {CheckoutNotificationType, DiffFile};
+use {CheckoutNotificationType, DiffFile, Remote};
 use util::{self, Binding};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -19,7 +19,15 @@ pub struct RepoBuilder<'cb> {
     hardlinks: bool,
     checkout: Option<CheckoutBuilder<'cb>>,
     fetch_opts: Option<FetchOptions<'cb>>,
+    clone_local: Option<CloneLocal>,
+    remote_create: Option<Box<RemoteCreate<'cb>>>,
 }
+
+/// Type of callback passed to `RepoBuilder::remote_create`.
+///
+/// The second and third arguments are the remote's name and the remote's url.
+pub type RemoteCreate<'cb> = for<'a> FnMut(&'a Repository, &str, &str)
+    -> Result<Remote<'a>, Error> + 'cb;
 
 /// A builder struct for configuring checkouts of a repository.
 pub struct CheckoutBuilder<'cb> {
@@ -61,6 +69,28 @@ impl<'cb> Default for RepoBuilder<'cb> {
     }
 }
 
+/// Options that can be passed to `RepoBuilder::clone_local`.
+#[derive(Clone, Copy)]
+pub enum CloneLocal {
+    /// Auto-detect (default)
+    ///
+    /// Here libgit2 will bypass the git-aware transport for local paths, but
+    /// use a normal fetch for `file://` urls.
+    Auto = raw::GIT_CLONE_LOCAL_AUTO as isize,
+
+    /// Bypass the git-aware transport even for `file://` urls.
+    Local = raw::GIT_CLONE_LOCAL as isize,
+
+    /// Never bypass the git-aware transport
+    None = raw::GIT_CLONE_NO_LOCAL as isize,
+
+    /// Bypass the git-aware transport, but don't try to use hardlinks.
+    NoLinks = raw::GIT_CLONE_LOCAL_NO_LINKS as isize,
+
+    #[doc(hidden)]
+    __Nonexhaustive = 0xff,
+}
+
 impl<'cb> RepoBuilder<'cb> {
     /// Creates a new repository builder with all of the default configuration.
     ///
@@ -72,9 +102,11 @@ impl<'cb> RepoBuilder<'cb> {
             bare: false,
             branch: None,
             local: true,
+            clone_local: None,
             hardlinks: true,
             checkout: None,
             fetch_opts: None,
+            remote_create: None,
         }
     }
 
@@ -93,11 +125,23 @@ impl<'cb> RepoBuilder<'cb> {
         self
     }
 
+    /// Configures options for bypassing the git-aware transport on clone.
+    ///
+    /// Bypassing it means that instead of a fetch libgit2 will copy the object
+    /// database directory instead of figuring out what it needs, which is
+    /// faster. If possible, it will hardlink the files to save space.
+    pub fn clone_local(&mut self, clone_local: CloneLocal) -> &mut RepoBuilder<'cb> {
+        self.clone_local = Some(clone_local);
+        self
+    }
+
     /// Set the flag for bypassing the git aware transport mechanism for local
     /// paths.
     ///
     /// If `true`, the git-aware transport will be bypassed for local paths. If
     /// `false`, the git-aware transport will not be bypassed.
+    #[deprecated(note = "use `clone_local` instead")]
+    #[doc(hidden)]
     pub fn local(&mut self, local: bool) -> &mut RepoBuilder<'cb> {
         self.local = local;
         self
@@ -105,6 +149,8 @@ impl<'cb> RepoBuilder<'cb> {
 
     /// Set the flag for whether hardlinks are used when using a local git-aware
     /// transport mechanism.
+    #[deprecated(note = "use `clone_local` instead")]
+    #[doc(hidden)]
     pub fn hardlinks(&mut self, links: bool) -> &mut RepoBuilder<'cb> {
         self.hardlinks = links;
         self
@@ -128,6 +174,16 @@ impl<'cb> RepoBuilder<'cb> {
         self
     }
 
+    /// Configures a callback used to create the git remote, prior to its being
+    /// used to perform the clone operation.
+    pub fn remote_create<F>(&mut self, f: F) -> &mut RepoBuilder<'cb>
+        where F: for<'a> FnMut(&'a Repository, &str, &str)
+                    -> Result<Remote<'a>, Error> + 'cb,
+    {
+        self.remote_create = Some(Box::new(f));
+        self
+    }
+
     /// Clone a remote repository.
     ///
     /// This will use the options configured so far to clone the specified url
@@ -143,13 +199,15 @@ impl<'cb> RepoBuilder<'cb> {
             s.as_ptr()
         }).unwrap_or(ptr::null());
 
-        opts.local = match (self.local, self.hardlinks) {
-            (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
-            (false, _) => raw::GIT_CLONE_NO_LOCAL,
-            (true, _) => raw::GIT_CLONE_LOCAL_AUTO,
-        };
-        opts.checkout_opts.checkout_strategy =
-            raw::GIT_CHECKOUT_SAFE as c_uint;
+        if let Some(ref local) = self.clone_local {
+            opts.local = *local as raw::git_clone_local_t;
+        } else {
+            opts.local = match (self.local, self.hardlinks) {
+                (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
+                (false, _) => raw::GIT_CLONE_NO_LOCAL,
+                (true, _) => raw::GIT_CLONE_LOCAL_AUTO,
+            };
+        }
 
         if let Some(ref mut cbs) = self.fetch_opts {
             opts.fetch_opts = cbs.raw();
@@ -161,6 +219,11 @@ impl<'cb> RepoBuilder<'cb> {
             }
         }
 
+        if let Some(ref mut callback) = self.remote_create {
+            opts.remote_cb = Some(remote_create_cb);
+            opts.remote_cb_payload = callback as *mut _ as *mut _;
+        }
+
         let url = try!(CString::new(url));
         let into = try!(into.into_c_string());
         let mut raw = ptr::null_mut();
@@ -168,6 +231,30 @@ impl<'cb> RepoBuilder<'cb> {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
             Ok(Binding::from_raw(raw))
         }
+    }
+}
+
+extern fn remote_create_cb(out: *mut *mut raw::git_remote,
+                           repo: *mut raw::git_repository,
+                           name: *const c_char,
+                           url: *const c_char,
+                           payload: *mut c_void) -> c_int {
+    unsafe {
+        let repo = Repository::from_raw(repo);
+        let code = panic::wrap(|| {
+            let name = CStr::from_ptr(name).to_str().unwrap();
+            let url = CStr::from_ptr(url).to_str().unwrap();
+            let f = payload as *mut Box<RemoteCreate>;
+            match (*f)(&repo, name, url) {
+                Ok(remote) => {
+                    *out = ::remote::remote_into_raw(remote);
+                    0
+                }
+                Err(e) => e.raw_code(),
+            }
+        });
+        mem::forget(repo);
+        code.unwrap_or(-1)
     }
 }
 

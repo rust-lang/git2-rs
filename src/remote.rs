@@ -59,6 +59,12 @@ pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
     remote: &'connection mut Remote<'repo>,
 }
 
+pub fn remote_into_raw(remote: Remote) -> *mut raw::git_remote {
+    let ret = remote.raw;
+    mem::forget(remote);
+    return ret
+}
+
 impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
@@ -282,7 +288,7 @@ impl<'repo> Remote<'repo> {
                                 &[RemoteHead]>(slice))
         }
     }
-    
+
     /// Get the remote's list of fetch refspecs
     pub fn fetch_refspecs(&self) -> Result<StringArray, Error> {
         unsafe {
