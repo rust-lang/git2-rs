@@ -1970,7 +1970,7 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
-    /// Normally a '/.git/' will be appended to the repo apth for non-bare repos
+    /// Normally a '/.git/' will be appended to the repo path for non-bare repos
     /// (if it is not already there), but passing this flag prevents that
     /// behavior.
     ///
