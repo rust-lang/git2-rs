@@ -3,6 +3,8 @@ use std::io;
 use std::ptr;
 use std::slice;
 
+use std::ffi::CString;
+
 use libc::{c_char, c_int, c_void, size_t};
 
 use {raw, Oid, Object, ObjectType, OdbBackendHolder, Error};
@@ -170,7 +172,8 @@ impl<'repo> Odb<'repo> {
     /// Adds an alternate disk backend to the object database.
     pub fn add_disk_alternate(&self, path: &str) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_odb_add_disk_alternate(self.raw, path.as_ptr() as *mut _));
+            let path = try!(CString::new(path));
+            try_call!(raw::git_odb_add_disk_alternate(self.raw, path));
             Ok(())
         }
     }

@@ -48,8 +48,6 @@ impl Oid {
 
     /// Creates an all zero Oid structure.
     pub fn zero() -> Oid {
-        ::init();
-
         let out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
         Oid { raw: out }
     }

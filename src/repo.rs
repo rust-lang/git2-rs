@@ -404,8 +404,9 @@ impl Repository {
     /// Set the active namespace for this repository as a byte array.
     pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
         unsafe {
+            let namespace = try!(CString::new(namespace));
             try_call!(raw::git_repository_set_namespace(self.raw,
-                                                        namespace.as_ptr() as *mut c_char));
+                                                        namespace));
             Ok(())
         }
     }

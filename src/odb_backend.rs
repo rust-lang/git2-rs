@@ -1,6 +1,7 @@
 use {raw, Buf, Error, Repository};
 
 use std::ptr;
+use std::ffi::CString;
 
 use util::Binding;
 use libc;
@@ -29,9 +30,10 @@ impl OdbBackendHolder {
         ::init();
         unsafe {
             let mut out = ptr::null_mut();
+            let objects_dir = try!(CString::new(objects_dir));
             try_call!(raw::git_odb_backend_loose(
                 &mut out as *mut _,
-                objects_dir.as_ptr() as *const libc::c_char,
+                objects_dir,
                 compression_level,
                 do_fsync,
                 dir_mode,
@@ -47,9 +49,10 @@ impl OdbBackendHolder {
         ::init();
         unsafe {
             let mut out = ptr::null_mut();
+            let objects_dir = try!(CString::new(objects_dir));
             try_call!(raw::git_odb_backend_pack(
                 &mut out as *mut _,
-                objects_dir.as_ptr() as *const libc::c_char
+                objects_dir
             ));
 
             Ok(OdbBackendHolder::from_raw(out as *mut raw::git_odb_backend))
@@ -61,6 +64,7 @@ impl OdbBackendHolder {
         ::init();
         unsafe {
             let mut out = ptr::null_mut();
+            let index_file = try!(CString::new(index_file));
             try_call!(raw::git_odb_backend_one_pack(
                 &mut out as *mut _,
                 index_file.as_ptr() as *const libc::c_char
