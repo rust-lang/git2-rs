@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::ptr;
-use libc::{c_char, c_int, c_void};
+use libc::{c_int, c_void};
 
 use {raw, Blob, Buf, Diff, DiffDelta, DiffHunk, DiffLine, DiffOptions, Error};
 use diff::{LineCb, print_cb};
@@ -78,7 +78,7 @@ impl Patch {
             try_call!(raw::git_patch_from_blob_and_buffer(&mut ret,
                                                           old_blob.raw(),
                                                           old_path,
-                                                          new_buffer.as_ptr() as *const c_char,
+                                                          new_buffer.as_ptr() as *const c_void,
                                                           new_buffer.len(),
                                                           new_path,
                                                           opts.map(|s| s.raw())));
@@ -102,7 +102,7 @@ impl Patch {
                                                  old_buffer.as_ptr() as *const c_void,
                                                  old_buffer.len(),
                                                  old_path,
-                                                 new_buffer.as_ptr() as *const c_char,
+                                                 new_buffer.as_ptr() as *const c_void,
                                                  new_buffer.len(),
                                                  new_path,
                                                  opts.map(|s| s.raw())));

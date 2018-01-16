@@ -328,9 +328,7 @@ pub struct git_remote_callbacks {
                                       *mut c_void) -> c_int>,
     pub pack_progress: Option<git_packbuilder_progress>,
     pub push_transfer_progress: Option<git_push_transfer_progress>,
-    pub push_update_reference: Option<extern fn(*const c_char,
-                                                *const c_char,
-                                                *mut c_void) -> c_int>,
+    pub push_update_reference: Option<git_push_update_reference>,
     pub push_negotiation: Option<git_push_negotiation>,
     pub transport: Option<git_transport_cb>,
     pub payload: *mut c_void,
@@ -390,6 +388,10 @@ pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
 pub type git_push_negotiation = extern fn(*mut *const git_push_update,
                                           size_t,
                                           *mut c_void) -> c_int;
+
+pub type git_push_update_reference = extern fn(*const c_char,
+                                               *const c_char,
+                                               *mut c_void) -> c_int;
 
 #[repr(C)]
 pub struct git_push_update {
@@ -1825,12 +1827,12 @@ extern {
 
     // reset
     pub fn git_reset(repo: *mut git_repository,
-                     target: *mut git_object,
+                     target: *const git_object,
                      reset_type: git_reset_t,
                      checkout_opts: *const git_checkout_options) -> c_int;
     pub fn git_reset_default(repo: *mut git_repository,
-                             target: *mut git_object,
-                             pathspecs: *mut git_strarray) -> c_int;
+                             target: *const git_object,
+                             pathspecs: *const git_strarray) -> c_int;
 
     // reference
     pub fn git_reference_cmp(ref1: *const git_reference,
@@ -2691,7 +2693,7 @@ extern {
     pub fn git_patch_from_blob_and_buffer(out: *mut *mut git_patch,
                                           old_blob: *const git_blob,
                                           old_as_path: *const c_char,
-                                          buffer: *const c_char,
+                                          buffer: *const c_void,
                                           buffer_len: size_t,
                                           buffer_as_path: *const c_char,
                                           opts: *const git_diff_options) -> c_int;
@@ -2699,7 +2701,7 @@ extern {
                                   old_buffer: *const c_void,
                                   old_len: size_t,
                                   old_as_path: *const c_char,
-                                  new_buffer: *const c_char,
+                                  new_buffer: *const c_void,
                                   new_len: size_t,
                                   new_as_path: *const c_char,
                                   opts: *const git_diff_options) -> c_int;
