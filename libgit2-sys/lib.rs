@@ -140,6 +140,7 @@ pub struct git_signature {
 pub struct git_time {
     pub time: git_time_t,
     pub offset: c_int,
+    pub sign: c_char,
 }
 
 pub type git_off_t = i64;
@@ -1592,13 +1593,13 @@ extern {
     pub fn git_repository_set_head_detached(repo: *mut git_repository,
                                             commitish: *const git_oid) -> c_int;
     pub fn git_repository_set_bare(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_is_bare(repo: *mut git_repository) -> c_int;
+    pub fn git_repository_is_worktree(repo: *mut git_repository) -> c_int;
+    pub fn git_repository_is_bare(repo: *const git_repository) -> c_int;
     pub fn git_repository_is_empty(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_shallow(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_is_worktree(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_path(repo: *mut git_repository) -> *const c_char;
+    pub fn git_repository_path(repo: *const git_repository) -> *const c_char;
     pub fn git_repository_state(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_workdir(repo: *mut git_repository) -> *const c_char;
+    pub fn git_repository_workdir(repo: *const git_repository) -> *const c_char;
     pub fn git_repository_set_workdir(repo: *mut git_repository,
                                       workdir: *const c_char,
                                       update_gitlink: c_int) -> c_int;
@@ -1610,7 +1611,7 @@ extern {
     pub fn git_repository_message(buf: *mut git_buf,
                                   repo: *mut git_repository) -> c_int;
 
-    pub fn git_repository_message_remove(repo: *mut git_repository) -> c_int; 
+    pub fn git_repository_message_remove(repo: *mut git_repository) -> c_int;
     pub fn git_repository_config(out: *mut *mut git_config,
                                  repo: *mut git_repository) -> c_int;
     pub fn git_repository_set_config(repo: *mut git_repository,
@@ -2233,6 +2234,7 @@ extern {
     pub fn git_config_add_file_ondisk(cfg: *mut git_config,
                                       path: *const c_char,
                                       level: git_config_level_t,
+                                      repo: *const git_repository,
                                       force: c_int) -> c_int;
     pub fn git_config_delete_entry(cfg: *mut git_config,
                                    name: *const c_char) -> c_int;
@@ -2866,7 +2868,7 @@ extern {
                         data: *const c_void,
                         len: size_t,
                         otype: git_otype) -> c_int;
-    
+
     pub fn git_odb_hashfile(out: *mut git_oid,
                             path: *const c_char,
                             otype: git_otype) -> c_int;

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use libc::c_int;
+use libc::{c_int, c_char};
 
 use raw;
 use util::Binding;
@@ -24,6 +24,7 @@ impl Time {
             Binding::from_raw(raw::git_time {
                 time: time as raw::git_time_t,
                 offset: offset as c_int,
+                sign: if offset < 0 { '-' } else { '+' } as c_char,
             })
         }
     }
