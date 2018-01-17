@@ -62,6 +62,19 @@ impl Repository {
         }
     }
 
+    /// Attempt to open an already-existing bare repository at `path`.
+    ///
+    /// The path can point to only a bare repository.
+    pub fn open_bare<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
+        init();
+        let path = try!(path.as_ref().into_c_string());
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_open_bare(&mut ret, path));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Find and open an existing repository, respecting git environment
     /// variables.  This acts like `open_ext` with the
     /// `REPOSITORY_OPEN_FROM_ENV` flag, but additionally respects `$GIT_DIR`.
@@ -194,6 +207,16 @@ impl Repository {
         Ok(repo)
     }
 
+    /// Attempt to wrap an object database as a repository.
+    pub fn from_odb(odb: Odb) -> Result<Repository, Error> {
+        init();
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_wrap_odb(&mut ret, odb.raw()));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Update submodules recursively.
     ///
     /// Uninitialized submodules will be initialized.
@@ -277,6 +300,11 @@ impl Repository {
     /// Tests whether this repository is a shallow clone.
     pub fn is_shallow(&self) -> bool {
         unsafe { raw::git_repository_is_shallow(self.raw) == 1 }
+    }
+
+    /// Tests whether this repository is a worktree.
+    pub fn is_worktree(&self) -> bool {
+        unsafe { raw::git_repository_is_worktree(self.raw) == 1 }
     }
 
     /// Tests whether this repository is empty.
@@ -366,6 +394,48 @@ impl Repository {
     /// If there is no namespace, `None` is returned.
     pub fn namespace_bytes(&self) -> Option<&[u8]> {
         unsafe { ::opt_bytes(self, raw::git_repository_get_namespace(self.raw)) }
+    }
+
+    /// Set the active namespace for this repository.
+    pub fn set_namespace(&self, namespace: &str) -> Result<(), Error> {
+        self.set_namespace_bytes(namespace.as_bytes())
+    }
+
+    /// Set the active namespace for this repository as a byte array.
+    pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
+        unsafe {
+            let namespace = try!(CString::new(namespace));
+            try_call!(raw::git_repository_set_namespace(self.raw,
+                                                        namespace));
+            Ok(())
+        }
+    }
+
+    /// Remove the active namespace for this repository.
+    pub fn remove_namespace(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_namespace(self.raw,
+                                                        ptr::null()));
+            Ok(())
+        }
+    }
+
+    /// Retrieves the Git merge message.
+    /// Remember to remove the message when finished.
+    pub fn message(&self) -> Result<String, Error> {
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_repository_message(buf.raw(), self.raw));
+            Ok(str::from_utf8(&buf).unwrap().to_string())
+        }
+    }
+
+    /// Remove the Git merge message.
+    pub fn remove_message(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_message_remove(self.raw));
+            Ok(())
+        }
     }
 
     /// List all remotes for a given repository
@@ -592,6 +662,18 @@ impl Repository {
             try_call!(raw::git_repository_set_head(self.raw, refname));
         }
         Ok(())
+    }
+
+    /// Determines whether the repository HEAD is detached.
+    pub fn head_detached(&self) -> Result<bool, Error> {
+        unsafe {
+            let value = raw::git_repository_head_detached(self.raw);
+            match value {
+                0 => Ok(false),
+                1 => Ok(true),
+                _ => Err(Error::last_error(value).unwrap())
+            }
+        }
     }
 
     /// Make the repository HEAD directly point to the commit.
@@ -1572,7 +1654,6 @@ impl Repository {
             Ok(Binding::from_raw(arr))
         }
     }
-
 
     /// Count the number of unique commits between two commit objects
     ///

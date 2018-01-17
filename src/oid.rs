@@ -2,15 +2,17 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::hash::{Hasher, Hash};
 use std::str;
+use std::path::Path;
 use libc;
 
-use {raw, Error};
+use {raw, Error, ObjectType, IntoCString};
+
 use util::Binding;
 
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
 pub struct Oid {
-    raw: raw::git_oid,
+    raw: raw::git_oid
 }
 
 impl Oid {
@@ -42,6 +44,48 @@ impl Oid {
             unsafe { raw::git_oid_fromraw(&mut raw, bytes.as_ptr()) }
             Ok(Oid { raw: raw })
         }
+    }
+
+    /// Creates an all zero Oid structure.
+    pub fn zero() -> Oid {
+        let out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        Oid { raw: out }
+    }
+
+    /// Hashes the provided data as an object of the provided type, and returns
+    /// an Oid corresponding to the result. This does not store the object
+    /// inside any object database or repository.
+    pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
+        ::init();
+
+        let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_odb_hash(&mut out,
+                                        bytes.as_ptr()
+                                            as *const libc::c_void,
+                                        bytes.len(),
+                                        kind.raw()));
+        }
+
+        Ok(Oid { raw: out })
+    }
+
+    /// Hashes the content of the provided file as an object of the provided type,
+    /// and returns an Oid corresponding to the result. This does not store the object
+    /// inside any object database or repository.
+    pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
+        ::init();
+
+        let rpath = try!(path.as_ref().into_c_string());
+
+        let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_odb_hashfile(&mut out,
+                                            rpath,
+                                            kind.raw()));
+        }
+
+        Ok(Oid { raw: out })
     }
 
     /// View this OID as a byte-slice 20 bytes in length.
@@ -128,6 +172,11 @@ impl AsRef<[u8]> for Oid {
 
 #[cfg(test)]
 mod tests {
+    use std::io::prelude::*;
+    use std::fs::File;
+
+    use tempdir::TempDir;
+    use {ObjectType};
     use super::Oid;
 
     #[test]
@@ -137,4 +186,25 @@ mod tests {
         assert!(Oid::from_bytes(b"foo").is_err());
         assert!(Oid::from_bytes(b"00000000000000000000").is_ok());
     }
+
+    #[test]
+    fn zero_is_zero() {
+        assert!(Oid::zero().is_zero());
+    }
+
+    #[test]
+    fn hash_object() {
+        let bytes = "Hello".as_bytes();
+        assert!(Oid::hash_object(ObjectType::Blob, bytes).is_ok());
+    }
+
+    #[test]
+    fn hash_file() {
+        let td = TempDir::new("test").unwrap();
+        let path = td.path().join("hello.txt");
+        let mut file = File::create(&path).unwrap();
+        file.write_all("Hello".as_bytes()).unwrap();
+        assert!(Oid::hash_file(ObjectType::Blob, &path).is_ok());
+    }
 }
+

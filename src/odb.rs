@@ -3,7 +3,9 @@ use std::io;
 use std::ptr;
 use std::slice;
 
-use libc::{c_char, c_int, c_void};
+use std::ffi::CString;
+
+use libc::{c_char, c_int, c_void, size_t};
 
 use {raw, Oid, Object, ObjectType, Error};
 use panic;
@@ -34,9 +36,19 @@ impl<'repo> Drop for Odb<'repo> {
 }
 
 impl<'repo> Odb<'repo> {
-    /// Create object database reading stream
+    /// Creates an object database without any backends.
+    pub fn new<'a>() -> Result<Odb<'a>, Error> {
+        unsafe {
+            let mut out = ptr::null_mut();
+            try_call!(raw::git_odb_new(&mut out));
+            Ok(Odb::from_raw(out))
+        }
+    }
+
+    /// Create object database reading stream.
     ///
     /// Note that most backends do not support streaming reads because they store their objects as compressed/delta'ed blobs.
+    /// If the backend does not support streaming reads, use the `read` method instead.
     pub fn reader(&self, oid: Oid) -> Result<OdbReader, Error> {
         let mut out = ptr::null_mut();
         unsafe {
@@ -45,9 +57,10 @@ impl<'repo> Odb<'repo> {
         }
     }
 
-    /// Create object database writing stream
+    /// Create object database writing stream.
     ///
     /// The type and final length of the object must be specified when opening the stream.
+    /// If the backend does not support streaming writes, use the `write` method instead.
     pub fn writer(&self, size: usize, obj_type: ObjectType) -> Result<OdbWriter, Error> {
         let mut out = ptr::null_mut();
         unsafe {
@@ -56,7 +69,7 @@ impl<'repo> Odb<'repo> {
         }
     }
 
-    /// Iterate over all objects in the object database
+    /// Iterate over all objects in the object database.s
     pub fn foreach<C>(&self, mut callback: C) -> Result<(), Error>
         where C: FnMut(&Oid) -> bool
     {
@@ -69,7 +82,7 @@ impl<'repo> Odb<'repo> {
         }
     }
 
-    /// Read object from the database.
+    /// Read an object from the database.
     pub fn read(&self, oid: Oid) -> Result<OdbObject, Error> {
         let mut out = ptr::null_mut();
         unsafe {
@@ -78,9 +91,75 @@ impl<'repo> Odb<'repo> {
         }
     }
 
+    /// Reads the header of an object from the database
+    /// without reading the full content.
+    pub fn read_header(&self, oid: Oid) -> Result<(usize, ObjectType), Error> {
+        let mut size: usize = 0;
+        let mut kind_id: i32 = ObjectType::Any.raw();
+
+        unsafe {
+            try_call!(raw::git_odb_read_header(&mut size
+                                                  as *mut size_t,
+                                               &mut kind_id
+                                                  as *mut raw::git_otype,
+                                               self.raw,
+                                               oid.raw()));
+
+            Ok((size, ObjectType::from_raw(kind_id).unwrap()))
+        }
+    }
+
+    /// Write an object to the database.
+    pub fn write(&self, kind: ObjectType, data: &[u8]) -> Result<Oid, Error> {
+        unsafe {
+            let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+            try_call!(raw::git_odb_write(&mut out,
+                                         self.raw,
+                                         data.as_ptr()
+                                            as *const c_void,
+                                         data.len(),
+                                         kind.raw()));
+            Ok(Oid::from_raw(&mut out))
+        }
+    }
+
     /// Checks if the object database has an object.
     pub fn exists(&self, oid: Oid) -> bool {
         unsafe { raw::git_odb_exists(self.raw, oid.raw()) != -1 }
+    }
+
+    /// Potentially finds an object that starts with the given prefix.
+    pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
+        unsafe {
+            let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+            try_call!(raw::git_odb_exists_prefix(&mut out,
+                                                 self.raw,
+                                                 short_oid.raw(),
+                                                 len));
+            Ok(Oid::from_raw(&out))
+        }
+    } 
+
+    /// Refresh the object database.
+    /// This should never be needed, and is
+    /// provided purely for convenience.
+    /// The object database will automatically
+    /// refresh when an object is not found when
+    /// requested.
+    pub fn refresh(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_odb_refresh(self.raw));
+            Ok(())
+        }
+    }
+
+    /// Adds an alternate disk backend to the object database.
+    pub fn add_disk_alternate(&self, path: &str) -> Result<(), Error> {
+        unsafe {
+            let path = try!(CString::new(path));
+            try_call!(raw::git_odb_add_disk_alternate(self.raw, path));
+            Ok(())
+        }
     }
 }
 
@@ -128,6 +207,11 @@ impl<'a> OdbObject<'a> {
             let buffer = slice::from_raw_parts(ptr, size);
             return buffer;
         }
+    }
+
+    /// Get the object id.
+    pub fn id(&self) -> Oid {
+        unsafe { Oid::from_raw(raw::git_odb_object_id(self.raw)) }
     }
 }
 
@@ -251,10 +335,10 @@ extern fn foreach_cb(id: *const raw::git_oid,
 mod tests {
     use std::io::prelude::*;
     use tempdir::TempDir;
-    use {Repository, ObjectType};
+    use {Repository, ObjectType, Oid};
 
     #[test]
-    fn reader() {
+    fn read() {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
@@ -265,6 +349,31 @@ mod tests {
         let size = obj.len();
         assert_eq!(size, 5);
         assert_eq!(dat, data);
+        assert_eq!(id, obj.id());
+    }
+
+    #[test]
+    fn read_header() {
+        let td = TempDir::new("test").unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+        let dat = [4, 3, 5, 6, 9];
+        let id = repo.blob(&dat).unwrap();
+        let db = repo.odb().unwrap();
+        let (size, kind) = db.read_header(id).unwrap();
+
+        assert_eq!(size, 5);
+        assert_eq!(kind, ObjectType::Blob);
+    }
+
+    #[test]
+    fn write() {
+        let td = TempDir::new("test").unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+        let dat = [4, 3, 5, 6, 9];
+        let db = repo.odb().unwrap();
+        let id = db.write(ObjectType::Blob, &dat).unwrap();
+        let blob = repo.find_blob(id).unwrap();
+        assert_eq!(blob.content(), dat);        
     }
 
     #[test]
@@ -281,5 +390,28 @@ mod tests {
         let id = ws.finalize().unwrap();
         let blob = repo.find_blob(id).unwrap();
         assert_eq!(blob.content(), dat);
+    }
+
+    #[test]
+    fn exists() {
+        let td = TempDir::new("test").unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+        let dat = [4, 3, 5, 6, 9];
+        let db = repo.odb().unwrap();
+        let id = db.write(ObjectType::Blob, &dat).unwrap();
+        assert!(db.exists(id));
+    }
+
+    #[test]
+    fn exists_prefix() {
+        let td = TempDir::new("test").unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+        let dat = [4, 3, 5, 6, 9];
+        let db = repo.odb().unwrap();
+        let id = db.write(ObjectType::Blob, &dat).unwrap();
+        let id_prefix_str = &id.to_string()[0..10];
+        let id_prefix = Oid::from_str(id_prefix_str).unwrap();
+        let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
+        assert_eq!(found_oid, id);
     }
 }
