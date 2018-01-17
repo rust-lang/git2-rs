@@ -34,6 +34,10 @@ impl Time {
 
     /// Return the timezone offset, in minutes
     pub fn offset_minutes(&self) -> i32 { self.raw.offset as i32 }
+
+    /// Return whether the offset was positive or negative. Primarily useful
+    /// in case the offset is specified as a negative zero.
+    pub fn sign(&self) -> char { self.raw.offset as char }
 }
 
 impl PartialOrd for Time {
