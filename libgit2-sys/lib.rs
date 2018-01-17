@@ -329,7 +329,7 @@ pub struct git_remote_callbacks {
                                       *mut c_void) -> c_int>,
     pub pack_progress: Option<git_packbuilder_progress>,
     pub push_transfer_progress: Option<git_push_transfer_progress>,
-    pub push_update_reference: Option<git_push_update_reference>,
+    pub push_update_reference: Option<git_push_update_reference_cb>,
     pub push_negotiation: Option<git_push_negotiation>,
     pub transport: Option<git_transport_cb>,
     pub payload: *mut c_void,
@@ -390,9 +390,9 @@ pub type git_push_negotiation = extern fn(*mut *const git_push_update,
                                           size_t,
                                           *mut c_void) -> c_int;
 
-pub type git_push_update_reference = extern fn(*const c_char,
-                                               *const c_char,
-                                               *mut c_void) -> c_int;
+pub type git_push_update_reference_cb = extern fn(*const c_char,
+                                                  *const c_char,
+                                                  *mut c_void) -> c_int;
 
 #[repr(C)]
 pub struct git_push_update {
@@ -554,7 +554,7 @@ pub struct git_status_options {
     pub show: git_status_show_t,
     pub flags: c_uint,
     pub pathspec: git_strarray,
-    pub baseline: *const git_tree,
+    pub baseline: *mut git_tree,
 }
 
 #[repr(C)]

@@ -37,7 +37,7 @@ impl Time {
 
     /// Return whether the offset was positive or negative. Primarily useful
     /// in case the offset is specified as a negative zero.
-    pub fn sign(&self) -> char { self.raw.offset as char }
+    pub fn sign(&self) -> char { self.raw.offset as u8 as char }
 }
 
 impl PartialOrd for Time {

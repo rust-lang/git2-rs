@@ -110,6 +110,7 @@ fn main() {
         cfg.register_dep("OPENSSL");
     } else {
         cfg.define("USE_OPENSSL", "OFF");
+        cfg.define("USE_HTTPS", "OFF");
     }
     if curl {
         cfg.register_dep("CURL");
