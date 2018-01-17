@@ -458,7 +458,8 @@ impl DiffOptions {
         opts
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut DiffOptions {
+    fn flag(&mut self, opt: i32, val: bool) -> &mut DiffOptions {
+        let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
         } else {
