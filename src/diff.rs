@@ -630,6 +630,13 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_SHOW_BINARY, show)
     }
 
+    /// Use a heuristic that takes indentation and whitespace into account
+    /// which generally can produce better diffs when dealing with ambiguous
+    /// diff hunks.
+    pub fn indent_heuristic(&mut self, heuristic: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INDENT_HEURISTIC, heuristic)
+    }
+
     /// Set the number of unchanged lines that define the boundary of a hunk
     /// (and to display before and after).
     ///
