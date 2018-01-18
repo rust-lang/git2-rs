@@ -40,6 +40,7 @@ tempdir = "0.3"
 [features]
 unstable = []
 default = ["ssh", "https", "curl"]
+raw-binds = []
 ssh = ["libgit2-sys/ssh"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe"]
 curl = ["libgit2-sys/curl"]
