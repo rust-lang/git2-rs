@@ -140,6 +140,7 @@ pub struct git_signature {
 pub struct git_time {
     pub time: git_time_t,
     pub offset: c_int,
+    pub sign: c_char,
 }
 
 pub type git_off_t = i64;
@@ -328,9 +329,7 @@ pub struct git_remote_callbacks {
                                       *mut c_void) -> c_int>,
     pub pack_progress: Option<git_packbuilder_progress>,
     pub push_transfer_progress: Option<git_push_transfer_progress>,
-    pub push_update_reference: Option<extern fn(*const c_char,
-                                                *const c_char,
-                                                *mut c_void) -> c_int>,
+    pub push_update_reference: Option<git_push_update_reference_cb>,
     pub push_negotiation: Option<git_push_negotiation>,
     pub transport: Option<git_transport_cb>,
     pub payload: *mut c_void,
@@ -390,6 +389,10 @@ pub type git_transport_certificate_check_cb = extern fn(*mut git_cert,
 pub type git_push_negotiation = extern fn(*mut *const git_push_update,
                                           size_t,
                                           *mut c_void) -> c_int;
+
+pub type git_push_update_reference_cb = extern fn(*const c_char,
+                                                  *const c_char,
+                                                  *mut c_void) -> c_int;
 
 #[repr(C)]
 pub struct git_push_update {
@@ -551,6 +554,7 @@ pub struct git_status_options {
     pub show: git_status_show_t,
     pub flags: c_uint,
     pub pathspec: git_strarray,
+    pub baseline: *mut git_tree,
 }
 
 #[repr(C)]
@@ -1076,34 +1080,36 @@ pub type git_diff_progress_cb = extern fn (*const git_diff,
                                            *const c_char,
                                            *mut c_void) -> c_int;
 
-pub const GIT_DIFF_NORMAL: u32 = 0;
-pub const GIT_DIFF_REVERSE: u32 = 1 << 0;
-pub const GIT_DIFF_INCLUDE_IGNORED: u32 = 1 << 1;
-pub const GIT_DIFF_RECURSE_IGNORED_DIRS: u32 = 1 << 2;
-pub const GIT_DIFF_INCLUDE_UNTRACKED: u32 = 1 << 3;
-pub const GIT_DIFF_RECURSE_UNTRACKED_DIRS: u32 = 1 << 4;
-pub const GIT_DIFF_INCLUDE_UNMODIFIED: u32 = 1 << 5;
-pub const GIT_DIFF_INCLUDE_TYPECHANGE: u32 = 1 << 6;
-pub const GIT_DIFF_INCLUDE_TYPECHANGE_TREES: u32 = 1 << 7;
-pub const GIT_DIFF_IGNORE_FILEMODE: u32 = 1 << 8;
-pub const GIT_DIFF_IGNORE_SUBMODULES: u32 = 1 << 9;
-pub const GIT_DIFF_IGNORE_CASE: u32 = 1 << 10;
-pub const GIT_DIFF_DISABLE_PATHSPEC_MATCH: u32 = 1 << 12;
-pub const GIT_DIFF_SKIP_BINARY_CHECK: u32 = 1 << 13;
-pub const GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS: u32 = 1 << 14;
-pub const GIT_DIFF_UPDATE_INDEX: u32 = 1 << 15;
-pub const GIT_DIFF_INCLUDE_UNREADABLE: u32 = 1 << 16;
-pub const GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED: u32 = 1 << 17;
-pub const GIT_DIFF_FORCE_TEXT: u32 = 1 << 20;
-pub const GIT_DIFF_FORCE_BINARY: u32 = 1 << 21;
-pub const GIT_DIFF_IGNORE_WHITESPACE: u32 = 1 << 22;
-pub const GIT_DIFF_IGNORE_WHITESPACE_CHANGE: u32 = 1 << 23;
-pub const GIT_DIFF_IGNORE_WHITESPACE_EOL: u32 = 1 << 24;
-pub const GIT_DIFF_SHOW_UNTRACKED_CONTENT: u32 = 1 << 25;
-pub const GIT_DIFF_SHOW_UNMODIFIED: u32 = 1 << 26;
-pub const GIT_DIFF_PATIENCE: u32 = 1 << 28;
-pub const GIT_DIFF_MINIMAL: u32 = 1 << 29;
-pub const GIT_DIFF_SHOW_BINARY: u32 = 1 << 30;
+pub type git_diff_option_t = i32;
+pub const GIT_DIFF_NORMAL: git_diff_option_t = 0;
+pub const GIT_DIFF_REVERSE: git_diff_option_t = 1 << 0;
+pub const GIT_DIFF_INCLUDE_IGNORED: git_diff_option_t = 1 << 1;
+pub const GIT_DIFF_RECURSE_IGNORED_DIRS: git_diff_option_t = 1 << 2;
+pub const GIT_DIFF_INCLUDE_UNTRACKED: git_diff_option_t = 1 << 3;
+pub const GIT_DIFF_RECURSE_UNTRACKED_DIRS: git_diff_option_t = 1 << 4;
+pub const GIT_DIFF_INCLUDE_UNMODIFIED: git_diff_option_t = 1 << 5;
+pub const GIT_DIFF_INCLUDE_TYPECHANGE: git_diff_option_t = 1 << 6;
+pub const GIT_DIFF_INCLUDE_TYPECHANGE_TREES: git_diff_option_t = 1 << 7;
+pub const GIT_DIFF_IGNORE_FILEMODE: git_diff_option_t = 1 << 8;
+pub const GIT_DIFF_IGNORE_SUBMODULES: git_diff_option_t = 1 << 9;
+pub const GIT_DIFF_IGNORE_CASE: git_diff_option_t = 1 << 10;
+pub const GIT_DIFF_DISABLE_PATHSPEC_MATCH: git_diff_option_t = 1 << 12;
+pub const GIT_DIFF_SKIP_BINARY_CHECK: git_diff_option_t = 1 << 13;
+pub const GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS: git_diff_option_t = 1 << 14;
+pub const GIT_DIFF_UPDATE_INDEX: git_diff_option_t = 1 << 15;
+pub const GIT_DIFF_INCLUDE_UNREADABLE: git_diff_option_t = 1 << 16;
+pub const GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED: git_diff_option_t = 1 << 17;
+pub const GIT_DIFF_FORCE_TEXT: git_diff_option_t = 1 << 20;
+pub const GIT_DIFF_FORCE_BINARY: git_diff_option_t = 1 << 21;
+pub const GIT_DIFF_IGNORE_WHITESPACE: git_diff_option_t = 1 << 22;
+pub const GIT_DIFF_IGNORE_WHITESPACE_CHANGE: git_diff_option_t = 1 << 23;
+pub const GIT_DIFF_IGNORE_WHITESPACE_EOL: git_diff_option_t = 1 << 24;
+pub const GIT_DIFF_SHOW_UNTRACKED_CONTENT: git_diff_option_t = 1 << 25;
+pub const GIT_DIFF_SHOW_UNMODIFIED: git_diff_option_t = 1 << 26;
+pub const GIT_DIFF_PATIENCE: git_diff_option_t = 1 << 28;
+pub const GIT_DIFF_MINIMAL: git_diff_option_t = 1 << 29;
+pub const GIT_DIFF_SHOW_BINARY: git_diff_option_t = 1 << 30;
+pub const GIT_DIFF_INDENT_HEURISTIC: git_diff_option_t = 1 << 31;
 
 #[repr(C)]
 pub struct git_diff_find_options {
@@ -1590,13 +1596,13 @@ extern {
     pub fn git_repository_set_head_detached(repo: *mut git_repository,
                                             commitish: *const git_oid) -> c_int;
     pub fn git_repository_set_bare(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_is_bare(repo: *mut git_repository) -> c_int;
+    pub fn git_repository_is_worktree(repo: *const git_repository) -> c_int;
+    pub fn git_repository_is_bare(repo: *const git_repository) -> c_int;
     pub fn git_repository_is_empty(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_shallow(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_is_worktree(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_path(repo: *mut git_repository) -> *const c_char;
+    pub fn git_repository_path(repo: *const git_repository) -> *const c_char;
     pub fn git_repository_state(repo: *mut git_repository) -> c_int;
-    pub fn git_repository_workdir(repo: *mut git_repository) -> *const c_char;
+    pub fn git_repository_workdir(repo: *const git_repository) -> *const c_char;
     pub fn git_repository_set_workdir(repo: *mut git_repository,
                                       workdir: *const c_char,
                                       update_gitlink: c_int) -> c_int;
@@ -1608,7 +1614,7 @@ extern {
     pub fn git_repository_message(buf: *mut git_buf,
                                   repo: *mut git_repository) -> c_int;
 
-    pub fn git_repository_message_remove(repo: *mut git_repository) -> c_int; 
+    pub fn git_repository_message_remove(repo: *mut git_repository) -> c_int;
     pub fn git_repository_config(out: *mut *mut git_config,
                                  repo: *mut git_repository) -> c_int;
     pub fn git_repository_set_config(repo: *mut git_repository,
@@ -1825,12 +1831,12 @@ extern {
 
     // reset
     pub fn git_reset(repo: *mut git_repository,
-                     target: *mut git_object,
+                     target: *const git_object,
                      reset_type: git_reset_t,
                      checkout_opts: *const git_checkout_options) -> c_int;
     pub fn git_reset_default(repo: *mut git_repository,
-                             target: *mut git_object,
-                             pathspecs: *mut git_strarray) -> c_int;
+                             target: *const git_object,
+                             pathspecs: *const git_strarray) -> c_int;
 
     // reference
     pub fn git_reference_cmp(ref1: *const git_reference,
@@ -2231,6 +2237,7 @@ extern {
     pub fn git_config_add_file_ondisk(cfg: *mut git_config,
                                       path: *const c_char,
                                       level: git_config_level_t,
+                                      repo: *const git_repository,
                                       force: c_int) -> c_int;
     pub fn git_config_delete_entry(cfg: *mut git_config,
                                    name: *const c_char) -> c_int;
@@ -2691,7 +2698,7 @@ extern {
     pub fn git_patch_from_blob_and_buffer(out: *mut *mut git_patch,
                                           old_blob: *const git_blob,
                                           old_as_path: *const c_char,
-                                          buffer: *const c_char,
+                                          buffer: *const c_void,
                                           buffer_len: size_t,
                                           buffer_as_path: *const c_char,
                                           opts: *const git_diff_options) -> c_int;
@@ -2699,7 +2706,7 @@ extern {
                                   old_buffer: *const c_void,
                                   old_len: size_t,
                                   old_as_path: *const c_char,
-                                  new_buffer: *const c_char,
+                                  new_buffer: *const c_void,
                                   new_len: size_t,
                                   new_as_path: *const c_char,
                                   opts: *const git_diff_options) -> c_int;
@@ -2864,7 +2871,7 @@ extern {
                         data: *const c_void,
                         len: size_t,
                         otype: git_otype) -> c_int;
-    
+
     pub fn git_odb_hashfile(out: *mut git_oid,
                             path: *const c_char,
                             otype: git_otype) -> c_int;

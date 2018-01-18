@@ -120,7 +120,7 @@ impl Config {
         let path = try!(path.into_c_string());
         unsafe {
             try_call!(raw::git_config_add_file_ondisk(self.raw, path, level,
-                                                      force));
+                                                      ptr::null(), force));
             Ok(())
         }
     }

@@ -458,7 +458,8 @@ impl DiffOptions {
         opts
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut DiffOptions {
+    fn flag(&mut self, opt: i32, val: bool) -> &mut DiffOptions {
+        let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
         } else {
@@ -628,6 +629,13 @@ impl DiffOptions {
     /// apply given diff information to binary files.
     pub fn show_binary(&mut self, show: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_SHOW_BINARY, show)
+    }
+
+    /// Use a heuristic that takes indentation and whitespace into account
+    /// which generally can produce better diffs when dealing with ambiguous
+    /// diff hunks.
+    pub fn indent_heuristic(&mut self, heuristic: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_INDENT_HEURISTIC, heuristic)
     }
 
     /// Set the number of unchanged lines that define the boundary of a hunk

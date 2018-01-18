@@ -110,6 +110,7 @@ fn main() {
         cfg.register_dep("OPENSSL");
     } else {
         cfg.define("USE_OPENSSL", "OFF");
+        cfg.define("USE_HTTPS", "OFF");
     }
     if curl {
         cfg.register_dep("CURL");
@@ -130,10 +131,10 @@ fn main() {
     // Make sure libssh2 was detected on unix systems, because it definitely
     // should have been!
     if ssh && !msvc {
-        let flags = dst.join("build/CMakeFiles/git2.dir/flags.make");
+        let flags = dst.join("build/src/git2/sys/features.h");
         let mut contents = String::new();
         t!(t!(File::open(flags)).read_to_string(&mut contents));
-        if !contents.contains("-DGIT_SSH") {
+        if !contents.contains("#define GIT_SSH 1") {
             panic!("libgit2 failed to find libssh2, and SSH support is required");
         }
     }
