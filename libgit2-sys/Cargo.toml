@@ -7,6 +7,7 @@ build = "build.rs"
 repository = "https://github.com/alexcrichton/git2-rs"
 license = "MIT/Apache-2.0"
 description = "Native bindings to the libgit2 library"
+publish = false # needs a major version bump
 
 [lib]
 name = "libgit2_sys"
