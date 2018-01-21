@@ -2275,12 +2275,12 @@ mod tests {
         assert_eq!(::test::realpath(&repo.path()).unwrap(),
                    ::test::realpath(&td.path().join(".git")).unwrap());
 
-        let repo = Repository::open_ext(&subdir, ::REPOSITORY_OPEN_BARE, &[] as &[&OsStr]).unwrap();
+        let repo = Repository::open_ext(&subdir, ::RepositoryOpenFlags::BARE, &[] as &[&OsStr]).unwrap();
         assert!(repo.is_bare());
         assert_eq!(::test::realpath(&repo.path()).unwrap(),
                    ::test::realpath(&td.path().join(".git")).unwrap());
 
-        let err = Repository::open_ext(&subdir, ::REPOSITORY_OPEN_NO_SEARCH, &[] as &[&OsStr]).err().unwrap();
+        let err = Repository::open_ext(&subdir, ::RepositoryOpenFlags::NO_SEARCH, &[] as &[&OsStr]).err().unwrap();
         assert_eq!(err.code(), ::ErrorCode::NotFound);
 
         assert!(Repository::open_ext(&subdir,

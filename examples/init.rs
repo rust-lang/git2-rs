@@ -110,9 +110,9 @@ fn create_initial_commit(repo: &Repository) -> Result<(), Error> {
 
 fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
     match shared {
-        "false" | "umask" => Ok(git2::REPOSITORY_INIT_SHARED_UMASK),
-        "true" | "group" => Ok(git2::REPOSITORY_INIT_SHARED_GROUP),
-        "all" | "world" => Ok(git2::REPOSITORY_INIT_SHARED_ALL),
+        "false" | "umask" => Ok(git2::RepositoryInitMode::SHARED_UMASK),
+        "true" | "group" => Ok(git2::RepositoryInitMode::SHARED_GROUP),
+        "all" | "world" => Ok(git2::RepositoryInitMode::SHARED_ALL),
         _ => {
             if shared.starts_with('0') {
                 match u32::from_str_radix(&shared[1..], 8).ok() {

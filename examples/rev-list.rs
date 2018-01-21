@@ -36,13 +36,13 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = try!(Repository::open("."));
     let mut revwalk = try!(repo.revwalk());
 
-    let base = if args.flag_reverse {git2::SORT_REVERSE} else {git2::SORT_NONE};
+    let base = if args.flag_reverse {git2::Sort::REVERSE} else {git2::Sort::NONE};
     revwalk.set_sorting(base | if args.flag_topo_order {
-        git2::SORT_TOPOLOGICAL
+        git2::Sort::TOPOLOGICAL
     } else if args.flag_date_order {
-        git2::SORT_TIME
+        git2::Sort::TIME
     } else {
-        git2::SORT_NONE
+        git2::Sort::NONE
     });
 
     let specs = args.flag_not.iter().map(|s| (s, true))
@@ -53,7 +53,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     for (spec, hide) in specs {
         let id = if spec.contains("..") {
             let revspec = try!(repo.revparse(spec));
-            if revspec.mode().contains(git2::REVPARSE_MERGE_BASE) {
+            if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 return Err(Error::from_str("merge bases not implemented"))
             }
             try!(push(&mut revwalk, revspec.from().unwrap().id(), !hide));

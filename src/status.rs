@@ -365,8 +365,8 @@ mod tests {
         assert_eq!(statuses.iter().count(), 1);
         let status = statuses.iter().next().unwrap();
         assert_eq!(status.path(), Some("foo"));
-        assert!(status.status().contains(::STATUS_WT_NEW));
-        assert!(!status.status().contains(::STATUS_INDEX_NEW));
+        assert!(status.status().contains(::Status::WT_NEW));
+        assert!(!status.status().contains(::Status::INDEX_NEW));
         assert!(status.head_to_index().is_none());
         let diff = status.index_to_workdir().unwrap();
         assert_eq!(diff.old_file().path_bytes().unwrap(), b"foo");
@@ -402,6 +402,6 @@ mod tests {
         assert!(repo.status_file(Path::new("foo")).is_err());
         t!(File::create(td.path().join("foo")));
         let status = t!(repo.status_file(Path::new("foo")));
-        assert!(status.contains(::STATUS_WT_NEW));
+        assert!(status.contains(::Status::WT_NEW));
     }
 }

@@ -48,9 +48,9 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
         let revspec = try!(repo.revparse(spec));
 
-        let (oldest, newest) = if revspec.mode().contains(git2::REVPARSE_SINGLE) {
+        let (oldest, newest) = if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             (None, revspec.from())
-        } else if revspec.mode().contains(git2::REVPARSE_RANGE) {
+        } else if revspec.mode().contains(git2::RevparseMode::RANGE) {
             (revspec.from(), revspec.to())
         } else {
             (None, None)

@@ -135,16 +135,16 @@ fn print_long(statuses: &git2::Statuses) {
     let mut changed_in_workdir = false;
 
     // Print index changes
-    for entry in statuses.iter().filter(|e| e.status() != git2::STATUS_CURRENT) {
-        if entry.status().contains(git2::STATUS_WT_DELETED) {
+    for entry in statuses.iter().filter(|e| e.status() != git2::Status::CURRENT) {
+        if entry.status().contains(git2::Status::WT_DELETED) {
             rm_in_workdir = true;
         }
         let istatus = match entry.status() {
-            s if s.contains(git2::STATUS_INDEX_NEW) => "new file: ",
-            s if s.contains(git2::STATUS_INDEX_MODIFIED) => "modified: ",
-            s if s.contains(git2::STATUS_INDEX_DELETED) => "deleted: ",
-            s if s.contains(git2::STATUS_INDEX_RENAMED) => "renamed: ",
-            s if s.contains(git2::STATUS_INDEX_TYPECHANGE) => "typechange:",
+            s if s.contains(git2::Status::INDEX_NEW) => "new file: ",
+            s if s.contains(git2::Status::INDEX_MODIFIED) => "modified: ",
+            s if s.contains(git2::Status::INDEX_DELETED) => "deleted: ",
+            s if s.contains(git2::Status::INDEX_RENAMED) => "renamed: ",
+            s if s.contains(git2::Status::INDEX_TYPECHANGE) => "typechange:",
             _ => continue,
         };
         if !header {
@@ -176,19 +176,19 @@ fn print_long(statuses: &git2::Statuses) {
 
     // Print workdir changes to tracked files
     for entry in statuses.iter() {
-        // With `STATUS_OPT_INCLUDE_UNMODIFIED` (not used in this example)
+        // With `Status::OPT_INCLUDE_UNMODIFIED` (not used in this example)
         // `index_to_workdir` may not be `None` even if there are no differences,
         // in which case it will be a `Delta::Unmodified`.
-        if entry.status() == git2::STATUS_CURRENT ||
+        if entry.status() == git2::Status::CURRENT ||
            entry.index_to_workdir().is_none() {
             continue
         }
 
         let istatus = match entry.status() {
-            s if s.contains(git2::STATUS_WT_MODIFIED) => "modified: ",
-            s if s.contains(git2::STATUS_WT_DELETED) => "deleted: ",
-            s if s.contains(git2::STATUS_WT_RENAMED) => "renamed: ",
-            s if s.contains(git2::STATUS_WT_TYPECHANGE) => "typechange:",
+            s if s.contains(git2::Status::WT_MODIFIED) => "modified: ",
+            s if s.contains(git2::Status::WT_DELETED) => "deleted: ",
+            s if s.contains(git2::Status::WT_RENAMED) => "renamed: ",
+            s if s.contains(git2::Status::WT_TYPECHANGE) => "typechange:",
             _ => continue,
         };
 
@@ -222,7 +222,7 @@ fn print_long(statuses: &git2::Statuses) {
     header = false;
 
     // Print untracked files
-    for entry in statuses.iter().filter(|e| e.status() == git2::STATUS_WT_NEW) {
+    for entry in statuses.iter().filter(|e| e.status() == git2::Status::WT_NEW) {
         if !header {
             println!("\
 # Untracked files
@@ -236,7 +236,7 @@ fn print_long(statuses: &git2::Statuses) {
     header = false;
 
     // Print ignored files
-    for entry in statuses.iter().filter(|e| e.status() == git2::STATUS_IGNORED) {
+    for entry in statuses.iter().filter(|e| e.status() == git2::Status::IGNORED) {
         if !header {
             println!("\
 # Ignored files
@@ -257,27 +257,27 @@ fn print_long(statuses: &git2::Statuses) {
 // This version of the output prefixes each path with two status columns and
 // shows submodule status information.
 fn print_short(repo: &Repository, statuses: &git2::Statuses) {
-    for entry in statuses.iter().filter(|e| e.status() != git2::STATUS_CURRENT) {
+    for entry in statuses.iter().filter(|e| e.status() != git2::Status::CURRENT) {
         let mut istatus = match entry.status() {
-            s if s.contains(git2::STATUS_INDEX_NEW) => 'A',
-            s if s.contains(git2::STATUS_INDEX_MODIFIED) => 'M',
-            s if s.contains(git2::STATUS_INDEX_DELETED) => 'D',
-            s if s.contains(git2::STATUS_INDEX_RENAMED) => 'R',
-            s if s.contains(git2::STATUS_INDEX_TYPECHANGE) => 'T',
+            s if s.contains(git2::Status::INDEX_NEW) => 'A',
+            s if s.contains(git2::Status::INDEX_MODIFIED) => 'M',
+            s if s.contains(git2::Status::INDEX_DELETED) => 'D',
+            s if s.contains(git2::Status::INDEX_RENAMED) => 'R',
+            s if s.contains(git2::Status::INDEX_TYPECHANGE) => 'T',
             _ => ' ',
         };
         let mut wstatus = match entry.status() {
-            s if s.contains(git2::STATUS_WT_NEW) => {
+            s if s.contains(git2::Status::WT_NEW) => {
                 if istatus == ' ' { istatus = '?'; } '?'
             }
-            s if s.contains(git2::STATUS_WT_MODIFIED) => 'M',
-            s if s.contains(git2::STATUS_WT_DELETED) => 'D',
-            s if s.contains(git2::STATUS_WT_RENAMED) => 'R',
-            s if s.contains(git2::STATUS_WT_TYPECHANGE) => 'T',
+            s if s.contains(git2::Status::WT_MODIFIED) => 'M',
+            s if s.contains(git2::Status::WT_DELETED) => 'D',
+            s if s.contains(git2::Status::WT_RENAMED) => 'R',
+            s if s.contains(git2::Status::WT_TYPECHANGE) => 'T',
             _ => ' ',
         };
 
-        if entry.status().contains(git2::STATUS_IGNORED) {
+        if entry.status().contains(git2::Status::IGNORED) {
             istatus = '!';
             wstatus = '!';
         }
@@ -295,11 +295,11 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
                 .and_then(|name| repo.submodule_status(name, ignore).ok())
         });
         if let Some(status) = status {
-            if status.contains(git2::SUBMODULE_STATUS_WD_MODIFIED) {
+            if status.contains(git2::SubmoduleStatus::WD_MODIFIED) {
                 extra = " (new commits)";
-            } else if status.contains(git2::SUBMODULE_STATUS_WD_INDEX_MODIFIED) || status.contains(git2::SUBMODULE_STATUS_WD_WD_MODIFIED) {
+            } else if status.contains(git2::SubmoduleStatus::WD_INDEX_MODIFIED) || status.contains(git2::SubmoduleStatus::WD_WD_MODIFIED) {
                 extra = " (modified content)";
-            } else if status.contains(git2::SUBMODULE_STATUS_WD_UNTRACKED) {
+            } else if status.contains(git2::SubmoduleStatus::WD_UNTRACKED) {
                 extra = " (untracked content)";
             }
         }
@@ -327,7 +327,7 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
         }
     }
 
-    for entry in statuses.iter().filter(|e| e.status() == git2::STATUS_WT_NEW) {
+    for entry in statuses.iter().filter(|e| e.status() == git2::Status::WT_NEW) {
         println!("?? {}", entry.index_to_workdir().unwrap().old_file()
                                .path().unwrap().display());
     }

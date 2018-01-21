@@ -34,14 +34,14 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     let revspec = try!(repo.revparse(&args.arg_spec));
 
-    if revspec.mode().contains(git2::REVPARSE_SINGLE) {
+    if revspec.mode().contains(git2::RevparseMode::SINGLE) {
         println!("{}", revspec.from().unwrap().id());
-    } else if revspec.mode().contains(git2::REVPARSE_RANGE) {
+    } else if revspec.mode().contains(git2::RevparseMode::RANGE) {
         let to = revspec.to().unwrap();
         let from = revspec.from().unwrap();
         println!("{}", to.id());
 
-        if revspec.mode().contains(git2::REVPARSE_MERGE_BASE) {
+        if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
             let base = try!(repo.merge_base(from.id(), to.id()));
             println!("{}", base);
         }

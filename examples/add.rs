@@ -39,8 +39,8 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
         let status = repo.status_file(path).unwrap();
 
-        let ret = if status.contains(git2::STATUS_WT_MODIFIED) ||
-                     status.contains(git2::STATUS_WT_NEW) {
+        let ret = if status.contains(git2::Status::WT_MODIFIED) ||
+                     status.contains(git2::Status::WT_NEW) {
             println!("add '{}'", path.display());
             0
         } else {
@@ -58,7 +58,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     if args.flag_update {
         try!(index.update_all(args.arg_spec.iter(), cb));
     } else {
-        try!(index.add_all(args.arg_spec.iter(), git2::ADD_DEFAULT, cb));
+        try!(index.add_all(args.arg_spec.iter(), git2::IndexAddOption::DEFAULT, cb));
     }
 
     try!(index.write());
