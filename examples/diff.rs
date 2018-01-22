@@ -185,18 +185,18 @@ fn run(args: &Args) -> Result<(), Error> {
 
 fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
     let stats = try!(diff.stats());
-    let mut format = git2::DIFF_STATS_NONE;
+    let mut format = git2::DiffStatsFormat::NONE;
     if args.flag_stat {
-        format |= git2::DIFF_STATS_FULL;
+        format |= git2::DiffStatsFormat::FULL;
     }
     if args.flag_shortstat {
-        format |= git2::DIFF_STATS_SHORT;
+        format |= git2::DiffStatsFormat::SHORT;
     }
     if args.flag_numstat {
-        format |= git2::DIFF_STATS_NUMBER;
+        format |= git2::DiffStatsFormat::NUMBER;
     }
     if args.flag_summary {
-        format |= git2::DIFF_STATS_INCLUDE_SUMMARY;
+        format |= git2::DiffStatsFormat::INCLUDE_SUMMARY;
     }
     let buf = try!(stats.to_buf(format, 80));
     print!("{}", str::from_utf8(&*buf).unwrap());

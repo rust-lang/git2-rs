@@ -142,7 +142,7 @@ mod tests {
     use std::fs;
     use std::path::Path;
     use test::{repo_init};
-    use {Repository, STATUS_WT_NEW, STASH_INCLUDE_UNTRACKED};
+    use {Repository, Status, StashFlags};
 
     fn make_stash<C>(next: C) where C: FnOnce(&mut Repository) {
         let (_td, mut repo) = repo_init();
@@ -154,9 +154,9 @@ mod tests {
             .write("data".as_bytes()).unwrap();
 
         let rel_p = Path::new("file_b.txt");
-        assert!(repo.status_file(&rel_p).unwrap() == STATUS_WT_NEW);
+        assert!(repo.status_file(&rel_p).unwrap() == Status::WT_NEW);
 
-        repo.stash_save(&signature, "msg1", Some(STASH_INCLUDE_UNTRACKED)).unwrap();
+        repo.stash_save(&signature, "msg1", Some(StashFlags::INCLUDE_UNTRACKED)).unwrap();
 
         assert!(repo.status_file(&rel_p).is_err());
 

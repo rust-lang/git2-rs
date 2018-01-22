@@ -551,7 +551,7 @@ mod tests {
         fs::create_dir(&root.join("foo")).unwrap();
         File::create(&root.join("foo/bar")).unwrap();
         let mut called = false;
-        index.add_all(["foo"].iter(), ::ADD_DEFAULT,
+        index.add_all(["foo"].iter(), ::IndexAddOption::DEFAULT,
                       Some(&mut |a: &Path, b: &[u8]| {
             assert!(!called);
             called = true;

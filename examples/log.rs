@@ -53,13 +53,13 @@ fn run(args: &Args) -> Result<(), Error> {
     let mut revwalk = try!(repo.revwalk());
 
     // Prepare the revwalk based on CLI parameters
-    let base = if args.flag_reverse {git2::SORT_REVERSE} else {git2::SORT_NONE};
+    let base = if args.flag_reverse {git2::Sort::REVERSE} else {git2::Sort::NONE};
     revwalk.set_sorting(base | if args.flag_topo_order {
-        git2::SORT_TOPOLOGICAL
+        git2::Sort::TOPOLOGICAL
     } else if args.flag_date_order {
-        git2::SORT_TIME
+        git2::Sort::TIME
     } else {
-        git2::SORT_NONE
+        git2::Sort::NONE
     });
     for commit in &args.arg_commit {
         if commit.starts_with('^') {
@@ -68,13 +68,13 @@ fn run(args: &Args) -> Result<(), Error> {
             continue
         }
         let revspec = try!(repo.revparse(commit));
-        if revspec.mode().contains(git2::REVPARSE_SINGLE) {
+        if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             try!(revwalk.push(revspec.from().unwrap().id()));
         } else {
             let from = revspec.from().unwrap().id();
             let to = revspec.to().unwrap().id();
             try!(revwalk.push(to));
-            if revspec.mode().contains(git2::REVPARSE_MERGE_BASE) {
+            if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 let base = try!(repo.merge_base(from, to));
                 let o = try!(repo.find_object(base, Some(ObjectType::Commit)));
                 try!(revwalk.push(o.id()));
@@ -110,7 +110,7 @@ fn run(args: &Args) -> Result<(), Error> {
             match commit.parents().len() {
                 0 => {
                     let tree = filter_try!(commit.tree());
-                    let flags = git2::PATHSPEC_NO_MATCH_ERROR;
+                    let flags = git2::PathspecFlags::NO_MATCH_ERROR;
                     if ps.match_tree(&tree, flags).is_err() { return None }
                 }
                 _ => {
