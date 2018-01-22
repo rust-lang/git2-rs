@@ -532,6 +532,12 @@ bitflags! {
 #[cfg(test)] #[macro_use] mod test;
 #[macro_use] mod panic;
 mod call;
+
+#[cfg(feature = "unsafe-binds")]
+#[allow(missing_docs)]
+pub mod util;
+
+#[cfg(not(feature = "unsafe-binds"))]
 mod util;
 
 pub mod build;
