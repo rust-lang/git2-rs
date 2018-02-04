@@ -18,8 +18,10 @@ pub struct Oid {
 impl Oid {
     /// Parse a hex-formatted object id into an Oid structure.
     ///
-    /// If the string is not a valid 40-character hex string, an error is
-    /// returned.
+    /// # Errors
+    ///
+    /// Returns an error if the string is empty, is longer than 40 hex
+    /// characters, or contains any non-hex characters.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         ::init();
         let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
@@ -130,8 +132,10 @@ impl str::FromStr for Oid {
 
     /// Parse a hex-formatted object id into an Oid structure.
     ///
-    /// If the string is not a valid 40-character hex string, an error is
-    /// returned.
+    /// # Errors
+    ///
+    /// Returns an error if the string is empty, is longer than 40 hex
+    /// characters, or contains any non-hex characters.
     fn from_str(s: &str) -> Result<Oid, Error> {
         Oid::from_str(s)
     }
