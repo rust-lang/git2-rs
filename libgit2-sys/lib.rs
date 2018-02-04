@@ -2921,6 +2921,9 @@ extern {
                                  backend: *mut git_odb_backend,
                                  priority: c_int) -> c_int;
 
+    pub fn git_odb_backend_malloc(backend: *mut git_odb_backend,
+                                  len: size_t) -> *mut c_void;
+
     pub fn git_odb_num_backends(odb: *mut git_odb) -> size_t;
     pub fn git_odb_get_backend(backend: *mut *mut git_odb_backend,
                                odb: *mut git_odb,
