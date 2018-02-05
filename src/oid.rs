@@ -9,10 +9,47 @@ use {raw, Error, ObjectType, IntoCString};
 
 use util::Binding;
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+enum OidLength {
+    Full,
+    // This is u16 to allow this to fit into 4 bytes, making Oid 24 bytes.  Even
+    // as git changes its hash function, the digest produced will certainly be
+    // shorter than 64k hex chars (32 kB). Even u8 should be fine, but giving a
+    // big of headroom just in case, and anyway it'll likely align to to a
+    // multiple of 4 whatever we pick.
+    //
+    // If NonZero was stable, this could be NonZero<u32>.
+    Short(u16),
+}
+
+impl From<usize> for OidLength {
+    fn from(len: usize) -> OidLength {
+        // We should never see this, since git_oid_fromstrn will return an error
+        // before we convert the length.
+        assert!(0 < len && len <= raw::GIT_OID_HEXSZ,
+                "invalid oid length: {}", len);
+
+        match len {
+            raw::GIT_OID_HEXSZ => OidLength::Full,
+            n => OidLength::Short(n as u16),
+        }
+    }
+}
+
+impl Into<usize> for OidLength {
+    fn into(self) -> usize {
+        match self {
+            OidLength::Full => raw::GIT_OID_HEXSZ as usize,
+            OidLength::Short(n) => n as usize,
+        }
+    }
+}
+
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
 pub struct Oid {
-    raw: raw::git_oid
+    raw: raw::git_oid,
+    len: OidLength,
 }
 
 impl Oid {
@@ -31,7 +68,7 @@ impl Oid {
                                                 as *const libc::c_char,
                                             s.len() as libc::size_t));
         }
-        Ok(Oid { raw: raw })
+        Ok(Oid { raw: raw, len: s.len().into() })
     }
 
     /// Parse a raw object id into an Oid structure.
@@ -44,14 +81,14 @@ impl Oid {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
             unsafe { raw::git_oid_fromraw(&mut raw, bytes.as_ptr()) }
-            Ok(Oid { raw: raw })
+            Ok(Oid { raw: raw, len: OidLength::Full })
         }
     }
 
     /// Creates an all zero Oid structure.
     pub fn zero() -> Oid {
         let out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
-        Oid { raw: out }
+        Oid { raw: out, len: OidLength::Full }
     }
 
     /// Hashes the provided data as an object of the provided type, and returns
@@ -69,7 +106,7 @@ impl Oid {
                                         kind.raw()));
         }
 
-        Ok(Oid { raw: out })
+        Ok(Oid { raw: out, len: OidLength::Full })
     }
 
     /// Hashes the content of the provided file as an object of the provided type,
@@ -87,7 +124,7 @@ impl Oid {
                                             kind.raw()));
         }
 
-        Ok(Oid { raw: out })
+        Ok(Oid { raw: out, len: OidLength::Full })
     }
 
     /// View this OID as a byte-slice 20 bytes in length.
@@ -97,13 +134,21 @@ impl Oid {
     pub fn is_zero(&self) -> bool {
         unsafe { raw::git_oid_iszero(&self.raw) == 1 }
     }
+
+    /// Get the length of this OID. This may be less than 40 if this is a short
+    /// OID used as a prefix.
+    pub fn len(&self) -> usize {
+        self.len.into()
+    }
 }
 
 impl Binding for Oid {
     type Raw = *const raw::git_oid;
 
     unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
-        Oid { raw: *oid }
+        // With no other information, we assume it's a full OID; most or all
+        // APIs in libgit2 that return an oid return a full one.
+        Oid { raw: *oid, len: OidLength::Full }
     }
     fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
 }
@@ -189,6 +234,9 @@ mod tests {
         assert!(Oid::from_str("decbf2be529ab6557d5429922251e5ee36519817").is_ok());
         assert!(Oid::from_bytes(b"foo").is_err());
         assert!(Oid::from_bytes(b"00000000000000000000").is_ok());
+
+        let oid = Oid::from_str("abcdef123").unwrap();
+        assert_eq!(9, oid.len());
     }
 
     #[test]

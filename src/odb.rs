@@ -129,7 +129,15 @@ impl<'repo> Odb<'repo> {
     }
 
     /// Potentially finds an object that starts with the given prefix.
+    ///
+    /// If `len` is 0, gets the length from `short_oid`. The `len` parameter
+    /// will be removed in the next major version.
     pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
+        let len = match len {
+            0 => short_oid.len(),
+            n => n,
+        };
+
         unsafe {
             let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
             try_call!(raw::git_odb_exists_prefix(&mut out,
@@ -412,6 +420,9 @@ mod tests {
         let id_prefix_str = &id.to_string()[0..10];
         let id_prefix = Oid::from_str(id_prefix_str).unwrap();
         let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
+        assert_eq!(found_oid, id);
+        // Check the short OID behaviour works.
+        let found_oid = db.exists_prefix(id_prefix, 0).unwrap();
         assert_eq!(found_oid, id);
     }
 }
