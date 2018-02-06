@@ -163,9 +163,11 @@ impl fmt::Display for Oid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
+        let len = self.len();
+        assert!(len <= raw::GIT_OID_HEXSZ);
         unsafe {
             raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
-                               dst.len() as libc::size_t, &self.raw);
+                               self.len() + 1 as libc::size_t, &self.raw);
         }
         let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
         str::from_utf8(s).unwrap().fmt(f)
@@ -235,8 +237,9 @@ mod tests {
         assert!(Oid::from_bytes(b"foo").is_err());
         assert!(Oid::from_bytes(b"00000000000000000000").is_ok());
 
-        let oid = Oid::from_str("abcdef123").unwrap();
+        let oid: Oid = "abcdef123".parse().unwrap();
         assert_eq!(9, oid.len());
+        assert_eq!("abcdef123", oid.to_string());
     }
 
     #[test]
