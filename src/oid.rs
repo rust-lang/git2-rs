@@ -12,7 +12,7 @@ use util::Binding;
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum OidLength {
     Full,
-    // This is u16 to allow this to fit into 4 bytes, making Oid 24 bytes.  Even
+    // This is u16 to allow this to fit into 4 bytes, making Oid 24 bytes. Even
     // as git changes its hash function, the digest produced will certainly be
     // shorter than 64k hex chars (32 kB). Even u8 should be fine, but giving a
     // big of headroom just in case, and anyway it'll likely align to to a
