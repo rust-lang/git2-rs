@@ -24,7 +24,7 @@ impl OidArray {
 
     /// Get an iterator over the `Oid`s in this array.
     pub fn iter<'a>(&'a self) -> OidIter<'a> {
-        self.into_iter()
+        OidIter { arr: self, idx: 0 }
     }
 
     fn as_raw_slice(&self) -> &[raw::git_oid] {
@@ -58,7 +58,7 @@ impl<'a> ::std::iter::IntoIterator for &'a OidArray {
     type IntoIter = OidIter<'a>;
 
     fn into_iter(self) -> OidIter<'a> {
-        OidIter { arr: self, idx: 0 }
+        self.iter()
     }
 }
 
