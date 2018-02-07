@@ -61,7 +61,6 @@ pub enum git_reference {}
 pub enum git_reference_iterator {}
 pub enum git_annotated_commit {}
 pub enum git_refdb {}
-pub enum git_refspec {}
 pub enum git_remote {}
 pub enum git_repository {}
 pub enum git_revwalk {}
@@ -88,6 +87,14 @@ pub enum git_odb_stream {}
 pub enum git_odb_object {}
 pub enum git_odb_writepack {}
 pub enum git_worktree {}
+
+#[repr(C)]
+pub struct git_refspec {
+    pub string: *mut c_char,
+    pub src: *mut c_char,
+    pub dst: *mut c_char,
+    pub flags: c_uint,
+}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -1776,6 +1783,8 @@ extern {
                             callbacks: *const git_remote_callbacks) -> c_int;
 
     // refspec
+    pub fn git_refspec__parse(spec: *mut git_refspec, rs_str: *const c_char,
+                              is_fetch: c_int);
     pub fn git_refspec_direction(spec: *const git_refspec) -> git_direction;
     pub fn git_refspec_dst(spec: *const git_refspec) -> *const c_char;
     pub fn git_refspec_dst_matches(spec: *const git_refspec,
