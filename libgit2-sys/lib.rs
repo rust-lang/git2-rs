@@ -1784,7 +1784,8 @@ extern {
 
     // refspec
     pub fn git_refspec__parse(spec: *mut git_refspec, rs_str: *const c_char,
-                              is_fetch: c_int);
+                              is_fetch: c_int) -> c_int;
+    pub fn git_refspec__free(spec: *mut git_refspec);
     pub fn git_refspec_direction(spec: *const git_refspec) -> git_direction;
     pub fn git_refspec_dst(spec: *const git_refspec) -> *const c_char;
     pub fn git_refspec_dst_matches(spec: *const git_refspec,
