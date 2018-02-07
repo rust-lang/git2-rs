@@ -145,7 +145,7 @@ impl<'remote> Binding for Refspec<'remote> {
     fn raw(&self) -> *const raw::git_refspec {
         match self.inner {
             RefspecInner::Raw(raw) => raw,
-            RefspecInner::Owned(_) => panic!("The inner valid is not a raw value"),
+            RefspecInner::Owned(_) => panic!("this refspec contains owned data"),
         }
     }
 }
