@@ -1,4 +1,4 @@
-use std::os::raw::{c_char, c_int};
+use std::os::raw::c_int;
 use std::marker::PhantomData;
 use std::ffi::CString;
 use std::marker;
@@ -36,7 +36,7 @@ impl<'remote> Drop for Refspec<'remote> {
 
 impl<'remote> Refspec<'remote> {
     /// Get a Refspec from a given refspec string.
-    /// 
+    ///
     /// If the string could not be parsed, None is returned.
     pub fn try_parse(refspec_str: &str, is_fetch: bool) -> Option<Refspec> {
         let mut refspec = raw::git_refspec {
@@ -45,10 +45,11 @@ impl<'remote> Refspec<'remote> {
             dst: ptr::null_mut(),
             flags: 0,
         };
+        let cstr = CString::new(refspec_str).unwrap();
         unsafe {
             if raw::git_refspec__parse(
                 &mut refspec as *mut raw::git_refspec,
-                refspec_str.as_ptr() as *const c_char,
+                cstr.as_ptr(),
                 is_fetch as c_int,
             ) == 0
             {
