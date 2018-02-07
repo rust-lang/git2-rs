@@ -1,5 +1,4 @@
 use std::os::raw::c_int;
-use std::marker::PhantomData;
 use std::ffi::CString;
 use std::marker;
 use std::ptr;
@@ -25,8 +24,8 @@ pub struct Refspec<'remote> {
 
 impl<'remote> Drop for Refspec<'remote> {
     fn drop(&mut self) {
-        match &mut self.inner {
-            &mut RefspecInner::Owned(ref mut owned) => unsafe {
+        match self.inner {
+            RefspecInner::Owned(ref mut owned) => unsafe {
                 raw::git_refspec__free(&mut **owned as *mut raw::git_refspec)
             },
             _ => {}
@@ -55,7 +54,7 @@ impl<'remote> Refspec<'remote> {
             {
                 Some(Refspec {
                     inner: RefspecInner::Owned(Box::from(refspec)),
-                    _marker: PhantomData,
+                    _marker: marker::PhantomData,
                 })
             } else {
                 None
@@ -64,9 +63,9 @@ impl<'remote> Refspec<'remote> {
     }
 
     fn get_handle(&self) -> *const raw::git_refspec {
-        match &self.inner {
-            &RefspecInner::Raw(raw) => raw,
-            &RefspecInner::Owned(ref owned) => &**owned as *const raw::git_refspec,
+        match self.inner {
+            RefspecInner::Raw(raw) => raw,
+            RefspecInner::Owned(ref owned) => &**owned as *const raw::git_refspec,
         }
     }
 
