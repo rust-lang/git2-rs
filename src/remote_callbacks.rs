@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::marker;
 use std::mem;
 use std::slice;
@@ -279,6 +279,8 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
             let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
 
             callback(url, username_from_url, cred_type).map_err(|e| {
+                let s = CString::new(e.to_string()).unwrap();
+                raw::giterr_set_str(e.raw_code() as c_int, s.as_ptr());
                 e.raw_code() as c_int
             })
         });
