@@ -2263,7 +2263,7 @@ extern {
                            mode: c_uint,
                            odb: *mut git_odb,
                            progress_cb: Option<git_transfer_progress_cb>,
-                           progress_cb_payload: *mut c_void) -> c_int;
+                           progress_cb_payload: *const c_void) -> c_int;
     pub fn git_indexer_free(indexer: *mut git_indexer);
     pub fn git_indexer_commit(indexer: *mut git_indexer,
                               stats: *mut git_transfer_progress) -> c_int;
