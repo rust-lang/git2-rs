@@ -80,7 +80,7 @@ impl<'repo> Indexer<'repo> {
     pub fn append(
         &mut self,
         data: &[u8],
-        stats: &mut raw::git_transfer_progress,
+        stats: Option<&mut raw::git_transfer_progress>,
     ) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_indexer_append(
@@ -98,7 +98,7 @@ impl<'repo> Indexer<'repo> {
     /// Resolve any pending deltas and write out the index file.
     pub fn commit(
         &mut self,
-        stats: &mut raw::git_transfer_progress,
+        stats: Option<&mut raw::git_transfer_progress>,
     ) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_indexer_commit(self.indexer, stats));
