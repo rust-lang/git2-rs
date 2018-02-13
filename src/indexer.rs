@@ -22,30 +22,41 @@ pub struct Indexer<'repo> {
 
 impl<'repo> Indexer<'repo> {
     /// Create a new indexer instance.
-    pub fn new<F>(
+    pub fn new(path: &Path, mode: u32) -> Result<Self, Error> {
+        let path = try!(path.into_c_string());
+        let mut indexer: *mut raw::git_indexer = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_indexer_new(
+                &mut indexer,
+                path,
+                mode,
+                ptr::null_mut(),
+                None,
+                ptr::null_mut()
+            ));
+            Ok(Self {
+                indexer: indexer,
+                _callback: None,
+                _marker: marker::PhantomData,
+            })
+        }
+    }
+
+    /// Create a new indexer instance.
+    pub fn new_with_progress<F>(
         path: &Path,
         mode: u32,
-        progress: Option<F>,
+        progress: F,
     ) -> Result<Self, Error>
     where
         F: FnMut(&raw::git_transfer_progress) -> bool + 'repo,
     {
-        let mut callback_boxed: Option<Box<TransferProgressCb>> = None;
-        let callback_ptr = if let Some(callback) = progress {
-            let mut boxed = Box::new(callback);
-            let ptr = &mut boxed as *mut _;
-            callback_boxed = Some(boxed);
-            ptr
-        } else {
-            ptr::null_mut()
-        };
+        let mut callback_boxed: Box<TransferProgressCb> = Box::new(progress);
+        let callback_ptr = &mut callback_boxed as *mut _;
 
         let path = try!(path.into_c_string());
-        let progress_c = if let Some(_) = callback_boxed {
-            Some(transfer_progress_cb as raw::git_transfer_progress_cb)
-        } else {
-            None
-        };
+        let progress_cb =
+            Some(transfer_progress_cb as raw::git_transfer_progress_cb);
 
         let mut indexer: *mut raw::git_indexer = ptr::null_mut();
         unsafe {
@@ -54,12 +65,12 @@ impl<'repo> Indexer<'repo> {
                 path,
                 mode,
                 ptr::null_mut(),
-                progress_c,
+                progress_cb,
                 callback_ptr as *mut _
             ));
             Ok(Self {
                 indexer: indexer,
-                _callback: callback_boxed,
+                _callback: Some(callback_boxed),
                 _marker: marker::PhantomData,
             })
         }
