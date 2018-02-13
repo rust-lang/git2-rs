@@ -56,6 +56,7 @@ pub enum git_commit {}
 pub enum git_config {}
 pub enum git_config_iterator {}
 pub enum git_index {}
+pub enum git_indexer {}
 pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
@@ -2255,6 +2256,22 @@ extern {
     pub fn git_index_write_tree_to(out: *mut git_oid,
                                    index: *mut git_index,
                                    repo: *mut git_repository) -> c_int;
+
+    // indexer
+    pub fn git_indexer_new(indexer: *mut *mut git_indexer,
+                           path: *const c_char,
+                           mode: c_uint,
+                           odb: *mut git_odb,
+                           progress_cb: Option<git_transfer_progress_cb>,
+                           progress_cb_payload: *mut c_void) -> c_int;
+    pub fn git_indexer_free(indexer: *mut git_indexer);
+    pub fn git_indexer_commit(indexer: *mut git_indexer,
+                              stats: *mut git_transfer_progress) -> c_int;
+    pub fn git_indexer_append(indexer: *mut git_indexer,
+                              data: *const c_void,
+                              size: size_t,
+                              stats: *mut git_transfer_progress) -> c_int;
+    pub fn git_indexer_hash(indexer: *mut git_indexer) -> *const git_oid;
 
     // config
     pub fn git_config_add_file_ondisk(cfg: *mut git_config,
