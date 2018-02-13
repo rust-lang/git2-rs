@@ -16,7 +16,7 @@ pub type TransferProgressCb<'a> =
 ///
 pub struct Indexer<'repo> {
     indexer: *mut raw::git_indexer,
-    callback: Option<Box<TransferProgressCb<'repo>>>,
+    _callback: Option<Box<TransferProgressCb<'repo>>>,
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
@@ -59,7 +59,7 @@ impl<'repo> Indexer<'repo> {
             ));
             Ok(Self {
                 indexer: indexer,
-                callback: callback_boxed,
+                _callback: callback_boxed,
                 _marker: marker::PhantomData,
             })
         }
