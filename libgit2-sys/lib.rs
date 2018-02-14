@@ -2266,11 +2266,11 @@ extern {
                            progress_cb_payload: *const c_void) -> c_int;
     pub fn git_indexer_free(indexer: *mut git_indexer);
     pub fn git_indexer_commit(indexer: *mut git_indexer,
-                              stats: Option<*mut git_transfer_progress>) -> c_int;
+                              stats: *mut git_transfer_progress) -> c_int;
     pub fn git_indexer_append(indexer: *mut git_indexer,
                               data: *const c_void,
                               size: size_t,
-                              stats: Option<*mut git_transfer_progress>) -> c_int;
+                              stats: *mut git_transfer_progress) -> c_int;
     pub fn git_indexer_hash(indexer: *mut git_indexer) -> *const git_oid;
 
     // config
