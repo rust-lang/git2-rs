@@ -12,6 +12,9 @@ use std::ptr;
 pub type TransferProgressCb<'a> =
     FnMut(&raw::git_transfer_progress) -> bool + 'a;
 
+/// Type alias for git_transfer_progress
+pub type TranferProgressStat = raw::git_transfer_progress;
+
 /// Indexer
 ///
 pub struct Indexer<'repo> {
