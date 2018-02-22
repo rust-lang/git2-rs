@@ -43,22 +43,22 @@ impl<'repo> Object<'repo> {
     }
 
     /// Recursively peel an object until a blob is found
-    pub fn peel_to_blob(&self) -> Result<Blob, Error> {
+    pub fn peel_to_blob(&self) -> Result<Blob<'repo>, Error> {
         self.peel(ObjectType::Blob).map(|o| o.cast_or_panic(ObjectType::Blob))
     }
 
     /// Recursively peel an object until a commit is found
-    pub fn peel_to_commit(&self) -> Result<Commit, Error> {
+    pub fn peel_to_commit(&self) -> Result<Commit<'repo>, Error> {
         self.peel(ObjectType::Commit).map(|o| o.cast_or_panic(ObjectType::Commit))
     }
 
     /// Recursively peel an object until a tag is found
-    pub fn peel_to_tag(&self) -> Result<Tag, Error> {
+    pub fn peel_to_tag(&self) -> Result<Tag<'repo>, Error> {
         self.peel(ObjectType::Tag).map(|o| o.cast_or_panic(ObjectType::Tag))
     }
 
     /// Recursively peel an object until a tree is found
-    pub fn peel_to_tree(&self) -> Result<Tree, Error> {
+    pub fn peel_to_tree(&self) -> Result<Tree<'repo>, Error> {
         self.peel(ObjectType::Tree).map(|o| o.cast_or_panic(ObjectType::Tree))
     }
 
