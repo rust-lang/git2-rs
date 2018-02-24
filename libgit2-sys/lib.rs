@@ -1322,6 +1322,8 @@ pub struct git_odb_backend {
                                git_otype) -> c_int,
 
     pub readstream: extern fn(*mut *mut git_odb_stream,
+                              *mut size_t,
+                              *mut git_otype,
                               *mut git_odb_backend,
                               *const git_oid) -> c_int,
 
@@ -2835,6 +2837,8 @@ extern {
     pub fn git_odb_new(db: *mut *mut git_odb) -> c_int;
     pub fn git_odb_free(db: *mut git_odb);
     pub fn git_odb_open_rstream(out: *mut *mut git_odb_stream,
+                                len: *mut size_t,
+                                otype: *mut git_otype,
                                 db: *mut git_odb,
                                 oid: *const git_oid) -> c_int;
     pub fn git_odb_stream_read(stream: *mut git_odb_stream,
