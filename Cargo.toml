@@ -15,6 +15,8 @@ both threadsafe and memory safe and allows both reading and writing git
 repositories.
 """
 categories = ["api-bindings"]
+build = "build.rs"
+
 
 [badges]
 travis-ci = { repository = "alexcrichton/git2-rs" }
@@ -36,6 +38,9 @@ serde = "1.0"
 serde_derive = "1.0"
 time = "0.1"
 tempdir = "0.3"
+
+[build-dependencies]
+regex = "0.2"
 
 [features]
 unstable = []

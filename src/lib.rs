@@ -83,7 +83,7 @@ pub use blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use blob::{Blob, BlobWriter};
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
-pub use commit::{Commit, Parents};
+pub use commit::{Commit, Parents, ParentIds};
 pub use config::{Config, ConfigEntry, ConfigEntries};
 pub use cred::{Cred, CredentialHelper};
 pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
@@ -113,7 +113,7 @@ pub use revspec::Revspec;
 pub use revwalk::Revwalk;
 pub use signature::Signature;
 pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
-pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
+pub use stash::{StashApplyOptions, StashCb, StashCbData, StashApplyProgressCb};
 pub use submodule::{Submodule, SubmoduleUpdateOptions};
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
@@ -530,6 +530,7 @@ bitflags! {
 }
 
 #[cfg(test)] #[macro_use] mod test;
+#[cfg(test)] mod test_use_pub_structs;
 #[macro_use] mod panic;
 mod call;
 mod util;
