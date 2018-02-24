@@ -29,6 +29,21 @@ fn main() {
     if curl {
         register_dep("CURL");
     }
+
+    let target = env::var("TARGET").unwrap();
+    let host = env::var("HOST").unwrap();
+
+    if target != host {
+        let lib_dir = env::var_os("TARGET_LIBGIT2_LIB_DIR").map(PathBuf::from);
+        let include_dir = env::var_os("TARGET_LIBGIT2_INCLUDE_DIR").map(PathBuf::from);
+
+        if lib_dir.is_some() && include_dir.is_some() {
+            println!("cargo:rustc-link-search=native={}", lib_dir.unwrap().to_string_lossy());
+            println!("cargo:include={}", include_dir.unwrap().to_string_lossy());
+            println!("cargo:rustc-link-lib=dylib=git2");
+            return;
+        }
+    }
     let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
     if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
@@ -42,8 +57,6 @@ fn main() {
                                    .status();
     }
 
-    let target = env::var("TARGET").unwrap();
-    let host = env::var("HOST").unwrap();
     let windows = target.contains("windows");
     let msvc = target.contains("msvc");
     let mut cfg = cmake::Config::new("libgit2");
