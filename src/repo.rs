@@ -998,6 +998,56 @@ impl Repository {
         }
     }
 
+    /// Create a commit object from the given buffer and signature
+    ///
+    /// Given the unsigned commit object's contents, its signature and the
+    /// header field in which to store the signature, attach the signature to
+    /// the commit and write it into the given repository.
+    ///
+    /// Use `None` in `signature_field` to use the default of `gpgsig`, which is
+    /// almost certainly what you want.
+    ///
+    /// Returns the resulting (signed) commit id.
+    pub fn commit_signed(&self,
+                         commit_content: &str,
+                         signature: &str,
+                         signature_field: Option<&str>) -> Result<Oid, Error> {
+        let commit_content = try!(CString::new(commit_content));
+        let signature = try!(CString::new(signature));
+        let signature_field = try!(::opt_cstr(signature_field));
+        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        unsafe {
+            try_call!(raw::git_commit_create_with_signature(&mut raw,
+                                                            self.raw(),
+                                                            commit_content,
+                                                            signature,
+                                                            signature_field));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
+
+    /// Extract the signature from a commit
+    ///
+    /// Returns a tuple containing the signature in the first value and the
+    /// signed data in the second.
+    pub fn extract_signature(&self,
+                             commit_id: &Oid,
+                             signature_field: Option<&str>)
+                             -> Result<(Buf, Buf), Error> {
+        let signature_field = try!(::opt_cstr(signature_field));
+        let signature = Buf::new();
+        let content = Buf::new();
+        unsafe {
+            try_call!(raw::git_commit_extract_signature(signature.raw(),
+                                                        content.raw(),
+                                                        self.raw(),
+                                                        commit_id.raw() as *mut _,
+                                                        signature_field));
+            Ok((signature, content))
+        }
+    }
+
 
     /// Lookup a reference to one of the commits in a repository.
     pub fn find_commit(&self, oid: Oid) -> Result<Commit, Error> {
