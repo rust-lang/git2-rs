@@ -70,13 +70,15 @@ fn main() {
     // windows as libssh2 doesn't come with a libssh2.pc file in that install
     // (or when pkg-config isn't found). As a result we just manually turn on
     // SSH support in libgit2 (a little jankily) here...
+    let mut ssh_forced = false;
     if ssh && (windows || !has_pkgconfig) {
         if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
+            ssh_forced = true;
             if msvc {
                 cfg.cflag(format!("/I{}", libssh2_include))
                    .cflag("/DGIT_SSH");
             } else {
-                cfg.cflag(format!("-I{}", libssh2_include))
+                cfg.cflag(format!("-I{}", sanitize_sh(libssh2_include.as_ref())))
                    .cflag("-DGIT_SSH");
             }
         }
@@ -130,7 +132,7 @@ fn main() {
 
     // Make sure libssh2 was detected on unix systems, because it definitely
     // should have been!
-    if ssh && !msvc {
+    if ssh && !ssh_forced {
         let flags = dst.join("build/src/git2/sys/features.h");
         let mut contents = String::new();
         t!(t!(File::open(flags)).read_to_string(&mut contents));
@@ -196,4 +198,21 @@ fn prepend(var: &str, val: PathBuf) {
     let mut v = vec![val];
     v.extend(env::split_paths(&prefix));
     env::set_var(var, &env::join_paths(v).unwrap());
+}
+
+fn sanitize_sh(path: &Path) -> String {
+    let path = path.to_str().unwrap().replace("\\", "/");
+    return change_drive(&path).unwrap_or(path);
+
+    fn change_drive(s: &str) -> Option<String> {
+        let mut ch = s.chars();
+        let drive = ch.next().unwrap_or('C');
+        if ch.next() != Some(':') {
+            return None
+        }
+        if ch.next() != Some('/') {
+            return None
+        }
+        Some(format!("/{}/{}", drive, &s[drive.len_utf8() + 2..]))
+    }
 }
