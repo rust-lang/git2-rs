@@ -16,7 +16,7 @@ Intended to be used with the git2 crate.
 [dependencies]
 curl = "0.4"
 url = "1.0"
-log = "0.3"
+log = "0.4"
 git2 = { path = "..", version = "0.7", default-features = false }
 
 [dev-dependencies]
