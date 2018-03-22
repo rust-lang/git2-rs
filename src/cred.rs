@@ -296,12 +296,44 @@ impl CredentialHelper {
             }
         ) );
 
-        let mut p = my_try!(Command::new("sh").arg("-c")
-                                              .arg(&format!("{} get", cmd))
-                                              .stdin(Stdio::piped())
-                                              .stdout(Stdio::piped())
-                                              .stderr(Stdio::piped())
-                                              .spawn());
+        // It looks like the `cmd` specification is typically bourne-shell-like
+        // syntax, so try that first. If that fails, though, we may be on a
+        // Windows machine for example where `sh` isn't actually available by
+        // default. Most credential helper configurations though are pretty
+        // simple (aka one or two space-separated strings) so also try to invoke
+        // the process directly.
+        //
+        // If that fails then it's up to the user to put `sh` in path and make
+        // sure it works.
+        let mut c = Command::new("sh");
+        c.arg("-c")
+            .arg(&format!("{} get", cmd))
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut p = match c.spawn() {
+            Ok(p) => p,
+            Err(e) => {
+                debug!("`sh` failed to spawn: {}", e);
+                let mut parts = cmd.split_whitespace();
+                let mut c = Command::new(parts.next().unwrap());
+                for arg in parts {
+                    c.arg(arg);
+                }
+                c.arg("get")
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped());
+                match c.spawn() {
+                    Ok(p) => p,
+                    Err(e) => {
+                        debug!("fallback of {:?} failed with {}", cmd, e);
+                        return (None, None);
+                    }
+                }
+            }
+        };
+
         // Ignore write errors as the command may not actually be listening for
         // stdin
         {
