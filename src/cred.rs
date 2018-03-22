@@ -324,6 +324,8 @@ impl CredentialHelper {
                    String::from_utf8_lossy(&output.stderr));
             return (None, None)
         }
+        trace!("credential helper stderr ---\n{}",
+               String::from_utf8_lossy(&output.stderr));
         self.parse_output(output.stdout)
     }
 
@@ -335,7 +337,13 @@ impl CredentialHelper {
         for line in output.split(|t| *t == b'\n') {
             let mut parts = line.splitn(2, |t| *t == b'=');
             let key = parts.next().unwrap();
-            let value = match parts.next() { Some(s) => s, None => continue };
+            let value = match parts.next() {
+                Some(s) => s,
+                None => {
+                    trace!("ignoring output line: {}", String::from_utf8_lossy(line));
+                    continue
+                }
+            };
             let value = match String::from_utf8(value.to_vec()) {
                 Ok(s) => s,
                 Err(..) => continue,
