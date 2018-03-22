@@ -72,6 +72,7 @@ extern crate libc;
 extern crate url;
 extern crate libgit2_sys as raw;
 #[macro_use] extern crate bitflags;
+#[macro_use] extern crate log;
 #[cfg(test)] extern crate tempdir;
 
 use std::ffi::{CStr, CString};

@@ -287,7 +287,13 @@ impl CredentialHelper {
     fn execute_cmd(&self, cmd: &str, username: &Option<String>)
                    -> (Option<String>, Option<String>) {
         macro_rules! my_try( ($e:expr) => (
-            match $e { Ok(e) => e, Err(..) => return (None, None) }
+            match $e {
+                Ok(e) => e,
+                Err(e) => {
+                    debug!("{} failed with {}", stringify!($e), e);
+                    return (None, None)
+                }
+            }
         ) );
 
         let mut p = my_try!(Command::new("sh").arg("-c")
@@ -311,7 +317,13 @@ impl CredentialHelper {
             }
         }
         let output = my_try!(p.wait_with_output());
-        if !output.status.success() { return (None, None) }
+        if !output.status.success() {
+            debug!("credential helper failed: {}\nstdout ---\n{}\nstdout ---\n{}",
+                   output.status,
+                   String::from_utf8_lossy(&output.stdout),
+                   String::from_utf8_lossy(&output.stderr));
+            return (None, None)
+        }
         self.parse_output(output.stdout)
     }
 
