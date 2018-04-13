@@ -2493,9 +2493,9 @@ mod tests {
         let mut found_oid3 = false;
         for mg in merge_bases.iter() {
             println!("found merge base {:?}", mg);
-            if mg == &oid2 {
+            if mg == oid2 {
                 found_oid2 = true;
-            } else if mg == &oid3 {
+            } else if mg == oid3 {
                 found_oid3 = true;
             } else {
                 assert!(false);
