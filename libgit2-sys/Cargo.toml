@@ -7,6 +7,9 @@ build = "build.rs"
 repository = "https://github.com/alexcrichton/git2-rs"
 license = "MIT/Apache-2.0"
 description = "Native bindings to the libgit2 library"
+exclude = [
+    "libgit2/tests/*",
+]
 
 [lib]
 name = "libgit2_sys"

@@ -15,9 +15,6 @@ both threadsafe and memory safe and allows both reading and writing git
 repositories.
 """
 categories = ["api-bindings"]
-exclude = [
-    "libgit2/tests/*",
-]
 
 [badges]
 travis-ci = { repository = "alexcrichton/git2-rs" }
