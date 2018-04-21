@@ -7,7 +7,7 @@ use std::ffi::CString;
 
 use libc::{c_char, c_int, c_void, size_t};
 
-use {raw, Oid, Object, ObjectType, Error};
+use {raw, Oid, ShortOid, Object, ObjectType, Error};
 use panic;
 use util::Binding;
 
@@ -131,16 +131,19 @@ impl<'repo> Odb<'repo> {
     }
 
     /// Potentially finds an object that starts with the given prefix.
-    pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
+    pub fn exists_prefix<O>(&self, short_oid: O) -> Result<Oid, Error>
+        where O: Into<ShortOid>
+    {
+        let short_oid = short_oid.into();
         unsafe {
             let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
             try_call!(raw::git_odb_exists_prefix(&mut out,
                                                  self.raw,
                                                  short_oid.raw(),
-                                                 len));
+                                                 short_oid.len()));
             Ok(Oid::from_raw(&out))
         }
-    } 
+    }
 
     /// Refresh the object database.
     /// This should never be needed, and is
@@ -337,7 +340,7 @@ extern fn foreach_cb(id: *const raw::git_oid,
 mod tests {
     use std::io::prelude::*;
     use tempdir::TempDir;
-    use {Repository, ObjectType, Oid};
+    use {Repository, ObjectType, ShortOid};
 
     #[test]
     fn read() {
@@ -375,7 +378,7 @@ mod tests {
         let db = repo.odb().unwrap();
         let id = db.write(ObjectType::Blob, &dat).unwrap();
         let blob = repo.find_blob(id).unwrap();
-        assert_eq!(blob.content(), dat);        
+        assert_eq!(blob.content(), dat);
     }
 
     #[test]
@@ -411,9 +414,12 @@ mod tests {
         let dat = [4, 3, 5, 6, 9];
         let db = repo.odb().unwrap();
         let id = db.write(ObjectType::Blob, &dat).unwrap();
-        let id_prefix_str = &id.to_string()[0..10];
-        let id_prefix = Oid::from_str(id_prefix_str).unwrap();
-        let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
+        let id_str = id.to_string();
+        let id_prefix_str = &id_str[0..10];
+        let id_prefix = ShortOid::from_str(id_prefix_str).unwrap();
+        let found_oid = db.exists_prefix(id_prefix).unwrap();
+        assert_eq!(found_oid, id);
+        let found_oid = db.exists_prefix(id).unwrap();
         assert_eq!(found_oid, id);
     }
 }

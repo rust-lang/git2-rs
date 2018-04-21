@@ -15,6 +15,24 @@ pub struct Oid {
     raw: raw::git_oid
 }
 
+/// A "short" OID, used when looking up objects by prefix.
+#[derive(Copy, Clone)]
+pub struct ShortOid {
+    // For an odd-length short oid, the high 4 bits of the last byte are set,
+    // the low 4 bits are 0.
+    raw: raw::git_oid,
+    len: usize,
+}
+
+impl From<Oid> for ShortOid {
+    fn from(oid: Oid) -> ShortOid {
+        ShortOid {
+            raw: oid.raw,
+            len: raw::GIT_OID_HEXSZ,
+        }
+    }
+}
+
 impl Oid {
     /// Parse a hex-formatted object id into an Oid structure.
     ///
@@ -99,6 +117,30 @@ impl Oid {
     }
 }
 
+impl ShortOid {
+    /// Parse a hex-formatted object id into a ShortOid structure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is empty, is longer than 40 hex
+    /// characters, or contains any non-hex characters.
+    pub fn from_str(s: &str) -> Result<ShortOid, Error> {
+        let oid = Oid::from_str(s)?;
+        Ok(ShortOid { raw: oid.raw, len: s.len() })
+    }
+
+    /// Get the number of characters in the hex representation of this ShortOid.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    // There's no clear way to learn the length of a raw git_oid, so this is an
+    // inherent method instead of `ShortOid` implementing `Binding`.
+    pub(crate) fn raw(&self) -> *const raw::git_oid {
+        &self.raw  as *const _
+    }
+}
+
 impl Binding for Oid {
     type Raw = *const raw::git_oid;
 
@@ -114,7 +156,20 @@ impl fmt::Debug for Oid {
     }
 }
 
+impl fmt::Debug for ShortOid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
 impl fmt::Display for Oid {
+    /// Hex-encode this Oid into a formatter.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        ShortOid::from(*self).fmt(f)
+    }
+}
+
+impl fmt::Display for ShortOid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
@@ -122,7 +177,9 @@ impl fmt::Display for Oid {
             raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
                                dst.len() as libc::size_t, &self.raw);
         }
-        let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
+        let nul = dst.iter().position(|&a| a == 0).unwrap();
+        assert!(nul >= self.len);
+        let s = &dst[..self.len];
         str::from_utf8(s).unwrap().fmt(f)
     }
 }
@@ -141,6 +198,20 @@ impl str::FromStr for Oid {
     }
 }
 
+impl str::FromStr for ShortOid {
+    type Err = Error;
+
+    /// Parse a hex-formatted object id into a ShortOid structure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is empty, is longer than 40 hex
+    /// characters, or contains any non-hex characters.
+    fn from_str(s: &str) -> Result<ShortOid, Error> {
+        ShortOid::from_str(s)
+    }
+}
+
 impl PartialEq for Oid {
     fn eq(&self, other: &Oid) -> bool {
         unsafe { raw::git_oid_equal(&self.raw, &other.raw) != 0 }
@@ -148,8 +219,21 @@ impl PartialEq for Oid {
 }
 impl Eq for Oid {}
 
+impl PartialEq for ShortOid {
+    fn eq(&self, other: &ShortOid) -> bool {
+        unsafe { raw::git_oid_equal(&self.raw, &other.raw) != 0 }
+    }
+}
+impl Eq for ShortOid {}
+
 impl PartialOrd for Oid {
     fn partial_cmp(&self, other: &Oid) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialOrd for ShortOid {
+    fn partial_cmp(&self, other: &ShortOid) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -164,7 +248,24 @@ impl Ord for Oid {
     }
 }
 
+impl Ord for ShortOid {
+    fn cmp(&self, other: &ShortOid) -> Ordering {
+        match unsafe { raw::git_oid_cmp(&self.raw, &other.raw) } {
+            0 => Ordering::Equal,
+            n if n < 0 => Ordering::Less,
+            _ => Ordering::Greater,
+        }
+    }
+}
+
 impl Hash for Oid {
+    fn hash<H: Hasher>(&self, into: &mut H) {
+        self.raw.id.hash(into)
+    }
+}
+
+// Hrm.
+impl Hash for ShortOid {
     fn hash<H: Hasher>(&self, into: &mut H) {
         self.raw.id.hash(into)
     }
@@ -173,6 +274,7 @@ impl Hash for Oid {
 impl AsRef<[u8]> for Oid {
     fn as_ref(&self) -> &[u8] { self.as_bytes() }
 }
+// Not implemented for `ShortOid` because of odd-length short oids.
 
 #[cfg(test)]
 mod tests {
@@ -181,7 +283,8 @@ mod tests {
 
     use tempdir::TempDir;
     use {ObjectType};
-    use super::Oid;
+    use super::{Oid, ShortOid};
+    use ::raw;
 
     #[test]
     fn conversions() {
@@ -189,6 +292,13 @@ mod tests {
         assert!(Oid::from_str("decbf2be529ab6557d5429922251e5ee36519817").is_ok());
         assert!(Oid::from_bytes(b"foo").is_err());
         assert!(Oid::from_bytes(b"00000000000000000000").is_ok());
+        let short_oid =
+            ShortOid::from_str("decbf2be529ab6557d5429922251e5ee36519817")
+            .unwrap();
+        assert_eq!(raw::GIT_OID_HEXSZ, short_oid.len());
+        assert_eq!(8, ShortOid::from_str("deadbeef").unwrap().len());
+        let oid = Oid::from_str("decbf2be529ab6557d5429922251e5ee36519817").unwrap();
+        assert_eq!(raw::GIT_OID_HEXSZ, ShortOid::from(oid).len());
     }
 
     #[test]
@@ -211,4 +321,3 @@ mod tests {
         assert!(Oid::hash_file(ObjectType::Blob, &path).is_ok());
     }
 }
-
