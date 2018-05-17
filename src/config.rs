@@ -135,6 +135,17 @@ impl Config {
         }
     }
 
+    /// Remove multivar config variables in the config file with the highest level (usually the
+    /// local one).
+    pub fn remove_multivar(&mut self, name: &str, regexp: &str) -> Result<(), Error> {
+        let name = try!(CString::new(name));
+        let regexp = try!(CString::new(regexp));
+        unsafe {
+            try_call!(raw::git_config_delete_multivar(self.raw, name, regexp));
+        }
+        Ok(())
+    }
+
     /// Get the value of a boolean config variable.
     ///
     /// All config files will be looked into, in the order of their defined
@@ -564,6 +575,10 @@ mod tests {
             .collect();
         values.sort();
         assert_eq!(values, ["baz", "qux"]);
+
+        cfg.remove_multivar("foo.bar", ".*").unwrap();
+
+        assert_eq!(cfg.entries(None).unwrap().count(), 0);
     }
 
     #[test]
