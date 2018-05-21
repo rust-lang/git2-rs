@@ -432,6 +432,12 @@ impl CredentialType {
     is_bit_set!(is_username, CredentialType::USERNAME);
 }
 
+impl Default for CredentialType {
+    fn default() -> Self {
+        CredentialType::DEFAULT
+    }
+}
+
 bitflags! {
     /// Flags for the `flags` field of an IndexEntry.
     pub struct IndexEntryFlag: u16 {
@@ -518,6 +524,12 @@ impl IndexAddOption {
     is_bit_set!(is_force, IndexAddOption::FORCE);
     is_bit_set!(is_disable_pathspec_match, IndexAddOption::DISABLE_PATHSPEC_MATCH);
     is_bit_set!(is_check_pathspec, IndexAddOption::CHECK_PATHSPEC);
+}
+
+impl Default for IndexAddOption {
+    fn default() -> Self {
+        IndexAddOption::DEFAULT
+    }
 }
 
 bitflags! {
@@ -1145,6 +1157,12 @@ impl PathspecFlags {
     is_bit_set!(is_failures_only, PathspecFlags::FAILURES_ONLY);
 }
 
+impl Default for PathspecFlags {
+    fn default() -> Self {
+        PathspecFlags::DEFAULT
+    }
+}
+
 bitflags! {
     /// Types of notifications emitted from checkouts.
     pub struct CheckoutNotificationType: u32 {
@@ -1268,6 +1286,12 @@ impl StashApplyFlags {
     is_bit_set!(is_reinstate_index, StashApplyFlags::REINSTATE_INDEX);
 }
 
+impl Default for StashApplyFlags {
+    fn default() -> Self {
+        StashApplyFlags::DEFAULT
+    }
+}
+
 bitflags! {
     #[allow(missing_docs)]
     pub struct StashFlags: u32 {
@@ -1290,6 +1314,12 @@ impl StashFlags {
     is_bit_set!(is_keep_index, StashFlags::KEEP_INDEX);
     is_bit_set!(is_include_untracked, StashFlags::INCLUDE_UNTRACKED);
     is_bit_set!(is_include_ignored, StashFlags::INCLUDE_IGNORED);
+}
+
+impl Default for StashFlags {
+    fn default() -> Self {
+        StashFlags::DEFAULT
+    }
 }
 
 #[cfg(test)]
