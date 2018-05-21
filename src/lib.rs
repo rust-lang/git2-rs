@@ -123,6 +123,16 @@ pub use treebuilder::TreeBuilder;
 pub use odb::{Odb, OdbObject, OdbReader, OdbWriter};
 pub use util::IntoCString;
 
+// Create a convinience method on bitflag struct which checks the given flag
+macro_rules! is_bit_set {
+    ($name:ident, $flag:expr) => (
+        #[allow(missing_docs)]
+        pub fn $name(&self) -> bool {
+            self.intersects($flag)
+        }
+    )
+}
+
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
@@ -385,6 +395,13 @@ bitflags! {
     }
 }
 
+impl Sort {
+    is_bit_set!(is_none, Sort::NONE);
+    is_bit_set!(is_topological, Sort::TOPOLOGICAL);
+    is_bit_set!(is_time, Sort::TIME);
+    is_bit_set!(is_reverse, Sort::REVERSE);
+}
+
 bitflags! {
     /// Types of credentials that can be requested by a credential callback.
     pub struct CredentialType: u32 {
@@ -405,6 +422,22 @@ bitflags! {
     }
 }
 
+impl CredentialType {
+    is_bit_set!(is_user_pass_plaintext, CredentialType::USER_PASS_PLAINTEXT);
+    is_bit_set!(is_ssh_key, CredentialType::SSH_KEY);
+    is_bit_set!(is_ssh_memory, CredentialType::SSH_MEMORY);
+    is_bit_set!(is_ssh_custom, CredentialType::SSH_CUSTOM);
+    is_bit_set!(is_default, CredentialType::DEFAULT);
+    is_bit_set!(is_ssh_interactive, CredentialType::SSH_INTERACTIVE);
+    is_bit_set!(is_username, CredentialType::USERNAME);
+}
+
+impl Default for CredentialType {
+    fn default() -> Self {
+        CredentialType::DEFAULT
+    }
+}
+
 bitflags! {
     /// Flags for the `flags` field of an IndexEntry.
     pub struct IndexEntryFlag: u16 {
@@ -413,6 +446,11 @@ bitflags! {
         /// "Assume valid" flag
         const VALID = raw::GIT_IDXENTRY_VALID as u16;
     }
+}
+
+impl IndexEntryFlag {
+    is_bit_set!(is_extended, IndexEntryFlag::EXTENDED);
+    is_bit_set!(is_valid, IndexEntryFlag::VALID);
 }
 
 bitflags! {
@@ -450,6 +488,22 @@ bitflags! {
     }
 }
 
+impl IndexEntryExtendedFlag {
+    is_bit_set!(is_intent_to_add, IndexEntryExtendedFlag::INTENT_TO_ADD);
+    is_bit_set!(is_skip_worktree, IndexEntryExtendedFlag::SKIP_WORKTREE);
+    is_bit_set!(is_extended2, IndexEntryExtendedFlag::EXTENDED2);
+    is_bit_set!(is_update, IndexEntryExtendedFlag::UPDATE);
+    is_bit_set!(is_remove, IndexEntryExtendedFlag::REMOVE);
+    is_bit_set!(is_up_to_date, IndexEntryExtendedFlag::UPTODATE);
+    is_bit_set!(is_added, IndexEntryExtendedFlag::ADDED);
+    is_bit_set!(is_hashed, IndexEntryExtendedFlag::HASHED);
+    is_bit_set!(is_unhashed, IndexEntryExtendedFlag::UNHASHED);
+    is_bit_set!(is_wt_remove, IndexEntryExtendedFlag::WT_REMOVE);
+    is_bit_set!(is_conflicted, IndexEntryExtendedFlag::CONFLICTED);
+    is_bit_set!(is_unpacked, IndexEntryExtendedFlag::UNPACKED);
+    is_bit_set!(is_new_skip_worktree, IndexEntryExtendedFlag::NEW_SKIP_WORKTREE);
+}
+
 bitflags! {
     /// Flags for APIs that add files matching pathspec
     pub struct IndexAddOption: u32 {
@@ -462,6 +516,19 @@ bitflags! {
                 raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32;
         #[allow(missing_docs)]
         const CHECK_PATHSPEC = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32;
+    }
+}
+
+impl IndexAddOption {
+    is_bit_set!(is_default, IndexAddOption::DEFAULT);
+    is_bit_set!(is_force, IndexAddOption::FORCE);
+    is_bit_set!(is_disable_pathspec_match, IndexAddOption::DISABLE_PATHSPEC_MATCH);
+    is_bit_set!(is_check_pathspec, IndexAddOption::CHECK_PATHSPEC);
+}
+
+impl Default for IndexAddOption {
+    fn default() -> Self {
+        IndexAddOption::DEFAULT
     }
 }
 
@@ -481,6 +548,14 @@ bitflags! {
     }
 }
 
+impl RepositoryOpenFlags {
+    is_bit_set!(is_no_search, RepositoryOpenFlags::NO_SEARCH);
+    is_bit_set!(is_cross_fs, RepositoryOpenFlags::CROSS_FS);
+    is_bit_set!(is_bare, RepositoryOpenFlags::BARE);
+    is_bit_set!(is_no_dotgit, RepositoryOpenFlags::NO_DOTGIT);
+    is_bit_set!(is_from_env, RepositoryOpenFlags::FROM_ENV);
+}
+
 bitflags! {
     /// Flags for the return value of `Repository::revparse`
     pub struct RevparseMode: u32 {
@@ -491,6 +566,12 @@ bitflags! {
         /// The spec used the `...` operator, which invokes special semantics.
         const MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32;
     }
+}
+
+impl RevparseMode {
+    is_bit_set!(is_no_single, RevparseMode::SINGLE);
+    is_bit_set!(is_range, RevparseMode::RANGE);
+    is_bit_set!(is_merge_base, RevparseMode::MERGE_BASE);
 }
 
 bitflags! {
@@ -515,6 +596,14 @@ bitflags! {
     }
 }
 
+impl MergeAnalysis {
+    is_bit_set!(is_none, MergeAnalysis::ANALYSIS_NONE);
+    is_bit_set!(is_normal, MergeAnalysis::ANALYSIS_NORMAL);
+    is_bit_set!(is_up_to_date, MergeAnalysis::ANALYSIS_UP_TO_DATE);
+    is_bit_set!(is_fast_forward, MergeAnalysis::ANALYSIS_FASTFORWARD);
+    is_bit_set!(is_unborn, MergeAnalysis::ANALYSIS_UNBORN);
+}
+
 bitflags! {
     /// The user's stated preference for merges.
     pub struct MergePreference: u32 {
@@ -528,6 +617,12 @@ bitflags! {
         /// the user only wants fast-forward merges.
         const FASTFORWARD_ONLY = raw::GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY as u32;
     }
+}
+
+impl MergePreference {
+    is_bit_set!(is_none, MergePreference::NONE);
+    is_bit_set!(is_no_fast_forward, MergePreference::NO_FAST_FORWARD);
+    is_bit_set!(is_fastforward_only, MergePreference::FASTFORWARD_ONLY);
 }
 
 #[cfg(test)] #[macro_use] mod test;
@@ -854,6 +949,20 @@ bitflags! {
     }
 }
 
+impl Status {
+    is_bit_set!(is_index_new, Status::INDEX_NEW);
+    is_bit_set!(is_index_modified, Status::INDEX_MODIFIED);
+    is_bit_set!(is_index_deleted, Status::INDEX_DELETED);
+    is_bit_set!(is_index_renamed, Status::INDEX_RENAMED);
+    is_bit_set!(is_index_typechange, Status::INDEX_TYPECHANGE);
+    is_bit_set!(is_wt_new, Status::WT_NEW);
+    is_bit_set!(is_wt_modified, Status::WT_MODIFIED);
+    is_bit_set!(is_wt_typechange, Status::WT_TYPECHANGE);
+    is_bit_set!(is_wt_renamed, Status::WT_RENAMED);
+    is_bit_set!(is_ignored, Status::IGNORED);
+    is_bit_set!(is_conflicted, Status::CONFLICTED);
+}
+
 bitflags! {
     /// Mode options for RepositoryInitOptions
     pub struct RepositoryInitMode: u32 {
@@ -865,6 +974,12 @@ bitflags! {
         /// Use `--shared=all` behavior, adding world readability.
         const SHARED_ALL = raw::GIT_REPOSITORY_INIT_SHARED_ALL as u32;
     }
+}
+
+impl RepositoryInitMode {
+    is_bit_set!(is_shared_umask, RepositoryInitMode::SHARED_UMASK);
+    is_bit_set!(is_shared_group, RepositoryInitMode::SHARED_GROUP);
+    is_bit_set!(is_shared_all, RepositoryInitMode::SHARED_ALL);
 }
 
 /// What type of change is described by a `DiffDelta`?
@@ -967,7 +1082,22 @@ bitflags! {
         #[allow(missing_docs)]
         const WD_UNTRACKED = raw::GIT_SUBMODULE_STATUS_WD_UNTRACKED as u32;
     }
+}
 
+impl SubmoduleStatus {
+    is_bit_set!(is_in_head, SubmoduleStatus::IN_HEAD);
+    is_bit_set!(is_in_index, SubmoduleStatus::IN_INDEX);
+    is_bit_set!(is_in_config, SubmoduleStatus::IN_CONFIG);
+    is_bit_set!(is_in_wd, SubmoduleStatus::IN_WD);
+    is_bit_set!(is_index_added, SubmoduleStatus::INDEX_ADDED);
+    is_bit_set!(is_index_deleted, SubmoduleStatus::INDEX_DELETED);
+    is_bit_set!(is_index_modified, SubmoduleStatus::INDEX_MODIFIED);
+    is_bit_set!(is_wd_uninitialized, SubmoduleStatus::WD_UNINITIALIZED);
+    is_bit_set!(is_wd_added, SubmoduleStatus::WD_ADDED);
+    is_bit_set!(is_wd_deleted, SubmoduleStatus::WD_DELETED);
+    is_bit_set!(is_wd_modified, SubmoduleStatus::WD_MODIFIED);
+    is_bit_set!(is_wd_wd_modified, SubmoduleStatus::WD_WD_MODIFIED);
+    is_bit_set!(is_wd_untracked, SubmoduleStatus::WD_UNTRACKED);
 }
 
 /// Submodule ignore values
@@ -1017,6 +1147,22 @@ bitflags! {
     }
 }
 
+impl PathspecFlags {
+    is_bit_set!(is_default, PathspecFlags::DEFAULT);
+    is_bit_set!(is_ignore_case, PathspecFlags::IGNORE_CASE);
+    is_bit_set!(is_use_case, PathspecFlags::USE_CASE);
+    is_bit_set!(is_no_glob, PathspecFlags::NO_GLOB);
+    is_bit_set!(is_no_match_error, PathspecFlags::NO_MATCH_ERROR);
+    is_bit_set!(is_find_failures, PathspecFlags::FIND_FAILURES);
+    is_bit_set!(is_failures_only, PathspecFlags::FAILURES_ONLY);
+}
+
+impl Default for PathspecFlags {
+    fn default() -> Self {
+        PathspecFlags::DEFAULT
+    }
+}
+
 bitflags! {
     /// Types of notifications emitted from checkouts.
     pub struct CheckoutNotificationType: u32 {
@@ -1031,6 +1177,14 @@ bitflags! {
         /// Notification about an ignored file.
         const IGNORED = raw::GIT_CHECKOUT_NOTIFY_IGNORED as u32;
     }
+}
+
+impl CheckoutNotificationType {
+    is_bit_set!(is_conflict, CheckoutNotificationType::CONFLICT);
+    is_bit_set!(is_dirty, CheckoutNotificationType::DIRTY);
+    is_bit_set!(is_updated, CheckoutNotificationType::UPDATED);
+    is_bit_set!(is_untracked, CheckoutNotificationType::UNTRACKED);
+    is_bit_set!(is_ignored, CheckoutNotificationType::IGNORED);
 }
 
 /// Possible output formats for diff data
@@ -1063,6 +1217,14 @@ bitflags! {
         /// changes, equivalent of `--summary` in git
         const INCLUDE_SUMMARY = raw::GIT_DIFF_STATS_INCLUDE_SUMMARY;
     }
+}
+
+impl DiffStatsFormat {
+    is_bit_set!(is_none, DiffStatsFormat::NONE);
+    is_bit_set!(is_full, DiffStatsFormat::FULL);
+    is_bit_set!(is_short, DiffStatsFormat::SHORT);
+    is_bit_set!(is_number, DiffStatsFormat::NUMBER);
+    is_bit_set!(is_include_summary, DiffStatsFormat::INCLUDE_SUMMARY);
 }
 
 /// Automatic tag following options.
@@ -1119,6 +1281,17 @@ bitflags! {
     }
 }
 
+impl StashApplyFlags {
+    is_bit_set!(is_default, StashApplyFlags::DEFAULT);
+    is_bit_set!(is_reinstate_index, StashApplyFlags::REINSTATE_INDEX);
+}
+
+impl Default for StashApplyFlags {
+    fn default() -> Self {
+        StashApplyFlags::DEFAULT
+    }
+}
+
 bitflags! {
     #[allow(missing_docs)]
     pub struct StashFlags: u32 {
@@ -1133,6 +1306,19 @@ bitflags! {
         /// All ignored files are also stashed and then cleaned up from
         /// the working directory
         const INCLUDE_IGNORED = raw::GIT_STASH_INCLUDE_IGNORED as u32;
+    }
+}
+
+impl StashFlags {
+    is_bit_set!(is_default, StashFlags::DEFAULT);
+    is_bit_set!(is_keep_index, StashFlags::KEEP_INDEX);
+    is_bit_set!(is_include_untracked, StashFlags::INCLUDE_UNTRACKED);
+    is_bit_set!(is_include_ignored, StashFlags::INCLUDE_IGNORED);
+}
+
+impl Default for StashFlags {
+    fn default() -> Self {
+        StashFlags::DEFAULT
     }
 }
 
