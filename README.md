@@ -28,6 +28,18 @@ $ cd git2-rs
 $ cargo build
 ```
 
+### Automating Testing
+
+Running tests and handling all of the associated edge cases on every commit
+proves tedious very quickly.  To automate tests and handle proper stashing and
+unstashing of unstaged changes and thus avoid nasty surprises, use the
+pre-commit hook found [here][pre-commit-hook] and place it into the
+`.git/hooks/` with the name `pre-commit`.  You may need to add execution
+permissions with `chmod +x`.
+
+
+To skip tests on a simple commit or doc-fixes, use `git commit --no-verify`.
+
 ## Building on OSX 10.10+
 
 Currently libssh2 requires linking against OpenSSL, and to compile libssh2 it
@@ -55,3 +67,5 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in git2-rs by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
+
+[pre-commit-hook]: https://gist.github.com/glfmn/0c5e9e2b41b48007ed3497d11e3dbbfa
