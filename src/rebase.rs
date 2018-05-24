@@ -60,26 +60,26 @@ pub enum RebaseOperationType {
 /// A structure representing options for a `rebase`
 pub struct RebaseOptions<'a> {
     /// Version of rebase options, defined by `GIT_REBASE_OPTIONS_VERSION`
-    pub version: usize,
+    version: usize,
 
     /// this will instruct other clients working
     /// on this `rebase` that you want a quiet rebase experience.
     /// This is provided for interoperability between Git tools
-    pub quiet: bool,
+    quiet: bool,
 
     /// Perform an in-memory rebase, will not updated the repository to be in a rebasing-state
     /// or modify the working directory.
-    pub in_memory: bool,
+    in_memory: bool,
 
     /// The name of the notes reference used to rewrite notes
     /// for rebased commits when finishing the rebase
-    pub rewrite_notes_ref: Option<CString>,
+    rewrite_notes_ref: Option<CString>,
 
     /// Options to control how trees are merged during a `rebase`.
-    pub merge_options: Option<MergeOptions>,
+    merge_options: Option<MergeOptions>,
 
     /// Options to control how files are written during a `rebase`.
-    pub checkout_builder: Option<CheckoutBuilder<'a>>,
+    checkout_builder: Option<CheckoutBuilder<'a>>,
 }
 
 impl<'repo> Rebase<'repo> {
