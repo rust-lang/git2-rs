@@ -313,21 +313,29 @@ impl<'rebase, 'repo: 'rebase> RebaseOperation<'rebase, 'repo> {
         unsafe { Binding::from_raw((*self.raw).kind) }
     }
 
-    /// The commit ID being cherry-picked.  This will be populated for
-    /// all operations except those of type `Exec`
-    pub fn id(&self) -> Oid {
-        unsafe { Binding::from_raw(&(*self.raw).id as *const raw::git_oid) }
+    /// The commit ID being cherry-picked.
+    ///
+    /// This will be populated for all operations except those of type `Exec`.
+    pub fn id(&self) -> Option<Oid> {
+        if self.kind() != RebaseOperationType::Exec {
+            Some(unsafe { Binding::from_raw(&(*self.raw).id as *const raw::git_oid) })
+        } else {
+            None
+        }
     }
+
     /// The executable the user has requested be run.  This will only
     /// be populated for operations of type `Exec`
-    ///Returns `None` if `exec` is not valid utf-8
+    ///
+    /// Returns `None` if `exec` is not valid utf-8
     pub fn exec(&self) -> Option<&str> {
-        ::std::str::from_utf8(self.exec_bytes()).ok()
+        self.exec_bytes().and_then(|b| ::std::str::from_utf8(b).ok())
     }
+
     /// Corresponding bytes of the `exec` that has been requested to run.
     /// Only populated for operation of type `Exec`
-    pub fn exec_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).exec).unwrap() }
+    pub fn exec_bytes(&self) -> Option<&[u8]> {
+        unsafe { ::opt_bytes(self, (*self.raw).exec) }
     }
 }
 
