@@ -2074,7 +2074,7 @@ impl Repository {
                 .map(|ref a| a.raw() as *const raw::git_annotated_commit);
             let to_branch_raw = to_branch.as_ref()
                 .map(|ref a| a.raw() as *const raw::git_annotated_commit);
-            let options_raw = options.map(|mut opts| opts.raw());
+            let options_raw = options.map(|opts| opts.raw());
             try_call!(raw::git_rebase_init(&mut ret,
                                            self.raw(),
                                            from_branch_raw,
