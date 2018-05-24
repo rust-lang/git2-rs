@@ -98,8 +98,10 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Commits the current patch.
-    /// You must have resolved any conflicts
-    /// that were introduced during the patch application from the `next` invocation.
+    ///
+    /// You must have resolved any conflicts that were introduced during the
+    /// patch application from the iteration over `operation_iter`/`next`
+    /// invocation.
     pub fn commit(&self,
                   author: Option<&Signature>,
                   committer: &Signature,
@@ -141,7 +143,9 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Performs the next rebase operation and returns the `RebaseOperation` about it.
-    fn next<'rebase>(&self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
+    ///
+    /// This is the fundamental operation that `operation_iter` relies upon
+    pub fn next<'rebase>(&self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
             try_call!(raw::git_rebase_next(&mut ret, self.raw));
