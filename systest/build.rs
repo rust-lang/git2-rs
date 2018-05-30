@@ -34,5 +34,7 @@ fn main() {
         }
     });
     cfg.skip_type(|t| t == "__enum_ty");
+    // TODO: test this when it's possible https://github.com/alexcrichton/ctest/issues/31
+    cfg.skip_field_type(|s, field| s == "git_rebase_operation" && field == "id");
     cfg.generate("../libgit2-sys/lib.rs", "all.rs");
 }
