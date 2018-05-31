@@ -639,8 +639,8 @@ mod tests {
     fn rename_remote() {
         let (_td, repo) = ::test::repo_init();
         repo.remote("origin", "foo").unwrap();
-        repo.remote_rename("origin", "foo").unwrap();
-        repo.remote_delete("foo").unwrap();
+        drop(repo.remote_rename("origin", "foo"));
+        drop(repo.remote_delete("foo"));
     }
 
     #[test]

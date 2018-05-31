@@ -770,6 +770,7 @@ pub struct git_index_time {
 pub struct git_config_entry {
     pub name: *const c_char,
     pub value: *const c_char,
+    pub include_depth: c_uint,
     pub level: git_config_level_t,
     pub free: extern fn(*mut git_config_entry),
     pub payload: *mut c_void,

@@ -451,6 +451,11 @@ impl<'cfg> ConfigEntry<'cfg> {
     pub fn level(&self) -> ConfigLevel {
         unsafe { ConfigLevel::from_raw((*self.raw).level) }
     }
+
+	/// Depth of includes where this variable was found
+    pub fn include_depth(&self) -> u32 {
+        unsafe { (*self.raw).include_depth as u32 }
+    }
 }
 
 impl<'cfg> Binding for ConfigEntry<'cfg> {
