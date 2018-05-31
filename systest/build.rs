@@ -30,6 +30,8 @@ fn main() {
             "git_push_transfer_progress" |
             "git_push_negotiation" |
             "git_packbuilder_progress" => true,
+            // TODO: fix this on the next major update of libgit2-sys
+            "git_diff_option_t" => true,
             _ => false,
         }
     });
