@@ -145,7 +145,7 @@ impl<'repo> Rebase<'repo> {
     /// Performs the next rebase operation and returns the `RebaseOperation` about it.
     ///
     /// This is the fundamental operation that `operation_iter` relies upon
-    pub fn next<'rebase>(&self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
+    pub fn next<'rebase>(&'rebase self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
             try_call!(raw::git_rebase_next(&mut ret, self.raw));
@@ -154,15 +154,15 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Iterator of rebase operations
-    pub fn operation_iter(&self) -> RebaseOperations {
-        RebaseOperations {
-            rebase: self,
-            count: 0,
-        }
+    pub fn operations<'rebase>(&'rebase self) -> RebaseOperations<'rebase, 'repo> {
+        RebaseOperations { rebase: self }
     }
 
     /// Gets the rebase operation specified by the given index.
-    pub fn operation_at_index(&self, index: usize) -> Option<RebaseOperation> {
+    pub fn operation_at_index<'rebase>(
+        &'rebase self,
+        index: usize,
+    ) -> Option<RebaseOperation<'rebase, 'repo>> {
         unsafe {
             let ptr = raw::git_rebase_operation_byindex(self.raw, index as size_t);
             if ptr.is_null() {
@@ -188,12 +188,9 @@ impl<'repo> Rebase<'repo> {
 
     /// Convenience function to get the operation at the current index.
     /// Returns none if the first operation has not yet been applied.
-    pub fn current_operation(&self) -> Option<RebaseOperation> {
-        if let Some(index) = self.current_operation_index() {
-            self.operation_at_index(index)
-        } else {
-            None
-        }
+    pub fn current_operation<'rebase>(&'rebase self) -> Option<RebaseOperation<'rebase, 'repo>> {
+        self.current_operation_index()
+            .and_then(|index| self.operation_at_index(index))
     }
 }
 
@@ -368,7 +365,6 @@ impl Binding for RebaseOperationType {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
