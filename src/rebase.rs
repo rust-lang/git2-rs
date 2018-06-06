@@ -31,7 +31,7 @@ pub struct RebaseOperation<'rebase, 'repo: 'rebase> {
 
 pub struct RebaseOperations<'rebase, 'repo: 'rebase> {
     rebase: &'rebase Rebase<'repo>,
-    count: usize,
+    operation_count: usize,
 }
 
 /// Type of rebase operation
@@ -144,7 +144,15 @@ impl<'repo> Rebase<'repo> {
 
     /// Performs the next rebase operation and returns the `RebaseOperation` about it.
     ///
-    /// This is the fundamental operation that `operation_iter` relies upon
+    /// If the operation is one that applies a patch (which is any operation
+    /// except GIT_REBASE_OPERATION_EXEC) then the patch will be applied and
+    /// the index and working directory will be updated with the changes. If
+    /// there are conflicts, you will need to address those before committing
+    /// the changes.
+    ///
+    /// This is the fundamental operation that `operations` relies upon.
+    ///
+    /// Upstream: https://libgit2.github.com/libgit2/#HEAD/group/rebase/git_rebase_next
     pub fn next<'rebase>(&'rebase self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
@@ -155,7 +163,10 @@ impl<'repo> Rebase<'repo> {
 
     /// Iterator of rebase operations
     pub fn operations<'rebase>(&'rebase self) -> RebaseOperations<'rebase, 'repo> {
-        RebaseOperations { rebase: self }
+        RebaseOperations {
+            rebase: self,
+            operation_count: self.operation_count(),
+        }
     }
 
     /// Gets the rebase operation specified by the given index.
@@ -174,6 +185,7 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Gets the index of the rebase operation that is currently being applied.
+    ///
     /// If the first operation has not yet been applied it returns `None`.
     pub fn current_operation_index(&self) -> Option<usize> {
         unsafe {
@@ -196,12 +208,19 @@ impl<'repo> Rebase<'repo> {
 
 impl<'rebase, 'repo: 'rebase> Iterator for RebaseOperations<'rebase, 'repo> {
     type Item = Result<RebaseOperation<'rebase, 'repo>, Error>;
+    /// Return the next rebase operation that needs to be performed
+    ///
+    /// Verifies that there _is_ a next operation and then calls
+    /// `Rebase::next`, propagating any errors from there.
     fn next(&mut self) -> Option<Result<RebaseOperation<'rebase, 'repo>, Error>> {
-        if self.count >= self.rebase.operation_count() {
-            None
-        } else {
-            self.count += 1;
-            Some(self.rebase.next())
+        // The current_operation_index() returns the value for the _previous_
+        // invocation of rebase.next(), which means it is None on the first
+        // invocation and we need to offset idx + 1 for the general "are we
+        // done with the loop" query.
+        match self.rebase.current_operation_index() {
+            None => Some(self.rebase.next()),
+            Some(idx) if idx + 1 < self.operation_count => Some(self.rebase.next()),
+            _ => None
         }
     }
 }
@@ -368,6 +387,68 @@ impl Binding for RebaseOperationType {
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+    use std::fs::File;
+    use std::io::prelude::*;
+
+    use {Branch, Repository};
+
     #[test]
-    fn smoke() {}
+    fn smoke() {
+        // Create a repo with enough commits that we can do a rebase at all
+        let (td, repo) = ::test::repo_init();
+        let test_path = td.path().to_path_buf();
+        let mut some_file = File::create(test_path.join("some_file")).unwrap();
+        some_file.write_all(b"text\n").unwrap();
+        some_file.flush().unwrap();
+        stage_and_commit_everything(&repo, "first commit").unwrap();
+
+        some_file.write_all(b"more text\n").unwrap();
+        some_file.flush().unwrap();
+        stage_and_commit_everything(&repo, "second commit").unwrap();
+
+        some_file.write_all(b"final text\n").unwrap();
+        some_file.flush().unwrap();
+        stage_and_commit_everything(&repo, "third commit").unwrap();
+
+        // Find a commit that is a few behind head
+        let mut walker = repo.revwalk().unwrap();
+        walker.push_head().unwrap();
+        let second_ancestor = walker.flat_map(|r| r).take(3).collect::<Vec<_>>()[2];
+        let second_annotated = repo.find_annotated_commit(second_ancestor).unwrap();
+        let head_annotated = repo.find_annotated_commit(
+            repo.head().unwrap().peel_to_commit().unwrap().id(),
+        ).unwrap();
+
+        // Rebase up to, but not including, that commit that is 3 behind head
+        let rebase = repo.rebase_init(Some(head_annotated), None, Some(second_annotated), None)
+            .unwrap();
+
+        // Verify
+        let total_rebase_ops = rebase.operation_count();
+        assert!(total_rebase_ops > 0);
+        let mut counter = 0;
+        for op in rebase.operations() {
+            counter += 1;
+            assert!(op.is_ok());
+        }
+        assert_eq!(counter, total_rebase_ops);
+    }
+
+    fn stage_and_commit_everything(repo: &Repository, msg: &str) -> Result<(), Box<Error>> {
+        // Stage everything
+        let pathspecs: Vec<&str> = vec![];
+        let mut idx = repo.index()?;
+        idx.update_all(&pathspecs, None)?;
+        idx.write()?;
+
+        // Do a commit
+        let head_branch = Branch::wrap(repo.head()?);
+        let sig = repo.signature()?;
+        let mut idx = repo.index()?;
+        let tree = repo.find_tree(idx.write_tree()?)?;
+        let head_commit = head_branch.get().peel_to_commit()?;
+        repo.commit(Some("HEAD"), &sig, &sig, msg, &tree, &[&head_commit])?;
+        Ok(())
+    }
 }
