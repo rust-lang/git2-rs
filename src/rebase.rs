@@ -3,13 +3,26 @@ use std::ffi::CString;
 use std::mem;
 use std::ptr;
 
-use libc::{c_char, size_t, c_uint, c_int};
+use libc::{c_char, c_int, c_uint, size_t};
 
-use {raw, Error, Repository, Oid, Signature, Index, MergeOptions};
 use build::CheckoutBuilder;
 use util::Binding;
+use {raw, Error, Index, MergeOptions, Oid, Repository, Signature};
 
 /// A structure representing a [rebase][1]
+///
+/// The most straightforward way to use this is to create a `Rebase` from a
+/// `Repository::rebase_init(..)` call, iterate over all the operations,
+/// applying them one at a time, and then finish the rebase:
+///
+/// ```rust,ignore
+/// let rebase = repo.rebase_init(..)?;
+/// for op in rebase.operations()? {
+///     match op.kind() {
+///         // do the actual work of committing, squashing, etc.
+///     }
+/// }
+/// ```
 ///
 /// [1]: https://libgit2.github.com/libgit2/#HEAD/type/git_rebase
 ///
@@ -123,12 +136,12 @@ impl<'repo> Rebase<'repo> {
     /// Finishes a rebase that is currently in progress once all patches have been applied.
     pub fn finish(&self, signature: Option<&Signature>) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_rebase_finish(self.raw,
-                                             signature
-                                                 .map(|s| {
-                                                          s.raw() as *const raw::git_signature
-                                                      })
-                                                 .unwrap_or(0 as *const raw::git_signature)));
+            try_call!(raw::git_rebase_finish(
+                self.raw,
+                signature
+                    .map(|s| s.raw() as *const raw::git_signature)
+                    .unwrap_or(0 as *const raw::git_signature)
+            ));
         }
         Ok(())
     }
@@ -150,9 +163,8 @@ impl<'repo> Rebase<'repo> {
     /// there are conflicts, you will need to address those before committing
     /// the changes.
     ///
-    /// This is the fundamental operation that `operations` relies upon.
-    ///
-    /// Upstream: https://libgit2.github.com/libgit2/#HEAD/group/rebase/git_rebase_next
+    /// Iterating over the result of `operations()` correctly handles begin and
+    /// end conditions for you.
     pub fn next<'rebase>(&'rebase self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
@@ -199,7 +211,8 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Convenience function to get the operation at the current index.
-    /// Returns none if the first operation has not yet been applied.
+    ///
+    /// Returns `None` if the first operation has not yet been applied.
     pub fn current_operation<'rebase>(&'rebase self) -> Option<RebaseOperation<'rebase, 'repo>> {
         self.current_operation_index()
             .and_then(|index| self.operation_at_index(index))
@@ -349,7 +362,8 @@ impl<'rebase, 'repo: 'rebase> RebaseOperation<'rebase, 'repo> {
     ///
     /// Returns `None` if `exec` is not valid utf-8
     pub fn exec(&self) -> Option<&str> {
-        self.exec_bytes().and_then(|b| ::std::str::from_utf8(b).ok())
+        self.exec_bytes()
+            .and_then(|b| ::std::str::from_utf8(b).ok())
     }
 
     /// Corresponding bytes of the `exec` that has been requested to run.

@@ -2055,12 +2055,12 @@ impl Repository {
 
     /// Initializes a rebase operation to rebase the changes in `from_branch`
     /// relative to `upstream` onto '`to_branch`. To begin the rebase
-    /// process, call `next`
+    /// process, call `next()` or `operations()` on the returned object.
     pub fn rebase_init(&self,
                        from_branch: Option<AnnotatedCommit>,
                        upstream: Option<AnnotatedCommit>,
                        to_branch: Option<AnnotatedCommit>,
-                        options: Option<&mut RebaseOptions>)
+                       options: Option<&mut RebaseOptions>)
                        -> Result<Rebase, Error> {
         unsafe {
             let mut ret = 0 as *mut raw::git_rebase;
