@@ -1,5 +1,6 @@
-use std::marker;
 use std::ffi::CString;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::marker;
 use std::mem;
 use std::ptr;
 
@@ -251,6 +252,15 @@ impl<'repo> Binding for Rebase<'repo> {
     }
 }
 
+impl<'repo> Debug for Rebase<'repo> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        f.debug_struct("Rebase")
+            .field("operation_count", &self.operation_count())
+            .field("current_operation_index", &self.current_operation_index())
+            .finish()
+    }
+}
+
 impl<'repo> Drop for Rebase<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_rebase_free(self.raw) }
@@ -267,6 +277,15 @@ impl<'rebase, 'repo: 'rebase> Binding for RebaseOperation<'rebase, 'repo> {
     }
     fn raw(&self) -> *mut raw::git_rebase_operation {
         self.raw
+    }
+}
+
+impl<'rebase, 'repo: 'rebase> Debug for RebaseOperation<'rebase, 'repo> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        f.debug_struct("RebaseOperation")
+            .field("id", &self.id())
+            .field("kind", &self.kind())
+            .finish()
     }
 }
 
