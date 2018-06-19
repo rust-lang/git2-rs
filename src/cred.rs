@@ -68,6 +68,24 @@ impl Cred {
         }
     }
 
+    /// Create a new ssh key credential object reading the keys from memory.
+    pub fn ssh_key_from_memory(username: &str,
+                               publickey: Option<&str>,
+                               privatekey: &str,
+                               passphrase: Option<&str>) -> Result<Cred, Error> {
+        ::init();
+        let username = try!(CString::new(username));
+        let publickey = try!(::opt_cstr(publickey));
+        let privatekey = try!(CString::new(privatekey));
+        let passphrase = try!(::opt_cstr(passphrase));
+        let mut out = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_cred_ssh_key_memory_new(&mut out, username, publickey,
+                                                       privatekey, passphrase));
+            Ok(Binding::from_raw(out))
+        }
+    }
+
     /// Create a new plain-text username and password credential object.
     pub fn userpass_plaintext(username: &str,
                               password: &str) -> Result<Cred, Error> {
