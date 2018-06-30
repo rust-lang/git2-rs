@@ -2,7 +2,6 @@ use std::ffi::CString;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::marker;
 use std::mem;
-use std::ptr;
 
 use libc::{c_char, c_int, c_uint, size_t};
 
@@ -345,7 +344,7 @@ impl<'a> RebaseOptions<'a> {
         }
         let mut merge_options: raw::git_merge_options = mem::zeroed();
         if let Some(ref opts) = self.merge_options {
-            ptr::copy(opts.raw(), &mut merge_options, 1);
+            merge_options = *opts.raw()
         }
 
         raw::git_rebase_options {

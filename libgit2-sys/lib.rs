@@ -1185,6 +1185,7 @@ git_enum! {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct git_merge_options {
     pub version: c_uint,
     pub flags: git_merge_flag_t,
