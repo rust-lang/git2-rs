@@ -43,7 +43,7 @@ pub struct RebaseOperation<'rebase, 'repo: 'rebase> {
 }
 
 pub struct RebaseOperations<'rebase, 'repo: 'rebase> {
-    rebase: &'rebase Rebase<'repo>,
+    rebase: &'rebase mut Rebase<'repo>,
     operation_count: usize,
 }
 
@@ -165,7 +165,7 @@ impl<'repo> Rebase<'repo> {
     ///
     /// Iterating over the result of `operations()` correctly handles begin and
     /// end conditions for you.
-    pub fn next<'rebase>(&'rebase self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
+    pub fn next<'rebase>(&'rebase mut self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
             try_call!(raw::git_rebase_next(&mut ret, self.raw));
@@ -174,7 +174,7 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Iterator of rebase operations
-    pub fn operations<'rebase>(&'rebase self) -> RebaseOperations<'rebase, 'repo> {
+    pub fn operations<'rebase>(&'rebase mut self) -> RebaseOperations<'rebase, 'repo> {
         RebaseOperations {
             rebase: self,
             operation_count: self.operation_count(),
@@ -348,7 +348,7 @@ impl<'a> RebaseOptions<'a> {
         }
         let mut merge_options: raw::git_merge_options = mem::zeroed();
         if let Some(ref opts) = self.merge_options {
-            merge_options = *opts.raw()
+            merge_options = *opts.raw();
         }
 
         raw::git_rebase_options {
