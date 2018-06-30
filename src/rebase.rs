@@ -37,13 +37,13 @@ pub struct Rebase<'repo> {
 /// [2]: https://libgit2.github.com/libgit2/#HEAD/type/git_rebase_operation
 ///
 /// It has a lifetime of the rebase it belongs to.
-pub struct RebaseOperation<'rebase, 'repo: 'rebase> {
+pub struct RebaseOperation<'repo> {
     raw: *mut raw::git_rebase_operation,
-    _marker: marker::PhantomData<&'rebase Rebase<'repo>>,
+    _marker: marker::PhantomData<Rebase<'repo>>,
 }
 
-pub struct RebaseOperations<'rebase, 'repo: 'rebase> {
-    rebase: &'rebase mut Rebase<'repo>,
+pub struct RebaseOperations<'repo> {
+    rebase: Rebase<'repo>,
     operation_count: usize,
 }
 
@@ -165,7 +165,7 @@ impl<'repo> Rebase<'repo> {
     ///
     /// Iterating over the result of `operations()` correctly handles begin and
     /// end conditions for you.
-    pub fn next<'rebase>(&'rebase mut self) -> Result<RebaseOperation<'rebase, 'repo>, Error> {
+    pub fn next<'rebase>(&'rebase mut self) -> Result<RebaseOperation<'repo>, Error> {
         let mut ret = 0 as *mut raw::git_rebase_operation;
         unsafe {
             try_call!(raw::git_rebase_next(&mut ret, self.raw));
@@ -174,10 +174,11 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Iterator of rebase operations
-    pub fn operations<'rebase>(&'rebase mut self) -> RebaseOperations<'rebase, 'repo> {
+    pub fn operations<'rebase>(self) -> RebaseOperations<'repo> {
+        let op_count = self.operation_count();
         RebaseOperations {
             rebase: self,
-            operation_count: self.operation_count(),
+            operation_count: op_count,
         }
     }
 
@@ -185,7 +186,7 @@ impl<'repo> Rebase<'repo> {
     pub fn operation_at_index<'rebase>(
         &'rebase self,
         index: usize,
-    ) -> Option<RebaseOperation<'rebase, 'repo>> {
+    ) -> Option<RebaseOperation<'repo>> {
         unsafe {
             let ptr = raw::git_rebase_operation_byindex(self.raw, index as size_t);
             if ptr.is_null() {
@@ -213,19 +214,20 @@ impl<'repo> Rebase<'repo> {
     /// Convenience function to get the operation at the current index.
     ///
     /// Returns `None` if the first operation has not yet been applied.
-    pub fn current_operation<'rebase>(&'rebase self) -> Option<RebaseOperation<'rebase, 'repo>> {
+    pub fn current_operation<'rebase>(&'rebase self) -> Option<RebaseOperation<'repo>> {
         self.current_operation_index()
             .and_then(|index| self.operation_at_index(index))
     }
 }
 
-impl<'rebase, 'repo: 'rebase> Iterator for RebaseOperations<'rebase, 'repo> {
-    type Item = Result<RebaseOperation<'rebase, 'repo>, Error>;
+impl<'repo> Iterator for RebaseOperations<'repo> {
+    type Item = Result<RebaseOperation<'repo>, Error>;
     /// Return the next rebase operation that needs to be performed
     ///
-    /// Verifies that there _is_ a next operation and then calls
-    /// `Rebase::next`, propagating any errors from there.
-    fn next(&mut self) -> Option<Result<RebaseOperation<'rebase, 'repo>, Error>> {
+    /// Syncronizes the current operation state with git, verifies that there
+    /// _is_ a next operation and then calls `Rebase::next`, propagating any
+    /// errors from there.
+    fn next(&mut self) -> Option<Result<RebaseOperation<'repo>, Error>> {
         // The current_operation_index() returns the value for the _previous_
         // invocation of rebase.next(), which means it is None on the first
         // invocation and we need to offset idx + 1 for the general "are we
@@ -266,9 +268,9 @@ impl<'repo> Drop for Rebase<'repo> {
     }
 }
 
-impl<'rebase, 'repo: 'rebase> Binding for RebaseOperation<'rebase, 'repo> {
+impl<'rebase, 'repo: 'rebase> Binding for RebaseOperation<'repo> {
     type Raw = *mut raw::git_rebase_operation;
-    unsafe fn from_raw(raw: *mut raw::git_rebase_operation) -> RebaseOperation<'rebase, 'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_rebase_operation) -> RebaseOperation<'repo> {
         RebaseOperation {
             raw: raw,
             _marker: marker::PhantomData,
@@ -279,7 +281,7 @@ impl<'rebase, 'repo: 'rebase> Binding for RebaseOperation<'rebase, 'repo> {
     }
 }
 
-impl<'rebase, 'repo: 'rebase> Debug for RebaseOperation<'rebase, 'repo> {
+impl<'rebase, 'repo: 'rebase> Debug for RebaseOperation<'repo> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.debug_struct("RebaseOperation")
             .field("id", &self.id())
@@ -362,7 +364,7 @@ impl<'a> RebaseOptions<'a> {
     }
 }
 
-impl<'rebase, 'repo: 'rebase> RebaseOperation<'rebase, 'repo> {
+impl<'rebase, 'repo: 'rebase> RebaseOperation<'repo> {
     /// The type of `rebase` operation
     pub fn kind(&self) -> RebaseOperationType {
         unsafe { Binding::from_raw((*self.raw).kind) }
