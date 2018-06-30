@@ -6,7 +6,7 @@ use std::mem;
 use libc::{c_char, c_int, c_uint, size_t};
 
 use build::CheckoutBuilder;
-use util::Binding;
+use util::{Binding, IntoCString};
 use {raw, Error, Index, MergeOptions, Oid, Repository, Signature};
 
 /// A structure representing a [rebase][1]
@@ -318,8 +318,12 @@ impl<'a> RebaseOptions<'a> {
 
     /// The name of the notes reference used to rewrite notes
     /// for rebased commits when finishing the rebase
-    pub fn rewrite_notes_ref(&mut self, rewrite_notes_ref: Option<CString>) -> &mut Self {
-        self.rewrite_notes_ref = rewrite_notes_ref;
+    pub fn rewrite_notes_ref<T, U>(&mut self, rewrite_notes_ref: T) -> &mut Self
+    where
+        T: Into<Option<U>>,
+        U: IntoCString,
+    {
+        self.rewrite_notes_ref = rewrite_notes_ref.into().map(|s| s.into_c_string().unwrap());
         self
     }
 
@@ -426,7 +430,7 @@ mod tests {
     use {Branch, Repository};
 
     #[test]
-    fn smoke() {
+    fn smoke_rebase() {
         // Create a repo with enough commits that we can do a rebase at all
         let (td, repo) = ::test::repo_init();
         let test_path = td.path().to_path_buf();
@@ -453,7 +457,7 @@ mod tests {
         ).unwrap();
 
         // Rebase up to, but not including, that commit that is 3 behind head
-        let rebase = repo.rebase_init(Some(head_annotated), None, Some(second_annotated), None)
+        let rebase = repo.rebase_init(Some(&head_annotated), None, Some(&second_annotated), None)
             .unwrap();
 
         // Verify

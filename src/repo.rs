@@ -2057,23 +2057,19 @@ impl Repository {
     /// relative to `upstream` onto '`to_branch`. To begin the rebase
     /// process, call `next()` or `operations()` on the returned object.
     pub fn rebase_init(&self,
-                       from_branch: Option<AnnotatedCommit>,
-                       upstream: Option<AnnotatedCommit>,
-                       to_branch: Option<AnnotatedCommit>,
+                       from_branch: Option<&AnnotatedCommit>,
+                       upstream: Option<&AnnotatedCommit>,
+                       to_branch: Option<&AnnotatedCommit>,
                        options: Option<&mut RebaseOptions>)
                        -> Result<Rebase, Error> {
         unsafe {
             let mut ret = 0 as *mut raw::git_rebase;
-            /*let from_branch_raw: *const raw::git_annotated_commit;
-            if from_branch.is_ok() {
-                from_branch_raw
-            }*/
             let from_branch_raw = from_branch.as_ref()
-                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
+                .map(|a| a.raw() as *const raw::git_annotated_commit);
             let upstream_raw = upstream.as_ref()
-                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
+                .map(|a| a.raw() as *const raw::git_annotated_commit);
             let to_branch_raw = to_branch.as_ref()
-                .map(|ref a| a.raw() as *const raw::git_annotated_commit);
+                .map(|a| a.raw() as *const raw::git_annotated_commit);
             let options_raw = options.map(|opts| opts.raw());
             try_call!(raw::git_rebase_init(&mut ret,
                                            self.raw(),
@@ -2088,13 +2084,14 @@ impl Repository {
             Ok(Binding::from_raw(ret))
         }
     }
+
     /// Opens an existing rebase that was previously started by either an
     /// invocation of `rebase_init` or by another client.
-    pub fn rebase_open(&self, options: Option<RebaseOptions>) -> Result<Rebase, Error> {
+    pub fn rebase_open<'repo>(&'repo self, options: Option<&mut RebaseOptions>) -> Result<Rebase<'repo>, Error> {
         unsafe {
             let mut ret = 0 as *mut raw::git_rebase;
             let options_raw = options
-                .map(|mut opts| &opts.raw() as *const _ )
+                .map(|opts| &opts.raw() as *const _ )
                 .unwrap_or(ptr::null());
             try_call!(raw::git_rebase_open(&mut ret, self.raw(), options_raw));
             Ok(Binding::from_raw(ret))
