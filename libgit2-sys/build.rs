@@ -179,7 +179,9 @@ fn main() {
 
 fn register_dep(dep: &str) {
     if let Some(s) = env::var_os(&format!("DEP_{}_ROOT", dep)) {
-        prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
+        if !cfg!(target_env = "msvc") {
+            prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
+        }
         return
     }
     if let Some(s) = env::var_os(&format!("DEP_{}_INCLUDE", dep)) {
@@ -187,7 +189,9 @@ fn register_dep(dep: &str) {
         env::set_var(&format!("DEP_{}_ROOT", dep), root);
         let path = root.join("lib/pkgconfig");
         if path.exists() {
-            prepend("PKG_CONFIG_PATH", path);
+            if !cfg!(target_env = "msvc") {
+                prepend("PKG_CONFIG_PATH", path);
+            }
             return
         }
     }
