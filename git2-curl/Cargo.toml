@@ -22,7 +22,7 @@ git2 = { path = "..", version = "0.7", default-features = false }
 [dev-dependencies]
 civet = "0.8"
 conduit = "0.7"
-conduit-git-http-backend = "0.7"
+conduit-git-http-backend = "0.8"
 tempdir = "0.3"
 
 [[test]]
