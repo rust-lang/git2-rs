@@ -22,7 +22,6 @@ extern crate curl;
 extern crate url;
 #[macro_use] extern crate log;
 
-use std::ascii::AsciiExt;
 use std::error;
 use std::io::prelude::*;
 use std::io::{self, Cursor};

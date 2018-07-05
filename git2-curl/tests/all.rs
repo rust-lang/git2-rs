@@ -4,12 +4,12 @@ extern crate civet;
 extern crate conduit;
 extern crate curl;
 extern crate git2;
-extern crate tempdir;
+extern crate tempfile;
 
 use civet::{Server, Config};
 use std::fs::File;
 use std::path::Path;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 const PORT: u16 = 7848;
 
@@ -19,7 +19,7 @@ fn main() {
     }
 
     // Spin up a server for git-http-backend
-    let td = TempDir::new("wut").unwrap();
+    let td = TempDir::new().unwrap();
     let mut cfg = Config::new();
     cfg.port(PORT).threads(1);
     let _a = Server::start(cfg, git_backend::Serve(td.path().to_path_buf()));
@@ -40,7 +40,7 @@ fn main() {
     }
 
     // Clone through the git-http-backend
-    let td2 = TempDir::new("wut2").unwrap();
+    let td2 = TempDir::new().unwrap();
     let r = git2::Repository::clone(&format!("http://localhost:{}", PORT),
                                     td2.path()).unwrap();
     assert!(File::open(&td2.path().join("foo")).is_ok());
