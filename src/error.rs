@@ -58,8 +58,8 @@ impl Error {
 
     unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Error {
         let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
-        let msg = str::from_utf8(msg).unwrap();
-        Error { code: code, klass: (*ptr).klass, message: msg.to_string() }
+        let msg = String::from_utf8_lossy(msg).into_owned();
+        Error { code: code, klass: (*ptr).klass, message: msg }
     }
 
     /// Creates a new error from the given string as the error.
