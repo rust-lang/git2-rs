@@ -16,10 +16,10 @@ name = "libgit2_sys"
 path = "lib.rs"
 
 [dependencies]
-curl-sys = { version = "0.4", optional = true }
+curl-sys = { version = "0.4.6", optional = true }
 libc = "0.2"
-libssh2-sys = { version = "0.2.4", optional = true }
-libz-sys = ">= 0.1.2"
+libssh2-sys = { version = "0.2.8", optional = true }
+libz-sys = "1.0.18"
 
 [build-dependencies]
 pkg-config = "0.3"
