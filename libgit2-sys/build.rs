@@ -48,6 +48,9 @@ fn main() {
     let msvc = target.contains("msvc");
     let mut cfg = cmake::Config::new("libgit2");
 
+    #[cfg(feature = "ssh_key_from_memory")] 
+    cfg.define("GIT_SSH_MEMORY_CREDENTIALS", "1");
+
     if msvc {
         // libgit2 passes the /GL flag to enable whole program optimization, but
         // this requires that the /LTCG flag is passed to the linker later on,
