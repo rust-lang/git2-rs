@@ -2044,7 +2044,13 @@ impl Repository {
 
     /// Test if the ignore rules apply to a given path.
     pub fn is_path_ignored<P: AsRef<Path>>(&self, path: P) -> Result<bool, Error> {
-        let path = try!(path.as_ref().into_c_string());
+        let path = if cfg!(windows) {
+            // `git_ignore_path_is_ignored` dose not work with windows path separator
+            // so we convert \ to /
+            try!(::std::ffi::CString::new(path.as_ref().to_string_lossy().replace('\\', "/")))
+        } else {
+            try!(path.as_ref().into_c_string())
+        };
         let mut ignored: c_int = 0;
         unsafe {
             try_call!(raw::git_ignore_path_is_ignored(&mut ignored, self.raw, path));
@@ -2536,8 +2542,15 @@ mod tests {
 
         let _ = repo.add_ignore_rule("/foo");
         assert!(repo.is_path_ignored(Path::new("/foo")).unwrap());
+        if cfg!(windows){
+            assert!(repo.is_path_ignored(Path::new("\\foo\\thing")).unwrap());
+        }
+
 
         let _ = repo.clear_ignore_rules();
         assert!(!repo.is_path_ignored(Path::new("/foo")).unwrap());
+        if cfg!(windows){
+            assert!(!repo.is_path_ignored(Path::new("\\foo\\thing")).unwrap());
+        }
     }
 }
