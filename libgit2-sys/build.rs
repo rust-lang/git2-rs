@@ -120,6 +120,11 @@ fn main() {
         cfg.define("CURL", "OFF");
     }
 
+    //Use bundled http-parser if cross compiling
+    if host != target {
+        cfg.define("USE_EXT_HTTP_PARSER", "OFF");
+    }
+
     let _ = fs::remove_dir_all(env::var("OUT_DIR").unwrap());
     t!(fs::create_dir_all(env::var("OUT_DIR").unwrap()));
 
