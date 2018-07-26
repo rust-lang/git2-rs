@@ -41,10 +41,11 @@ thread-id = "3.3.0" # remove when we work with minimal-versions without it
 
 [features]
 unstable = []
-default = ["ssh", "https", "curl"]
+default = ["ssh", "https", "curl", "ssh_key_from_memory"]
 ssh = ["libgit2-sys/ssh"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe"]
 curl = ["libgit2-sys/curl"]
+ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 
 [workspace]
 members = ["systest", "git2-curl"]
