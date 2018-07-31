@@ -139,7 +139,7 @@ impl Patch {
     }
 
     /// Get a DiffHunk and its total line count from the Patch.
-    pub fn hunk(&mut self, hunk_idx: usize) -> Result<(DiffHunk, usize), Error> {
+    pub fn hunk(&self, hunk_idx: usize) -> Result<(DiffHunk, usize), Error> {
         let mut ret = ptr::null();
         let mut lines = 0;
         unsafe {
@@ -156,7 +156,7 @@ impl Patch {
     }
 
     /// Get a DiffLine from a hunk of the Patch.
-    pub fn line_in_hunk(&mut self,
+    pub fn line_in_hunk(&self,
                         hunk_idx: usize,
                         line_of_hunk: usize) -> Result<DiffLine, Error> {
         let mut ret = ptr::null();
