@@ -804,7 +804,13 @@ impl Repository {
     /// through looking for the path that you are interested in.
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
         let mut ret = 0 as c_uint;
-        let path = try!(path.into_c_string());
+        let path = if cfg!(windows) {
+            // `git_status_file` dose not work with windows path separator
+            // so we convert \ to /
+            try!(::std::ffi::CString::new(path.to_string_lossy().replace('\\', "/")))
+        } else {
+            try!(path.into_c_string())
+        };
         unsafe {
             try_call!(raw::git_status_file(&mut ret, self.raw,
                                            path));
