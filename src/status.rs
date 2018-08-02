@@ -400,8 +400,19 @@ mod tests {
     fn status_file() {
         let (td, repo) = ::test::repo_init();
         assert!(repo.status_file(Path::new("foo")).is_err());
+        if cfg!(windows) {
+            assert!(repo.status_file(Path::new("bar\\foo.txt")).is_err());
+        }
         t!(File::create(td.path().join("foo")));
+        if cfg!(windows) {
+            t!(::std::fs::create_dir_all(td.path().join("bar")));
+            t!(File::create(td.path().join("bar").join("foo.txt")));
+        }
         let status = t!(repo.status_file(Path::new("foo")));
         assert!(status.contains(::Status::WT_NEW));
+        if cfg!(windows) {
+            let status = t!(repo.status_file(Path::new("bar\\foo.txt")));
+            assert!(status.contains(::Status::WT_NEW));
+        }
     }
 }
