@@ -1,14 +1,14 @@
 use std::mem;
 use std::cmp::Ordering;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ops::Range;
 use std::marker;
 use std::path::Path;
 use std::ptr;
 use std::str;
-use libc;
+use libc::{self, c_int, c_char, c_void};
 
-use {raw, Oid, Repository, Error, Object, ObjectType};
+use {panic, raw, Oid, Repository, Error, Object, ObjectType};
 use util::{Binding, IntoCString};
 
 /// A structure to represent a git [tree][1]
@@ -52,6 +52,27 @@ impl<'repo> Tree<'repo> {
     /// Returns an iterator over the entries in this tree.
     pub fn iter(&self) -> TreeIter {
         TreeIter { range: 0..self.len(), tree: self }
+    }
+
+    /// Traverse the entries in a tree and its subtrees in post or pre order.
+    pub fn walk<C, T>(&self, mode: u32, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&str, &TreeEntry) -> bool,
+    {
+        #[allow(unused)]
+        struct TreeWalkCbData<'a> {
+            pub callback: &'a mut TreeWalkCb<'a>
+        }
+        unsafe {
+            let mut data = TreeWalkCbData { callback: &mut callback };
+            raw::git_tree_walk(
+                self.raw(),
+                mode,
+                treewalk_cb,
+                &mut data as *mut _ as *mut c_void,
+            );
+            Ok(())
+        }
     }
 
     /// Lookup a tree entry by SHA value.
@@ -116,6 +137,27 @@ impl<'repo> Tree<'repo> {
         unsafe {
             mem::transmute(self)
         }
+    }
+}
+
+type TreeWalkCb<'a> = FnMut(&str, &TreeEntry) -> bool + 'a;
+
+extern fn treewalk_cb(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
+    match panic::wrap(|| unsafe {
+        if panic::panicked() {
+            true
+        } else {
+            let root = match CStr::from_ptr(root).to_str() {
+                Ok(value) => value,
+                _ => return false,
+            };
+            let entry = entry_from_raw_const(entry);
+            let payload = payload as *mut &mut TreeWalkCb;
+            (*payload)(root, &entry)
+        }
+    }) {
+        Some(false) => 1,
+        _ => 0,
     }
 }
 
