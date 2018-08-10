@@ -33,6 +33,24 @@ pub struct TreeIter<'tree> {
     tree: &'tree Tree<'tree>,
 }
 
+/// A binary indicator of whether a tree walk should be performed in pre-order
+/// or post-order.
+pub enum TreeWalkMode {
+    PreOrder = 0,
+    PostOrder = 1,
+}
+
+impl Into<raw::git_treewalk_mode> for TreeWalkMode {
+    #[cfg(target_env = "msvc")]
+    fn into(self) -> raw::git_treewalk_mode {
+        self as i32
+    }
+    #[cfg(not(target_env = "msvc"))]
+    fn into(self) -> raw::git_treewalk_mode {
+        self as u32
+    }
+}
+
 impl<'repo> Tree<'repo> {
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
@@ -55,7 +73,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Traverse the entries in a tree and its subtrees in post or pre order.
-    pub fn walk<C, T>(&self, mode: u32, mut callback: C) -> Result<(), Error>
+    pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
     where
         C: FnMut(&str, &TreeEntry) -> bool,
     {
@@ -67,7 +85,7 @@ impl<'repo> Tree<'repo> {
             let mut data = TreeWalkCbData { callback: &mut callback };
             raw::git_tree_walk(
                 self.raw(),
-                mode,
+                mode.into(),
                 treewalk_cb,
                 &mut data as *mut _ as *mut c_void,
             );
