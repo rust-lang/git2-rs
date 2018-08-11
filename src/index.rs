@@ -127,6 +127,66 @@ impl Index {
         }
     }
 
+    /// Add or update an index entry from a buffer in memory
+    ///
+    /// This method will create a blob in the repository that owns the index and
+    /// then add the index entry to the index. The path of the entry represents
+    /// the position of the blob relative to the repository's root folder.
+    ///
+    /// If a previous index entry exists that has the same path as the given
+    /// 'entry', it will be replaced. Otherwise, the 'entry' will be added.
+    /// The id and the file_size of the 'entry' are updated with the real value
+    /// of the blob.
+    ///
+    /// This forces the file to be added to the index, not looking at gitignore
+    /// rules.
+    ///
+    /// If this file currently is the result of a merge conflict, this file will
+    /// no longer be marked as conflicting. The data about the conflict will be
+    /// moved to the "resolve undo" (REUC) section.
+    pub fn add_frombuffer(&mut self, entry: &IndexEntry, data: &[u8]) -> Result<(), Error> {
+       let path = try!(CString::new(&entry.path[..]));
+
+        // libgit2 encodes the length of the path in the lower bits of the
+        // `flags` entry, so mask those out and recalculate here to ensure we
+        // don't corrupt anything.
+        let mut flags = entry.flags & !raw::GIT_IDXENTRY_NAMEMASK;
+
+        if entry.path.len() < raw::GIT_IDXENTRY_NAMEMASK as usize {
+            flags |= entry.path.len() as u16;
+        } else {
+            flags |= raw::GIT_IDXENTRY_NAMEMASK;
+        }
+
+        unsafe {
+            let raw = raw::git_index_entry {
+                dev: entry.dev,
+                ino: entry.ino,
+                mode: entry.mode,
+                uid: entry.uid,
+                gid: entry.gid,
+                file_size: entry.file_size,
+                id: *entry.id.raw(),
+                flags: flags,
+                flags_extended: entry.flags_extended,
+                path: path.as_ptr(),
+                mtime: raw::git_index_time {
+                    seconds: entry.mtime.seconds(),
+                    nanoseconds: entry.mtime.nanoseconds(),
+                },
+                ctime: raw::git_index_time {
+                    seconds: entry.ctime.seconds(),
+                    nanoseconds: entry.ctime.nanoseconds(),
+                },
+            };
+
+            let ptr = data.as_ptr() as *const c_void;
+            let len = data.len() as size_t;
+            try_call!(raw::git_index_add_frombuffer(self.raw, &raw, ptr, len));
+            Ok(())
+        }
+    }
+
     /// Add or update an index entry from a file on disk
     ///
     /// The file path must be relative to the repository's working folder and
@@ -613,6 +673,22 @@ mod tests {
         index.add(&e).unwrap();
         let e = index.get(0).unwrap();
         assert_eq!(e.path.len(), 6);
+    }
+
+    #[test]
+    fn add_frombuffer_then_read() {
+        let (_td, repo) = ::test::repo_init();
+        let mut index = repo.index().unwrap();
+
+        let mut e = entry();
+        e.path = b"foobar".to_vec();
+        let content = b"the contents";
+        index.add_frombuffer(&e, content).unwrap();
+        let e = index.get(0).unwrap();
+        assert_eq!(e.path.len(), 6);
+
+        let b = repo.find_blob(e.id).unwrap();
+        assert_eq!(b.content(), content);
     }
 
     fn entry() -> IndexEntry {
