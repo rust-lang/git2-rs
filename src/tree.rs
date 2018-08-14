@@ -73,9 +73,9 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Traverse the entries in a tree and its subtrees in post or pre order.
-    pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
+    pub fn walk<C>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
     where
-        C: FnMut(&str, &TreeEntry) -> bool,
+        C: FnMut(&str, &TreeEntry) -> i32,
     {
         #[allow(unused)]
         struct TreeWalkCbData<'a> {
@@ -158,24 +158,24 @@ impl<'repo> Tree<'repo> {
     }
 }
 
-type TreeWalkCb<'a> = FnMut(&str, &TreeEntry) -> bool + 'a;
+type TreeWalkCb<'a> = FnMut(&str, &TreeEntry) -> i32 + 'a;
 
 extern fn treewalk_cb(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
     match panic::wrap(|| unsafe {
         if panic::panicked() {
-            true
+            -1
         } else {
             let root = match CStr::from_ptr(root).to_str() {
                 Ok(value) => value,
-                _ => return false,
+                _ => return -1,
             };
             let entry = entry_from_raw_const(entry);
             let payload = payload as *mut &mut TreeWalkCb;
             (*payload)(root, &entry)
         }
     }) {
-        Some(false) => 1,
-        _ => 0,
+        Some(value) => value,
+        None => -1,
     }
 }
 
@@ -354,6 +354,7 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 #[cfg(test)]
 mod tests {
     use {Repository,Tree,TreeEntry,ObjectType,Object};
+    use super::TreeWalkMode;
     use tempdir::TempDir;
     use std::fs::File;
     use std::io::prelude::*;
@@ -462,5 +463,25 @@ mod tests {
 
         repo.find_object(commit.tree_id(), None).unwrap().as_tree().unwrap();
         repo.find_object(commit.tree_id(), None).unwrap().into_tree().ok().unwrap();
+    }
+
+    #[test]
+    fn tree_walk() {
+        let (td, repo) = ::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+
+        let mut ct = 0;
+        tree.walk(TreeWalkMode::PreOrder, |_, entry| {
+            assert_eq!(entry.name(), Some("foo"));
+            ct += 1;
+            0
+        }).unwrap();
+        assert_eq!(ct, 1);
     }
 }
