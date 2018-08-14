@@ -40,6 +40,19 @@ pub enum TreeWalkMode {
     PostOrder = 1,
 }
 
+#[allow(dead_code)]
+pub enum TreeWalkResult {
+    Ok = 0,
+    Skip = 1,
+    Abort = -1,
+}
+
+impl Into<i32> for TreeWalkResult {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
 impl Into<raw::git_treewalk_mode> for TreeWalkMode {
     #[cfg(target_env = "msvc")]
     fn into(self) -> raw::git_treewalk_mode {
@@ -73,13 +86,14 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Traverse the entries in a tree and its subtrees in post or pre order.
-    pub fn walk<C>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
+    pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
     where
-        C: FnMut(&str, &TreeEntry) -> i32,
+        C: FnMut(&str, &TreeEntry) -> T,
+        T: Into<i32>,
     {
         #[allow(unused)]
-        struct TreeWalkCbData<'a> {
-            pub callback: &'a mut TreeWalkCb<'a>
+        struct TreeWalkCbData<'a, T: 'a> {
+            pub callback: &'a mut TreeWalkCb<'a, T>
         }
         unsafe {
             let mut data = TreeWalkCbData { callback: &mut callback };
@@ -158,7 +172,7 @@ impl<'repo> Tree<'repo> {
     }
 }
 
-type TreeWalkCb<'a> = FnMut(&str, &TreeEntry) -> i32 + 'a;
+type TreeWalkCb<'a, T> = FnMut(&str, &TreeEntry) -> T + 'a;
 
 extern fn treewalk_cb(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
     match panic::wrap(|| unsafe {
@@ -170,7 +184,7 @@ extern fn treewalk_cb(root: *const c_char, entry: *const raw::git_tree_entry, pa
                 _ => return -1,
             };
             let entry = entry_from_raw_const(entry);
-            let payload = payload as *mut &mut TreeWalkCb;
+            let payload = payload as *mut &mut TreeWalkCb<_>;
             (*payload)(root, &entry)
         }
     }) {
@@ -354,7 +368,7 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 #[cfg(test)]
 mod tests {
     use {Repository,Tree,TreeEntry,ObjectType,Object};
-    use super::TreeWalkMode;
+    use super::{TreeWalkMode, TreeWalkResult};
     use tempdir::TempDir;
     use std::fs::File;
     use std::io::prelude::*;
@@ -481,6 +495,14 @@ mod tests {
             assert_eq!(entry.name(), Some("foo"));
             ct += 1;
             0
+        }).unwrap();
+        assert_eq!(ct, 1);
+        
+        let mut ct = 0;
+        tree.walk(TreeWalkMode::PreOrder, |_, entry| {
+            assert_eq!(entry.name(), Some("foo"));
+            ct += 1;
+            TreeWalkResult::Ok
         }).unwrap();
         assert_eq!(ct, 1);
     }
