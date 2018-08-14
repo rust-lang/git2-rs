@@ -16,7 +16,7 @@ fn main() {
        .header("git2/sys/repository.h")
        .header("git2/cred_helpers.h")
        .include(root.join("include"))
-       .type_name(|s, _| s.to_string());
+       .type_name(|s, _, _| s.to_string());
     cfg.field_name(|_, f| {
         match f {
             "kind" => "type".to_string(),
