@@ -118,7 +118,7 @@ pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
 pub use submodule::{Submodule, SubmoduleUpdateOptions};
 pub use tag::Tag;
 pub use time::{Time, IndexTime};
-pub use tree::{Tree, TreeEntry, TreeIter};
+pub use tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use treebuilder::TreeBuilder;
 pub use odb::{Odb, OdbObject, OdbReader, OdbWriter};
 pub use util::IntoCString;

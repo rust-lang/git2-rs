@@ -36,14 +36,20 @@ pub struct TreeIter<'tree> {
 /// A binary indicator of whether a tree walk should be performed in pre-order
 /// or post-order.
 pub enum TreeWalkMode {
+    /// Runs the traversal in pre order.
     PreOrder = 0,
+    /// Runs the traversal in post order.
     PostOrder = 1,
 }
 
+/// Possible return codes for tree walking callback functions.
 #[allow(dead_code)]
 pub enum TreeWalkResult {
+    /// Continue with the traversal as normal.
     Ok = 0,
+    /// Skip the current node (in pre-order mode).
     Skip = 1,
+    /// Completely stop the traversal.
     Abort = -1,
 }
 
@@ -86,6 +92,27 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Traverse the entries in a tree and its subtrees in post or pre order.
+    /// The callback function will be run on each node of the tree that's
+    /// walked. The return code of this function will determine how the walk
+    /// continues.
+    ///
+    /// libgit requires that the callback be an integer, where 0 indicates a
+    /// successful visit, 1 skips the node, and -1 aborts the traversal completely.
+    /// You may opt to use the enum [`TreeWalkResult`](TreeWalkResult) instead.
+    ///
+    /// ```ignore
+    /// let mut ct = 0;
+    /// tree.walk(TreeWalkMode::PreOrder, |_, entry| {
+    ///     assert_eq!(entry.name(), Some("foo"));
+    ///     ct += 1;
+    ///     TreeWalkResult::Ok
+    /// }).unwrap();
+    /// assert_eq!(ct, 1);
+    /// ```
+    ///
+    /// See [libgit documentation][1] for more information.
+    ///
+    /// [1]: https://libgit2.org/libgit2/#HEAD/group/tree/git_tree_walk
     pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
     where
         C: FnMut(&str, &TreeEntry) -> T,
