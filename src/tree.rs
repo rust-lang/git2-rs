@@ -1,14 +1,14 @@
 use std::mem;
 use std::cmp::Ordering;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ops::Range;
 use std::marker;
 use std::path::Path;
 use std::ptr;
 use std::str;
-use libc;
+use libc::{self, c_int, c_char, c_void};
 
-use {raw, Oid, Repository, Error, Object, ObjectType};
+use {panic, raw, Oid, Repository, Error, Object, ObjectType};
 use util::{Binding, IntoCString};
 
 /// A structure to represent a git [tree][1]
@@ -33,6 +33,43 @@ pub struct TreeIter<'tree> {
     tree: &'tree Tree<'tree>,
 }
 
+/// A binary indicator of whether a tree walk should be performed in pre-order
+/// or post-order.
+pub enum TreeWalkMode {
+    /// Runs the traversal in pre order.
+    PreOrder = 0,
+    /// Runs the traversal in post order.
+    PostOrder = 1,
+}
+
+/// Possible return codes for tree walking callback functions.
+#[allow(dead_code)]
+pub enum TreeWalkResult {
+    /// Continue with the traversal as normal.
+    Ok = 0,
+    /// Skip the current node (in pre-order mode).
+    Skip = 1,
+    /// Completely stop the traversal.
+    Abort = -1,
+}
+
+impl Into<i32> for TreeWalkResult {
+    fn into(self) -> i32 {
+        self as i32
+    }
+}
+
+impl Into<raw::git_treewalk_mode> for TreeWalkMode {
+    #[cfg(target_env = "msvc")]
+    fn into(self) -> raw::git_treewalk_mode {
+        self as i32
+    }
+    #[cfg(not(target_env = "msvc"))]
+    fn into(self) -> raw::git_treewalk_mode {
+        self as u32
+    }
+}
+
 impl<'repo> Tree<'repo> {
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
@@ -52,6 +89,49 @@ impl<'repo> Tree<'repo> {
     /// Returns an iterator over the entries in this tree.
     pub fn iter(&self) -> TreeIter {
         TreeIter { range: 0..self.len(), tree: self }
+    }
+
+    /// Traverse the entries in a tree and its subtrees in post or pre order.
+    /// The callback function will be run on each node of the tree that's
+    /// walked. The return code of this function will determine how the walk
+    /// continues.
+    ///
+    /// libgit requires that the callback be an integer, where 0 indicates a
+    /// successful visit, 1 skips the node, and -1 aborts the traversal completely.
+    /// You may opt to use the enum [`TreeWalkResult`](TreeWalkResult) instead.
+    ///
+    /// ```ignore
+    /// let mut ct = 0;
+    /// tree.walk(TreeWalkMode::PreOrder, |_, entry| {
+    ///     assert_eq!(entry.name(), Some("foo"));
+    ///     ct += 1;
+    ///     TreeWalkResult::Ok
+    /// }).unwrap();
+    /// assert_eq!(ct, 1);
+    /// ```
+    ///
+    /// See [libgit documentation][1] for more information.
+    ///
+    /// [1]: https://libgit2.org/libgit2/#HEAD/group/tree/git_tree_walk
+    pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&str, &TreeEntry) -> T,
+        T: Into<i32>,
+    {
+        #[allow(unused)]
+        struct TreeWalkCbData<'a, T: 'a> {
+            pub callback: &'a mut TreeWalkCb<'a, T>
+        }
+        unsafe {
+            let mut data = TreeWalkCbData { callback: &mut callback };
+            raw::git_tree_walk(
+                self.raw(),
+                mode.into(),
+                treewalk_cb,
+                &mut data as *mut _ as *mut c_void,
+            );
+            Ok(())
+        }
     }
 
     /// Lookup a tree entry by SHA value.
@@ -116,6 +196,23 @@ impl<'repo> Tree<'repo> {
         unsafe {
             mem::transmute(self)
         }
+    }
+}
+
+type TreeWalkCb<'a, T> = FnMut(&str, &TreeEntry) -> T + 'a;
+
+extern fn treewalk_cb(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
+    match panic::wrap(|| unsafe {
+        let root = match CStr::from_ptr(root).to_str() {
+            Ok(value) => value,
+            _ => return -1,
+        };
+        let entry = entry_from_raw_const(entry);
+        let payload = payload as *mut &mut TreeWalkCb<_>;
+        (*payload)(root, &entry)
+    }) {
+        Some(value) => value,
+        None => -1,
     }
 }
 
@@ -294,6 +391,7 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 #[cfg(test)]
 mod tests {
     use {Repository,Tree,TreeEntry,ObjectType,Object};
+    use super::{TreeWalkMode, TreeWalkResult};
     use tempdir::TempDir;
     use std::fs::File;
     use std::io::prelude::*;
@@ -402,5 +500,33 @@ mod tests {
 
         repo.find_object(commit.tree_id(), None).unwrap().as_tree().unwrap();
         repo.find_object(commit.tree_id(), None).unwrap().into_tree().ok().unwrap();
+    }
+
+    #[test]
+    fn tree_walk() {
+        let (td, repo) = ::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+
+        let mut ct = 0;
+        tree.walk(TreeWalkMode::PreOrder, |_, entry| {
+            assert_eq!(entry.name(), Some("foo"));
+            ct += 1;
+            0
+        }).unwrap();
+        assert_eq!(ct, 1);
+        
+        let mut ct = 0;
+        tree.walk(TreeWalkMode::PreOrder, |_, entry| {
+            assert_eq!(entry.name(), Some("foo"));
+            ct += 1;
+            TreeWalkResult::Ok
+        }).unwrap();
+        assert_eq!(ct, 1);
     }
 }
