@@ -37,13 +37,26 @@ impl<'repo> Submodule<'repo> {
 
     /// Get the submodule's url.
     ///
-    /// Returns `None` if the url is not valid utf-8
-    pub fn url(&self) -> Option<&str> { str::from_utf8(self.url_bytes()).ok() }
+    /// Returns `None` if the url is not valid utf-8 or if the URL isn't present
+    pub fn url(&self) -> Option<&str> {
+        self.opt_url_bytes().and_then(|b| str::from_utf8(b).ok())
+    }
 
     /// Get the url for the submodule.
+    #[doc(hidden)]
+    #[deprecated(note = "renamed to `opt_url_bytes`")]
     pub fn url_bytes(&self) -> &[u8] {
+        self.opt_url_bytes().unwrap()
+    }
+
+    /// Get the url for the submodule.
+    ///
+    /// Returns `None` if the URL isn't present
+    // TODO: delete this method and fix the signature of `url_bytes` on next
+    // major version bump
+    pub fn opt_url_bytes(&self) -> Option<&[u8]> {
         unsafe {
-            ::opt_bytes(self, raw::git_submodule_url(self.raw)).unwrap()
+            ::opt_bytes(self, raw::git_submodule_url(self.raw))
         }
     }
 
