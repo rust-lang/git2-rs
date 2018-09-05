@@ -115,7 +115,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// Textual progress from the remote.
     ///
     /// Text sent over the progress side-band will be passed to this function
-    /// (this is the 'counting objects' output.
+    /// (this is the 'counting objects' output).
     pub fn sideband_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
                                 where F: FnMut(&[u8]) -> bool + 'a {
         self.sideband_progress = Some(Box::new(cb) as Box<TransportMessage<'a>>);
