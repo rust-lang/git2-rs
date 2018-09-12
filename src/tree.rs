@@ -43,14 +43,14 @@ pub enum TreeWalkMode {
 }
 
 /// Possible return codes for tree walking callback functions.
-#[allow(dead_code)]
+#[repr(i32)]
 pub enum TreeWalkResult {
     /// Continue with the traversal as normal.
     Ok = 0,
     /// Skip the current node (in pre-order mode).
     Skip = 1,
     /// Completely stop the traversal.
-    Abort = -1,
+    Abort = raw::GIT_EUSER,
 }
 
 impl Into<i32> for TreeWalkResult {
@@ -520,7 +520,7 @@ mod tests {
             0
         }).unwrap();
         assert_eq!(ct, 1);
-        
+
         let mut ct = 0;
         tree.walk(TreeWalkMode::PreOrder, |_, entry| {
             assert_eq!(entry.name(), Some("foo"));
