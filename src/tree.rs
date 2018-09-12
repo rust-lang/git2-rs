@@ -43,14 +43,14 @@ pub enum TreeWalkMode {
 }
 
 /// Possible return codes for tree walking callback functions.
-#[allow(dead_code)]
+#[repr(i32)]
 pub enum TreeWalkResult {
     /// Continue with the traversal as normal.
     Ok = 0,
     /// Skip the current node (in pre-order mode).
     Skip = 1,
     /// Completely stop the traversal.
-    Abort = -1,
+    Abort = raw::GIT_EUSER,
 }
 
 impl Into<i32> for TreeWalkResult {
@@ -127,7 +127,7 @@ impl<'repo> Tree<'repo> {
             raw::git_tree_walk(
                 self.raw(),
                 mode.into(),
-                treewalk_cb,
+                treewalk_cb::<T>,
                 &mut data as *mut _ as *mut c_void,
             );
             Ok(())
@@ -201,15 +201,15 @@ impl<'repo> Tree<'repo> {
 
 type TreeWalkCb<'a, T> = FnMut(&str, &TreeEntry) -> T + 'a;
 
-extern fn treewalk_cb(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
+extern fn treewalk_cb<T: Into<i32>>(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
     match panic::wrap(|| unsafe {
         let root = match CStr::from_ptr(root).to_str() {
             Ok(value) => value,
             _ => return -1,
         };
         let entry = entry_from_raw_const(entry);
-        let payload = payload as *mut &mut TreeWalkCb<_>;
-        (*payload)(root, &entry)
+        let payload = payload as *mut &mut TreeWalkCb<T>;
+        (*payload)(root, &entry).into()
     }) {
         Some(value) => value,
         None => -1,
@@ -520,7 +520,7 @@ mod tests {
             0
         }).unwrap();
         assert_eq!(ct, 1);
-        
+
         let mut ct = 0;
         tree.walk(TreeWalkMode::PreOrder, |_, entry| {
             assert_eq!(entry.name(), Some("foo"));
