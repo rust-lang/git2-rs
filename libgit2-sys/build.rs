@@ -27,6 +27,7 @@ fn main() {
     let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let include = dst.join("include");
     let mut cfg = cc::Build::new();
+    fs::create_dir_all(&include).unwrap();
 
     // Copy over all header files
     cp_r("libgit2/include".as_ref(), &include);
@@ -67,7 +68,13 @@ fn main() {
     features.push_str("#define INCLUDE_features_h\n");
     features.push_str("#define GIT_THREADS 1\n");
     features.push_str("#define GIT_USE_NSEC 1\n");
-    features.push_str("#define GIT_USE_STAT_MTIM 1\n");
+
+    if target.contains("apple") {
+        features.push_str("#define GIT_USE_STAT_MTIMESPEC 1\n");
+    } else {
+        features.push_str("#define GIT_USE_STAT_MTIM 1\n");
+    }
+
     if env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap() == "32" {
         features.push_str("#define GIT_ARCH_32 1\n");
     } else {
