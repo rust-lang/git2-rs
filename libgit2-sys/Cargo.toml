@@ -23,7 +23,6 @@ libz-sys = "1.0.18"
 
 [build-dependencies]
 pkg-config = "0.3"
-cmake = "0.1.24"
 cc = "1.0"
 
 [target.'cfg(unix)'.dependencies]
