@@ -106,7 +106,10 @@ fn main() {
                 cfg.include(path);
             }
         }
+    } else {
+        cfg.file("libgit2/src/hash/hash_generic.c");
     }
+
     if curl {
         features.push_str("#define GIT_CURL 1\n");
         if let Some(path) = env::var_os("DEP_CURL_INCLUDE") {
