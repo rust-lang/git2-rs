@@ -50,6 +50,13 @@ fn main() {
     cfg.include("libgit2/deps/http-parser")
         .file("libgit2/deps/http-parser/http_parser.c");
 
+    // Always use bundled regex for now
+    cfg.include("libgit2/deps/regex")
+        .file("libgit2/deps/regex/regex.c")
+        .file("libgit2/deps/regex/regcomp.c")
+        .file("libgit2/deps/regex/regexec.c")
+        .file("libgit2/deps/regex/regex_internal.c");
+
     if windows {
         add_c_files(&mut cfg, "libgit2/src/win32".as_ref());
     } else {
