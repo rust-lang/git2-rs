@@ -20,8 +20,6 @@ library, the libgit2-sys crate will figure that and/or build that for you.
 
 ## Building git2-rs
 
-First, you'll need to install _CMake_. Afterwards, just run:
-
 ```sh
 $ git clone https://github.com/alexcrichton/git2-rs
 $ cd git2-rs
@@ -42,14 +40,9 @@ To skip tests on a simple commit or doc-fixes, use `git commit --no-verify`.
 
 ## Building on OSX 10.10+
 
-Currently libssh2 requires linking against OpenSSL, and to compile libssh2 it
-also needs to find the OpenSSL headers. On OSX 10.10+ the OpenSSL headers have
-been removed, but if you're using Homebrew you can install them via:
-
-```sh
-brew install openssl
-```
-
+If the `ssh` feature is enabled (and it is by default) then this library depends
+on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
+[`openssl` crate's instructions](https://github.com/sfackler/rust-openssl#macos).
 
 # License
 
