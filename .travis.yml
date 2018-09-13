@@ -5,7 +5,7 @@ git:
 
 matrix:
   include:
-    - rust: 1.21.0
+    - rust: 1.26.0
     - rust: stable
     - os: osx
       rust: stable
