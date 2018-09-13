@@ -99,7 +99,6 @@ fn main() {
         } else if target.contains("apple") {
             features.push_str("#define GIT_SECURE_TRANSPORT 1\n");
             features.push_str("#define GIT_SHA1_COMMON_CRYPTO 1\n");
-            cfg.file("libgit2/src/hash/hash_common_crypto.c");
         } else {
             features.push_str("#define GIT_OPENSSL 1\n");
             features.push_str("#define GIT_SHA1_OPENSSL 1\n");
