@@ -1,6 +1,6 @@
 [package]
 name = "libgit2-sys"
-version = "0.7.7"
+version = "0.7.8"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
@@ -16,14 +16,14 @@ name = "libgit2_sys"
 path = "lib.rs"
 
 [dependencies]
-curl-sys = { version = "0.4.6", optional = true }
+curl-sys = { version = "0.4.10", optional = true }
 libc = "0.2"
-libssh2-sys = { version = "0.2.8", optional = true }
-libz-sys = "1.0.18"
+libssh2-sys = { version = "0.2.11", optional = true }
+libz-sys = "1.0.22"
 
 [build-dependencies]
 pkg-config = "0.3"
-cc = "1.0"
+cc = "1.0.25"
 
 [target.'cfg(unix)'.dependencies]
 openssl-sys = { version = "0.9", optional = true }
