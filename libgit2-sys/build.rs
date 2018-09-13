@@ -1,35 +1,15 @@
-extern crate cmake;
 extern crate cc;
 extern crate pkg_config;
 
 use std::env;
-use std::ffi::OsString;
-use std::fs::{self, File};
-use std::io::prelude::*;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-macro_rules! t {
-    ($e:expr) => (match $e{
-        Ok(e) => e,
-        Err(e) => panic!("{} failed with {}", stringify!($e), e),
-    })
-}
 
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
     let curl = env::var("CARGO_FEATURE_CURL").is_ok();
-    if ssh {
-        register_dep("SSH2");
-    }
-    if https {
-        register_dep("OPENSSL");
-    }
-    if curl {
-        register_dep("CURL");
-    }
-    let has_pkgconfig = Command::new("pkg-config").output().is_ok();
 
     if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
         if pkg_config::find_library("libgit2").is_ok() {
@@ -43,141 +23,128 @@ fn main() {
     }
 
     let target = env::var("TARGET").unwrap();
-    let host = env::var("HOST").unwrap();
     let windows = target.contains("windows");
-    let msvc = target.contains("msvc");
-    let mut cfg = cmake::Config::new("libgit2");
+    let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let include = dst.join("include");
+    let mut cfg = cc::Build::new();
+    fs::create_dir_all(&include).unwrap();
 
-    #[cfg(feature = "ssh_key_from_memory")] 
-    cfg.define("GIT_SSH_MEMORY_CREDENTIALS", "1");
+    // Copy over all header files
+    cp_r("libgit2/include".as_ref(), &include);
 
-    if msvc {
-        // libgit2 passes the /GL flag to enable whole program optimization, but
-        // this requires that the /LTCG flag is passed to the linker later on,
-        // and currently the compiler does not do that, so we disable whole
-        // program optimization entirely.
-        cfg.cflag("/GL-");
+    cfg.include(&include)
+        .include("libgit2/src")
+        .out_dir(dst.join("build"))
+        .warnings(false);
 
-        // Currently liblibc links to msvcrt which apparently is a dynamic CRT,
-        // so we need to turn this off to get it to link right.
-        let features = env::var("CARGO_CFG_TARGET_FEATURE")
-                          .unwrap_or(String::new());
-        if features.contains("crt-static") {
-            cfg.define("STATIC_CRT", "ON");
-        } else {
-            cfg.define("STATIC_CRT", "OFF");
-        }
+    // Include all cross-platform C files
+    add_c_files(&mut cfg, "libgit2/src".as_ref());
+    add_c_files(&mut cfg, "libgit2/src/xdiff".as_ref());
+
+    // These are activated by feautres, but they're all unconditionally always
+    // compiled apparently and have internal #define's to make sure they're
+    // compiled correctly.
+    add_c_files(&mut cfg, "libgit2/src/transports".as_ref());
+    add_c_files(&mut cfg, "libgit2/src/streams".as_ref());
+
+    // Always use bundled http-parser for now
+    cfg.include("libgit2/deps/http-parser")
+        .file("libgit2/deps/http-parser/http_parser.c");
+
+    // Always use bundled regex for now
+    cfg.include("libgit2/deps/regex")
+        .file("libgit2/deps/regex/regex.c");
+
+    if windows {
+        add_c_files(&mut cfg, "libgit2/src/win32".as_ref());
+        cfg.define("STRSAFE_NO_DEPRECATE", None);
+    } else {
+        add_c_files(&mut cfg, "libgit2/src/unix".as_ref());
+        cfg.flag("-fvisibility=hidden");
     }
 
-    // libgit2 uses pkg-config to discover libssh2, but this doesn't work on
-    // windows as libssh2 doesn't come with a libssh2.pc file in that install
-    // (or when pkg-config isn't found). As a result we just manually turn on
-    // SSH support in libgit2 (a little jankily) here...
-    let mut ssh_forced = false;
-    if ssh && (windows || !has_pkgconfig) {
-        if let Ok(libssh2_include) = env::var("DEP_SSH2_INCLUDE") {
-            ssh_forced = true;
-            if msvc {
-                cfg.cflag(format!("/I{}", libssh2_include))
-                   .cflag("/DGIT_SSH");
-            } else {
-                cfg.cflag(format!("-I{}", sanitize_sh(libssh2_include.as_ref())))
-                   .cflag("-DGIT_SSH");
-            }
-        }
+    let mut features = String::new();
+
+    features.push_str("#ifndef INCLUDE_features_h\n");
+    features.push_str("#define INCLUDE_features_h\n");
+    features.push_str("#define GIT_THREADS 1\n");
+    features.push_str("#define GIT_USE_NSEC 1\n");
+
+    if target.contains("apple") {
+        features.push_str("#define GIT_USE_STAT_MTIMESPEC 1\n");
+    } else {
+        features.push_str("#define GIT_USE_STAT_MTIM 1\n");
     }
 
-    // When cross-compiling, we're pretty unlikely to find a `dlltool` binary
-    // lying around, so try to find another if it exists
-    if windows && !host.contains("windows") {
-        let c_compiler = cc::Build::new().cargo_metadata(false)
-                                           .get_compiler();
-        let exe = c_compiler.path();
-        let path = env::var_os("PATH").unwrap_or(OsString::new());
-        let exe = env::split_paths(&path)
-                      .map(|p| p.join(&exe))
-                      .find(|p| p.exists());
-        if let Some(exe) = exe {
-            if let Some(name) = exe.file_name().and_then(|e| e.to_str()) {
-                let name = name.replace("gcc", "dlltool");
-                let dlltool = exe.with_file_name(name);
-                cfg.define("DLLTOOL", &dlltool);
-            }
-        }
+    if env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap() == "32" {
+        features.push_str("#define GIT_ARCH_32 1\n");
+    } else {
+        features.push_str("#define GIT_ARCH_64 1\n");
     }
 
     if ssh {
-        cfg.register_dep("SSH2");
-    } else {
-        cfg.define("USE_SSH", "OFF");
+        if let Some(path) = env::var_os("DEP_SSH2_INCLUDE") {
+            cfg.include(path);
+        }
+        features.push_str("#define GIT_SSH 1\n");
+        features.push_str("#define GIT_SSH_MEMORY_CREDENTIALS 1\n");
     }
     if https {
-        cfg.register_dep("OPENSSL");
+        features.push_str("#define GIT_HTTPS 1\n");
+
+        if windows {
+            features.push_str("#define GIT_WINHTTP 1\n");
+            features.push_str("#define GIT_SHA1_WIN32 1\n");
+            cfg.file("libgit2/src/hash/hash_win32.c");
+        } else if target.contains("apple") {
+            features.push_str("#define GIT_SECURE_TRANSPORT 1\n");
+            features.push_str("#define GIT_SHA1_COMMON_CRYPTO 1\n");
+        } else {
+            features.push_str("#define GIT_OPENSSL 1\n");
+            features.push_str("#define GIT_SHA1_OPENSSL 1\n");
+            if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
+                cfg.include(path);
+            }
+        }
     } else {
-        cfg.define("USE_OPENSSL", "OFF");
-        cfg.define("USE_HTTPS", "OFF");
+        cfg.file("libgit2/src/hash/hash_generic.c");
     }
+
     if curl {
-        cfg.register_dep("CURL");
-    } else {
-        cfg.define("CURL", "OFF");
-    }
-
-    //Use bundled http-parser if cross compiling
-    if host != target {
-        cfg.define("USE_EXT_HTTP_PARSER", "OFF");
-    }
-
-    let _ = fs::remove_dir_all(env::var("OUT_DIR").unwrap());
-    t!(fs::create_dir_all(env::var("OUT_DIR").unwrap()));
-
-    // Unset DESTDIR or libgit2.a ends up in it and cargo can't find it
-    env::remove_var("DESTDIR");
-    let dst = cfg.define("BUILD_SHARED_LIBS", "OFF")
-                 .define("BUILD_CLAR", "OFF")
-                 .register_dep("Z")
-                 .build();
-
-    // Make sure libssh2 was detected on unix systems, because it definitely
-    // should have been!
-    if ssh && !ssh_forced {
-        let flags = dst.join("build/src/git2/sys/features.h");
-        let mut contents = String::new();
-        t!(t!(File::open(flags)).read_to_string(&mut contents));
-        if !contents.contains("#define GIT_SSH 1") {
-            panic!("libgit2 failed to find libssh2, and SSH support is required");
+        features.push_str("#define GIT_CURL 1\n");
+        if let Some(path) = env::var_os("DEP_CURL_INCLUDE") {
+            cfg.include(path);
+        }
+        // Handle dllimport/dllexport on windows by making sure that if we built
+        // curl statically (as told to us by the `curl-sys` crate) we define the
+        // correct values for curl's header files.
+        if env::var_os("DEP_CURL_STATIC").is_some() {
+            cfg.define("CURL_STATICLIB", None);
         }
     }
-
-    // libgit2 requires the http_parser library for the HTTP transport to be
-    // implemented, and it will attempt to use the system http_parser if it's
-    // available. Detect this situation and report using the system http parser
-    // the same way in this situation.
-    //
-    // Note that other dependencies of libgit2 like openssl, libz, and libssh2
-    // are tracked via crates instead of this. Ideally this should be a crate as
-    // well.
-    let pkgconfig_file = dst.join("lib/pkgconfig/libgit2.pc");
-    if let Ok(mut f) = File::open(&pkgconfig_file) {
-        let mut contents = String::new();
-        t!(f.read_to_string(&mut contents));
-        if contents.contains("-lhttp_parser") {
-            println!("cargo:rustc-link-lib=http_parser");
-        }
+    if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
+        cfg.include(path);
     }
+
+    if target.contains("apple") {
+        features.push_str("#define GIT_USE_ICONV 1\n");
+    }
+
+    features.push_str("#endif\n");
+    fs::write(include.join("git2/sys/features.h"), features).unwrap();
+
+    cfg.compile("git2");
+
+    println!("cargo:root={}", dst.display());
 
     if target.contains("windows") {
         println!("cargo:rustc-link-lib=winhttp");
         println!("cargo:rustc-link-lib=rpcrt4");
         println!("cargo:rustc-link-lib=ole32");
         println!("cargo:rustc-link-lib=crypt32");
-        println!("cargo:rustc-link-lib=static=git2");
-        println!("cargo:rustc-link-search=native={}/lib", dst.display());
         return
     }
 
-    println!("cargo:rustc-link-lib=static=git2");
-    println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=iconv");
         println!("cargo:rustc-link-lib=framework=Security");
@@ -185,46 +152,29 @@ fn main() {
     }
 }
 
-fn register_dep(dep: &str) {
-    if let Some(s) = env::var_os(&format!("DEP_{}_ROOT", dep)) {
-        if !cfg!(target_env = "msvc") {
-            prepend("PKG_CONFIG_PATH", Path::new(&s).join("lib/pkgconfig"));
-        }
-        return
-    }
-    if let Some(s) = env::var_os(&format!("DEP_{}_INCLUDE", dep)) {
-        let root = Path::new(&s).parent().unwrap();
-        env::set_var(&format!("DEP_{}_ROOT", dep), root);
-        let path = root.join("lib/pkgconfig");
-        if path.exists() {
-            if !cfg!(target_env = "msvc") {
-                prepend("PKG_CONFIG_PATH", path);
-            }
-            return
+fn cp_r(from: &Path, to: &Path) {
+    for e in from.read_dir().unwrap() {
+        let e = e.unwrap();
+        let from = e.path();
+        let to = to.join(e.file_name());
+        if e.file_type().unwrap().is_dir() {
+            fs::create_dir_all(&to).unwrap();
+            cp_r(&from, &to);
+        } else {
+            println!("{} => {}", from.display(), to.display());
+            fs::copy(&from, &to).unwrap();
         }
     }
 }
 
-fn prepend(var: &str, val: PathBuf) {
-    let prefix = env::var(var).unwrap_or(String::new());
-    let mut v = vec![val];
-    v.extend(env::split_paths(&prefix));
-    env::set_var(var, &env::join_paths(v).unwrap());
-}
-
-fn sanitize_sh(path: &Path) -> String {
-    let path = path.to_str().unwrap().replace("\\", "/");
-    return change_drive(&path).unwrap_or(path);
-
-    fn change_drive(s: &str) -> Option<String> {
-        let mut ch = s.chars();
-        let drive = ch.next().unwrap_or('C');
-        if ch.next() != Some(':') {
-            return None
+fn add_c_files(build: &mut cc::Build, path: &Path) {
+    for e in path.read_dir().unwrap() {
+        let e = e.unwrap();
+        let path = e.path();
+        if e.file_type().unwrap().is_dir() {
+            // skip dirs for now
+        } else if path.extension().and_then(|s| s.to_str()) == Some("c") {
+            build.file(&path);
         }
-        if ch.next() != Some('/') {
-            return None
-        }
-        Some(format!("/{}/{}", drive, &s[drive.len_utf8() + 2..]))
     }
 }
