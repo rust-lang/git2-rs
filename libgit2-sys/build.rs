@@ -52,13 +52,11 @@ fn main() {
 
     // Always use bundled regex for now
     cfg.include("libgit2/deps/regex")
-        .file("libgit2/deps/regex/regex.c")
-        .file("libgit2/deps/regex/regcomp.c")
-        .file("libgit2/deps/regex/regexec.c")
-        .file("libgit2/deps/regex/regex_internal.c");
+        .file("libgit2/deps/regex/regex.c");
 
     if windows {
         add_c_files(&mut cfg, "libgit2/src/win32".as_ref());
+        cfg.define("STRSAFE_NO_DEPRECATE", None);
     } else {
         add_c_files(&mut cfg, "libgit2/src/unix".as_ref());
     }
