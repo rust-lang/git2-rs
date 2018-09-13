@@ -60,6 +60,7 @@ fn main() {
         cfg.define("STRSAFE_NO_DEPRECATE", None);
     } else {
         add_c_files(&mut cfg, "libgit2/src/unix".as_ref());
+        cfg.flag("-fvisibility=hidden");
     }
 
     let mut features = String::new();
