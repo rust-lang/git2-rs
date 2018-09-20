@@ -1,5 +1,9 @@
 environment:
   matrix:
+  - TARGET: x86_64-pc-windows-gnu
+    MSYS_BITS: 64
+  - TARGET: i686-pc-windows-gnu
+    MSYS_BITS: 32
   - TARGET: x86_64-pc-windows-msvc
   - TARGET: i686-pc-windows-msvc
 install:
