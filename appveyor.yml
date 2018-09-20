@@ -2,8 +2,10 @@ environment:
   matrix:
   - TARGET: x86_64-pc-windows-gnu
     MSYS_BITS: 64
+    ARCH: x86_64
   - TARGET: i686-pc-windows-gnu
     MSYS_BITS: 32
+    ARCH: i686
   - TARGET: x86_64-pc-windows-msvc
   - TARGET: i686-pc-windows-msvc
 install:
@@ -11,6 +13,9 @@ install:
   - rust-nightly-%TARGET%.exe /VERYSILENT /NORESTART /DIR="C:\Program Files (x86)\Rust"
   - set PATH=%PATH%;C:\Program Files (x86)\Rust\bin
   - if defined MSYS_BITS set PATH=C:\msys64\mingw%MSYS_BITS%\bin;C:\msys64\usr\bin;%PATH%
+  # Workaround for old crt in Rust mingw toolchain borrowed from:
+  # https://github.com/nabijaczleweli/cargo-update/blob/b7fe3b68c9a18b2e4de50a88653ab24c287ba75a/appveyor.yml#L17
+  - if defined MSYS_BITS sed -rie "s/#define std([[:alpha:]]+)[[:space:]]+\(__acrt_iob_func\(([[:digit:]]+)\)\)/#define std\1 (\&__iob_func()[\2])/" "C:\msys64\mingw%MSYS_BITS%\%ARCH%-w64-mingw32\include\stdio.h"
   - set CARGO_TARGET_DIR=%APPVEYOR_BUILD_FOLDER%\target
   - rustc -V
   - cargo -V
