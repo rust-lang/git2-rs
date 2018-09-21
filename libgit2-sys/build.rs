@@ -58,6 +58,13 @@ fn main() {
     if windows {
         add_c_files(&mut cfg, "libgit2/src/win32".as_ref());
         cfg.define("STRSAFE_NO_DEPRECATE", None);
+
+        // libgit2's build system claims that forks like mingw-w64 of MinGW
+        // still want this define to use C99 stdio functions automatically.
+        // Apparently libgit2 breaks at runtime if this isn't here? Who knows!
+        if target.contains("gnu") {
+            cfg.define("__USE_MINGW_ANSI_STDIO", "1");
+        }
     } else {
         add_c_files(&mut cfg, "libgit2/src/unix".as_ref());
         cfg.flag("-fvisibility=hidden");
