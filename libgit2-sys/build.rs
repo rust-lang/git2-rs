@@ -69,6 +69,10 @@ fn main() {
         add_c_files(&mut cfg, "libgit2/src/unix".as_ref());
         cfg.flag("-fvisibility=hidden");
     }
+    if target.contains("solaris") {
+        cfg.define("_POSIX_C_SOURCE", "200112L");
+        cfg.define("__EXTENSIONS__", None);
+    }
 
     let mut features = String::new();
 
