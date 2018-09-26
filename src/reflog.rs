@@ -115,7 +115,7 @@ impl<'reflog> ReflogEntry<'reflog> {
 
     /// Get the old oid
     pub fn id_old(&self) -> Oid {
-        unsafe { Binding::from_raw(raw::git_reflog_entry_id_new(self.raw)) }
+        unsafe { Binding::from_raw(raw::git_reflog_entry_id_old(self.raw)) }
     }
 
     /// Get the log message, returning `None` on invalid UTF-8.
