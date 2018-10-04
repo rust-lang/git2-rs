@@ -377,8 +377,8 @@ bitflags! {
         /// change at any time. This is the default sorting for new walkers.
         const NONE = raw::GIT_SORT_NONE as u32;
 
-        /// Sort the repository contents in topological order (parents before
-        /// children).
+        /// Sort the repository contents in topological order (children before
+        /// parents).
         ///
         /// This sorting mode can be combined with time sorting.
         const TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as u32;
