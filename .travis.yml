@@ -1,5 +1,4 @@
 language: rust
-sudo: false
 git:
   submodules: false
 
@@ -7,6 +6,7 @@ matrix:
   include:
     - rust: 1.26.0
     - rust: stable
+    - os: windows
     - os: osx
       rust: stable
       before_install:
