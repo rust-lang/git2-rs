@@ -36,13 +36,18 @@ use url::Url;
 
 struct CurlTransport {
     handle: Arc<Mutex<Easy>>,
+    /// The URL of the remote server, e.g. "https://github.com/user/repo"
+    ///
+    /// This is an empty string until the first action is performed.
+    /// If there is an HTTP redirect, this will be updated with the new URL.
+    base_url: Arc<Mutex<String>>
 }
 
 struct CurlSubtransport {
     handle: Arc<Mutex<Easy>>,
     service: &'static str,
     url_path: &'static str,
-    base_url: String,
+    base_url: Arc<Mutex<String>>,
     method: &'static str,
     reader: Option<Cursor<Vec<u8>>>,
     sent_request: bool,
@@ -81,12 +86,19 @@ pub unsafe fn register(handle: Easy) {
 
 fn factory(remote: &git2::Remote, handle: Arc<Mutex<Easy>>)
            -> Result<Transport, Error> {
-    Transport::smart(remote, true, CurlTransport { handle: handle })
+    Transport::smart(remote, true, CurlTransport {
+        handle: handle,
+        base_url: Arc::new(Mutex::new(String::new()))
+    })
 }
 
 impl SmartSubtransport for CurlTransport {
     fn action(&self, url: &str, action: Service)
               -> Result<Box<SmartSubtransportStream>, Error> {
+        let mut base_url = self.base_url.lock().unwrap();
+        if base_url.len() == 0 {
+            *base_url = url.to_string();
+        }
         let (service, path, method) = match action {
             Service::UploadPackLs => {
                 ("upload-pack", "/info/refs?service=git-upload-pack", "GET")
@@ -106,7 +118,7 @@ impl SmartSubtransport for CurlTransport {
             handle: self.handle.clone(),
             service: service,
             url_path: path,
-            base_url: url.to_string(),
+            base_url: self.base_url.clone(),
             method: method,
             reader: None,
             sent_request: false,
@@ -130,7 +142,7 @@ impl CurlSubtransport {
         let agent = format!("git/1.0 (git2-curl {})", env!("CARGO_PKG_VERSION"));
 
         // Parse our input URL to figure out the host
-        let url = format!("{}{}", self.base_url, self.url_path);
+        let url = format!("{}{}", self.base_url.lock().unwrap(), self.url_path);
         let parsed = try!(Url::parse(&url).map_err(|_| {
             self.err("invalid url, failed to parse")
         }));
@@ -230,6 +242,20 @@ impl CurlSubtransport {
         // Ok, time to read off some data.
         let rdr = Cursor::new(data);
         self.reader = Some(rdr);
+
+        // If there was a redirect, update the `CurlTransport` with the new base.
+        if let Ok(Some(effective_url)) = h.effective_url() {
+            let new_base = if effective_url.ends_with(self.url_path) {
+                // Strip the action from the end.
+                &effective_url[..effective_url.len() - self.url_path.len()]
+            } else {
+                // I'm not sure if this code path makes sense, but it's what
+                // libgit does.
+                effective_url
+            };
+            *self.base_url.lock().unwrap() = new_base.to_string();
+        }
+
         Ok(())
     }
 }
