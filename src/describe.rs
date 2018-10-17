@@ -124,7 +124,7 @@ impl DescribeOptions {
 
     /// Sets the reference lookup strategy
     ///
-    /// This behaves like the `--tags` option to git-decribe.
+    /// This behaves like the `--tags` option to git-describe.
     pub fn describe_tags(&mut self) -> &mut Self {
         self.raw.describe_strategy = raw::GIT_DESCRIBE_TAGS as c_uint;
         self
@@ -132,7 +132,7 @@ impl DescribeOptions {
 
     /// Sets the reference lookup strategy
     ///
-    /// This behaves like the `--all` option to git-decribe.
+    /// This behaves like the `--all` option to git-describe.
     pub fn describe_all(&mut self) -> &mut Self {
         self.raw.describe_strategy = raw::GIT_DESCRIBE_ALL as c_uint;
         self
