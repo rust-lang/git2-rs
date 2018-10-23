@@ -59,8 +59,9 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 ///
 /// The callback must return a bool specifying whether the checkout should
 /// continue.
-pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
-                            DiffFile, DiffFile) -> bool + 'a;
+pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>,
+                            Option<DiffFile>, Option<DiffFile>,
+                            Option<DiffFile>) -> bool + 'a;
 
 
 impl<'cb> Default for RepoBuilder<'cb> {
@@ -506,8 +507,8 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Callbacks are invoked prior to modifying any files on disk.
     /// Returning `false` from the callback will cancel the checkout.
     pub fn notify<F>(&mut self, cb: F) -> &mut CheckoutBuilder<'cb>
-        where F: FnMut(CheckoutNotificationType, Option<&Path>, DiffFile,
-                       DiffFile, DiffFile) -> bool + 'cb
+        where F: FnMut(CheckoutNotificationType, Option<&Path>, Option<DiffFile>,
+                       Option<DiffFile>, Option<DiffFile>) -> bool + 'cb
     {
         self.notify = Some(Box::new(cb) as Box<Notify<'cb>>);
         self
@@ -593,12 +594,26 @@ extern fn notify_cb(why: raw::git_checkout_notify_t,
             Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
         };
 
+        let baseline = if baseline.is_null() {
+            None
+        } else {
+            Some(DiffFile::from_raw(baseline))
+        };
+
+        let target = if target.is_null() {
+            None
+        } else {
+            Some(DiffFile::from_raw(target))
+        };
+
+        let workdir = if workdir.is_null() {
+            None
+        } else {
+            Some(DiffFile::from_raw(workdir))
+        };
+
         let why = CheckoutNotificationType::from_bits_truncate(why as u32);
-        let keep_going = callback(why,
-                                  path,
-                                  DiffFile::from_raw(baseline),
-                                  DiffFile::from_raw(target),
-                                  DiffFile::from_raw(workdir));
+        let keep_going = callback(why, path, baseline, target, workdir);
         if keep_going {0} else {1}
     }).unwrap_or(2)
 }
@@ -608,8 +623,8 @@ mod tests {
     use std::fs;
     use std::path::Path;
     use tempdir::TempDir;
-    use super::RepoBuilder;
-    use Repository;
+    use super::{CheckoutBuilder, RepoBuilder};
+    use {CheckoutNotificationType, Repository};
 
     #[test]
     fn smoke() {
@@ -633,6 +648,54 @@ mod tests {
         fs::remove_dir_all(&dst).unwrap();
         assert!(RepoBuilder::new().branch("foo")
                                   .clone(&url, &dst).is_err());
+    }
+
+    /// Issue regression test #365
+    #[test]
+    fn notify_callback() {
+        let td = TempDir::new("test").unwrap();
+        let cd = TempDir::new("external-checkout").unwrap();
+
+        {
+            let repo = Repository::init(&td.path()).unwrap();
+
+            let mut config = repo.config().unwrap();
+            config.set_str("user.name", "name").unwrap();
+            config.set_str("user.email", "email").unwrap();
+
+            let mut index = repo.index().unwrap();
+            let p = Path::new(td.path()).join("file");
+            println!("using path {:?}", p);
+            fs::File::create(&p).unwrap();
+            index.add_path(&Path::new("file")).unwrap();
+            let id = index.write_tree().unwrap();
+
+            let tree = repo.find_tree(id).unwrap();
+            let sig = repo.signature().unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "initial",
+            &tree, &[]).unwrap();
+        }
+
+        let repo = Repository::open_bare(&td.path().join(".git")).unwrap();
+        let tree = repo
+            .revparse_single(&"master")
+            .unwrap()
+            .peel_to_tree()
+            .unwrap();
+        let mut index = repo.index().unwrap();
+        index.read_tree(&tree).unwrap();
+
+        let mut checkout_opts = CheckoutBuilder::new();
+        checkout_opts.target_dir(&cd.path());
+        checkout_opts.notify_on(CheckoutNotificationType::all());
+        checkout_opts.notify(|_notif, _path, baseline, target, workdir| {
+            assert!(baseline.is_none());
+            assert_eq!(target.unwrap().path(), Some(Path::new("file")));
+            assert!(workdir.is_none());
+            true
+        });
+        repo.checkout_index(Some(&mut index), Some(&mut checkout_opts))
+            .unwrap();
     }
 
 }
