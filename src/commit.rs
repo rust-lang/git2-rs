@@ -151,14 +151,12 @@ impl<'repo> Commit<'repo> {
 
     /// Creates a new iterator over the parents of this commit.
     pub fn parents<'a>(&'a self) -> Parents<'a, 'repo> {
-        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as usize };
-        Parents { range: 0..max, commit: self }
+        Parents { range: 0..self.parent_count(), commit: self }
     }
 
     /// Creates a new iterator over the parents of this commit.
     pub fn parent_ids(&self) -> ParentIds {
-        let max = unsafe { raw::git_commit_parentcount(&*self.raw) as usize };
-        ParentIds { range: 0..max, commit: self }
+        ParentIds { range: 0..self.parent_count(), commit: self }
     }
 
     /// Get the author of this commit.
@@ -208,6 +206,13 @@ impl<'repo> Commit<'repo> {
                                             tree.map(|t| t.raw())));
             Ok(Binding::from_raw(&raw as *const _))
         }
+    }
+
+    /// Get the number of parents of this commit.
+    ///
+    /// Use the `parents` iterator to return an iterator over all parents.
+    pub fn parent_count(&self) -> usize {
+        unsafe { raw::git_commit_parentcount(&*self.raw) as usize }
     }
 
     /// Get the specified parent of the commit.
