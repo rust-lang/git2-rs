@@ -83,7 +83,7 @@ impl<'repo> Commit<'repo> {
     /// `None` will be returned if the encoding is not known
     pub fn message_encoding(&self) -> Option<&str> {
         let bytes = unsafe {
-            ::opt_bytes(self, raw::git_commit_message(&*self.raw))
+            ::opt_bytes(self, raw::git_commit_message_encoding(&*self.raw))
         };
         bytes.and_then(|b| str::from_utf8(b).ok())
     }
