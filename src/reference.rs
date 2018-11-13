@@ -270,6 +270,15 @@ impl<'repo> Binding for Reference<'repo> {
     fn raw(&self) -> *mut raw::git_reference { self.raw }
 }
 
+impl<'repo> Clone for Reference<'repo> {
+    fn clone(&self) -> Self {
+        let mut raw = ptr::null_mut();
+        let rc = unsafe { raw::git_reference_dup(&mut raw, &*self.raw) };
+        assert_eq!(rc, 0);
+        unsafe { Binding::from_raw(raw) }
+    }
+}
+
 impl<'repo> Drop for Reference<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_reference_free(self.raw) }

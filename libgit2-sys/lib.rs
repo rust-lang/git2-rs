@@ -1918,6 +1918,8 @@ extern {
                                  name: *const c_char) -> c_int;
     pub fn git_reference_ensure_log(repo: *mut git_repository,
                                     name: *const c_char) -> c_int;
+    pub fn git_reference_dup(out: *mut *mut git_reference,
+                             r: *const git_reference) -> c_int;
 
     // stash
     pub fn git_stash_save(out: *mut git_oid,
