@@ -418,7 +418,7 @@ mod test {
 
     use {Cred, Config, CredentialHelper, ConfigLevel};
 
-    macro_rules! cfg( ($($k:expr => $v:expr),*) => ({
+    macro_rules! test_cfg( ($($k:expr => $v:expr),*) => ({
         let td = TempDir::new("git2-rs").unwrap();
         let mut cfg = Config::new().unwrap();
         cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
@@ -433,7 +433,7 @@ mod test {
 
     #[test]
     fn credential_helper1() {
-        let cfg = cfg! {
+        let cfg = test_cfg! {
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
@@ -445,7 +445,7 @@ mod test {
 
     #[test]
     fn credential_helper2() {
-        let cfg = cfg! {};
+        let cfg = test_cfg! {};
         assert!(CredentialHelper::new("https://example.com/foo/bar")
                                  .config(&cfg)
                                  .execute().is_none());
@@ -453,7 +453,7 @@ mod test {
 
     #[test]
     fn credential_helper3() {
-        let cfg = cfg! {
+        let cfg = test_cfg! {
             "credential.https://example.com.helper" =>
                     "!f() { echo username=c; }; f",
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
@@ -474,7 +474,7 @@ mod test {
 echo username=c
 ").unwrap();
         chmod(&path);
-        let cfg = cfg! {
+        let cfg = test_cfg! {
             "credential.https://example.com.helper" =>
                     &path.display().to_string()[..],
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
@@ -501,7 +501,7 @@ echo username=c
                         .chain(path.parent().map(|p| p.to_path_buf()).into_iter());
         env::set_var("PATH", &env::join_paths(paths).unwrap());
 
-        let cfg = cfg! {
+        let cfg = test_cfg! {
             "credential.https://example.com.helper" => "script",
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
@@ -514,7 +514,7 @@ echo username=c
 
     #[test]
     fn credential_helper6() {
-        let cfg = cfg! {
+        let cfg = test_cfg! {
             "credential.helper" => ""
         };
         assert!(CredentialHelper::new("https://example.com/foo/bar")
