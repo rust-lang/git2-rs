@@ -171,9 +171,9 @@ impl Repository {
         Repository::init_opts(path, RepositoryInitOptions::new().bare(true))
     }
 
-    /// Creates a new `--bare` repository in the specified folder.
+    /// Creates a new repository in the specified folder with the given options.
     ///
-    /// The folder must exist prior to invoking this function.
+    /// See `RepositoryInitOptions` struct for more information.
     pub fn init_opts<P: AsRef<Path>>(path: P, opts: &RepositoryInitOptions)
                      -> Result<Repository, Error> {
         init();
