@@ -46,14 +46,36 @@ impl MergeOptions {
         opts
     }
 
-    /// Detect file renames
-    pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
-        if find {
-            self.raw.flags |= raw::GIT_MERGE_FIND_RENAMES;
+    fn flag(&mut self, opt: raw::git_merge_flag_t, val: bool) -> &mut MergeOptions {
+        if val {
+            self.raw.flags |= opt;
         } else {
-            self.raw.flags &= !raw::GIT_MERGE_FIND_RENAMES;
+            self.raw.flags &= !opt;
         }
         self
+    }
+
+    /// Detect file renames
+    pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
+        self.flag(raw::GIT_MERGE_FIND_RENAMES, find)
+    }
+
+    /// If a conflict occurs, exit immediately instead of attempting to continue
+    /// resolving conflicts
+    pub fn fail_on_conflict(&mut self, fail: bool) -> &mut MergeOptions {
+        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT, fail)
+    }
+
+    /// Do not write the REUC extension on the generated index
+    pub fn skip_reuc(&mut self, skip: bool) -> &mut MergeOptions {
+        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT, skip)
+    }
+
+    /// If the commits being merged have multiple merge bases, do not build a
+    /// recursive merge base (by merging the multiple merge bases), instead
+    /// simply use the first base.
+    pub fn no_recursive(&mut self, disable: bool) -> &mut MergeOptions {
+        self.flag(raw::GIT_MERGE_NO_RECURSIVE, disable)
     }
 
     /// Similarity to consider a file renamed (default 50)
