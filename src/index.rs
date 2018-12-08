@@ -1,4 +1,5 @@
 use std::ffi::{CStr, OsString, CString};
+use std::marker;
 use std::ops::Range;
 use std::path::Path;
 use std::ptr;
@@ -21,6 +22,20 @@ pub struct Index {
 pub struct IndexEntries<'index> {
     range: Range<usize>,
     index: &'index Index,
+}
+
+/// An iterator over the entries in an index that are found to have conflicts
+pub struct IndexConflicts<'index> {
+    conflict_iter: *mut raw::git_index_conflict_iterator,
+    index: &'index Index,
+    _marker: marker::PhantomData<&'index raw::git_index_conflict_iterator>,
+}
+
+/// A structure to represent the information returned when a conflict is detected in an index entry
+pub struct IndexConflict {
+    ancestor: IndexEntry,
+    our: IndexEntry,
+    their: IndexEntry,
 }
 
 /// A callback function to filter index matches.
@@ -303,6 +318,15 @@ impl Index {
         IndexEntries { range: 0..self.len(), index: self }
     }
 
+    pub fn conflicts(&self) -> Result<IndexConflicts, Error> {
+        ::init();
+        let mut conflict_iter = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_index_conflict_iterator_new(&mut conflict_iter, self.raw));
+        }
+        Ok(IndexConflicts { conflict_iter, index: self, _marker: marker::PhantomData })
+    }
+
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
         let path = path.into_c_string().unwrap();
@@ -520,10 +544,29 @@ impl Drop for Index {
     }
 }
 
+impl<'index> Drop for IndexConflicts<'index> {
+    fn drop(&mut self) {
+        unsafe { raw::git_index_conflict_iterator_free(self.conflict_iter) }
+    }
+}
+
 impl<'index> Iterator for IndexEntries<'index> {
     type Item = IndexEntry;
     fn next(&mut self) -> Option<IndexEntry> {
         self.range.next().map(|i| self.index.get(i).unwrap())
+    }
+}
+
+impl<'index> Iterator for IndexConflicts<'index> {
+    type Item = Result<IndexConflict, Error>;
+    fn next(&mut self) -> Option<Result<IndexConflict, Error>> {
+        let mut ancestor = ptr::null_mut();
+        let mut our = ptr::null_mut();
+        let mut their = ptr::null_mut();
+        unsafe {
+            try_call_iter!(raw::git_index_conflict_next(&mut ancestor, &mut our, &mut their, self.conflict_iter));
+            Some(Ok(IndexConflict { ancestor: IndexEntry::from_raw(*ancestor), our: IndexEntry::from_raw(*our), their: IndexEntry::from_raw(*their) }))
+        }
     }
 }
 

@@ -458,6 +458,12 @@ pub struct git_diff_file {
     pub mode: u16,
 }
 
+#[repr(C)]
+pub struct git_index_conflict_iterator {
+    pub index: *mut git_index,
+    pub cur: size_t,
+}
+
 pub type git_repository_create_cb = extern fn(*mut *mut git_repository,
                                               *const c_char,
                                               c_int, *mut c_void) -> c_int;
@@ -2203,6 +2209,19 @@ extern {
                                   ancestor_entry: *const git_index_entry,
                                   our_entry: *const git_index_entry,
                                   their_entry: *const git_index_entry) -> c_int;
+    pub fn git_index_conflict_remove(index: *mut git_index, path: *const c_char) -> c_int;
+    pub fn git_index_conflict_get(ancestor_out: *mut *mut git_index_entry,
+                                  our_out: *mut *mut git_index_entry,
+                                  their_out: *mut *mut git_index_entry,
+                                  index: *mut git_index,
+                                  path: *const c_char) -> c_int;
+    pub fn git_index_conflict_iterator_new(iter: *mut *mut git_index_conflict_iterator,
+                                           index: *const git_index) -> c_int;
+    pub fn git_index_conflict_next(ancestor_out: *mut *mut git_index_entry,
+                                   our_out: *mut *mut git_index_entry,
+                                   their_out: *mut *mut git_index_entry,
+                                   iter: *mut git_index_conflict_iterator) -> c_int;
+    pub fn git_index_conflict_iterator_free(iter: *mut git_index_conflict_iterator);
     pub fn git_index_clear(index: *mut git_index) -> c_int;
     pub fn git_index_entry_stage(entry: *const git_index_entry) -> c_int;
     pub fn git_index_entrycount(entry: *const git_index) -> size_t;
