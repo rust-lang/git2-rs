@@ -279,7 +279,7 @@ impl<'rebase> RebaseOperation<'rebase> {
     /// The type of rebase operation
     pub fn kind(&self) -> Option<RebaseOperationType> {
         unsafe {
-            RebaseOperationType::from_raw((*self.raw)._type)
+            RebaseOperationType::from_raw((*self.raw).kind)
         }
     }
 

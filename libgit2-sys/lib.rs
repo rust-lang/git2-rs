@@ -1589,7 +1589,7 @@ git_enum! {
 
 #[repr(C)]
 pub struct git_rebase_operation {
-    pub _type: git_rebase_operation_t,
+    pub kind: git_rebase_operation_t,
     pub id: git_oid,
     pub exec: *const c_char,
 }
