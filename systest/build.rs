@@ -23,6 +23,10 @@ fn main() {
             _ => f.to_string(),
         }
     });
+    cfg.skip_field(|struct_, f| {
+        // this field is marked as const which ctest complains about
+        struct_ == "git_rebase_operation" && f == "id"
+    });
     cfg.skip_signededness(|s| {
         match s {
             s if s.ends_with("_cb") => true,
