@@ -56,6 +56,7 @@ pub enum git_commit {}
 pub enum git_config {}
 pub enum git_config_iterator {}
 pub enum git_index {}
+pub enum git_index_conflict_iterator {}
 pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
@@ -457,12 +458,6 @@ pub struct git_diff_file {
     pub size: git_off_t,
     pub flags: u32,
     pub mode: u16,
-}
-
-#[repr(C)]
-pub struct git_index_conflict_iterator {
-    pub index: *mut git_index,
-    pub cur: size_t,
 }
 
 pub type git_repository_create_cb = extern fn(*mut *mut git_repository,
@@ -2247,7 +2242,7 @@ extern {
                                   index: *mut git_index,
                                   path: *const c_char) -> c_int;
     pub fn git_index_conflict_iterator_new(iter: *mut *mut git_index_conflict_iterator,
-                                           index: *const git_index) -> c_int;
+                                           index: *mut git_index) -> c_int;
     pub fn git_index_conflict_next(ancestor_out: *mut *mut git_index_entry,
                                    our_out: *mut *mut git_index_entry,
                                    their_out: *mut *mut git_index_entry,
