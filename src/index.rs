@@ -32,9 +32,14 @@ pub struct IndexConflicts<'index> {
 
 /// A structure to represent the information returned when a conflict is detected in an index entry
 pub struct IndexConflict {
-    ancestor: IndexEntry,
-    our: IndexEntry,
-    their: IndexEntry,
+    /// The ancestor index entry of the two conflicting index entries
+    pub ancestor: IndexEntry,
+    /// The index entry originating from the user's copy of the repository.
+    /// Its contents conflict with 'their' index entry
+    pub our: IndexEntry,
+    /// The index entry originating from the external repository.
+    /// Its contents conflict with 'our' index entry
+    pub their: IndexEntry,
 }
 
 /// A callback function to filter index matches.
