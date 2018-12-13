@@ -27,8 +27,7 @@ pub struct IndexEntries<'index> {
 /// An iterator over the conflicting entries in an index
 pub struct IndexConflicts<'index> {
     conflict_iter: *mut raw::git_index_conflict_iterator,
-    index: &'index Index,
-    _marker: marker::PhantomData<&'index raw::git_index_conflict_iterator>,
+    _marker: marker::PhantomData<&'index Index>,
 }
 
 /// A structure to represent the information returned when a conflict is detected in an index entry
@@ -324,8 +323,8 @@ impl Index {
         let mut conflict_iter = ptr::null_mut();
         unsafe {
             try_call!(raw::git_index_conflict_iterator_new(&mut conflict_iter, self.raw));
+            Ok(Binding::from_raw(conflict_iter))
         }
-        Ok(IndexConflicts { conflict_iter, index: self, _marker: marker::PhantomData })
     }
 
     /// Get one of the entries in the index by its path.
@@ -523,6 +522,18 @@ impl Binding for Index {
         Index { raw: raw }
     }
     fn raw(&self) -> *mut raw::git_index { self.raw }
+}
+
+impl<'index> Binding for IndexConflicts<'index> {
+    type Raw = *mut raw::git_index_conflict_iterator;
+
+    unsafe fn from_raw(raw: *mut raw::git_index_conflict_iterator) -> IndexConflicts<'index> {
+        IndexConflicts {
+            conflict_iter: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_index_conflict_iterator { self.conflict_iter }
 }
 
 extern fn index_matched_path_cb(path: *const c_char,
