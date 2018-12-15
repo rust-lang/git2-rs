@@ -2236,16 +2236,16 @@ extern {
                                   our_entry: *const git_index_entry,
                                   their_entry: *const git_index_entry) -> c_int;
     pub fn git_index_conflict_remove(index: *mut git_index, path: *const c_char) -> c_int;
-    pub fn git_index_conflict_get(ancestor_out: *mut *mut git_index_entry,
-                                  our_out: *mut *mut git_index_entry,
-                                  their_out: *mut *mut git_index_entry,
+    pub fn git_index_conflict_get(ancestor_out: *mut *const git_index_entry,
+                                  our_out: *mut *const git_index_entry,
+                                  their_out: *mut *const git_index_entry,
                                   index: *mut git_index,
                                   path: *const c_char) -> c_int;
     pub fn git_index_conflict_iterator_new(iter: *mut *mut git_index_conflict_iterator,
                                            index: *mut git_index) -> c_int;
-    pub fn git_index_conflict_next(ancestor_out: *mut *mut git_index_entry,
-                                   our_out: *mut *mut git_index_entry,
-                                   their_out: *mut *mut git_index_entry,
+    pub fn git_index_conflict_next(ancestor_out: *mut *const git_index_entry,
+                                   our_out: *mut *const git_index_entry,
+                                   their_out: *mut *const git_index_entry,
                                    iter: *mut git_index_conflict_iterator) -> c_int;
     pub fn git_index_conflict_iterator_free(iter: *mut git_index_conflict_iterator);
     pub fn git_index_clear(index: *mut git_index) -> c_int;
