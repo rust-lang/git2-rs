@@ -23,6 +23,24 @@ pub struct IndexEntries<'index> {
     index: &'index Index,
 }
 
+/// An iterator over the conflicting entries in an index
+pub struct IndexConflicts<'index> {
+    conflict_iter: *mut raw::git_index_conflict_iterator,
+    _marker: marker::PhantomData<&'index Index>,
+}
+
+/// A structure to represent the information returned when a conflict is detected in an index entry
+pub struct IndexConflict {
+    /// The ancestor index entry of the two conflicting index entries
+    pub ancestor: IndexEntry,
+    /// The index entry originating from the user's copy of the repository.
+    /// Its contents conflict with 'their' index entry
+    pub our: IndexEntry,
+    /// The index entry originating from the external repository.
+    /// Its contents conflict with 'our' index entry
+    pub their: IndexEntry,
+}
+
 /// A callback function to filter index matches.
 ///
 /// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
@@ -303,6 +321,16 @@ impl Index {
         IndexEntries { range: 0..self.len(), index: self }
     }
 
+    /// Get an iterator over the index entries that have conflicts
+    pub fn conflicts(&self) -> Result<IndexConflicts, Error> {
+        ::init();
+        let mut conflict_iter = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_index_conflict_iterator_new(&mut conflict_iter, self.raw));
+            Ok(Binding::from_raw(conflict_iter))
+        }
+    }
+
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
         let path = path.into_c_string().unwrap();
@@ -500,6 +528,18 @@ impl Binding for Index {
     fn raw(&self) -> *mut raw::git_index { self.raw }
 }
 
+impl<'index> Binding for IndexConflicts<'index> {
+    type Raw = *mut raw::git_index_conflict_iterator;
+
+    unsafe fn from_raw(raw: *mut raw::git_index_conflict_iterator) -> IndexConflicts<'index> {
+        IndexConflicts {
+            conflict_iter: raw,
+            _marker: marker::PhantomData,
+        }
+    }
+    fn raw(&self) -> *mut raw::git_index_conflict_iterator { self.conflict_iter }
+}
+
 extern fn index_matched_path_cb(path: *const c_char,
                                 matched_pathspec: *const c_char,
                                 payload: *mut c_void) -> c_int {
@@ -520,10 +560,29 @@ impl Drop for Index {
     }
 }
 
+impl<'index> Drop for IndexConflicts<'index> {
+    fn drop(&mut self) {
+        unsafe { raw::git_index_conflict_iterator_free(self.conflict_iter) }
+    }
+}
+
 impl<'index> Iterator for IndexEntries<'index> {
     type Item = IndexEntry;
     fn next(&mut self) -> Option<IndexEntry> {
         self.range.next().map(|i| self.index.get(i).unwrap())
+    }
+}
+
+impl<'index> Iterator for IndexConflicts<'index> {
+    type Item = Result<IndexConflict, Error>;
+    fn next(&mut self) -> Option<Result<IndexConflict, Error>> {
+        let mut ancestor = ptr::null_mut();
+        let mut our = ptr::null_mut();
+        let mut their = ptr::null_mut();
+        unsafe {
+            try_call_iter!(raw::git_index_conflict_next(&mut ancestor, &mut our, &mut their, self.conflict_iter));
+            Some(Ok(IndexConflict { ancestor: IndexEntry::from_raw(*ancestor), our: IndexEntry::from_raw(*our), their: IndexEntry::from_raw(*their) }))
+        }
     }
 }
 
