@@ -1,4 +1,5 @@
 use std::ffi::{CStr, OsString, CString};
+use std::marker;
 use std::ops::Range;
 use std::path::Path;
 use std::ptr;
