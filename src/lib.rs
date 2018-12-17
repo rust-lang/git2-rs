@@ -92,7 +92,7 @@ pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
 pub use diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
 pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
 pub use error::Error;
-pub use index::{Index, IndexEntry, IndexEntries, IndexMatchedPath};
+pub use index::{Index, IndexConflict, IndexConflicts, IndexEntry, IndexEntries, IndexMatchedPath};
 pub use merge::{AnnotatedCommit, MergeOptions};
 pub use message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use note::{Note, Notes};

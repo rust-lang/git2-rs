@@ -56,6 +56,7 @@ pub enum git_commit {}
 pub enum git_config {}
 pub enum git_config_iterator {}
 pub enum git_index {}
+pub enum git_index_conflict_iterator {}
 pub enum git_object {}
 pub enum git_reference {}
 pub enum git_reference_iterator {}
@@ -2234,6 +2235,19 @@ extern {
                                   ancestor_entry: *const git_index_entry,
                                   our_entry: *const git_index_entry,
                                   their_entry: *const git_index_entry) -> c_int;
+    pub fn git_index_conflict_remove(index: *mut git_index, path: *const c_char) -> c_int;
+    pub fn git_index_conflict_get(ancestor_out: *mut *const git_index_entry,
+                                  our_out: *mut *const git_index_entry,
+                                  their_out: *mut *const git_index_entry,
+                                  index: *mut git_index,
+                                  path: *const c_char) -> c_int;
+    pub fn git_index_conflict_iterator_new(iter: *mut *mut git_index_conflict_iterator,
+                                           index: *mut git_index) -> c_int;
+    pub fn git_index_conflict_next(ancestor_out: *mut *const git_index_entry,
+                                   our_out: *mut *const git_index_entry,
+                                   their_out: *mut *const git_index_entry,
+                                   iter: *mut git_index_conflict_iterator) -> c_int;
+    pub fn git_index_conflict_iterator_free(iter: *mut git_index_conflict_iterator);
     pub fn git_index_clear(index: *mut git_index) -> c_int;
     pub fn git_index_entry_stage(entry: *const git_index_entry) -> c_int;
     pub fn git_index_entrycount(entry: *const git_index) -> size_t;
