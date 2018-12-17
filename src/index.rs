@@ -577,12 +577,21 @@ impl<'index> Iterator for IndexEntries<'index> {
 impl<'index> Iterator for IndexConflicts<'index> {
     type Item = Result<IndexConflict, Error>;
     fn next(&mut self) -> Option<Result<IndexConflict, Error>> {
-        let mut ancestor: *const raw::git_index_entry = ptr::null_mut();
-        let mut our: *const raw::git_index_entry = ptr::null_mut();
-        let mut their: *const raw::git_index_entry = ptr::null_mut();
+        let mut ancestor = ptr::null();
+        let mut our = ptr::null();
+        let mut their = ptr::null();
         unsafe {
-            try_call_iter!(raw::git_index_conflict_next(&mut ancestor, &mut our, &mut their, self.conflict_iter));
-            Some(Ok(IndexConflict { ancestor: IndexEntry::from_raw(*ancestor), our: IndexEntry::from_raw(*our), their: IndexEntry::from_raw(*their) }))
+            try_call_iter!(raw::git_index_conflict_next(
+                &mut ancestor,
+                &mut our,
+                &mut their,
+                self.conflict_iter
+            ));
+            Some(Ok(IndexConflict {
+                ancestor: IndexEntry::from_raw(*ancestor),
+                our: IndexEntry::from_raw(*our),
+                their: IndexEntry::from_raw(*their),
+            }))
         }
     }
 }
