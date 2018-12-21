@@ -10,8 +10,9 @@ use libc::{c_int, c_char, size_t, c_void, c_uint};
 use {raw, Revspec, Error, init, Object, RepositoryOpenFlags, RepositoryState, Remote, Buf, StashFlags};
 use {ResetType, Signature, Reference, References, Submodule, Blame, BlameOptions};
 use {Branches, BranchType, Index, Config, Oid, Blob, BlobWriter, Branch, Commit, Tree};
-use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnalysis, MergePreference};
+use {AnnotatedCommit, MergeOptions, SubmoduleIgnore, SubmoduleStatus, MergeAnalysis, MergePreference, CheckAttributeFlags};
 use {ObjectType, Tag, Note, Notes, StatusOptions, Statuses, Status, Revwalk};
+use {AttributeType};
 use {RevparseMode, RepositoryInitMode, Reflog, IntoCString, Describe};
 use {DescribeOptions, TreeBuilder, Diff, DiffOptions, PackBuilder, Odb};
 use {Rebase, RebaseOptions};
@@ -2099,6 +2100,40 @@ impl Repository {
             try_call!(raw::git_ignore_path_is_ignored(&mut ignored, self.raw, path));
         }
         Ok(ignored == 1)
+    }
+
+    /// Look up the value of one git attribute for path. Equivalent to libgit2::git_attr_get.
+    pub fn get_attr(&self, flags: CheckAttributeFlags, path: &str, name: &str) -> Result<AttributeType, Error> {
+        let mut value_out : *mut c_char = 0 as *mut c_char;
+        let value_out_ptr : *mut *mut c_char = &mut value_out; 
+        
+        let c_flags = flags.bits() as c_uint;
+        let c_path = CString::new(path).expect("The path value contained an invalid 0 byte within the string");
+        let c_name = CString::new(name).expect("The name value contained an invalid 0 byte within the string");
+
+        let attribute_type = unsafe {
+            try_call!(raw::git_attr_get(value_out_ptr, self.raw, c_flags, c_path, c_name));
+
+            let attr_type = raw::git_attr_value(*value_out_ptr);
+
+            let attribute_type = match attr_type {
+                raw::GIT_ATTR_UNSPECIFIED => AttributeType::Unspecified,
+                raw::GIT_ATTR_TRUE => AttributeType::True,
+                raw::GIT_ATTR_FALSE => AttributeType::False,
+                raw::GIT_ATTR_VALUE => {
+                    let value = CStr::from_ptr(*value_out_ptr);
+                    let string_value = value.to_string_lossy().to_owned().to_string();
+                    AttributeType::Value(string_value)
+                },
+                _ => {
+                   return Err(Error::from_str("The git attribute type for the path was invalid."))
+                }
+            };
+
+            attribute_type
+        };      
+
+        Ok(attribute_type)
     }
 }
 

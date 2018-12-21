@@ -1537,6 +1537,24 @@ git_enum! {
     }
 }
 
+git_enum! {
+    pub enum git_attr_check_flags {
+        GIT_ATTR_CHECK_FILE_THEN_INDEX = 0,
+        GIT_ATTR_CHECK_INDEX_THEN_FILE = 1 << 0,
+        GIT_ATTR_CHECK_INDEX_ONLY = 1 << 1,
+        GIT_ATTR_CHECK_NO_SYSTEM = 2 << 1,
+    }
+}
+
+git_enum! {
+    pub enum git_attr_t {
+        GIT_ATTR_UNSPECIFIED = 0,
+        GIT_ATTR_TRUE,
+        GIT_ATTR_FALSE,
+        GIT_ATTR_VALUE,
+    }
+}
+
 #[repr(C)]
 pub struct git_stash_apply_options {
     pub version: c_uint,
@@ -1590,6 +1608,10 @@ pub struct git_rebase_operation {
 }
 
 extern {
+    // attr
+    pub fn git_attr_get(value_out: *mut *mut c_char, repo: *mut git_repository, flags: c_uint,  path: *const c_char, name: *const c_char) -> c_int;
+    pub fn git_attr_value(attr: *const c_char) -> git_attr_t;
+
     // threads
     pub fn git_libgit2_init() -> c_int;
     pub fn git_libgit2_shutdown() -> c_int;

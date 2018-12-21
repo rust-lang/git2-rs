@@ -80,6 +80,7 @@ use std::fmt;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
 
+pub use attr::{AttributeType};
 pub use blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use blob::{Blob, BlobWriter};
 pub use branch::{Branch, Branches};
@@ -626,6 +627,36 @@ impl MergePreference {
     is_bit_set!(is_fastforward_only, MergePreference::FASTFORWARD_ONLY);
 }
 
+
+bitflags! {
+    /// Check attribute flags: Reading values from index and working directory.
+    ///
+    /// When checking attributes, it is possible to check attribute files
+    /// in both the working directory (if there is one) and the index (if
+    /// there is one).  You can explicitly choose where to check and in
+    /// which order using the following flags
+    ///
+    /// Core git usually checks the working directory then the index,
+    /// except during a checkout when it checks the index first.  It will
+    /// use index only for creating archives or for a bare repo (if an
+    /// index has been specified for the bare repo).
+    pub struct CheckAttributeFlags: u32 {
+        #[allow(missing_docs)]
+        const FILE_THEN_INDEX = raw::GIT_ATTR_CHECK_FILE_THEN_INDEX as u32;
+
+        #[allow(missing_docs)]
+        const INDEX_THEN_FILE = raw::GIT_ATTR_CHECK_INDEX_THEN_FILE as u32;
+
+        #[allow(missing_docs)]
+        const INDEX_ONLY = raw::GIT_ATTR_CHECK_INDEX_ONLY as u32;
+
+        /// Normally, attribute checks include looking in the /etc (or system
+        /// equivalent) directory for a `gitattributes` file.  Passing this
+        /// flag will cause attribute checks to ignore that file.
+        const NO_SYSTEM = raw::GIT_ATTR_CHECK_NO_SYSTEM as u32;
+    }
+}
+
 #[cfg(test)] #[macro_use] mod test;
 #[macro_use] mod panic;
 mod call;
@@ -637,6 +668,7 @@ pub mod string_array;
 pub mod oid_array;
 pub mod transport;
 
+mod attr;
 mod blame;
 mod blob;
 mod branch;
