@@ -14,15 +14,18 @@ matrix:
     - rust: beta
     - rust: nightly
 
-    - rust: nightly
-      before_script:
-        - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+    - name: "master doc to gh-pages"
+      rust: nightly
       script:
         - cargo doc --no-deps
         - cargo doc --manifest-path=git2-curl/Cargo.toml --no-deps
         - cargo doc --manifest-path=libgit2-sys/Cargo.toml --no-deps
-      after_success:
-        - travis-cargo --only nightly doc-upload
+      deploy:
+        provider: script
+        script: curl -LsSf https://git.io/fhJ8n | rustc - && (cd target/doc && ../../rust_out)
+        skip_cleanup: true
+        on:
+          branch: master
 
 script:
   - git submodule update --init
@@ -33,10 +36,6 @@ script:
       cargo test --features unstable;
       cargo test --manifest-path git2-curl/Cargo.toml;
     fi
-
-env:
-  global:
-    secure: "SVk5cv4VnBQAoaBXt9pIHk+FQ7Z58zT5EaPo7Ac81LltKztwHovhN/R1otKzgrAJqFsZ/nKR4cGyQGbYtfVJcsqweQVM75LI6Oh6lYyEdfX211ZI3SWQ50JO93CmwLtanC5UpECdXvJLCgXrHGJXuL1oi7hySGy47/yQlKH6eaM="
 
 notifications:
   email:

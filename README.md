@@ -1,6 +1,6 @@
 # git2-rs
 
-[![Build Status](https://travis-ci.org/alexcrichton/git2-rs.svg?branch=master)](https://travis-ci.org/alexcrichton/git2-rs)
+[![Build Status](https://travis-ci.com/alexcrichton/git2-rs.svg?branch=master)](https://travis-ci.com/alexcrichton/git2-rs)
 [![Build Status](https://ci.appveyor.com/api/projects/status/6vem3xgno2kuxnfm?svg=true)](https://ci.appveyor.com/project/alexcrichton/git2-rs)
 
 [Documentation](https://docs.rs/git2)
