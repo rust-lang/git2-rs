@@ -151,12 +151,13 @@ impl <'repo> Rebase<'repo> {
 
     /// Commits the current patch.  You must have resolved any conflicts that
     /// were introduced during the patch application from the `git_rebase_next`
-    /// invocation.
-    pub fn commit(&mut self, author: &Signature, committer: &Signature, message: &str) -> Result<Oid, Error> {
+    /// invocation. To keep the author and message from the original commit leave
+    /// them as None
+    pub fn commit(&mut self, author: Option<&Signature>, committer: &Signature, message: Option<&str>) -> Result<Oid, Error> {
         let mut id: raw::git_oid = unsafe { mem::zeroed() };
-        let message = try!(CString::new(message));
+        let message = try!(::opt_cstr(message));
         unsafe {
-            try_call!(raw::git_rebase_commit(&mut id, self.raw, author.raw(), committer.raw(), ptr::null(), message));
+            try_call!(raw::git_rebase_commit(&mut id, self.raw, author.map(|a| a.raw()), committer.raw(), ptr::null(), message));
             Ok(Binding::from_raw(&id as *const _))
         }
     }
@@ -313,7 +314,8 @@ impl<'rebase> Binding for RebaseOperation<'rebase> {
 
 #[cfg(test)]
 mod tests {
-    use {RebaseOptions, RebaseOperationType};
+    use std::{fs, path};
+    use {RebaseOptions, RebaseOperationType, Signature};
 
     #[test]
     fn smoke() {
@@ -349,6 +351,61 @@ mod tests {
         {
             let op = rebase.next();
             assert!(op.is_none());
+        }
+    }
+
+    #[test]
+    fn keeping_original_author_msg() {
+        let (td, repo) = ::test::repo_init();
+        let head_target = repo.head().unwrap().target().unwrap();
+        let tip = repo.find_commit(head_target).unwrap();
+        let sig = Signature::now("testname", "testemail").unwrap();
+        let mut index = repo.index().unwrap();
+
+        fs::File::create(td.path().join("file_a")).unwrap();
+        index.add_path(path::Path::new("file_a")).unwrap();
+        index.write().unwrap();
+        let tree_id_a = index.write_tree().unwrap();
+        let tree_a = repo.find_tree(tree_id_a).unwrap();
+        let c1 = repo
+            .commit(Some("refs/heads/master"), &sig, &sig, "A", &tree_a, &[&tip])
+            .unwrap();
+        let c1 = repo.find_commit(c1).unwrap();
+
+        fs::File::create(td.path().join("file_b")).unwrap();
+        index.add_path(path::Path::new("file_b")).unwrap();
+        index.write().unwrap();
+        let tree_id_b = index.write_tree().unwrap();
+        let tree_b = repo.find_tree(tree_id_b).unwrap();
+        let c2 = repo
+            .commit(Some("refs/heads/master"), &sig, &sig, "B", &tree_b, &[&c1])
+            .unwrap();
+
+        let branch = repo.find_annotated_commit(c2).unwrap();
+        let upstream = repo.find_annotated_commit(tip.id()).unwrap();
+        let mut opts: RebaseOptions = Default::default();
+        let mut rebase = repo
+            .rebase(Some(&branch), Some(&upstream), None, Some(&mut opts))
+            .unwrap();
+
+        assert_eq!(rebase.len(), 2);
+
+        {
+            rebase.next().unwrap().unwrap();
+            let id = rebase.commit(None, &sig, None).unwrap();
+            let commit = repo.find_commit(id).unwrap();
+            assert_eq!(commit.message(), Some("A"));
+            assert_eq!(commit.author().name(), Some("testname"));
+            assert_eq!(commit.author().email(), Some("testemail"));
+        }
+
+        {
+            rebase.next().unwrap().unwrap();
+            let id = rebase.commit(None, &sig, None).unwrap();
+            let commit = repo.find_commit(id).unwrap();
+            assert_eq!(commit.message(), Some("B"));
+            assert_eq!(commit.author().name(), Some("testname"));
+            assert_eq!(commit.author().email(), Some("testemail"));
         }
     }
 }
