@@ -174,9 +174,9 @@ impl <'repo> Rebase<'repo> {
 
     /// Finishes a rebase that is currently in progress once all patches have
     /// been applied.
-    pub fn finish(&mut self, signature: &Signature) -> Result<(), Error> {
+    pub fn finish(&mut self, signature: Option<&Signature>) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_rebase_finish(self.raw, signature.raw()));
+            try_call!(raw::git_rebase_finish(self.raw, signature.map(|s| s.raw())));
         }
 
         Ok(())
@@ -407,5 +407,6 @@ mod tests {
             assert_eq!(commit.author().name(), Some("testname"));
             assert_eq!(commit.author().email(), Some("testemail"));
         }
+        rebase.finish(None).unwrap();
     }
 }
