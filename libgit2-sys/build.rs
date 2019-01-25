@@ -41,7 +41,7 @@ fn main() {
     add_c_files(&mut cfg, "libgit2/src".as_ref());
     add_c_files(&mut cfg, "libgit2/src/xdiff".as_ref());
 
-    // These are activated by feautres, but they're all unconditionally always
+    // These are activated by features, but they're all unconditionally always
     // compiled apparently and have internal #define's to make sure they're
     // compiled correctly.
     add_c_files(&mut cfg, "libgit2/src/transports".as_ref());
