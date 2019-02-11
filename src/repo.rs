@@ -2167,7 +2167,7 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_MKDIR, enabled)
     }
 
-    /// Recursively make all components of the repo and workdir path sas
+    /// Recursively make all components of the repo and workdir path as
     /// necessary.
     ///
     /// Defaults to true.
