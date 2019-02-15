@@ -2,12 +2,11 @@
 
 name = "git2"
 version = "0.8.0"
-authors = ["Alex Crichton <alex@alexcrichton.com>"]
+authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
 keywords = ["git"]
-repository = "https://github.com/alexcrichton/git2-rs"
-homepage = "https://github.com/alexcrichton/git2-rs"
+repository = "https://github.com/rust-lang/git2-rs"
 documentation = "https://docs.rs/git2"
 description = """
 Bindings to libgit2 for interoperating with git repositories. This library is
@@ -17,8 +16,7 @@ repositories.
 categories = ["api-bindings"]
 
 [badges]
-travis-ci = { repository = "alexcrichton/git2-rs" }
-appveyor = { repository = "alexcrichton/git2-rs" }
+travis-ci = { repository = "rust-lang/git2-rs" }
 
 [dependencies]
 url = "1.0"

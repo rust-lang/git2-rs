@@ -1,10 +1,10 @@
 [package]
 name = "libgit2-sys"
 version = "0.7.11"
-authors = ["Alex Crichton <alex@alexcrichton.com>"]
+authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
-repository = "https://github.com/alexcrichton/git2-rs"
+repository = "https://github.com/rust-lang/git2-rs"
 license = "MIT/Apache-2.0"
 description = "Native bindings to the libgit2 library"
 exclude = [
