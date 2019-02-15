@@ -14,19 +14,6 @@ matrix:
     - rust: beta
     - rust: nightly
 
-    - name: "master doc to gh-pages"
-      rust: nightly
-      script:
-        - cargo doc --no-deps
-        - cargo doc --manifest-path=git2-curl/Cargo.toml --no-deps
-        - cargo doc --manifest-path=libgit2-sys/Cargo.toml --no-deps
-      deploy:
-        provider: script
-        script: curl -LsSf https://git.io/fhJ8n | rustc - && (cd target/doc && ../../rust_out)
-        skip_cleanup: true
-        on:
-          branch: master
-
 script:
   - git submodule update --init
   - cargo test --no-default-features
