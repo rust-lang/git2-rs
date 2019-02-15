@@ -9,6 +9,12 @@ libgit2 bindings for Rust
 git2 = "0.8"
 ```
 
+## Rust version requirements
+
+git2-rs works with stable Rust, and typically works with the most recent prior
+stable release as well. Check [.travis.yml](.travis.yml) to see the oldest
+version of Rust known to pass tests.
+
 ## Version of libgit2
 
 Currently this library requires libgit2 0.25.1. The source for libgit2 is
