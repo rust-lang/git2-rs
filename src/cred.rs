@@ -257,7 +257,7 @@ impl CredentialHelper {
             self.commands.push(cmd[1..].to_string());
         } else if cmd.starts_with('/') || cmd.starts_with('\\') ||
                   cmd[1..].starts_with(":\\") {
-            self.commands.push(format!("\"{}\"", cmd));
+            self.commands.push(cmd.to_string());
         } else {
             self.commands.push(format!("git credential-{}", cmd));
         }
@@ -520,6 +520,26 @@ echo username=c
         assert!(CredentialHelper::new("https://example.com/foo/bar")
                 .config(&cfg)
                 .execute().is_none());
+    }
+
+    #[test]
+    fn credential_helper7() {
+        let td = TempDir::new("git2-rs").unwrap();
+        let path = td.path().join("script");
+        File::create(&path).unwrap().write(br"\
+#!/bin/sh
+echo username=$1
+echo password=$2
+").unwrap();
+        chmod(&path);
+        let cfg = test_cfg! {
+            "credential.helper" => &format!("{} a b", path.display())
+        };
+        let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
+                                      .config(&cfg)
+                                      .execute().unwrap();
+        assert_eq!(u, "a");
+        assert_eq!(p, "b");
     }
 
     #[test]
