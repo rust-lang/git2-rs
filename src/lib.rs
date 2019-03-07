@@ -952,6 +952,7 @@ bitflags! {
 }
 
 impl Status {
+    is_bit_set!(is_current, Status::CURRENT);
     is_bit_set!(is_index_new, Status::INDEX_NEW);
     is_bit_set!(is_index_modified, Status::INDEX_MODIFIED);
     is_bit_set!(is_index_deleted, Status::INDEX_DELETED);
