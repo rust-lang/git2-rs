@@ -1886,6 +1886,9 @@ extern {
     pub fn git_reference_lookup(out: *mut *mut git_reference,
                                 repo: *mut git_repository,
                                 name: *const c_char) -> c_int;
+    pub fn git_reference_dwim(out: *mut *mut git_reference,
+                              repo: *mut git_repository,
+                              refname: *const c_char) -> c_int;
     pub fn git_reference_name(r: *const git_reference) -> *const c_char;
     pub fn git_reference_name_to_id(out: *mut git_oid,
                                     repo: *mut git_repository,

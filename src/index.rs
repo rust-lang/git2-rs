@@ -33,13 +33,13 @@ pub struct IndexConflicts<'index> {
 /// A structure to represent the information returned when a conflict is detected in an index entry
 pub struct IndexConflict {
     /// The ancestor index entry of the two conflicting index entries
-    pub ancestor: IndexEntry,
+    pub ancestor: Option<IndexEntry>,
     /// The index entry originating from the user's copy of the repository.
     /// Its contents conflict with 'their' index entry
-    pub our: IndexEntry,
+    pub our: Option<IndexEntry>,
     /// The index entry originating from the external repository.
     /// Its contents conflict with 'our' index entry
-    pub their: IndexEntry,
+    pub their: Option<IndexEntry>,
 }
 
 /// A callback function to filter index matches.
@@ -588,9 +588,18 @@ impl<'index> Iterator for IndexConflicts<'index> {
                 self.conflict_iter
             ));
             Some(Ok(IndexConflict {
-                ancestor: IndexEntry::from_raw(*ancestor),
-                our: IndexEntry::from_raw(*our),
-                their: IndexEntry::from_raw(*their),
+                ancestor: match ancestor.is_null() {
+                    false => Some(IndexEntry::from_raw(*ancestor)),
+                    true  => None,
+                },
+                our: match our.is_null() {
+                    false => Some(IndexEntry::from_raw(*our)),
+                    true  => None,
+                },
+                their: match their.is_null() {
+                    false => Some(IndexEntry::from_raw(*their)),
+                    true  => None,
+                },
             }))
         }
     }
