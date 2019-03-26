@@ -1222,7 +1222,7 @@ impl Repository {
     /// `Repository::find_reference` with teeth; give the method your reference in
     /// human-readable format e.g. 'master' instead of 'refs/heads/master', and it
     /// will do-what-you-mean, returning the `Reference`.
-    pub fn find_reference_dwim(&self, refname: &str) -> Result<Reference, Error> {
+    pub fn resolve_reference_from_short_name(&self, refname: &str) -> Result<Reference, Error> {
         let refname = try!(CString::new(refname));
         let mut raw = ptr::null_mut();
         unsafe {
