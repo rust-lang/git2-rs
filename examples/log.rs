@@ -49,8 +49,8 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(path));
-    let mut revwalk = try!(repo.revwalk());
+    let repo = Repository::open(path)?;
+    let mut revwalk = repo.revwalk()?;
 
     // Prepare the revwalk based on CLI parameters
     let base = if args.flag_reverse {git2::Sort::REVERSE} else {git2::Sort::NONE};
@@ -63,27 +63,27 @@ fn run(args: &Args) -> Result<(), Error> {
     });
     for commit in &args.arg_commit {
         if commit.starts_with('^') {
-            let obj = try!(repo.revparse_single(&commit[1..]));
-            try!(revwalk.hide(obj.id()));
+            let obj = repo.revparse_single(&commit[1..])?;
+            revwalk.hide(obj.id())?;
             continue
         }
-        let revspec = try!(repo.revparse(commit));
+        let revspec = repo.revparse(commit)?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
-            try!(revwalk.push(revspec.from().unwrap().id()));
+            revwalk.push(revspec.from().unwrap().id())?;
         } else {
             let from = revspec.from().unwrap().id();
             let to = revspec.to().unwrap().id();
-            try!(revwalk.push(to));
+            revwalk.push(to)?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
-                let base = try!(repo.merge_base(from, to));
-                let o = try!(repo.find_object(base, Some(ObjectType::Commit)));
-                try!(revwalk.push(o.id()));
+                let base = repo.merge_base(from, to)?;
+                let o = repo.find_object(base, Some(ObjectType::Commit))?;
+                revwalk.push(o.id())?;
             }
-            try!(revwalk.hide(from));
+            revwalk.hide(from)?;
         }
     }
     if args.arg_commit.is_empty() {
-        try!(revwalk.push_head());
+        revwalk.push_head()?;
     }
 
     // Prepare our diff options and pathspec matcher
@@ -92,7 +92,7 @@ fn run(args: &Args) -> Result<(), Error> {
         diffopts.pathspec(spec);
         diffopts2.pathspec(spec);
     }
-    let ps = try!(Pathspec::new(args.arg_spec.iter()));
+    let ps = Pathspec::new(args.arg_spec.iter())?;
 
     // Filter our revwalk based on the CLI parameters
     macro_rules! filter_try {
@@ -130,26 +130,26 @@ fn run(args: &Args) -> Result<(), Error> {
 
     // print!
     for commit in revwalk {
-        let commit = try!(commit);
+        let commit = commit?;
         print_commit(&commit);
         if !args.flag_patch || commit.parents().len() > 1 { continue }
         let a = if commit.parents().len() == 1 {
-            let parent = try!(commit.parent(0));
-            Some(try!(parent.tree()))
+            let parent = commit.parent(0)?;
+            Some(parent.tree()?)
         } else {
             None
         };
-        let b = try!(commit.tree());
-        let diff = try!(repo.diff_tree_to_tree(a.as_ref(), Some(&b),
-                                               Some(&mut diffopts2)));
-        try!(diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
+        let b = commit.tree()?;
+        let diff = repo.diff_tree_to_tree(a.as_ref(), Some(&b),
+                                               Some(&mut diffopts2))?;
+        diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
             match line.origin() {
                 ' ' | '+' | '-' => print!("{}", line.origin()),
                 _ => {}
             }
             print!("{}", str::from_utf8(line.content()).unwrap());
             true
-        }));
+        })?;
     }
 
     Ok(())
@@ -181,18 +181,18 @@ fn print_commit(commit: &Commit) {
         for id in commit.parent_ids() {
             print!(" {:.8}", id);
         }
-        println!("");
+        println!();
     }
 
     let author = commit.author();
     println!("Author: {}", author);
     print_time(&author.when(), "Date:   ");
-    println!("");
+    println!();
 
     for line in String::from_utf8_lossy(commit.message_bytes()).lines() {
         println!("    {}", line);
     }
-    println!("");
+    println!();
 }
 
 fn print_time(time: &Time, prefix: &str) {
@@ -212,9 +212,9 @@ fn print_time(time: &Time, prefix: &str) {
 
 fn match_with_parent(repo: &Repository, commit: &Commit, parent: &Commit,
                      opts: &mut DiffOptions) -> Result<bool, Error> {
-    let a = try!(parent.tree());
-    let b = try!(commit.tree());
-    let diff = try!(repo.diff_tree_to_tree(Some(&a), Some(&b), Some(opts)));
+    let a = parent.tree()?;
+    let b = commit.tree()?;
+    let diff = repo.diff_tree_to_tree(Some(&a), Some(&b), Some(opts))?;
     Ok(diff.deltas().len() > 0)
 }
 
