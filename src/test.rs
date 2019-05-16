@@ -44,7 +44,7 @@ pub fn realpath(original: &Path) -> io::Result<PathBuf> {
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
     use std::ffi::{CStr, OsString, CString};
     use std::os::unix::prelude::*;
-    use libc::{self, c_char};
+    use libc::c_char;
     extern {
         fn realpath(name: *const c_char, resolved: *mut c_char) -> *mut c_char;
     }
