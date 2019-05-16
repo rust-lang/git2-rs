@@ -58,7 +58,7 @@ fn main() {
 usage: rev-parse [options] <spec>
 
 Options:
-    --git-dir           directory for the git repository to check
+    --git-dir <dir>     directory of the git repository to check
 ";
 
     let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
