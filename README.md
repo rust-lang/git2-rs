@@ -1,5 +1,7 @@
 # git2-rs
 
+[![Build Status](https://dev.azure.com/rust-lang/git2-rs/_apis/build/status/rust-lang.git2-rs?branchName=master)](https://dev.azure.com/rust-lang/git2-rs/_build/latest?definitionId=9&branchName=master)
+
 [Documentation](https://docs.rs/git2)
 
 libgit2 bindings for Rust
