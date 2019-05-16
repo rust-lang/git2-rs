@@ -408,7 +408,7 @@ impl CredentialHelper {
     }
 }
 
-#[cfg(all(test, feature = "unstable"))]
+#[cfg(test)]
 mod test {
     use std::env;
     use std::fs::File;
@@ -467,6 +467,8 @@ mod test {
 
     #[test]
     fn credential_helper4() {
+        if cfg!(windows) { return } // shell scripts don't work on Windows
+
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("script");
         File::create(&path).unwrap().write(br"\
@@ -488,6 +490,7 @@ echo username=c
 
     #[test]
     fn credential_helper5() {
+        if cfg!(windows) { return } // shell scripts don't work on Windows
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("git-credential-script");
         File::create(&path).unwrap().write(br"\
@@ -524,6 +527,7 @@ echo username=c
 
     #[test]
     fn credential_helper7() {
+        if cfg!(windows) { return } // shell scripts don't work on Windows
         let td = TempDir::new("git2-rs").unwrap();
         let path = td.path().join("script");
         File::create(&path).unwrap().write(br"\
@@ -543,6 +547,7 @@ echo password=$2
     }
 
     #[test]
+    #[cfg(feature = "ssh")]
     fn ssh_key_from_memory() {
         let cred = Cred::ssh_key_from_memory(
             "test",
@@ -551,7 +556,7 @@ echo password=$2
                 -----BEGIN RSA PRIVATE KEY-----
                 Proc-Type: 4,ENCRYPTED
                 DEK-Info: AES-128-CBC,818C7722D3B01F2161C2ACF6A5BBAAE8
-                
+
                 3Cht4QB3PcoQ0I55j1B3m2ZzIC/mrh+K5nQeA1Vy2GBTMyM7yqGHqTOv7qLhJscd
                 H+cB0Pm6yCr3lYuNrcKWOCUto+91P7ikyARruHVwyIxKdNx15uNulOzQJHQWNbA4
                 RQHlhjON4atVo2FyJ6n+ujK6QiBg2PR5Vbbw/AtV6zBCFW3PhzDn+qqmHjpBFqj2
@@ -582,7 +587,7 @@ echo password=$2
             Some("test123"));
         assert!(cred.is_ok());
     }
-    
+
 
     #[cfg(unix)]
     fn chmod(path: &Path) {

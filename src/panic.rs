@@ -5,7 +5,6 @@ thread_local!(static LAST_ERROR: RefCell<Option<Box<Any + Send>>> = {
     RefCell::new(None)
 });
 
-#[cfg(feature = "unstable")]
 pub fn wrap<T, F: FnOnce() -> T + ::std::panic::UnwindSafe>(f: F) -> Option<T> {
     use std::panic;
     if LAST_ERROR.with(|slot| slot.borrow().is_some()) {
@@ -20,27 +19,6 @@ pub fn wrap<T, F: FnOnce() -> T + ::std::panic::UnwindSafe>(f: F) -> Option<T> {
             None
         }
     }
-}
-
-#[cfg(not(feature = "unstable"))]
-pub fn wrap<T, F: FnOnce() -> T>(f: F) -> Option<T> {
-    struct Bomb {
-        enabled: bool,
-    }
-    impl Drop for Bomb {
-        fn drop(&mut self) {
-            if !self.enabled {
-                return
-            }
-            panic!("callback has panicked, and continuing to unwind into C \
-                    is not safe, so aborting the process");
-
-        }
-    }
-    let mut bomb = Bomb { enabled: true };
-    let ret = Some(f());
-    bomb.enabled = false;
-    ret
 }
 
 pub fn check() {
