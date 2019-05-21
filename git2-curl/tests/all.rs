@@ -15,6 +15,7 @@ const PORT: u16 = 7848;
 
 fn main() {
     unsafe {
+        libgit2_sys::init();
         git2_curl::register(curl::easy::Easy::new());
     }
 

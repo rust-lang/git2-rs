@@ -23,6 +23,7 @@ civet = "0.11"
 conduit = "0.8"
 conduit-git-http-backend = "0.8"
 tempfile = "3.0"
+libgit2-sys = { path = "../libgit2-sys"}
 
 [[test]]
 name = "all"
