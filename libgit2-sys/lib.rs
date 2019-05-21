@@ -1112,7 +1112,7 @@ pub const GIT_DIFF_SHOW_UNMODIFIED: git_diff_option_t = 1 << 26;
 pub const GIT_DIFF_PATIENCE: git_diff_option_t = 1 << 28;
 pub const GIT_DIFF_MINIMAL: git_diff_option_t = 1 << 29;
 pub const GIT_DIFF_SHOW_BINARY: git_diff_option_t = 1 << 30;
-pub const GIT_DIFF_INDENT_HEURISTIC: git_diff_option_t = 1 << 31;
+pub const GIT_DIFF_INDENT_HEURISTIC: git_diff_option_t = 1 << 18;
 
 #[repr(C)]
 pub struct git_diff_find_options {
