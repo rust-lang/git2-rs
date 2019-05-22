@@ -75,6 +75,7 @@ pub unsafe fn register(handle: Easy) {
     let handle = Arc::new(Mutex::new(handle));
     let handle2 = handle.clone();
     INIT.call_once(move || {
+        libgit2_sys::init();
         git2::transport::register("http", move |remote| {
             factory(remote, handle.clone())
         }).unwrap();

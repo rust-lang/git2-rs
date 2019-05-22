@@ -17,13 +17,13 @@ curl = "0.4"
 url = "1.0"
 log = "0.4"
 git2 = { path = "..", version = "0.8", default-features = false }
+libgit2-sys = { path = "../libgit2-sys", version = "0.7.11" }
 
 [dev-dependencies]
 civet = "0.11"
 conduit = "0.8"
 conduit-git-http-backend = "0.8"
 tempfile = "3.0"
-libgit2-sys = { path = "../libgit2-sys", version = "0.7.11" }
 
 [[test]]
 name = "all"
