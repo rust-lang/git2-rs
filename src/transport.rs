@@ -107,6 +107,7 @@ struct RawSmartSubtransportStream {
 pub unsafe fn register<F>(prefix: &str, factory: F) -> Result<(), Error>
     where F: Fn(&Remote) -> Result<Transport, Error> + Send + Sync + 'static
 {
+    libgit2_sys::init();
     let mut data = Box::new(TransportData {
         factory: Box::new(factory),
     });
