@@ -181,6 +181,7 @@ mod tests {
 
     use tempdir::TempDir;
     use {ObjectType};
+    use super::Error;
     use super::Oid;
 
     #[test]
@@ -189,6 +190,32 @@ mod tests {
         assert!(Oid::from_str("decbf2be529ab6557d5429922251e5ee36519817").is_ok());
         assert!(Oid::from_bytes(b"foo").is_err());
         assert!(Oid::from_bytes(b"00000000000000000000").is_ok());
+    }
+
+    #[test]
+    fn comparisons() -> Result<(), Error> {
+        assert_eq!(Oid::from_str("decbf2b")?, Oid::from_str("decbf2b")?);
+        assert!(Oid::from_str("decbf2b")? <= Oid::from_str("decbf2b")?);
+        assert!(Oid::from_str("decbf2b")? >= Oid::from_str("decbf2b")?);
+        {
+            let o = Oid::from_str("decbf2b")?;
+            assert_eq!(o, o);
+            assert!(o <= o);
+            assert!(o >= o);
+        }
+        assert_eq!(
+            Oid::from_str("decbf2b")?,
+            Oid::from_str("decbf2b000000000000000000000000000000000")?
+        );
+        assert!(
+            Oid::from_bytes(b"00000000000000000000")? < Oid::from_bytes(b"00000000000000000001")?
+        );
+        assert!(Oid::from_bytes(b"00000000000000000000")? < Oid::from_str("decbf2b")?);
+        assert_eq!(
+            Oid::from_bytes(b"00000000000000000000")?,
+            Oid::from_str("3030303030303030303030303030303030303030")?
+        );
+        Ok(())
     }
 
     #[test]
