@@ -1,7 +1,8 @@
+use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};
 use std::iter::IntoIterator;
 use std::path::{Path, PathBuf};
-use libc::{c_char, size_t};
+use libc::{c_char, c_int, size_t};
 
 use {raw, Error};
 
@@ -148,5 +149,13 @@ pub fn into_opt_c_string<S>(opt_s: Option<S>) -> Result<Option<CString>, Error>
     match opt_s {
         None => Ok(None),
         Some(s) => Ok(Some(try!(s.into_c_string()))),
+    }
+}
+
+pub fn c_cmp_to_ordering(cmp: c_int) -> Ordering {
+    match cmp {
+        0 => Ordering::Equal,
+        n if n < 0 => Ordering::Less,
+        _ => Ordering::Greater,
     }
 }

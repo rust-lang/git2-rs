@@ -7,7 +7,7 @@ use libc;
 
 use {raw, Error, ObjectType, IntoCString};
 
-use util::Binding;
+use util::{c_cmp_to_ordering, Binding};
 
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
@@ -156,11 +156,7 @@ impl PartialOrd for Oid {
 
 impl Ord for Oid {
     fn cmp(&self, other: &Oid) -> Ordering {
-        match unsafe { raw::git_oid_cmp(&self.raw, &other.raw) } {
-            0 => Ordering::Equal,
-            n if n < 0 => Ordering::Less,
-            _ => Ordering::Greater,
-        }
+        c_cmp_to_ordering(unsafe { raw::git_oid_cmp(&self.raw, &other.raw) })
     }
 }
 

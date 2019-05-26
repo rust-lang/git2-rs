@@ -7,7 +7,7 @@ use std::str;
 
 use {raw, Error, Oid, Repository, ReferenceType, Object, ObjectType, Blob, Commit, Tree, Tag};
 use object::CastOrPanic;
-use util::Binding;
+use util::{c_cmp_to_ordering, Binding};
 
 struct Refdb<'repo>(&'repo Repository);
 
@@ -246,11 +246,7 @@ impl<'repo> PartialOrd for Reference<'repo> {
 
 impl<'repo> Ord for Reference<'repo> {
     fn cmp(&self, other: &Reference<'repo>) -> Ordering {
-        match unsafe { raw::git_reference_cmp(&*self.raw, &*other.raw) } {
-            0 => Ordering::Equal,
-            n if n < 0 => Ordering::Less,
-            _ => Ordering::Greater,
-        }
+        c_cmp_to_ordering(unsafe { raw::git_reference_cmp(&*self.raw, &*other.raw) })
     }
 }
 

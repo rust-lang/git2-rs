@@ -9,7 +9,7 @@ use std::str;
 use libc::{self, c_int, c_char, c_void};
 
 use {panic, raw, Oid, Repository, Error, Object, ObjectType};
-use util::{Binding, IntoCString};
+use util::{c_cmp_to_ordering, Binding, IntoCString};
 
 /// A structure to represent a git [tree][1]
 ///
@@ -351,11 +351,7 @@ impl<'a> PartialOrd for TreeEntry<'a> {
 }
 impl<'a> Ord for TreeEntry<'a> {
     fn cmp(&self, other: &TreeEntry<'a>) -> Ordering {
-        match unsafe { raw::git_tree_entry_cmp(&*self.raw(), &*other.raw()) } {
-            0 => Ordering::Equal,
-            n if n < 0 => Ordering::Less,
-            _ => Ordering::Greater,
-        }
+        c_cmp_to_ordering(unsafe { raw::git_tree_entry_cmp(&*self.raw(), &*other.raw()) })
     }
 }
 
