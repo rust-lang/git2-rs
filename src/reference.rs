@@ -180,7 +180,7 @@ impl<'repo> Reference<'repo> {
     /// Peel a reference to a commit
     ///
     /// This method recursively peels the reference until it reaches
-    /// a blob.
+    /// a commit.
     pub fn peel_to_commit(&self) -> Result<Commit<'repo>, Error> {
         Ok(try!(self.peel(ObjectType::Commit)).cast_or_panic(ObjectType::Commit))
     }
@@ -188,7 +188,7 @@ impl<'repo> Reference<'repo> {
     /// Peel a reference to a tree
     ///
     /// This method recursively peels the reference until it reaches
-    /// a blob.
+    /// a tree.
     pub fn peel_to_tree(&self) -> Result<Tree<'repo>, Error> {
         Ok(try!(self.peel(ObjectType::Tree)).cast_or_panic(ObjectType::Tree))
     }
