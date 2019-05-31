@@ -4,9 +4,10 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let root = PathBuf::from(env::var_os("DEP_GIT2_ROOT").unwrap());
-
     let mut cfg = ctest::TestGenerator::new();
+    if let Some(root) = env::var_os("DEP_GIT2_ROOT") {
+       cfg.include(PathBuf::from(root).join("include"));
+    }
     cfg.header("git2.h")
        .header("git2/sys/transport.h")
        .header("git2/sys/refs.h")
@@ -15,7 +16,6 @@ fn main() {
        .header("git2/sys/mempack.h")
        .header("git2/sys/repository.h")
        .header("git2/cred_helpers.h")
-       .include(root.join("include"))
        .type_name(|s, _, _| s.to_string());
     cfg.field_name(|_, f| {
         match f {

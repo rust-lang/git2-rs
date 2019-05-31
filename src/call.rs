@@ -110,20 +110,20 @@ mod impls {
         }
     }
 
-    impl Convert<raw::git_otype> for ObjectType {
-        fn convert(&self) -> raw::git_otype {
+    impl Convert<raw::git_object_t> for ObjectType {
+        fn convert(&self) -> raw::git_object_t {
             match *self {
-                ObjectType::Any => raw::GIT_OBJ_ANY,
-                ObjectType::Commit => raw::GIT_OBJ_COMMIT,
-                ObjectType::Tree => raw::GIT_OBJ_TREE,
-                ObjectType::Blob => raw::GIT_OBJ_BLOB,
-                ObjectType::Tag => raw::GIT_OBJ_TAG,
+                ObjectType::Any => raw::GIT_OBJECT_ANY,
+                ObjectType::Commit => raw::GIT_OBJECT_COMMIT,
+                ObjectType::Tree => raw::GIT_OBJECT_TREE,
+                ObjectType::Blob => raw::GIT_OBJECT_BLOB,
+                ObjectType::Tag => raw::GIT_OBJECT_TAG,
             }
         }
     }
 
-    impl Convert<raw::git_otype> for Option<ObjectType> {
-        fn convert(&self) -> raw::git_otype {
+    impl Convert<raw::git_object_t> for Option<ObjectType> {
+        fn convert(&self) -> raw::git_object_t {
             self.unwrap_or(ObjectType::Any).convert()
         }
     }

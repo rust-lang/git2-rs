@@ -5,7 +5,7 @@ authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = "build.rs"
 
 [dependencies]
-libgit2-sys = { path = "../libgit2-sys", features = ['curl', 'https', 'ssh'] }
+libgit2-sys = { path = "../libgit2-sys", features = ['https', 'ssh'] }
 libc = "0.2"
 
 [build-dependencies]

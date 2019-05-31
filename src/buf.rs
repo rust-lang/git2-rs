@@ -68,6 +68,6 @@ impl Binding for Buf {
 
 impl Drop for Buf {
     fn drop(&mut self) {
-        unsafe { raw::git_buf_free(&mut self.raw) }
+        unsafe { raw::git_buf_dispose(&mut self.raw) }
     }
 }

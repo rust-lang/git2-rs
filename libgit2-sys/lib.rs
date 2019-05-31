@@ -190,37 +190,37 @@ git_enum! {
 
 git_enum! {
     pub enum git_error_t {
-        GITERR_NONE = 0,
-        GITERR_NOMEMORY,
-        GITERR_OS,
-        GITERR_INVALID,
-        GITERR_REFERENCE,
-        GITERR_ZLIB,
-        GITERR_REPOSITORY,
-        GITERR_CONFIG,
-        GITERR_REGEX,
-        GITERR_ODB,
-        GITERR_INDEX,
-        GITERR_OBJECT,
-        GITERR_NET,
-        GITERR_TAG,
-        GITERR_TREE,
-        GITERR_INDEXER,
-        GITERR_SSL,
-        GITERR_SUBMODULE,
-        GITERR_THREAD,
-        GITERR_STASH,
-        GITERR_CHECKOUT,
-        GITERR_FETCHHEAD,
-        GITERR_MERGE,
-        GITERR_SSH,
-        GITERR_FILTER,
-        GITERR_REVERT,
-        GITERR_CALLBACK,
-        GITERR_CHERRYPICK,
-        GITERR_DESCRIBE,
-        GITERR_REBASE,
-        GITERR_FILESYSTEM,
+        GIT_ERROR_NONE = 0,
+        GIT_ERROR_NOMEMORY,
+        GIT_ERROR_OS,
+        GIT_ERROR_INVALID,
+        GIT_ERROR_REFERENCE,
+        GIT_ERROR_ZLIB,
+        GIT_ERROR_REPOSITORY,
+        GIT_ERROR_CONFIG,
+        GIT_ERROR_REGEX,
+        GIT_ERROR_ODB,
+        GIT_ERROR_INDEX,
+        GIT_ERROR_OBJECT,
+        GIT_ERROR_NET,
+        GIT_ERROR_TAG,
+        GIT_ERROR_TREE,
+        GIT_ERROR_INDEXER,
+        GIT_ERROR_SSL,
+        GIT_ERROR_SUBMODULE,
+        GIT_ERROR_THREAD,
+        GIT_ERROR_STASH,
+        GIT_ERROR_CHECKOUT,
+        GIT_ERROR_FETCHHEAD,
+        GIT_ERROR_MERGE,
+        GIT_ERROR_SSH,
+        GIT_ERROR_FILTER,
+        GIT_ERROR_REVERT,
+        GIT_ERROR_CALLBACK,
+        GIT_ERROR_CHERRYPICK,
+        GIT_ERROR_DESCRIBE,
+        GIT_ERROR_REBASE,
+        GIT_ERROR_FILESYSTEM,
     }
 }
 
@@ -611,26 +611,24 @@ git_enum! {
 }
 
 git_enum! {
-    pub enum git_otype: c_int {
-        GIT_OBJ_ANY = -2,
-        GIT_OBJ_BAD = -1,
-        GIT_OBJ__EXT1 = 0,
-        GIT_OBJ_COMMIT = 1,
-        GIT_OBJ_TREE = 2,
-        GIT_OBJ_BLOB = 3,
-        GIT_OBJ_TAG = 4,
-        GIT_OBJ__EXT2 = 5,
-        GIT_OBJ_OFS_DELTA = 6,
-        GIT_OBJ_REF_DELTA = 7,
+    pub enum git_object_t: c_int {
+        GIT_OBJECT_ANY = -2,
+        GIT_OBJECT_INVALID = -1,
+        GIT_OBJECT_COMMIT = 1,
+        GIT_OBJECT_TREE = 2,
+        GIT_OBJECT_BLOB = 3,
+        GIT_OBJECT_TAG = 4,
+        GIT_OBJECT_OFS_DELTA = 6,
+        GIT_OBJECT_REF_DELTA = 7,
     }
 }
 
 git_enum! {
-    pub enum git_ref_t {
-        GIT_REF_INVALID = 0,
-        GIT_REF_OID = 1,
-        GIT_REF_SYMBOLIC = 2,
-        GIT_REF_LISTALL = GIT_REF_OID | GIT_REF_SYMBOLIC,
+    pub enum git_reference_t {
+        GIT_REFERENCE_INVALID = 0,
+        GIT_REFERENCE_DIRECT = 1,
+        GIT_REFERENCE_SYMBOLIC = 2,
+        GIT_REFERENCE_ALL = GIT_REFERENCE_DIRECT | GIT_REFERENCE_SYMBOLIC,
     }
 }
 
@@ -713,30 +711,18 @@ pub type git_index_matched_path_cb = extern fn(*const c_char, *const c_char,
                                                *mut c_void) -> c_int;
 
 git_enum! {
-    pub enum git_idxentry_extended_flag_t {
-        GIT_IDXENTRY_INTENT_TO_ADD     = 1 << 13,
-        GIT_IDXENTRY_SKIP_WORKTREE     = 1 << 14,
-        GIT_IDXENTRY_EXTENDED2         = 1 << 15,
+    pub enum git_index_entry_extended_flag_t {
+        GIT_INDEX_ENTRY_INTENT_TO_ADD     = 1 << 13,
+        GIT_INDEX_ENTRY_SKIP_WORKTREE     = 1 << 14,
 
-        GIT_IDXENTRY_UPDATE            = 1 << 0,
-        GIT_IDXENTRY_REMOVE            = 1 << 1,
-        GIT_IDXENTRY_UPTODATE          = 1 << 2,
-        GIT_IDXENTRY_ADDED             = 1 << 3,
-
-        GIT_IDXENTRY_HASHED            = 1 << 4,
-        GIT_IDXENTRY_UNHASHED          = 1 << 5,
-        GIT_IDXENTRY_WT_REMOVE         = 1 << 6,
-        GIT_IDXENTRY_CONFLICTED        = 1 << 7,
-
-        GIT_IDXENTRY_UNPACKED          = 1 << 8,
-        GIT_IDXENTRY_NEW_SKIP_WORKTREE = 1 << 9,
+        GIT_INDEX_ENTRY_UPTODATE          = 1 << 2,
     }
 }
 
 git_enum! {
-    pub enum git_indxentry_flag_t {
-        GIT_IDXENTRY_EXTENDED = 0x4000,
-        GIT_IDXENTRY_VALID    = 0x8000,
+    pub enum git_index_entry_flag_t {
+        GIT_INDEX_ENTRY_EXTENDED = 0x4000,
+        GIT_INDEX_ENTRY_VALID    = 0x8000,
     }
 }
 
@@ -757,9 +743,9 @@ pub struct git_index_entry {
     pub path: *const c_char,
 }
 
-pub const GIT_IDXENTRY_NAMEMASK: u16 = 0xfff;
-pub const GIT_IDXENTRY_STAGEMASK: u16 = 0x3000;
-pub const GIT_IDXENTRY_STAGESHIFT: u16 = 12;
+pub const GIT_INDEX_ENTRY_NAMEMASK: u16 = 0xfff;
+pub const GIT_INDEX_ENTRY_STAGEMASK: u16 = 0x3000;
+pub const GIT_INDEX_ENTRY_STAGESHIFT: u16 = 12;
 
 #[repr(C)]
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -1297,19 +1283,19 @@ pub struct git_odb_backend {
     pub odb: *mut git_odb,
     pub read: extern fn(*mut *mut c_void,
                         *mut size_t,
-                        *mut git_otype,
+                        *mut git_object_t,
                         *mut git_odb_backend,
                         *const git_oid) -> c_int,
 
     pub read_prefix: extern fn(*mut git_oid,
                                *mut *mut c_void,
                                *mut size_t,
-                               *mut git_otype,
+                               *mut git_object_t,
                                *mut git_odb_backend,
                                *const git_oid,
                                size_t) -> c_int,
     pub read_header: extern fn(*mut size_t,
-                               *mut git_otype,
+                               *mut git_object_t,
                                *mut git_odb_backend,
                                *const git_oid) -> c_int,
 
@@ -1317,16 +1303,16 @@ pub struct git_odb_backend {
                          *const git_oid,
                          *const c_void,
                          size_t,
-                         git_otype) -> c_int,
+                         git_object_t) -> c_int,
 
     pub writestream: extern fn(*mut *mut git_odb_stream,
                                *mut git_odb_backend,
                                git_off_t,
-                               git_otype) -> c_int,
+                               git_object_t) -> c_int,
 
     pub readstream: extern fn(*mut *mut git_odb_stream,
                               *mut size_t,
-                              *mut git_otype,
+                              *mut git_object_t,
                               *mut git_odb_backend,
                               *const git_oid) -> c_int,
 
@@ -1697,16 +1683,16 @@ extern {
     pub fn git_object_lookup(dest: *mut *mut git_object,
                              repo: *mut git_repository,
                              id: *const git_oid,
-                             kind: git_otype) -> c_int;
-    pub fn git_object_type(obj: *const git_object) -> git_otype;
+                             kind: git_object_t) -> c_int;
+    pub fn git_object_type(obj: *const git_object) -> git_object_t;
     pub fn git_object_peel(peeled: *mut *mut git_object,
                            object: *const git_object,
-                           target_type: git_otype) -> c_int;
+                           target_type: git_object_t) -> c_int;
     pub fn git_object_short_id(out: *mut git_buf,
                                obj: *const git_object) -> c_int;
-    pub fn git_object_type2string(kind: git_otype) -> *const c_char;
-    pub fn git_object_string2type(s: *const c_char) -> git_otype;
-    pub fn git_object_typeisloose(kind: git_otype) -> c_int;
+    pub fn git_object_type2string(kind: git_object_t) -> *const c_char;
+    pub fn git_object_string2type(s: *const c_char) -> git_object_t;
+    pub fn git_object_typeisloose(kind: git_object_t) -> c_int;
 
     // oid
     pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar);
@@ -1719,10 +1705,10 @@ extern {
     pub fn git_oid_streq(id: *const git_oid, str: *const c_char) -> c_int;
     pub fn git_oid_iszero(id: *const git_oid) -> c_int;
 
-    // giterr
-    pub fn giterr_last() -> *const git_error;
-    pub fn giterr_clear();
-    pub fn giterr_set_str(error_class: c_int, string: *const c_char);
+    // error
+    pub fn git_error_last() -> *const git_error;
+    pub fn git_error_clear();
+    pub fn git_error_set_str(error_class: c_int, string: *const c_char);
 
     // remote
     pub fn git_remote_create(out: *mut *mut git_remote,
@@ -1891,8 +1877,8 @@ extern {
                                     repo: *mut git_repository,
                                     name: *const c_char) -> c_int;
     pub fn git_reference_peel(out: *mut *mut git_object,
-                              r: *mut git_reference,
-                              otype: git_otype) -> c_int;
+                              r: *const git_reference,
+                              otype: git_object_t) -> c_int;
     pub fn git_reference_rename(new_ref: *mut *mut git_reference,
                                 r: *mut git_reference,
                                 new_name: *const c_char,
@@ -1908,7 +1894,7 @@ extern {
                                     r: *mut git_reference,
                                     id: *const git_oid,
                                     log_message: *const c_char) -> c_int;
-    pub fn git_reference_type(r: *const git_reference) -> git_ref_t;
+    pub fn git_reference_type(r: *const git_reference) -> git_reference_t;
     pub fn git_reference_iterator_new(out: *mut *mut git_reference_iterator,
                                       repo: *mut git_repository) -> c_int;
     pub fn git_reference_iterator_glob_new(out: *mut *mut git_reference_iterator,
@@ -2085,7 +2071,7 @@ extern {
     pub fn git_tree_entry_to_object(out: *mut *mut git_object,
                                     repo: *mut git_repository,
                                     entry: *const git_tree_entry) -> c_int;
-    pub fn git_tree_entry_type(entry: *const git_tree_entry) -> git_otype;
+    pub fn git_tree_entry_type(entry: *const git_tree_entry) -> git_object_t;
     pub fn git_tree_entrycount(tree: *const git_tree) -> size_t;
     pub fn git_tree_free(tree: *mut git_tree);
     pub fn git_tree_id(tree: *const git_tree) -> *const git_oid;
@@ -2120,7 +2106,7 @@ extern {
                                  bld: *mut git_treebuilder) -> c_int;
 
     // buf
-    pub fn git_buf_free(buffer: *mut git_buf);
+    pub fn git_buf_dispose(buffer: *mut git_buf);
     pub fn git_buf_grow(buffer: *mut git_buf, target_size: size_t) -> c_int;
     pub fn git_buf_set(buffer: *mut git_buf, data: *const c_void,
                        datalen: size_t) -> c_int;
@@ -2457,7 +2443,7 @@ extern {
     pub fn git_tag_target(target_out: *mut *mut git_object,
                           tag: *const git_tag) -> c_int;
     pub fn git_tag_target_id(tag: *const git_tag) -> *const git_oid;
-    pub fn git_tag_target_type(tag: *const git_tag) -> git_otype;
+    pub fn git_tag_target_type(tag: *const git_tag) -> git_object_t;
 
     // checkout
     pub fn git_checkout_head(repo: *mut git_repository,
@@ -2894,7 +2880,7 @@ extern {
     pub fn git_odb_free(db: *mut git_odb);
     pub fn git_odb_open_rstream(out: *mut *mut git_odb_stream,
                                 len: *mut size_t,
-                                otype: *mut git_otype,
+                                otype: *mut git_object_t,
                                 db: *mut git_odb,
                                 oid: *const git_oid) -> c_int;
     pub fn git_odb_stream_read(stream: *mut git_odb_stream,
@@ -2903,7 +2889,7 @@ extern {
     pub fn git_odb_open_wstream(out: *mut *mut git_odb_stream,
                                 db: *mut git_odb,
                                 size: git_off_t,
-                                obj_type: git_otype) -> c_int;
+                                obj_type: git_object_t) -> c_int;
     pub fn git_odb_stream_write(stream: *mut git_odb_stream,
                                 buffer: *const c_char,
                                 len: size_t) -> c_int;
@@ -2917,7 +2903,7 @@ extern {
                         oid: *const git_oid) -> c_int;
 
     pub fn git_odb_read_header(len_out: *mut size_t,
-                               type_out: *mut git_otype,
+                               type_out: *mut git_object_t,
                                odb: *mut git_odb,
                                oid: *const git_oid) -> c_int;
 
@@ -2925,16 +2911,16 @@ extern {
                          odb: *mut git_odb,
                          data: *const c_void,
                          len: size_t,
-                         otype: git_otype) -> c_int;
+                         otype: git_object_t) -> c_int;
 
     pub fn git_odb_hash(out: *mut git_oid,
                         data: *const c_void,
                         len: size_t,
-                        otype: git_otype) -> c_int;
+                        otype: git_object_t) -> c_int;
 
     pub fn git_odb_hashfile(out: *mut git_oid,
                             path: *const c_char,
-                            otype: git_otype) -> c_int;
+                            otype: git_object_t) -> c_int;
 
     pub fn git_odb_exists_prefix(out: *mut git_oid,
                                  odb: *mut git_odb,
@@ -2948,7 +2934,7 @@ extern {
 
     pub fn git_odb_object_id(obj: *mut git_odb_object) -> *const git_oid;
     pub fn git_odb_object_size(obj: *mut git_odb_object) -> size_t;
-    pub fn git_odb_object_type(obj: *mut git_odb_object) -> git_otype;
+    pub fn git_odb_object_type(obj: *mut git_odb_object) -> git_object_t;
     pub fn git_odb_object_data(obj: *mut git_odb_object) -> *const c_void;
     pub fn git_odb_object_dup(out: *mut *mut git_odb_object,
                               obj: *mut git_odb_object) -> c_int;

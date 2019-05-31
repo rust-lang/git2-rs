@@ -345,8 +345,8 @@ mod tests {
         assert!(!head.is_note());
 
         // HEAD is a symbolic reference but git_repository_head resolves it
-        // so it is a GIT_REF_OID.
-        assert_eq!(head.kind().unwrap(), ReferenceType::Oid);
+        // so it is a GIT_REFERENCE_DIRECT.
+        assert_eq!(head.kind().unwrap(), ReferenceType::Direct);
 
         assert!(head == repo.head().unwrap());
         assert_eq!(head.name(), Some("refs/heads/master"));
@@ -365,7 +365,7 @@ mod tests {
                                       head.target().unwrap(),
                                       false, "test").unwrap();
         assert!(tag1.is_tag());
-        assert_eq!(tag1.kind().unwrap(), ReferenceType::Oid);
+        assert_eq!(tag1.kind().unwrap(), ReferenceType::Direct);
 
         let peeled_commit = tag1.peel(ObjectType::Commit).unwrap();
         assert_eq!(ObjectType::Commit, peeled_commit.kind().unwrap());

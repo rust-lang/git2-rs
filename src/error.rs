@@ -22,7 +22,7 @@ impl Error {
     /// call. This code will later be returned from the `code` function.
     ///
     /// Historically this function returned `Some` or `None` based on the return
-    /// value of `giterr_last` but nowadays it always returns `Some` so it's
+    /// value of `git_error_last` but nowadays it always returns `Some` so it's
     /// safe to unwrap the return value. This API will change in the next major
     /// version.
     pub fn last_error(code: c_int) -> Option<Error> {
@@ -30,20 +30,20 @@ impl Error {
         unsafe {
             // Note that whenever libgit2 returns an error any negative value
             // indicates that an error happened. Auxiliary information is
-            // *usually* in `giterr_last` but unfortunately that's not always
+            // *usually* in `git_error_last` but unfortunately that's not always
             // the case. Sometimes a negative error code is returned from
-            // libgit2 *without* calling `giterr_set` internally to configure
+            // libgit2 *without* calling `git_error_set` internally to configure
             // the error.
             //
             // To handle this case and hopefully provide better error messages
-            // on our end we unconditionally call `giterr_clear` when we're done
+            // on our end we unconditionally call `git_error_clear` when we're done
             // with an error. This is an attempt to clear it as aggressively as
             // possible when we can to ensure that error information from one
             // api invocation doesn't leak over to the next api invocation.
             //
-            // Additionally if `giterr_last` returns null then we returned a
+            // Additionally if `git_error_last` returns null then we returned a
             // canned error out.
-            let ptr = raw::giterr_last();
+            let ptr = raw::git_error_last();
             let err = if ptr.is_null() {
                 let mut error = Error::from_str("an unknown git error occurred");
                 error.code = code;
@@ -51,7 +51,7 @@ impl Error {
             } else {
                 Error::from_raw(code, ptr)
             };
-            raw::giterr_clear();
+            raw::git_error_clear();
             Some(err)
         }
     }
@@ -65,11 +65,11 @@ impl Error {
     /// Creates a new error from the given string as the error.
     ///
     /// The error returned will have the code `GIT_ERROR` and the class
-    /// `GITERR_NONE`.
+    /// `GIT_ERROR_NONE`.
     pub fn from_str(s: &str) -> Error {
         Error {
             code: raw::GIT_ERROR as c_int,
-            klass: raw::GITERR_NONE as c_int,
+            klass: raw::GIT_ERROR_NONE as c_int,
             message: s.to_string(),
         }
     }
@@ -118,37 +118,37 @@ impl Error {
     /// typically not directly actionable.
     pub fn class(&self) -> ErrorClass {
         match self.raw_class() {
-            raw::GITERR_NONE => super::ErrorClass::None,
-            raw::GITERR_NOMEMORY => super::ErrorClass::NoMemory,
-            raw::GITERR_OS => super::ErrorClass::Os,
-            raw::GITERR_INVALID => super::ErrorClass::Invalid,
-            raw::GITERR_REFERENCE => super::ErrorClass::Reference,
-            raw::GITERR_ZLIB => super::ErrorClass::Zlib,
-            raw::GITERR_REPOSITORY => super::ErrorClass::Repository,
-            raw::GITERR_CONFIG => super::ErrorClass::Config,
-            raw::GITERR_REGEX => super::ErrorClass::Regex,
-            raw::GITERR_ODB => super::ErrorClass::Odb,
-            raw::GITERR_INDEX => super::ErrorClass::Index,
-            raw::GITERR_OBJECT => super::ErrorClass::Object,
-            raw::GITERR_NET => super::ErrorClass::Net,
-            raw::GITERR_TAG => super::ErrorClass::Tag,
-            raw::GITERR_TREE => super::ErrorClass::Tree,
-            raw::GITERR_INDEXER => super::ErrorClass::Indexer,
-            raw::GITERR_SSL => super::ErrorClass::Ssl,
-            raw::GITERR_SUBMODULE => super::ErrorClass::Submodule,
-            raw::GITERR_THREAD => super::ErrorClass::Thread,
-            raw::GITERR_STASH => super::ErrorClass::Stash,
-            raw::GITERR_CHECKOUT => super::ErrorClass::Checkout,
-            raw::GITERR_FETCHHEAD => super::ErrorClass::FetchHead,
-            raw::GITERR_MERGE => super::ErrorClass::Merge,
-            raw::GITERR_SSH => super::ErrorClass::Ssh,
-            raw::GITERR_FILTER => super::ErrorClass::Filter,
-            raw::GITERR_REVERT => super::ErrorClass::Revert,
-            raw::GITERR_CALLBACK => super::ErrorClass::Callback,
-            raw::GITERR_CHERRYPICK => super::ErrorClass::CherryPick,
-            raw::GITERR_DESCRIBE => super::ErrorClass::Describe,
-            raw::GITERR_REBASE => super::ErrorClass::Rebase,
-            raw::GITERR_FILESYSTEM => super::ErrorClass::Filesystem,
+            raw::GIT_ERROR_NONE => super::ErrorClass::None,
+            raw::GIT_ERROR_NOMEMORY => super::ErrorClass::NoMemory,
+            raw::GIT_ERROR_OS => super::ErrorClass::Os,
+            raw::GIT_ERROR_INVALID => super::ErrorClass::Invalid,
+            raw::GIT_ERROR_REFERENCE => super::ErrorClass::Reference,
+            raw::GIT_ERROR_ZLIB => super::ErrorClass::Zlib,
+            raw::GIT_ERROR_REPOSITORY => super::ErrorClass::Repository,
+            raw::GIT_ERROR_CONFIG => super::ErrorClass::Config,
+            raw::GIT_ERROR_REGEX => super::ErrorClass::Regex,
+            raw::GIT_ERROR_ODB => super::ErrorClass::Odb,
+            raw::GIT_ERROR_INDEX => super::ErrorClass::Index,
+            raw::GIT_ERROR_OBJECT => super::ErrorClass::Object,
+            raw::GIT_ERROR_NET => super::ErrorClass::Net,
+            raw::GIT_ERROR_TAG => super::ErrorClass::Tag,
+            raw::GIT_ERROR_TREE => super::ErrorClass::Tree,
+            raw::GIT_ERROR_INDEXER => super::ErrorClass::Indexer,
+            raw::GIT_ERROR_SSL => super::ErrorClass::Ssl,
+            raw::GIT_ERROR_SUBMODULE => super::ErrorClass::Submodule,
+            raw::GIT_ERROR_THREAD => super::ErrorClass::Thread,
+            raw::GIT_ERROR_STASH => super::ErrorClass::Stash,
+            raw::GIT_ERROR_CHECKOUT => super::ErrorClass::Checkout,
+            raw::GIT_ERROR_FETCHHEAD => super::ErrorClass::FetchHead,
+            raw::GIT_ERROR_MERGE => super::ErrorClass::Merge,
+            raw::GIT_ERROR_SSH => super::ErrorClass::Ssh,
+            raw::GIT_ERROR_FILTER => super::ErrorClass::Filter,
+            raw::GIT_ERROR_REVERT => super::ErrorClass::Revert,
+            raw::GIT_ERROR_CALLBACK => super::ErrorClass::Callback,
+            raw::GIT_ERROR_CHERRYPICK => super::ErrorClass::CherryPick,
+            raw::GIT_ERROR_DESCRIBE => super::ErrorClass::Describe,
+            raw::GIT_ERROR_REBASE => super::ErrorClass::Rebase,
+            raw::GIT_ERROR_FILESYSTEM => super::ErrorClass::Filesystem,
             _ => super::ErrorClass::None,
         }
     }
@@ -194,41 +194,41 @@ impl Error {
         macro_rules! check( ($($e:ident,)*) => (
             $(if self.klass == raw::$e as c_int { raw::$e }) else *
             else {
-                raw::GITERR_NONE
+                raw::GIT_ERROR_NONE
             }
         ) );
         check!(
-            GITERR_NONE,
-            GITERR_NOMEMORY,
-            GITERR_OS,
-            GITERR_INVALID,
-            GITERR_REFERENCE,
-            GITERR_ZLIB,
-            GITERR_REPOSITORY,
-            GITERR_CONFIG,
-            GITERR_REGEX,
-            GITERR_ODB,
-            GITERR_INDEX,
-            GITERR_OBJECT,
-            GITERR_NET,
-            GITERR_TAG,
-            GITERR_TREE,
-            GITERR_INDEXER,
-            GITERR_SSL,
-            GITERR_SUBMODULE,
-            GITERR_THREAD,
-            GITERR_STASH,
-            GITERR_CHECKOUT,
-            GITERR_FETCHHEAD,
-            GITERR_MERGE,
-            GITERR_SSH,
-            GITERR_FILTER,
-            GITERR_REVERT,
-            GITERR_CALLBACK,
-            GITERR_CHERRYPICK,
-            GITERR_DESCRIBE,
-            GITERR_REBASE,
-            GITERR_FILESYSTEM,
+            GIT_ERROR_NONE,
+            GIT_ERROR_NOMEMORY,
+            GIT_ERROR_OS,
+            GIT_ERROR_INVALID,
+            GIT_ERROR_REFERENCE,
+            GIT_ERROR_ZLIB,
+            GIT_ERROR_REPOSITORY,
+            GIT_ERROR_CONFIG,
+            GIT_ERROR_REGEX,
+            GIT_ERROR_ODB,
+            GIT_ERROR_INDEX,
+            GIT_ERROR_OBJECT,
+            GIT_ERROR_NET,
+            GIT_ERROR_TAG,
+            GIT_ERROR_TREE,
+            GIT_ERROR_INDEXER,
+            GIT_ERROR_SSL,
+            GIT_ERROR_SUBMODULE,
+            GIT_ERROR_THREAD,
+            GIT_ERROR_STASH,
+            GIT_ERROR_CHECKOUT,
+            GIT_ERROR_FETCHHEAD,
+            GIT_ERROR_MERGE,
+            GIT_ERROR_SSH,
+            GIT_ERROR_FILTER,
+            GIT_ERROR_REVERT,
+            GIT_ERROR_CALLBACK,
+            GIT_ERROR_CHERRYPICK,
+            GIT_ERROR_DESCRIBE,
+            GIT_ERROR_REBASE,
+            GIT_ERROR_FILESYSTEM,
         )
     }
 

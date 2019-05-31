@@ -112,12 +112,12 @@ impl Index {
         // libgit2 encodes the length of the path in the lower bits of the
         // `flags` entry, so mask those out and recalculate here to ensure we
         // don't corrupt anything.
-        let mut flags = entry.flags & !raw::GIT_IDXENTRY_NAMEMASK;
+        let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
 
-        if entry.path.len() < raw::GIT_IDXENTRY_NAMEMASK as usize {
+        if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
             flags |= entry.path.len() as u16;
         } else {
-            flags |= raw::GIT_IDXENTRY_NAMEMASK;
+            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
         }
 
         unsafe {
@@ -169,12 +169,12 @@ impl Index {
         // libgit2 encodes the length of the path in the lower bits of the
         // `flags` entry, so mask those out and recalculate here to ensure we
         // don't corrupt anything.
-        let mut flags = entry.flags & !raw::GIT_IDXENTRY_NAMEMASK;
+        let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
 
-        if entry.path.len() < raw::GIT_IDXENTRY_NAMEMASK as usize {
+        if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
             flags |= entry.path.len() as u16;
         } else {
-            flags |= raw::GIT_IDXENTRY_NAMEMASK;
+            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
         }
 
         unsafe {
@@ -608,8 +608,8 @@ impl Binding for IndexEntry {
         // libgit2 encodes the length of the path in the lower bits of `flags`,
         // but if the length exceeds the number of bits then the path is
         // nul-terminated.
-        let mut pathlen = (flags & raw::GIT_IDXENTRY_NAMEMASK) as usize;
-        if pathlen == raw::GIT_IDXENTRY_NAMEMASK as usize {
+        let mut pathlen = (flags & raw::GIT_INDEX_ENTRY_NAMEMASK) as usize;
+        if pathlen == raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
             pathlen = CStr::from_ptr(path).to_bytes().len();
         }
 
