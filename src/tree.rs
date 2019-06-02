@@ -199,7 +199,7 @@ impl<'repo> Tree<'repo> {
     }
 }
 
-type TreeWalkCb<'a, T> = FnMut(&str, &TreeEntry) -> T + 'a;
+type TreeWalkCb<'a, T> = dyn FnMut(&str, &TreeEntry) -> T + 'a;
 
 extern fn treewalk_cb<T: Into<i32>>(root: *const c_char, entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
     match panic::wrap(|| unsafe {

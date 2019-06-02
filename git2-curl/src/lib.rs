@@ -94,7 +94,7 @@ fn factory(remote: &git2::Remote, handle: Arc<Mutex<Easy>>)
 
 impl SmartSubtransport for CurlTransport {
     fn action(&self, url: &str, action: Service)
-              -> Result<Box<SmartSubtransportStream>, Error> {
+              -> Result<Box<dyn SmartSubtransportStream>, Error> {
         let mut base_url = self.base_url.lock().unwrap();
         if base_url.len() == 0 {
             *base_url = url.to_string();
@@ -131,7 +131,7 @@ impl SmartSubtransport for CurlTransport {
 }
 
 impl CurlSubtransport {
-    fn err<E: Into<Box<error::Error+Send+Sync>>>(&self, err: E) -> io::Error {
+    fn err<E: Into<Box<dyn error::Error+Send+Sync>>>(&self, err: E) -> io::Error {
         io::Error::new(io::ErrorKind::Other, err)
     }
 

@@ -26,7 +26,7 @@ pub struct RepoBuilder<'cb> {
 /// Type of callback passed to `RepoBuilder::remote_create`.
 ///
 /// The second and third arguments are the remote's name and the remote's url.
-pub type RemoteCreate<'cb> = for<'a> FnMut(&'a Repository, &str, &str)
+pub type RemoteCreate<'cb> = dyn for<'a> FnMut(&'a Repository, &str, &str)
     -> Result<Remote<'a>, Error> + 'cb;
 
 /// A builder struct for configuring checkouts of a repository.
@@ -50,7 +50,7 @@ pub struct CheckoutBuilder<'cb> {
 ///
 /// The first argument is the path for the notification, the next is the numver
 /// of completed steps so far, and the final is the total number of steps.
-pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
+pub type Progress<'a> = dyn FnMut(Option<&Path>, usize, usize) + 'a;
 
 /// Checkout notifications callback.
 ///
@@ -59,7 +59,7 @@ pub type Progress<'a> = FnMut(Option<&Path>, usize, usize) + 'a;
 ///
 /// The callback must return a bool specifying whether the checkout should
 /// continue.
-pub type Notify<'a> = FnMut(CheckoutNotificationType, Option<&Path>,
+pub type Notify<'a> = dyn FnMut(CheckoutNotificationType, Option<&Path>,
                             Option<DiffFile>, Option<DiffFile>,
                             Option<DiffFile>) -> bool + 'a;
 

@@ -40,7 +40,7 @@ pub trait SmartSubtransport: Send + 'static {
     /// returns a stream which can be read and written from in order to
     /// negotiate the git protocol.
     fn action(&self, url: &str, action: Service)
-              -> Result<Box<SmartSubtransportStream>, Error>;
+              -> Result<Box<dyn SmartSubtransportStream>, Error>;
 
     /// Terminates a connection with the remote.
     ///
@@ -73,7 +73,7 @@ pub trait SmartSubtransportStream: Read + Write + Send + 'static {}
 
 impl<T: Read + Write + Send + 'static> SmartSubtransportStream for T {}
 
-type TransportFactory = Fn(&Remote) -> Result<Transport, Error> + Send + Sync +
+type TransportFactory = dyn Fn(&Remote) -> Result<Transport, Error> + Send + Sync +
                                         'static;
 
 /// Boxed data payload used for registering new transports.
@@ -88,7 +88,7 @@ struct TransportData {
 #[repr(C)]
 struct RawSmartSubtransport {
     raw: raw::git_smart_subtransport,
-    obj: Box<SmartSubtransport>,
+    obj: Box<dyn SmartSubtransport>,
 }
 
 /// Instance of a `git_smart_subtransport_stream`, must use `#[repr(C)]` to
@@ -96,7 +96,7 @@ struct RawSmartSubtransport {
 #[repr(C)]
 struct RawSmartSubtransportStream {
     raw: raw::git_smart_subtransport_stream,
-    obj: Box<SmartSubtransportStream>,
+    obj: Box<dyn SmartSubtransportStream>,
 }
 
 /// Add a custom transport definition, to be used in addition to the built-in
