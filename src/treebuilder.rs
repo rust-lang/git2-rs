@@ -98,7 +98,7 @@ impl<'repo> TreeBuilder<'repo> {
     }
 }
 
-type FilterCb<'a> = FnMut(&TreeEntry) -> bool + 'a;
+type FilterCb<'a> = dyn FnMut(&TreeEntry) -> bool + 'a;
 
 extern fn filter_cb(entry: *const raw::git_tree_entry,
                     payload: *mut c_void) -> c_int {

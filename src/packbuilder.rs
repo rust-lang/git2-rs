@@ -14,8 +14,8 @@ pub enum PackBuilderStage {
     Deltafication,
 }
 
-pub type ProgressCb<'a> = FnMut(PackBuilderStage, u32, u32) -> bool + 'a;
-pub type ForEachCb<'a> = FnMut(&[u8]) -> bool + 'a;
+pub type ProgressCb<'a> = dyn FnMut(PackBuilderStage, u32, u32) -> bool + 'a;
+pub type ForEachCb<'a> = dyn FnMut(&[u8]) -> bool + 'a;
 
 /// A builder for creating a packfile
 pub struct PackBuilder<'repo> {

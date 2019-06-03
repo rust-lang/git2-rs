@@ -102,12 +102,12 @@ pub enum DiffBinaryKind {
     Delta,
 }
 
-type PrintCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+type PrintCb<'a> = dyn FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
 
-pub type FileCb<'a> = FnMut(DiffDelta, f32) -> bool + 'a;
-pub type BinaryCb<'a> = FnMut(DiffDelta, DiffBinary) -> bool + 'a;
-pub type HunkCb<'a> = FnMut(DiffDelta, DiffHunk) -> bool + 'a;
-pub type LineCb<'a> = FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+pub type FileCb<'a> = dyn FnMut(DiffDelta, f32) -> bool + 'a;
+pub type BinaryCb<'a> = dyn FnMut(DiffDelta, DiffBinary) -> bool + 'a;
+pub type HunkCb<'a> = dyn FnMut(DiffDelta, DiffHunk) -> bool + 'a;
+pub type LineCb<'a> = dyn FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
 
 struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
     file: &'a mut FileCb<'b>,

@@ -41,7 +41,7 @@ enum ProgressState {
 /// * `username_from_url` - the username that was embedded in the url, or `None`
 ///                         if it was not included.
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
-pub type Credentials<'a> = FnMut(&str, Option<&str>, CredentialType)
+pub type Credentials<'a> = dyn FnMut(&str, Option<&str>, CredentialType)
                                  -> Result<Cred, Error> + 'a;
 
 /// Callback to be invoked while a transfer is in progress.
@@ -51,15 +51,15 @@ pub type Credentials<'a> = FnMut(&str, Option<&str>, CredentialType)
 /// continue. A return value of `false` will cancel the transfer.
 ///
 /// * `progress` - the progress being made so far.
-pub type TransferProgress<'a> = FnMut(Progress) -> bool + 'a;
+pub type TransferProgress<'a> = dyn FnMut(Progress) -> bool + 'a;
 
 /// Callback for receiving messages delivered by the transport.
 ///
 /// The return value indicates whether the network operation should continue.
-pub type TransportMessage<'a> = FnMut(&[u8]) -> bool + 'a;
+pub type TransportMessage<'a> = dyn FnMut(&[u8]) -> bool + 'a;
 
 /// Callback for whenever a reference is updated locally.
-pub type UpdateTips<'a> = FnMut(&str, Oid, Oid) -> bool + 'a;
+pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 
 /// Callback for a custom certificate check.
 ///
@@ -68,14 +68,14 @@ pub type UpdateTips<'a> = FnMut(&str, Oid, Oid) -> bool + 'a;
 ///
 /// The second argument is the hostname for the connection is passed as the last
 /// argument.
-pub type CertificateCheck<'a> = FnMut(&Cert, &str) -> bool + 'a;
+pub type CertificateCheck<'a> = dyn FnMut(&Cert, &str) -> bool + 'a;
 
 /// Callback for each updated reference on push.
 ///
 /// The first argument here is the `refname` of the reference, and the second is
 /// the status message sent by a server. If the status is `Some` then the update
 /// was rejected by the remote server with a reason why.
-pub type PushUpdateReference<'a> = FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
+pub type PushUpdateReference<'a> = dyn FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
 
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {

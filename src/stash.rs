@@ -9,11 +9,11 @@ use std::mem;
 ///
 /// Return `true` to continue processing, or `false` to
 /// abort the stash application.
-pub type StashApplyProgressCb<'a> = FnMut(StashApplyProgress) -> bool + 'a;
+pub type StashApplyProgressCb<'a> = dyn FnMut(StashApplyProgress) -> bool + 'a;
 
 /// This is a callback function you can provide to iterate over all the
 /// stashed states that will be invoked per entry.
-pub type StashCb<'a> = FnMut(usize, &str, &Oid) -> bool + 'a;
+pub type StashCb<'a> = dyn FnMut(usize, &str, &Oid) -> bool + 'a;
 
 #[allow(unused)]
 /// Stash application options structure

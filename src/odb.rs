@@ -312,7 +312,7 @@ impl<'repo> io::Write for OdbWriter<'repo> {
     fn flush(&mut self) -> io::Result<()> { Ok(()) }
 }
 
-pub type ForeachCb<'a> = FnMut(&Oid) -> bool + 'a;
+pub type ForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
 
 struct ForeachCbData<'a> {
     pub callback: &'a mut ForeachCb<'a>
