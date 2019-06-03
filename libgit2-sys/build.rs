@@ -9,10 +9,13 @@ use std::process::Command;
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
-    let curl = env::var("CARGO_FEATURE_CURL").is_ok();
 
     if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
-        if pkg_config::find_library("libgit2").is_ok() {
+        let mut cfg = pkg_config::Config::new();
+        if let Ok(lib) = cfg.atleast_version("0.28.0").probe("libgit2") {
+            for include in &lib.include_paths {
+                println!("cargo:root={}", include.display());
+            }
             return
         }
     }
@@ -121,21 +124,14 @@ fn main() {
             }
         }
     } else {
-        cfg.file("libgit2/src/hash/hash_generic.c");
+        features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
+        cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
+        cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
+        cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
+        cfg.file("libgit2/src/hash/sha1dc/sha1.c");
+        cfg.file("libgit2/src/hash/sha1dc/ubc_check.c");
     }
 
-    if curl {
-        features.push_str("#define GIT_CURL 1\n");
-        if let Some(path) = env::var_os("DEP_CURL_INCLUDE") {
-            cfg.include(path);
-        }
-        // Handle dllimport/dllexport on windows by making sure that if we built
-        // curl statically (as told to us by the `curl-sys` crate) we define the
-        // correct values for curl's header files.
-        if env::var_os("DEP_CURL_STATIC").is_some() {
-            cfg.define("CURL_STATICLIB", None);
-        }
-    }
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
     }

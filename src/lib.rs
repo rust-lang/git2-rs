@@ -310,7 +310,7 @@ pub enum ObjectType {
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ReferenceType {
     /// A reference which points at an object id.
-    Oid,
+    Direct,
 
     /// A reference which points at another reference.
     Symbolic,
@@ -443,9 +443,9 @@ bitflags! {
     /// Flags for the `flags` field of an IndexEntry.
     pub struct IndexEntryFlag: u16 {
         /// Set when the `extended_flags` field is valid.
-        const EXTENDED = raw::GIT_IDXENTRY_EXTENDED as u16;
+        const EXTENDED = raw::GIT_INDEX_ENTRY_EXTENDED as u16;
         /// "Assume valid" flag
-        const VALID = raw::GIT_IDXENTRY_VALID as u16;
+        const VALID = raw::GIT_INDEX_ENTRY_VALID as u16;
     }
 }
 
@@ -458,51 +458,19 @@ bitflags! {
     /// Flags for the `extended_flags` field of an IndexEntry.
     pub struct IndexEntryExtendedFlag: u16 {
         /// An "intent to add" entry from "git add -N"
-        const INTENT_TO_ADD = raw::GIT_IDXENTRY_INTENT_TO_ADD as u16;
+        const INTENT_TO_ADD = raw::GIT_INDEX_ENTRY_INTENT_TO_ADD as u16;
         /// Skip the associated worktree file, for sparse checkouts
-        const SKIP_WORKTREE = raw::GIT_IDXENTRY_SKIP_WORKTREE as u16;
-        /// Reserved for a future on-disk extended flag
-        const EXTENDED2 = raw::GIT_IDXENTRY_EXTENDED2 as u16;
+        const SKIP_WORKTREE = raw::GIT_INDEX_ENTRY_SKIP_WORKTREE as u16;
 
         #[allow(missing_docs)]
-        const UPDATE = raw::GIT_IDXENTRY_UPDATE as u16;
-        #[allow(missing_docs)]
-        const REMOVE = raw::GIT_IDXENTRY_REMOVE as u16;
-        #[allow(missing_docs)]
-        const UPTODATE = raw::GIT_IDXENTRY_UPTODATE as u16;
-        #[allow(missing_docs)]
-        const ADDED = raw::GIT_IDXENTRY_ADDED as u16;
-
-        #[allow(missing_docs)]
-        const HASHED = raw::GIT_IDXENTRY_HASHED as u16;
-        #[allow(missing_docs)]
-        const UNHASHED = raw::GIT_IDXENTRY_UNHASHED as u16;
-        #[allow(missing_docs)]
-        const WT_REMOVE = raw::GIT_IDXENTRY_WT_REMOVE as u16;
-        #[allow(missing_docs)]
-        const CONFLICTED = raw::GIT_IDXENTRY_CONFLICTED as u16;
-
-        #[allow(missing_docs)]
-        const UNPACKED = raw::GIT_IDXENTRY_UNPACKED as u16;
-        #[allow(missing_docs)]
-        const NEW_SKIP_WORKTREE = raw::GIT_IDXENTRY_NEW_SKIP_WORKTREE as u16;
+        const UPTODATE = raw::GIT_INDEX_ENTRY_UPTODATE as u16;
     }
 }
 
 impl IndexEntryExtendedFlag {
     is_bit_set!(is_intent_to_add, IndexEntryExtendedFlag::INTENT_TO_ADD);
     is_bit_set!(is_skip_worktree, IndexEntryExtendedFlag::SKIP_WORKTREE);
-    is_bit_set!(is_extended2, IndexEntryExtendedFlag::EXTENDED2);
-    is_bit_set!(is_update, IndexEntryExtendedFlag::UPDATE);
-    is_bit_set!(is_remove, IndexEntryExtendedFlag::REMOVE);
     is_bit_set!(is_up_to_date, IndexEntryExtendedFlag::UPTODATE);
-    is_bit_set!(is_added, IndexEntryExtendedFlag::ADDED);
-    is_bit_set!(is_hashed, IndexEntryExtendedFlag::HASHED);
-    is_bit_set!(is_unhashed, IndexEntryExtendedFlag::UNHASHED);
-    is_bit_set!(is_wt_remove, IndexEntryExtendedFlag::WT_REMOVE);
-    is_bit_set!(is_conflicted, IndexEntryExtendedFlag::CONFLICTED);
-    is_bit_set!(is_unpacked, IndexEntryExtendedFlag::UNPACKED);
-    is_bit_set!(is_new_skip_worktree, IndexEntryExtendedFlag::NEW_SKIP_WORKTREE);
 }
 
 bitflags! {
@@ -833,25 +801,25 @@ impl ObjectType {
         }
     }
 
-    /// Determine if the given git_otype is a valid loose object type.
+    /// Determine if the given git_object_t is a valid loose object type.
     pub fn is_loose(&self) -> bool {
         unsafe { (call!(raw::git_object_typeisloose(*self)) == 1) }
     }
 
-    /// Convert a raw git_otype to an ObjectType
-    pub fn from_raw(raw: raw::git_otype) -> Option<ObjectType> {
+    /// Convert a raw git_object_t to an ObjectType
+    pub fn from_raw(raw: raw::git_object_t) -> Option<ObjectType> {
         match raw {
-            raw::GIT_OBJ_ANY => Some(ObjectType::Any),
-            raw::GIT_OBJ_COMMIT => Some(ObjectType::Commit),
-            raw::GIT_OBJ_TREE => Some(ObjectType::Tree),
-            raw::GIT_OBJ_BLOB => Some(ObjectType::Blob),
-            raw::GIT_OBJ_TAG => Some(ObjectType::Tag),
+            raw::GIT_OBJECT_ANY => Some(ObjectType::Any),
+            raw::GIT_OBJECT_COMMIT => Some(ObjectType::Commit),
+            raw::GIT_OBJECT_TREE => Some(ObjectType::Tree),
+            raw::GIT_OBJECT_BLOB => Some(ObjectType::Blob),
+            raw::GIT_OBJECT_TAG => Some(ObjectType::Tag),
             _ => None,
         }
     }
 
     /// Convert this kind into its raw representation
-    pub fn raw(&self) -> raw::git_otype {
+    pub fn raw(&self) -> raw::git_object_t {
         call::convert(self)
     }
 
@@ -872,16 +840,16 @@ impl ReferenceType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         match self {
-            &ReferenceType::Oid => "oid",
+            &ReferenceType::Direct => "direct",
             &ReferenceType::Symbolic => "symbolic",
         }
     }
 
-    /// Convert a raw git_ref_t to a ReferenceType.
-    pub fn from_raw(raw: raw::git_ref_t) -> Option<ReferenceType> {
+    /// Convert a raw git_reference_t to a ReferenceType.
+    pub fn from_raw(raw: raw::git_reference_t) -> Option<ReferenceType> {
         match raw {
-            raw::GIT_REF_OID => Some(ReferenceType::Oid),
-            raw::GIT_REF_SYMBOLIC => Some(ReferenceType::Symbolic),
+            raw::GIT_REFERENCE_DIRECT => Some(ReferenceType::Direct),
+            raw::GIT_REFERENCE_SYMBOLIC => Some(ReferenceType::Symbolic),
             _ => None,
         }
     }

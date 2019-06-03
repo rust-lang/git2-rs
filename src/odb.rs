@@ -52,7 +52,7 @@ impl<'repo> Odb<'repo> {
     pub fn reader(&self, oid: Oid) -> Result<(OdbReader, usize, ObjectType), Error> {
         let mut out = ptr::null_mut();
         let mut size = 0usize;
-        let mut otype: raw::git_otype = ObjectType::Any.raw();
+        let mut otype: raw::git_object_t = ObjectType::Any.raw();
         unsafe {
             try_call!(raw::git_odb_open_rstream(&mut out, &mut size, &mut otype, self.raw, oid.raw()));
             Ok((OdbReader::from_raw(out), size, ObjectType::from_raw(otype).unwrap()))
@@ -103,7 +103,7 @@ impl<'repo> Odb<'repo> {
             try_call!(raw::git_odb_read_header(&mut size
                                                   as *mut size_t,
                                                &mut kind_id
-                                                  as *mut raw::git_otype,
+                                                  as *mut raw::git_object_t,
                                                self.raw,
                                                oid.raw()));
 

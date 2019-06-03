@@ -280,7 +280,7 @@ extern fn credentials_cb(ret: *mut *mut raw::git_cred,
 
             callback(url, username_from_url, cred_type).map_err(|e| {
                 let s = CString::new(e.to_string()).unwrap();
-                raw::giterr_set_str(e.raw_code() as c_int, s.as_ptr());
+                raw::git_error_set_str(e.raw_code() as c_int, s.as_ptr());
                 e.raw_code() as c_int
             })
         });

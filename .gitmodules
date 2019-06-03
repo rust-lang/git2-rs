@@ -1,3 +1,4 @@
 [submodule "libgit2-sys/libgit2"]
 	path = libgit2-sys/libgit2
 	url = https://github.com/libgit2/libgit2
+	branch = maint/v0.28
