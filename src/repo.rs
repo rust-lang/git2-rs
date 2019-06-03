@@ -1218,6 +1218,19 @@ impl Repository {
         }
     }
 
+    /// Lookup a reference to one of the objects in a repository.
+    /// `Repository::find_reference` with teeth; give the method your reference in
+    /// human-readable format e.g. 'master' instead of 'refs/heads/master', and it
+    /// will do-what-you-mean, returning the `Reference`.
+    pub fn resolve_reference_from_short_name(&self, refname: &str) -> Result<Reference, Error> {
+        let refname = try!(CString::new(refname));
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_reference_dwim(&mut raw, self.raw(), refname));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Lookup a reference by name and resolve immediately to OID.
     ///
     /// This function provides a quick way to resolve a reference name straight
