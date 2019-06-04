@@ -41,7 +41,7 @@ fn run(args: &Args) -> Result<(), Error> {
         && args.flag_shared.is_none()
         && args.flag_separate_git_dir.is_none()
     {
-        try!(Repository::init(&path))
+        Repository::init(&path)?
     } else {
         let mut opts = RepositoryInitOptions::new();
         opts.bare(args.flag_bare);
@@ -58,9 +58,9 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if let Some(ref s) = args.flag_shared {
-            opts.mode(try!(parse_shared(s)));
+            opts.mode(parse_shared(s)?);
         }
-        try!(Repository::init_opts(&path, &opts))
+        Repository::init_opts(&path, &opts)?
     };
 
     // Print a message to stdout like "git init" does
@@ -74,7 +74,7 @@ fn run(args: &Args) -> Result<(), Error> {
     }
 
     if args.flag_initial_commit {
-        try!(create_initial_commit(&repo));
+        create_initial_commit(&repo)?;
         println!("Created empty initial commit");
     }
 
@@ -85,27 +85,27 @@ fn run(args: &Args) -> Result<(), Error> {
 /// commit in the repository. This is the helper function that does that.
 fn create_initial_commit(repo: &Repository) -> Result<(), Error> {
     // First use the config to initialize a commit signature for the user.
-    let sig = try!(repo.signature());
+    let sig = repo.signature()?;
 
     // Now let's create an empty tree for this commit
     let tree_id = {
-        let mut index = try!(repo.index());
+        let mut index = repo.index()?;
 
         // Outside of this example, you could call index.add_path()
         // here to put actual files into the index. For our purposes, we'll
         // leave it empty for now.
 
-        try!(index.write_tree())
+        index.write_tree()?
     };
 
-    let tree = try!(repo.find_tree(tree_id));
+    let tree = repo.find_tree(tree_id)?;
 
     // Ready to create the initial commit.
     //
     // Normally creating a commit would involve looking up the current HEAD
     // commit and making that be the parent of the initial commit, but here this
     // is the first commit so there will be no parent.
-    try!(repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[]));
+    repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])?;
 
     Ok(())
 }

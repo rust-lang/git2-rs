@@ -1,9 +1,9 @@
 use std::ffi::CString;
 use std::{marker, mem, ptr, str};
 
-use build::CheckoutBuilder;
-use util::Binding;
-use {raw, Error, Index, MergeOptions, Oid, Signature};
+use crate::build::CheckoutBuilder;
+use crate::util::Binding;
+use crate::{raw, Error, Index, MergeOptions, Oid, Signature};
 
 /// Rebase options
 ///
@@ -157,7 +157,7 @@ impl<'repo> Rebase<'repo> {
         message: Option<&str>,
     ) -> Result<Oid, Error> {
         let mut id: raw::git_oid = unsafe { mem::zeroed() };
-        let message = try!(::opt_cstr(message));
+        let message = crate::opt_cstr(message)?;
         unsafe {
             try_call!(raw::git_rebase_commit(
                 &mut id,
@@ -299,7 +299,7 @@ impl<'rebase> RebaseOperation<'rebase> {
     ///The executable the user has requested be run.  This will only
     /// be populated for operations of type RebaseOperationType::Exec
     pub fn exec(&self) -> Option<&str> {
-        unsafe { str::from_utf8(::opt_bytes(self, (*self.raw).exec).unwrap()).ok() }
+        unsafe { str::from_utf8(crate::opt_bytes(self, (*self.raw).exec).unwrap()).ok() }
     }
 }
 
@@ -318,12 +318,12 @@ impl<'rebase> Binding for RebaseOperation<'rebase> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{RebaseOperationType, RebaseOptions, Signature};
     use std::{fs, path};
-    use {RebaseOperationType, RebaseOptions, Signature};
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head_target = repo.head().unwrap().target().unwrap();
         let tip = repo.find_commit(head_target).unwrap();
         let sig = tip.author();
@@ -366,7 +366,7 @@ mod tests {
 
     #[test]
     fn keeping_original_author_msg() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         let head_target = repo.head().unwrap().target().unwrap();
         let tip = repo.find_commit(head_target).unwrap();
         let sig = Signature::now("testname", "testemail").unwrap();

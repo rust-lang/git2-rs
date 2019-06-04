@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 
 use libc::{c_char, c_int};
 
-use raw;
-use util::Binding;
+use crate::raw;
+use crate::util::Binding;
 
 /// Time in a signature
 #[derive(Copy, Clone, Eq, PartialEq)]

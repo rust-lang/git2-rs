@@ -9,8 +9,8 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use util::Binding;
-use {panic, raw, Error, Remote};
+use crate::util::Binding;
+use crate::{panic, raw, Error, Remote};
 
 /// A transport is a structure which knows how to transfer data to and from a
 /// remote.
@@ -107,11 +107,11 @@ pub unsafe fn register<F>(prefix: &str, factory: F) -> Result<(), Error>
 where
     F: Fn(&Remote) -> Result<Transport, Error> + Send + Sync + 'static,
 {
-    ::init();
+    crate::init();
     let mut data = Box::new(TransportData {
         factory: Box::new(factory),
     });
-    let prefix = try!(CString::new(prefix));
+    let prefix = CString::new(prefix)?;
     let datap = (&mut *data) as *mut TransportData as *mut c_void;
     try_call!(raw::git_transport_register(
         prefix,

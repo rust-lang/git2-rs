@@ -3,8 +3,8 @@ use std::marker;
 use std::ptr;
 use std::slice;
 
-use util::Binding;
-use {panic, raw, Buf, Error, Oid, Repository, Revwalk};
+use crate::util::Binding;
+use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
 
 /// Stages that are reported by the `PackBuilder` progress callback.
 pub enum PackBuilderStage {
@@ -28,7 +28,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Insert a single object. For an optimal pack it's mandatory to insert
     /// objects in recency order, commits followed by trees and blobs.
     pub fn insert_object(&mut self, id: Oid, name: Option<&str>) -> Result<(), Error> {
-        let name = try!(::opt_cstr(name));
+        let name = crate::opt_cstr(name)?;
         unsafe {
             try_call!(raw::git_packbuilder_insert(self.raw, id.raw(), name));
         }
@@ -65,7 +65,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Recursively insert an object and its referenced objects. Insert the
     /// object as well as any object it references.
     pub fn insert_recursive(&mut self, id: Oid, name: Option<&str>) -> Result<(), Error> {
-        let name = try!(::opt_cstr(name));
+        let name = crate::opt_cstr(name)?;
         unsafe {
             try_call!(raw::git_packbuilder_insert_recur(self.raw, id.raw(), name));
         }
@@ -239,9 +239,9 @@ extern "C" fn progress_c(
 
 #[cfg(test)]
 mod tests {
+    use crate::{Buf, Oid, Repository};
     use std::fs::File;
     use std::path::Path;
-    use {Buf, Oid, Repository};
 
     fn commit(repo: &Repository) -> (Oid, Oid) {
         let mut index = t!(repo.index());
@@ -282,13 +282,13 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let _builder = t!(repo.packbuilder());
     }
 
     #[test]
     fn smoke_write_buf() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         t!(builder.write_buf(&mut buf));
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn smoke_foreach() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         let mut buf = Vec::<u8>::new();
         t!(builder.foreach(|bytes| {
@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     fn insert_write_buf() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         let (commit, _tree) = commit(&repo);
@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn insert_tree_write_buf() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         let (_commit, tree) = commit(&repo);
@@ -337,7 +337,7 @@ mod tests {
 
     #[test]
     fn insert_commit_write_buf() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         let (commit, _tree) = commit(&repo);
@@ -353,7 +353,7 @@ mod tests {
     fn progress_callback() {
         let mut progress_called = false;
         {
-            let (_td, repo) = ::test::repo_init();
+            let (_td, repo) = crate::test::repo_init();
             let mut builder = t!(repo.packbuilder());
             let (commit, _tree) = commit(&repo);
             t!(builder.set_progress_callback(|_, _, _| {
@@ -370,7 +370,7 @@ mod tests {
     fn clear_progress_callback() {
         let mut progress_called = false;
         {
-            let (_td, repo) = ::test::repo_init();
+            let (_td, repo) = crate::test::repo_init();
             let mut builder = t!(repo.packbuilder());
             let (commit, _tree) = commit(&repo);
             t!(builder.set_progress_callback(|_, _, _| {

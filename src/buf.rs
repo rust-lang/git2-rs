@@ -3,8 +3,8 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use raw;
-use util::Binding;
+use crate::raw;
+use crate::util::Binding;
 
 /// A structure to wrap an intermediate buffer used by libgit2.
 ///
@@ -23,7 +23,7 @@ impl Default for Buf {
 impl Buf {
     /// Creates a new empty buffer.
     pub fn new() -> Buf {
-        ::init();
+        crate::init();
         unsafe {
             Binding::from_raw(&mut raw::git_buf {
                 ptr: ptr::null_mut(),

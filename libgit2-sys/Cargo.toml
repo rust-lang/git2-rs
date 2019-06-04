@@ -10,6 +10,7 @@ description = "Native bindings to the libgit2 library"
 exclude = [
     "libgit2/tests/*",
 ]
+edition = "2018"
 
 [lib]
 name = "libgit2_sys"

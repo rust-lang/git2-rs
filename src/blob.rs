@@ -3,8 +3,8 @@ use std::marker;
 use std::mem;
 use std::slice;
 
-use util::Binding;
-use {raw, Error, Object, Oid};
+use crate::util::Binding;
+use crate::{raw, Error, Object, Oid};
 
 /// A structure to represent a git [blob][1]
 ///
@@ -60,8 +60,8 @@ impl<'repo> Binding for Blob<'repo> {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Blob<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Blob<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         f.debug_struct("Blob").field("id", &self.id()).finish()
     }
 }
@@ -142,11 +142,11 @@ impl<'repo> io::Write for BlobWriter<'repo> {
 
 #[cfg(test)]
 mod tests {
+    use crate::Repository;
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
     use tempdir::TempDir;
-    use Repository;
 
     #[test]
     fn buffer() {

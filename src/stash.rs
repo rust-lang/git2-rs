@@ -1,9 +1,9 @@
-use build::CheckoutBuilder;
+use crate::build::CheckoutBuilder;
+use crate::util::Binding;
+use crate::{panic, raw, Oid, StashApplyProgress};
 use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::CStr;
 use std::mem;
-use util::Binding;
-use {panic, raw, Oid, StashApplyProgress};
 
 /// Stash application progress notification function.
 ///
@@ -151,12 +151,12 @@ extern "C" fn stash_apply_progress_cb(
 
 #[cfg(test)]
 mod tests {
-    use stash::StashApplyOptions;
+    use crate::stash::StashApplyOptions;
+    use crate::test::repo_init;
+    use crate::{Repository, StashFlags, Status};
     use std::fs;
     use std::io::Write;
     use std::path::Path;
-    use test::repo_init;
-    use {Repository, StashFlags, Status};
 
     fn make_stash<C>(next: C)
     where

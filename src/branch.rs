@@ -3,8 +3,8 @@ use std::marker;
 use std::ptr;
 use std::str;
 
-use util::Binding;
-use {raw, BranchType, Error, Reference, References};
+use crate::util::Binding;
+use crate::{raw, BranchType, Error, Reference, References};
 
 /// A structure to represent a git [branch][1]
 ///
@@ -54,7 +54,7 @@ impl<'repo> Branch<'repo> {
     /// Move/rename an existing local branch reference.
     pub fn rename(&mut self, new_branch_name: &str, force: bool) -> Result<Branch<'repo>, Error> {
         let mut ret = ptr::null_mut();
-        let new_branch_name = try!(CString::new(new_branch_name));
+        let new_branch_name = CString::new(new_branch_name)?;
         unsafe {
             try_call!(raw::git_branch_move(
                 &mut ret,
@@ -78,7 +78,7 @@ impl<'repo> Branch<'repo> {
         let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_branch_name(&mut ret, &*self.get().raw()));
-            Ok(::opt_bytes(self, ret).unwrap())
+            Ok(crate::opt_bytes(self, ret).unwrap())
         }
     }
 
@@ -97,7 +97,7 @@ impl<'repo> Branch<'repo> {
     /// If `None` is specified, then the upstream branch is unset. The name
     /// provided is the name of the branch to set as upstream.
     pub fn set_upstream(&mut self, upstream_name: Option<&str>) -> Result<(), Error> {
-        let upstream_name = try!(::opt_cstr(upstream_name));
+        let upstream_name = crate::opt_cstr(upstream_name)?;
         unsafe {
             try_call!(raw::git_branch_set_upstream(
                 self.get().raw(),
@@ -146,11 +146,11 @@ impl<'repo> Drop for Branches<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use BranchType;
+    use crate::BranchType;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();

@@ -7,9 +7,9 @@ use std::slice;
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 
-use util::{self, Binding};
-use IntoCString;
-use {panic, raw, Error, IndexAddOption, IndexTime, Oid, Repository, Tree};
+use crate::util::{self, Binding};
+use crate::IntoCString;
+use crate::{panic, raw, Error, IndexAddOption, IndexTime, Oid, Repository, Tree};
 
 /// A structure to represent a git [index][1]
 ///
@@ -75,7 +75,7 @@ impl Index {
     /// This index object cannot be read/written to the filesystem, but may be
     /// used to perform in-memory index operations.
     pub fn new() -> Result<Index, Error> {
-        ::init();
+        crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_index_new(&mut raw));
@@ -92,9 +92,9 @@ impl Index {
     /// If you need an index attached to a repository, use the `index()` method
     /// on `Repository`.
     pub fn open(index_path: &Path) -> Result<Index, Error> {
-        ::init();
+        crate::init();
         let mut raw = ptr::null_mut();
-        let index_path = try!(index_path.into_c_string());
+        let index_path = index_path.into_c_string()?;
         unsafe {
             try_call!(raw::git_index_open(&mut raw, index_path));
             Ok(Binding::from_raw(raw))
@@ -107,7 +107,7 @@ impl Index {
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
     pub fn add(&mut self, entry: &IndexEntry) -> Result<(), Error> {
-        let path = try!(CString::new(&entry.path[..]));
+        let path = CString::new(&entry.path[..])?;
 
         // libgit2 encodes the length of the path in the lower bits of the
         // `flags` entry, so mask those out and recalculate here to ensure we
@@ -164,7 +164,7 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn add_frombuffer(&mut self, entry: &IndexEntry, data: &[u8]) -> Result<(), Error> {
-        let path = try!(CString::new(&entry.path[..]));
+        let path = CString::new(&entry.path[..])?;
 
         // libgit2 encodes the length of the path in the lower bits of the
         // `flags` entry, so mask those out and recalculate here to ensure we
@@ -228,7 +228,7 @@ impl Index {
             }
             posix_path.push(comp.as_os_str());
         }
-        let posix_path = try!(posix_path.into_c_string());
+        let posix_path = posix_path.into_c_string()?;
         unsafe {
             try_call!(raw::git_index_add_bypath(self.raw, posix_path));
             Ok(())
@@ -278,7 +278,7 @@ impl Index {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
+        let (_a, _b, raw_strarray) = crate::util::iter2cstrs(pathspecs)?;
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
@@ -338,7 +338,7 @@ impl Index {
 
     /// Get an iterator over the index entries that have conflicts
     pub fn conflicts(&self) -> Result<IndexConflicts, Error> {
-        ::init();
+        crate::init();
         let mut conflict_iter = ptr::null_mut();
         unsafe {
             try_call!(raw::git_index_conflict_iterator_new(
@@ -373,7 +373,7 @@ impl Index {
     ///
     /// Returns `None` if this is an in-memory index.
     pub fn path(&self) -> Option<&Path> {
-        unsafe { ::opt_bytes(self, raw::git_index_path(&*self.raw)).map(util::bytes2path) }
+        unsafe { crate::opt_bytes(self, raw::git_index_path(&*self.raw)).map(util::bytes2path) }
     }
 
     /// Update the contents of an existing index object in memory by reading
@@ -406,7 +406,7 @@ impl Index {
 
     /// Remove an entry from the index
     pub fn remove(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_index_remove(self.raw, path, stage as c_int));
         }
@@ -422,7 +422,7 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn remove_path(&mut self, path: &Path) -> Result<(), Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_index_remove_bypath(self.raw, path));
         }
@@ -431,7 +431,7 @@ impl Index {
 
     /// Remove all entries from the index under a given directory.
     pub fn remove_dir(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_index_remove_directory(
                 self.raw,
@@ -456,7 +456,7 @@ impl Index {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
+        let (_a, _b, raw_strarray) = crate::util::iter2cstrs(pathspecs)?;
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
@@ -494,7 +494,7 @@ impl Index {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, raw_strarray) = try!(::util::iter2cstrs(pathspecs));
+        let (_a, _b, raw_strarray) = crate::util::iter2cstrs(pathspecs)?;
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
@@ -703,7 +703,7 @@ mod tests {
     use std::path::Path;
     use tempdir::TempDir;
 
-    use {Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
+    use crate::{Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
 
     #[test]
     fn smoke() {
@@ -718,7 +718,7 @@ mod tests {
 
     #[test]
     fn smoke_from_repo() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut index = repo.index().unwrap();
         assert_eq!(
             index.path().map(|s| s.to_path_buf()),
@@ -735,7 +735,7 @@ mod tests {
 
     #[test]
     fn add_all() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut index = repo.index().unwrap();
 
         let root = repo.path().parent().unwrap();
@@ -745,7 +745,7 @@ mod tests {
         index
             .add_all(
                 ["foo"].iter(),
-                ::IndexAddOption::DEFAULT,
+                crate::IndexAddOption::DEFAULT,
                 Some(&mut |a: &Path, b: &[u8]| {
                     assert!(!called);
                     called = true;
@@ -775,7 +775,7 @@ mod tests {
 
     #[test]
     fn smoke_add() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut index = repo.index().unwrap();
 
         let root = repo.path().parent().unwrap();
@@ -798,7 +798,7 @@ mod tests {
         repo.reset(&obj, ResetType::Hard, None).unwrap();
 
         let td2 = TempDir::new("git").unwrap();
-        let url = ::test::path2url(&root);
+        let url = crate::test::path2url(&root);
         let repo = Repository::clone(&url, td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None).unwrap();
@@ -819,7 +819,7 @@ mod tests {
 
     #[test]
     fn add_frombuffer_then_read() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut index = repo.index().unwrap();
 
         let mut e = entry();

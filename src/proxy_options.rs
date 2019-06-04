@@ -2,8 +2,8 @@ use std::ffi::CString;
 use std::marker;
 use std::ptr;
 
-use raw;
-use util::Binding;
+use crate::raw;
+use crate::util::Binding;
 
 /// Options which can be specified to various fetch operations.
 #[derive(Default)]

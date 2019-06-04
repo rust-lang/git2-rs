@@ -1,19 +1,19 @@
 #![macro_use]
 use libc;
 
-use Error;
+use crate::Error;
 
 macro_rules! call {
     (raw::$p:ident ($($e:expr),*)) => (
-        raw::$p($(::call::convert(&$e)),*)
+        raw::$p($(crate::call::convert(&$e)),*)
     )
 }
 
 macro_rules! try_call {
     (raw::$p:ident ($($e:expr),*)) => ({
-        match ::call::try(raw::$p($(::call::convert(&$e)),*)) {
+        match crate::call::c_try(raw::$p($(crate::call::convert(&$e)),*)) {
             Ok(o) => o,
-            Err(e) => { ::panic::check(); return Err(e) }
+            Err(e) => { crate::panic::check(); return Err(e) }
         }
     })
 }
@@ -23,7 +23,7 @@ macro_rules! try_call_iter {
         match call!($($f)*) {
             0 => {}
             raw::GIT_ITEROVER => return None,
-            e => return Some(Err(::call::last_error(e)))
+            e => return Some(Err(crate::call::last_error(e)))
         }
     }
 }
@@ -37,7 +37,7 @@ pub fn convert<T, U: Convert<T>>(u: &U) -> T {
     u.convert()
 }
 
-pub fn try(ret: libc::c_int) -> Result<libc::c_int, Error> {
+pub fn c_try(ret: libc::c_int) -> Result<libc::c_int, Error> {
     match ret {
         n if n < 0 => Err(last_error(n)),
         n => Ok(n),
@@ -56,9 +56,9 @@ mod impls {
 
     use libc;
 
-    use call::Convert;
-    use {raw, BranchType, ConfigLevel, Direction, ObjectType, ResetType};
-    use {AutotagOption, DiffFormat, FetchPrune, FileFavor, SubmoduleIgnore};
+    use crate::call::Convert;
+    use crate::{raw, BranchType, ConfigLevel, Direction, ObjectType, ResetType};
+    use crate::{AutotagOption, DiffFormat, FetchPrune, FileFavor, SubmoduleIgnore};
 
     impl<T: Copy> Convert<T> for T {
         fn convert(&self) -> T {

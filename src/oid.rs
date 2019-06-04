@@ -5,9 +5,9 @@ use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::str;
 
-use {raw, Error, IntoCString, ObjectType};
+use crate::{raw, Error, IntoCString, ObjectType};
 
-use util::{c_cmp_to_ordering, Binding};
+use crate::util::{c_cmp_to_ordering, Binding};
 
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
@@ -23,7 +23,7 @@ impl Oid {
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
-        ::init();
+        crate::init();
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -41,7 +41,7 @@ impl Oid {
     ///
     /// If the array given is not 20 bytes in length, an error is returned.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
-        ::init();
+        crate::init();
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -65,7 +65,7 @@ impl Oid {
     /// an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
     pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
-        ::init();
+        crate::init();
 
         let mut out = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -86,9 +86,9 @@ impl Oid {
     /// and returns an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
     pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
-        ::init();
+        crate::init();
 
-        let rpath = try!(path.as_ref().into_c_string());
+        let rpath = path.as_ref().into_c_string()?;
 
         let mut out = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -196,8 +196,8 @@ mod tests {
 
     use super::Error;
     use super::Oid;
+    use crate::ObjectType;
     use tempdir::TempDir;
-    use ObjectType;
 
     #[test]
     fn conversions() {

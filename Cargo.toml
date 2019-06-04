@@ -14,6 +14,7 @@ both threadsafe and memory safe and allows both reading and writing git
 repositories.
 """
 categories = ["api-bindings"]
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "rust-lang/git2-rs" }

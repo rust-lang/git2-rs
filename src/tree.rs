@@ -8,8 +8,8 @@ use std::path::Path;
 use std::ptr;
 use std::str;
 
-use util::{c_cmp_to_ordering, Binding, IntoCString};
-use {panic, raw, Error, Object, ObjectType, Oid, Repository};
+use crate::util::{c_cmp_to_ordering, Binding, IntoCString};
+use crate::{panic, raw, Error, Object, ObjectType, Oid, Repository};
 
 /// A structure to represent a git [tree][1]
 ///
@@ -179,7 +179,7 @@ impl<'repo> Tree<'repo> {
     /// Retrieve a tree entry contained in a tree or in any of its subtrees,
     /// given its relative path.
     pub fn get_path(&self, path: &Path) -> Result<TreeEntry<'static>, Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tree_entry_bypath(&mut ret, &*self.raw(), path));
@@ -234,8 +234,8 @@ impl<'repo> Binding for Tree<'repo> {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Tree<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Tree<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         f.debug_struct("Tree").field("id", &self.id()).finish()
     }
 }
@@ -287,7 +287,7 @@ impl<'tree> TreeEntry<'tree> {
 
     /// Get the filename of a tree entry
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_tree_entry_name(&*self.raw())).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_tree_entry_name(&*self.raw())).unwrap() }
     }
 
     /// Convert a tree entry to the object it points to.
@@ -399,11 +399,11 @@ impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 #[cfg(test)]
 mod tests {
     use super::{TreeWalkMode, TreeWalkResult};
+    use crate::{Object, ObjectType, Repository, Tree, TreeEntry};
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
     use tempdir::TempDir;
-    use {Object, ObjectType, Repository, Tree, TreeEntry};
 
     pub struct TestTreeIter<'a> {
         entries: Vec<TreeEntry<'a>>,
@@ -452,7 +452,7 @@ mod tests {
 
     #[test]
     fn smoke_tree_iter() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
 
         setup_repo(&td, &repo);
 
@@ -495,7 +495,7 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
 
         setup_repo(&td, &repo);
 
@@ -529,7 +529,7 @@ mod tests {
 
     #[test]
     fn tree_walk() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
 
         setup_repo(&td, &repo);
 

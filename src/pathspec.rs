@@ -5,8 +5,8 @@ use std::ops::Range;
 use std::path::Path;
 use std::ptr;
 
-use util::Binding;
-use {raw, Diff, DiffDelta, Error, Index, IntoCString, PathspecFlags, Repository, Tree};
+use crate::util::Binding;
+use crate::{raw, Diff, DiffDelta, Error, Index, IntoCString, PathspecFlags, Repository, Tree};
 
 /// Structure representing a compiled pathspec used for matching against various
 /// structures.
@@ -45,7 +45,7 @@ impl Pathspec {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(specs));
+        let (_a, _b, arr) = crate::util::iter2cstrs(specs)?;
         unsafe {
             let mut ret = ptr::null_mut();
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
@@ -210,7 +210,7 @@ impl<'ps> PathspecMatchList<'ps> {
     pub fn entry(&self, i: usize) -> Option<&[u8]> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_entry(&*self.raw, i as size_t);
-            ::opt_bytes(self, ptr)
+            crate::opt_bytes(self, ptr)
         }
     }
 
@@ -257,7 +257,7 @@ impl<'ps> PathspecMatchList<'ps> {
     pub fn failed_entry(&self, i: usize) -> Option<&[u8]> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_failed_entry(&*self.raw, i as size_t);
-            ::opt_bytes(self, ptr)
+            crate::opt_bytes(self, ptr)
         }
     }
 }
@@ -335,9 +335,9 @@ impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 #[cfg(test)]
 mod tests {
     use super::Pathspec;
+    use crate::PathspecFlags;
     use std::fs::File;
     use std::path::Path;
-    use PathspecFlags;
 
     #[test]
     fn smoke() {
@@ -347,7 +347,7 @@ mod tests {
         assert!(!ps.matches_path(Path::new("b"), PathspecFlags::DEFAULT));
         assert!(!ps.matches_path(Path::new("ab/c"), PathspecFlags::DEFAULT));
 
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         let list = ps.match_workdir(&repo, PathspecFlags::DEFAULT).unwrap();
         assert_eq!(list.entries().len(), 0);
         assert_eq!(list.diff_entries().len(), 0);
@@ -356,7 +356,7 @@ mod tests {
         File::create(&td.path().join("a")).unwrap();
 
         let list = ps
-            .match_workdir(&repo, ::PathspecFlags::FIND_FAILURES)
+            .match_workdir(&repo, crate::PathspecFlags::FIND_FAILURES)
             .unwrap();
         assert_eq!(list.entries().len(), 1);
         assert_eq!(list.entries().next(), Some("a".as_bytes()));

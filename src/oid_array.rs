@@ -2,11 +2,11 @@
 
 use std::ops::Deref;
 
-use oid::Oid;
-use raw;
+use crate::oid::Oid;
+use crate::raw;
+use crate::util::Binding;
 use std::mem;
 use std::slice;
-use util::Binding;
 
 /// An oid array structure used by libgit2
 ///
@@ -39,8 +39,8 @@ impl Binding for OidArray {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for OidArray {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for OidArray {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         f.debug_tuple("OidArray").field(&self.deref()).finish()
     }
 }

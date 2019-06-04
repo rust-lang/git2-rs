@@ -4,7 +4,7 @@ use std::ffi::{CString, OsStr, OsString};
 use std::iter::IntoIterator;
 use std::path::{Path, PathBuf};
 
-use {raw, Error};
+use crate::{raw, Error};
 
 #[doc(hidden)]
 pub trait IsNull {
@@ -48,7 +48,10 @@ where
     T: IntoCString,
     I: IntoIterator<Item = T>,
 {
-    let cstrs: Vec<_> = try!(iter.into_iter().map(|i| i.into_c_string()).collect());
+    let cstrs = iter
+        .into_iter()
+        .map(|i| i.into_c_string())
+        .collect::<Result<Vec<CString>, _>>()?;
     let ptrs = cstrs.iter().map(|i| i.as_ptr()).collect::<Vec<_>>();
     let raw = raw::git_strarray {
         strings: ptrs.as_ptr() as *mut _,
@@ -85,13 +88,13 @@ impl<'a, T: IntoCString + Clone> IntoCString for &'a T {
 
 impl<'a> IntoCString for &'a str {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self)))
+        Ok(CString::new(self)?)
     }
 }
 
 impl IntoCString for String {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self.into_bytes())))
+        Ok(CString::new(self.into_bytes())?)
     }
 }
 
@@ -126,7 +129,7 @@ impl IntoCString for OsString {
     fn into_c_string(self) -> Result<CString, Error> {
         use std::os::unix::prelude::*;
         let s: &OsStr = self.as_ref();
-        Ok(try!(CString::new(s.as_bytes())))
+        Ok(CString::new(s.as_bytes())?)
     }
     #[cfg(windows)]
     fn into_c_string(self) -> Result<CString, Error> {
@@ -142,13 +145,13 @@ impl IntoCString for OsString {
 
 impl<'a> IntoCString for &'a [u8] {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self)))
+        Ok(CString::new(self)?)
     }
 }
 
 impl IntoCString for Vec<u8> {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self)))
+        Ok(CString::new(self)?)
     }
 }
 
@@ -158,7 +161,7 @@ where
 {
     match opt_s {
         None => Ok(None),
-        Some(s) => Ok(Some(try!(s.into_c_string()))),
+        Some(s) => Ok(Some(s.into_c_string()?)),
     }
 }
 

@@ -2,8 +2,8 @@ use std::ffi::CString;
 
 use libc::{c_char, c_int};
 
-use util::Binding;
-use {raw, Buf, Error, IntoCString};
+use crate::util::Binding;
+use crate::{raw, Buf, Error, IntoCString};
 
 /// Clean up a message, removing extraneous whitespace, and ensure that the
 /// message ends with a newline. If `comment_char` is `Some`, also remove comment
@@ -12,7 +12,7 @@ pub fn message_prettify<T: IntoCString>(
     message: T,
     comment_char: Option<u8>,
 ) -> Result<String, Error> {
-    _message_prettify(try!(message.into_c_string()), comment_char)
+    _message_prettify(message.into_c_string()?, comment_char)
 }
 
 fn _message_prettify(message: CString, comment_char: Option<u8>) -> Result<String, Error> {
@@ -33,7 +33,7 @@ pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 
 #[cfg(test)]
 mod tests {
-    use {message_prettify, DEFAULT_COMMENT_CHAR};
+    use crate::{message_prettify, DEFAULT_COMMENT_CHAR};
 
     #[test]
     fn prettify() {

@@ -2,9 +2,9 @@ use libc::{c_int, c_void};
 use std::path::Path;
 use std::ptr;
 
-use diff::{print_cb, LineCb};
-use util::{into_opt_c_string, Binding};
-use {raw, Blob, Buf, Diff, DiffDelta, DiffHunk, DiffLine, DiffOptions, Error};
+use crate::diff::{print_cb, LineCb};
+use crate::util::{into_opt_c_string, Binding};
+use crate::{raw, Blob, Buf, Diff, DiffDelta, DiffHunk, DiffLine, DiffOptions, Error};
 
 /// A structure representing the text changes in a single diff delta.
 ///
@@ -52,8 +52,8 @@ impl Patch {
         opts: Option<&mut DiffOptions>,
     ) -> Result<Patch, Error> {
         let mut ret = ptr::null_mut();
-        let old_path = try!(into_opt_c_string(old_path));
-        let new_path = try!(into_opt_c_string(new_path));
+        let old_path = into_opt_c_string(old_path)?;
+        let new_path = into_opt_c_string(new_path)?;
         unsafe {
             try_call!(raw::git_patch_from_blobs(
                 &mut ret,
@@ -76,8 +76,8 @@ impl Patch {
         opts: Option<&mut DiffOptions>,
     ) -> Result<Patch, Error> {
         let mut ret = ptr::null_mut();
-        let old_path = try!(into_opt_c_string(old_path));
-        let new_path = try!(into_opt_c_string(new_path));
+        let old_path = into_opt_c_string(old_path)?;
+        let new_path = into_opt_c_string(new_path)?;
         unsafe {
             try_call!(raw::git_patch_from_blob_and_buffer(
                 &mut ret,
@@ -101,8 +101,8 @@ impl Patch {
         opts: Option<&mut DiffOptions>,
     ) -> Result<Patch, Error> {
         let mut ret = ptr::null_mut();
-        let old_path = try!(into_opt_c_string(old_path));
-        let new_path = try!(into_opt_c_string(new_path));
+        let old_path = into_opt_c_string(old_path)?;
+        let new_path = into_opt_c_string(new_path)?;
         unsafe {
             try_call!(raw::git_patch_from_buffers(
                 &mut ret,

@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::ptr;
 use std::str;
 
-use util::{self, Binding};
-use {raw, Buf, ConfigLevel, Error, IntoCString};
+use crate::util::{self, Binding};
+use crate::{raw, Buf, ConfigLevel, Error, IntoCString};
 
 /// A structure representing a git configuration key/value store
 pub struct Config {
@@ -34,7 +34,7 @@ impl Config {
     /// This object is empty, so you have to add a file to it before you can do
     /// anything with it.
     pub fn new() -> Result<Config, Error> {
-        ::init();
+        crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_new(&mut raw));
@@ -44,9 +44,9 @@ impl Config {
 
     /// Create a new config instance containing a single on-disk file
     pub fn open(path: &Path) -> Result<Config, Error> {
-        ::init();
+        crate::init();
         let mut raw = ptr::null_mut();
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_config_open_ondisk(&mut raw, path));
             Ok(Binding::from_raw(raw))
@@ -59,7 +59,7 @@ impl Config {
     /// files and opens them into a single prioritized config object that can
     /// be used when accessing default config data outside a repository.
     pub fn open_default() -> Result<Config, Error> {
-        ::init();
+        crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_open_default(&mut raw));
@@ -79,7 +79,7 @@ impl Config {
     /// This method will not guess the path to the xdg compatible config file
     /// (`.config/git/config`).
     pub fn find_global() -> Result<PathBuf, Error> {
-        ::init();
+        crate::init();
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_config_find_global(buf.raw()));
@@ -91,7 +91,7 @@ impl Config {
     ///
     /// If /etc/gitconfig doesn't exist, it will look for %PROGRAMFILES%
     pub fn find_system() -> Result<PathBuf, Error> {
-        ::init();
+        crate::init();
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_config_find_system(buf.raw()));
@@ -104,7 +104,7 @@ impl Config {
     /// The xdg compatible configuration file is usually located in
     /// `$HOME/.config/git/config`.
     pub fn find_xdg() -> Result<PathBuf, Error> {
-        ::init();
+        crate::init();
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_config_find_xdg(buf.raw()));
@@ -122,7 +122,7 @@ impl Config {
     /// file instances in order (instances with a higher priority level will be
     /// accessed first).
     pub fn add_file(&mut self, path: &Path, level: ConfigLevel, force: bool) -> Result<(), Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_config_add_file_ondisk(
                 self.raw,
@@ -138,7 +138,7 @@ impl Config {
     /// Delete a config variable from the config file with the highest level
     /// (usually the local one).
     pub fn remove(&mut self, name: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_delete_entry(self.raw, name));
             Ok(())
@@ -148,8 +148,8 @@ impl Config {
     /// Remove multivar config variables in the config file with the highest level (usually the
     /// local one).
     pub fn remove_multivar(&mut self, name: &str, regexp: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let regexp = try!(CString::new(regexp));
+        let name = CString::new(name)?;
+        let regexp = CString::new(regexp)?;
         unsafe {
             try_call!(raw::git_config_delete_multivar(self.raw, name, regexp));
         }
@@ -163,7 +163,7 @@ impl Config {
     /// the variable will be returned here.
     pub fn get_bool(&self, name: &str) -> Result<bool, Error> {
         let mut out = 0 as libc::c_int;
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw, name));
         }
@@ -177,7 +177,7 @@ impl Config {
     /// the variable will be returned here.
     pub fn get_i32(&self, name: &str) -> Result<i32, Error> {
         let mut out = 0i32;
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_int32(&mut out, &*self.raw, name));
         }
@@ -191,7 +191,7 @@ impl Config {
     /// the variable will be returned here.
     pub fn get_i64(&self, name: &str) -> Result<i64, Error> {
         let mut out = 0i64;
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_int64(&mut out, &*self.raw, name));
         }
@@ -203,7 +203,7 @@ impl Config {
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
     pub fn get_str(&self, name: &str) -> Result<&str, Error> {
-        str::from_utf8(try!(self.get_bytes(name)))
+        str::from_utf8(self.get_bytes(name)?)
             .map_err(|_| Error::from_str("configuration value is not valid utf8"))
     }
 
@@ -212,10 +212,10 @@ impl Config {
     /// This method will return an error if this `Config` is not a snapshot.
     pub fn get_bytes(&self, name: &str) -> Result<&[u8], Error> {
         let mut ret = ptr::null();
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_string(&mut ret, &*self.raw, name));
-            Ok(::opt_bytes(self, ret).unwrap())
+            Ok(crate::opt_bytes(self, ret).unwrap())
         }
     }
 
@@ -224,7 +224,7 @@ impl Config {
     /// An error will be returned if the config value is not valid utf-8.
     pub fn get_string(&self, name: &str) -> Result<String, Error> {
         let ret = Buf::new();
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_string_buf(ret.raw(), self.raw, name));
         }
@@ -236,17 +236,17 @@ impl Config {
     /// Get the value of a path config variable as an owned .
     pub fn get_path(&self, name: &str) -> Result<PathBuf, Error> {
         let ret = Buf::new();
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_path(ret.raw(), self.raw, name));
         }
-        Ok(::util::bytes2path(&ret).to_path_buf())
+        Ok(crate::util::bytes2path(&ret).to_path_buf())
     }
 
     /// Get the ConfigEntry for a config variable.
     pub fn get_entry(&self, name: &str) -> Result<ConfigEntry, Error> {
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_entry(&mut ret, self.raw, name));
             Ok(Binding::from_raw(ret))
@@ -276,7 +276,7 @@ impl Config {
         unsafe {
             match glob {
                 Some(s) => {
-                    let s = try!(CString::new(s));
+                    let s = CString::new(s)?;
                     try_call!(raw::git_config_iterator_glob_new(&mut ret, &*self.raw, s));
                 }
                 None => {
@@ -316,7 +316,7 @@ impl Config {
     /// Set the value of a boolean config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_bool(&mut self, name: &str, value: bool) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_set_bool(self.raw, name, value));
         }
@@ -326,7 +326,7 @@ impl Config {
     /// Set the value of an integer config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_i32(&mut self, name: &str, value: i32) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_set_int32(self.raw, name, value));
         }
@@ -336,7 +336,7 @@ impl Config {
     /// Set the value of an integer config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_i64(&mut self, name: &str, value: i64) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_set_int64(self.raw, name, value));
         }
@@ -346,9 +346,9 @@ impl Config {
     /// Set the value of an multivar config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_multivar(&mut self, name: &str, regexp: &str, value: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let regexp = try!(CString::new(regexp));
-        let value = try!(CString::new(value));
+        let name = CString::new(name)?;
+        let regexp = CString::new(regexp)?;
+        let value = CString::new(value)?;
         unsafe {
             try_call!(raw::git_config_set_multivar(self.raw, name, regexp, value));
         }
@@ -358,8 +358,8 @@ impl Config {
     /// Set the value of a string config variable in the config file with the
     /// highest level (usually the local one).
     pub fn set_str(&mut self, name: &str, value: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let value = try!(CString::new(value));
+        let name = CString::new(name)?;
+        let value = CString::new(value)?;
         unsafe {
             try_call!(raw::git_config_set_string(self.raw, name, value));
         }
@@ -383,9 +383,9 @@ impl Config {
     /// Interprets "true", "yes", "on", 1, or any non-zero number as true.
     /// Interprets "false", "no", "off", 0, or an empty string as false.
     pub fn parse_bool<S: IntoCString>(s: S) -> Result<bool, Error> {
-        let s = try!(s.into_c_string());
+        let s = s.into_c_string()?;
         let mut out = 0;
-        ::init();
+        crate::init();
         unsafe {
             try_call!(raw::git_config_parse_bool(&mut out, s));
         }
@@ -395,9 +395,9 @@ impl Config {
     /// Parse a string as an i32; handles suffixes like k, M, or G, and
     /// multiplies by the appropriate power of 1024.
     pub fn parse_i32<S: IntoCString>(s: S) -> Result<i32, Error> {
-        let s = try!(s.into_c_string());
+        let s = s.into_c_string()?;
         let mut out = 0;
-        ::init();
+        crate::init();
         unsafe {
             try_call!(raw::git_config_parse_int32(&mut out, s));
         }
@@ -407,9 +407,9 @@ impl Config {
     /// Parse a string as an i64; handles suffixes like k, M, or G, and
     /// multiplies by the appropriate power of 1024.
     pub fn parse_i64<S: IntoCString>(s: S) -> Result<i64, Error> {
-        let s = try!(s.into_c_string());
+        let s = s.into_c_string()?;
         let mut out = 0;
-        ::init();
+        crate::init();
         unsafe {
             try_call!(raw::git_config_parse_int64(&mut out, s));
         }
@@ -443,7 +443,7 @@ impl<'cfg> ConfigEntry<'cfg> {
 
     /// Gets the name of this entry as a byte slice.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() }
+        unsafe { crate::opt_bytes(self, (*self.raw).name).unwrap() }
     }
 
     /// Gets the value of this entry.
@@ -455,7 +455,7 @@ impl<'cfg> ConfigEntry<'cfg> {
 
     /// Gets the value of this entry as a byte slice.
     pub fn value_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).value).unwrap() }
+        unsafe { crate::opt_bytes(self, (*self.raw).value).unwrap() }
     }
 
     /// Gets the configuration level of this entry.
@@ -537,7 +537,7 @@ mod tests {
     use std::fs::File;
     use tempdir::TempDir;
 
-    use Config;
+    use crate::Config;
 
     #[test]
     fn smoke() {

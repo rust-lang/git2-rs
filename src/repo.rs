@@ -7,24 +7,24 @@ use std::path::Path;
 use std::ptr;
 use std::str;
 
-use build::{CheckoutBuilder, RepoBuilder};
-use oid_array::OidArray;
-use stash::{stash_cb, StashApplyOptions, StashCbData};
-use string_array::StringArray;
-use util::{self, Binding};
-use {
+use crate::build::{CheckoutBuilder, RepoBuilder};
+use crate::oid_array::OidArray;
+use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
+use crate::string_array::StringArray;
+use crate::util::{self, Binding};
+use crate::{
     init, raw, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
     StashFlags,
 };
-use {
+use crate::{
     AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore, SubmoduleStatus,
 };
-use {Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
-use {Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
-use {Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
-use {DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
-use {Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
-use {Rebase, RebaseOptions};
+use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
+use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
+use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
+use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
+use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
+use crate::{Rebase, RebaseOptions};
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -60,7 +60,7 @@ impl Repository {
     /// The path can point to either a normal or bare repository.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         init();
-        let path = try!(path.as_ref().into_c_string());
+        let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_open(&mut ret, path));
@@ -73,7 +73,7 @@ impl Repository {
     /// The path can point to only a bare repository.
     pub fn open_bare<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         init();
-        let path = try!(path.as_ref().into_c_string());
+        let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_open_bare(&mut ret, path));
@@ -138,9 +138,9 @@ impl Repository {
         I: IntoIterator<Item = O>,
     {
         init();
-        let path = try!(path.as_ref().into_c_string());
-        let ceiling_dirs_os = try!(env::join_paths(ceiling_dirs));
-        let ceiling_dirs = try!(ceiling_dirs_os.into_c_string());
+        let path = path.as_ref().into_c_string()?;
+        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_open_ext(
@@ -161,7 +161,7 @@ impl Repository {
         // TODO: this diverges significantly from the libgit2 API
         init();
         let buf = Buf::new();
-        let path = try!(path.as_ref().into_c_string());
+        let path = path.as_ref().into_c_string()?;
         unsafe {
             try_call!(raw::git_repository_discover(
                 buf.raw(),
@@ -197,7 +197,7 @@ impl Repository {
         opts: &RepositoryInitOptions,
     ) -> Result<Repository, Error> {
         init();
-        let path = try!(path.as_ref().into_c_string());
+        let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
             let mut opts = opts.raw();
@@ -211,7 +211,7 @@ impl Repository {
     /// See the `RepoBuilder` struct for more information. This function will
     /// delegate to a fresh `RepoBuilder`
     pub fn clone<P: AsRef<Path>>(url: &str, into: P) -> Result<Repository, Error> {
-        ::init();
+        crate::init();
         RepoBuilder::new().clone(url, into.as_ref())
     }
 
@@ -265,7 +265,7 @@ impl Repository {
             to: ptr::null_mut(),
             flags: 0,
         };
-        let spec = try!(CString::new(spec));
+        let spec = CString::new(spec)?;
         unsafe {
             try_call!(raw::git_revparse(&mut raw, self.raw, spec));
             let to = Binding::from_raw_opt(raw.to);
@@ -277,7 +277,7 @@ impl Repository {
 
     /// Find a single object, as specified by a revision string.
     pub fn revparse_single(&self, spec: &str) -> Result<Object, Error> {
-        let spec = try!(CString::new(spec));
+        let spec = CString::new(spec)?;
         let mut obj = ptr::null_mut();
         unsafe {
             try_call!(raw::git_revparse_single(&mut obj, self.raw, spec));
@@ -296,7 +296,7 @@ impl Repository {
     /// may point to an intermediate reference. When such expressions are being
     /// passed in, this intermediate reference is returned.
     pub fn revparse_ext(&self, spec: &str) -> Result<(Object, Option<Reference>), Error> {
-        let spec = try!(CString::new(spec));
+        let spec = CString::new(spec)?;
         let mut git_obj = ptr::null_mut();
         let mut git_ref = ptr::null_mut();
         unsafe {
@@ -337,7 +337,7 @@ impl Repository {
     pub fn path(&self) -> &Path {
         unsafe {
             let ptr = raw::git_repository_path(self.raw);
-            util::bytes2path(::opt_bytes(self, ptr).unwrap())
+            util::bytes2path(crate::opt_bytes(self, ptr).unwrap())
         }
     }
 
@@ -389,7 +389,7 @@ impl Repository {
     /// and set config "core.worktree" (if workdir is not the parent of the .git
     /// directory).
     pub fn set_workdir(&self, path: &Path, update_gitlink: bool) -> Result<(), Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_repository_set_workdir(
                 self.raw(),
@@ -412,7 +412,7 @@ impl Repository {
     ///
     /// If there is no namespace, `None` is returned.
     pub fn namespace_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_repository_get_namespace(self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_repository_get_namespace(self.raw)) }
     }
 
     /// Set the active namespace for this repository.
@@ -423,7 +423,7 @@ impl Repository {
     /// Set the active namespace for this repository as a byte array.
     pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
         unsafe {
-            let namespace = try!(CString::new(namespace));
+            let namespace = CString::new(namespace)?;
             try_call!(raw::git_repository_set_namespace(self.raw, namespace));
             Ok(())
         }
@@ -470,7 +470,7 @@ impl Repository {
     /// Get the information for a particular remote
     pub fn find_remote(&self, name: &str) -> Result<Remote, Error> {
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_remote_lookup(&mut ret, self.raw, name));
             Ok(Binding::from_raw(ret))
@@ -481,8 +481,8 @@ impl Repository {
     /// configuration.
     pub fn remote(&self, name: &str, url: &str) -> Result<Remote, Error> {
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
-        let url = try!(CString::new(url));
+        let name = CString::new(name)?;
+        let url = CString::new(url)?;
         unsafe {
             try_call!(raw::git_remote_create(&mut ret, self.raw, name, url));
             Ok(Binding::from_raw(ret))
@@ -496,7 +496,7 @@ impl Repository {
     /// remotes cannot be converted to persisted remotes.
     pub fn remote_anonymous(&self, url: &str) -> Result<Remote, Error> {
         let mut ret = ptr::null_mut();
-        let url = try!(CString::new(url));
+        let url = CString::new(url)?;
         unsafe {
             try_call!(raw::git_remote_create_anonymous(&mut ret, self.raw, url));
             Ok(Binding::from_raw(ret))
@@ -517,8 +517,8 @@ impl Repository {
     /// which cannot be renamed and are returned for further processing by the
     /// caller.
     pub fn remote_rename(&self, name: &str, new_name: &str) -> Result<StringArray, Error> {
-        let name = try!(CString::new(name));
-        let new_name = try!(CString::new(new_name));
+        let name = CString::new(name)?;
+        let new_name = CString::new(new_name)?;
         let mut problems = raw::git_strarray {
             count: 0,
             strings: 0 as *mut *mut c_char,
@@ -539,7 +539,7 @@ impl Repository {
     /// All remote-tracking branches and configuration settings for the remote
     /// will be removed.
     pub fn remote_delete(&self, name: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_remote_delete(self.raw, name));
         }
@@ -551,8 +551,8 @@ impl Repository {
     /// Add the given refspec to the fetch list in the configuration. No loaded
     /// remote instances will be affected.
     pub fn remote_add_fetch(&self, name: &str, spec: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let spec = try!(CString::new(spec));
+        let name = CString::new(name)?;
+        let spec = CString::new(spec)?;
         unsafe {
             try_call!(raw::git_remote_add_fetch(self.raw, name, spec));
         }
@@ -564,8 +564,8 @@ impl Repository {
     /// Add the given refspec to the push list in the configuration. No
     /// loaded remote instances will be affected.
     pub fn remote_add_push(&self, name: &str, spec: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let spec = try!(CString::new(spec));
+        let name = CString::new(name)?;
+        let spec = CString::new(spec)?;
         unsafe {
             try_call!(raw::git_remote_add_push(self.raw, name, spec));
         }
@@ -578,8 +578,8 @@ impl Repository {
     /// the common case of a single-url remote and will otherwise return an
     /// error.
     pub fn remote_set_url(&self, name: &str, url: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let url = try!(CString::new(url));
+        let name = CString::new(name)?;
+        let url = CString::new(url)?;
         unsafe {
             try_call!(raw::git_remote_set_url(self.raw, name, url));
         }
@@ -594,8 +594,8 @@ impl Repository {
     ///
     /// `None` indicates that it should be cleared.
     pub fn remote_set_pushurl(&self, name: &str, pushurl: Option<&str>) -> Result<(), Error> {
-        let name = try!(CString::new(name));
-        let pushurl = try!(::opt_cstr(pushurl));
+        let name = CString::new(name)?;
+        let pushurl = crate::opt_cstr(pushurl)?;
         unsafe {
             try_call!(raw::git_remote_set_pushurl(self.raw, name, pushurl));
         }
@@ -652,7 +652,7 @@ impl Repository {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, mut arr) = try!(::util::iter2cstrs(paths));
+        let (_a, _b, mut arr) = crate::util::iter2cstrs(paths)?;
         let target = target.map(|t| t.raw());
         unsafe {
             try_call!(raw::git_reset_default(self.raw, target, &mut arr));
@@ -682,7 +682,7 @@ impl Repository {
     /// Otherwise, the HEAD will be detached and will directly point to the
     /// commit.
     pub fn set_head(&self, refname: &str) -> Result<(), Error> {
-        let refname = try!(CString::new(refname));
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_repository_set_head(self.raw, refname));
         }
@@ -734,7 +734,7 @@ impl Repository {
     /// glob
     pub fn references_glob(&self, glob: &str) -> Result<References, Error> {
         let mut ret = ptr::null_mut();
-        let glob = try!(CString::new(glob));
+        let glob = CString::new(glob)?;
         unsafe {
             try_call!(raw::git_reference_iterator_glob_new(
                 &mut ret, self.raw, glob
@@ -810,7 +810,7 @@ impl Repository {
     /// directory containing the file, would it be added or not?
     pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
         let mut ret = 0 as c_int;
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_status_should_ignore(&mut ret, self.raw, path));
         }
@@ -838,11 +838,9 @@ impl Repository {
         let path = if cfg!(windows) {
             // `git_status_file` dose not work with windows path separator
             // so we convert \ to /
-            try!(::std::ffi::CString::new(
-                path.to_string_lossy().replace('\\', "/")
-            ))
+            std::ffi::CString::new(path.to_string_lossy().replace('\\', "/"))?
         } else {
-            try!(path.into_c_string())
+            path.into_c_string()?
         };
         unsafe {
             try_call!(raw::git_status_file(&mut ret, self.raw, path));
@@ -918,7 +916,7 @@ impl Repository {
     /// The Oid returned can in turn be passed to `find_blob` to get a handle to
     /// the blob.
     pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -941,7 +939,7 @@ impl Repository {
     /// to the object database.
     pub fn blob_writer(&self, hintpath: Option<&Path>) -> Result<BlobWriter, Error> {
         let path_str = match hintpath {
-            Some(path) => Some(try!(path.into_c_string())),
+            Some(path) => Some(path.into_c_string()?),
             None => None,
         };
         let path = match path_str {
@@ -979,7 +977,7 @@ impl Repository {
     /// If `force` is true and a reference already exists with the given name,
     /// it'll be replaced.
     pub fn branch(&self, branch_name: &str, target: &Commit, force: bool) -> Result<Branch, Error> {
-        let branch_name = try!(CString::new(branch_name));
+        let branch_name = CString::new(branch_name)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_create(
@@ -995,7 +993,7 @@ impl Repository {
 
     /// Lookup a branch by its name in a repository.
     pub fn find_branch(&self, name: &str, branch_type: BranchType) -> Result<Branch, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_lookup(
@@ -1025,12 +1023,12 @@ impl Repository {
         tree: &Tree,
         parents: &[&Commit],
     ) -> Result<Oid, Error> {
-        let update_ref = try!(::opt_cstr(update_ref));
+        let update_ref = crate::opt_cstr(update_ref)?;
         let mut parent_ptrs = parents
             .iter()
             .map(|p| p.raw() as *const raw::git_commit)
             .collect::<Vec<_>>();
-        let message = try!(CString::new(message));
+        let message = CString::new(message)?;
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -1067,9 +1065,9 @@ impl Repository {
         signature: &str,
         signature_field: Option<&str>,
     ) -> Result<Oid, Error> {
-        let commit_content = try!(CString::new(commit_content));
-        let signature = try!(CString::new(signature));
-        let signature_field = try!(::opt_cstr(signature_field));
+        let commit_content = CString::new(commit_content)?;
+        let signature = CString::new(signature)?;
+        let signature_field = crate::opt_cstr(signature_field)?;
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -1094,7 +1092,7 @@ impl Repository {
         commit_id: &Oid,
         signature_field: Option<&str>,
     ) -> Result<(Buf, Buf), Error> {
-        let signature_field = try!(::opt_cstr(signature_field));
+        let signature_field = crate::opt_cstr(signature_field)?;
         let signature = Buf::new();
         let content = Buf::new();
         unsafe {
@@ -1157,8 +1155,8 @@ impl Repository {
         force: bool,
         log_message: &str,
     ) -> Result<Reference, Error> {
-        let name = try!(CString::new(name));
-        let log_message = try!(CString::new(log_message));
+        let name = CString::new(name)?;
+        let log_message = CString::new(log_message)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_create(
@@ -1211,8 +1209,8 @@ impl Repository {
         current_id: Oid,
         log_message: &str,
     ) -> Result<Reference, Error> {
-        let name = try!(CString::new(name));
-        let log_message = try!(CString::new(log_message));
+        let name = CString::new(name)?;
+        let log_message = CString::new(log_message)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_create_matching(
@@ -1240,9 +1238,9 @@ impl Repository {
         force: bool,
         log_message: &str,
     ) -> Result<Reference, Error> {
-        let name = try!(CString::new(name));
-        let target = try!(CString::new(target));
-        let log_message = try!(CString::new(log_message));
+        let name = CString::new(name)?;
+        let target = CString::new(target)?;
+        let log_message = CString::new(log_message)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_symbolic_create(
@@ -1274,10 +1272,10 @@ impl Repository {
         current_value: &str,
         log_message: &str,
     ) -> Result<Reference, Error> {
-        let name = try!(CString::new(name));
-        let target = try!(CString::new(target));
-        let current_value = try!(CString::new(current_value));
-        let log_message = try!(CString::new(log_message));
+        let name = CString::new(name)?;
+        let target = CString::new(target)?;
+        let current_value = CString::new(current_value)?;
+        let log_message = CString::new(log_message)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_symbolic_create_matching(
@@ -1295,7 +1293,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_reference(&self, name: &str) -> Result<Reference, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_lookup(&mut raw, self.raw(), name));
@@ -1308,7 +1306,7 @@ impl Repository {
     /// human-readable format e.g. 'master' instead of 'refs/heads/master', and it
     /// will do-what-you-mean, returning the `Reference`.
     pub fn resolve_reference_from_short_name(&self, refname: &str) -> Result<Reference, Error> {
-        let refname = try!(CString::new(refname));
+        let refname = CString::new(refname)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_dwim(&mut raw, self.raw(), refname));
@@ -1322,7 +1320,7 @@ impl Repository {
     /// through to the object id that it refers to. This avoids having to
     /// allocate or free any `Reference` objects for simple situations.
     pub fn refname_to_id(&self, name: &str) -> Result<Oid, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let mut ret = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -1375,8 +1373,8 @@ impl Repository {
     /// `add_finalize()` to wrap up adding the new submodule and `.gitmodules`
     /// to the index to be ready to commit.
     pub fn submodule(&self, url: &str, path: &Path, use_gitlink: bool) -> Result<Submodule, Error> {
-        let url = try!(CString::new(url));
-        let path = try!(path.into_c_string());
+        let url = CString::new(url)?;
+        let path = path.into_c_string()?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_submodule_add_setup(
@@ -1395,7 +1393,7 @@ impl Repository {
     /// Given either the submodule name or path (they are usually the same),
     /// this returns a structure describing the submodule.
     pub fn find_submodule(&self, name: &str) -> Result<Submodule, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_submodule_lookup(&mut raw, self.raw(), name));
@@ -1413,7 +1411,7 @@ impl Repository {
         ignore: SubmoduleIgnore,
     ) -> Result<SubmoduleStatus, Error> {
         let mut ret = 0;
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_submodule_status(&mut ret, self.raw, name, ignore));
         }
@@ -1465,8 +1463,8 @@ impl Repository {
         message: &str,
         force: bool,
     ) -> Result<Oid, Error> {
-        let name = try!(CString::new(name));
-        let message = try!(CString::new(message));
+        let name = CString::new(name)?;
+        let message = CString::new(message)?;
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -1490,7 +1488,7 @@ impl Repository {
     /// If force is true and a reference already exists with the given name,
     /// it'll be replaced.
     pub fn tag_lightweight(&self, name: &str, target: &Object, force: bool) -> Result<Oid, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -1520,7 +1518,7 @@ impl Repository {
     /// The tag name will be checked for validity, see `tag` for some rules
     /// about valid names.
     pub fn tag_delete(&self, name: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_tag_delete(self.raw, name));
             Ok(())
@@ -1538,7 +1536,7 @@ impl Repository {
         unsafe {
             match pattern {
                 Some(s) => {
-                    let s = try!(CString::new(s));
+                    let s = CString::new(s)?;
                     try_call!(raw::git_tag_list_match(&mut arr, s, self.raw));
                 }
                 None => {
@@ -1793,8 +1791,8 @@ impl Repository {
         note: &str,
         force: bool,
     ) -> Result<Oid, Error> {
-        let notes_ref = try!(::opt_cstr(notes_ref));
-        let note = try!(CString::new(note));
+        let notes_ref = crate::opt_cstr(notes_ref)?;
+        let note = CString::new(note)?;
         let mut ret = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
@@ -1831,7 +1829,7 @@ impl Repository {
     /// is the id of the note and the second id is the id the note is
     /// annotating.
     pub fn notes(&self, notes_ref: Option<&str>) -> Result<Notes, Error> {
-        let notes_ref = try!(::opt_cstr(notes_ref));
+        let notes_ref = crate::opt_cstr(notes_ref)?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_note_iterator_new(&mut ret, self.raw, notes_ref));
@@ -1846,7 +1844,7 @@ impl Repository {
     ///
     /// The id specified is the Oid of the git object to read the note from.
     pub fn find_note(&self, notes_ref: Option<&str>, id: Oid) -> Result<Note, Error> {
-        let notes_ref = try!(::opt_cstr(notes_ref));
+        let notes_ref = crate::opt_cstr(notes_ref)?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_note_read(&mut ret, self.raw, notes_ref, id.raw()));
@@ -1867,7 +1865,7 @@ impl Repository {
         author: &Signature,
         committer: &Signature,
     ) -> Result<(), Error> {
-        let notes_ref = try!(::opt_cstr(notes_ref));
+        let notes_ref = crate::opt_cstr(notes_ref)?;
         unsafe {
             try_call!(raw::git_note_remove(
                 self.raw,
@@ -1891,7 +1889,7 @@ impl Repository {
 
     /// Get the blame for a single file.
     pub fn blame_file(&self, path: &Path, opts: Option<&mut BlameOptions>) -> Result<Blame, Error> {
-        let path = try!(path.into_c_string());
+        let path = path.into_c_string()?;
         let mut raw = ptr::null_mut();
 
         unsafe {
@@ -1976,7 +1974,7 @@ impl Repository {
     /// If there is no reflog file for the given reference yet, an empty reflog
     /// object will be returned.
     pub fn reflog(&self, name: &str) -> Result<Reflog, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reflog_read(&mut ret, self.raw, name));
@@ -1986,7 +1984,7 @@ impl Repository {
 
     /// Delete the reflog for the given reference
     pub fn reflog_delete(&self, name: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_reflog_delete(self.raw, name));
         }
@@ -1997,8 +1995,8 @@ impl Repository {
     ///
     /// The reflog to be renamed is expected to already exist.
     pub fn reflog_rename(&self, old_name: &str, new_name: &str) -> Result<(), Error> {
-        let old_name = try!(CString::new(old_name));
-        let new_name = try!(CString::new(new_name));
+        let old_name = CString::new(old_name)?;
+        let new_name = CString::new(new_name)?;
         unsafe {
             try_call!(raw::git_reflog_rename(self.raw, old_name, new_name));
         }
@@ -2007,14 +2005,14 @@ impl Repository {
 
     /// Check if the given reference has a reflog.
     pub fn reference_has_log(&self, name: &str) -> Result<bool, Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         let ret = unsafe { try_call!(raw::git_reference_has_log(self.raw, name)) };
         Ok(ret != 0)
     }
 
     /// Ensure that the given reference has a reflog.
     pub fn reference_ensure_log(&self, name: &str) -> Result<(), Error> {
-        let name = try!(CString::new(name));
+        let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_reference_ensure_log(self.raw, name));
         }
@@ -2224,7 +2222,7 @@ impl Repository {
             let mut raw_oid = raw::git_oid {
                 id: [0; raw::GIT_OID_RAWSZ],
             };
-            let message = try!(CString::new(message));
+            let message = CString::new(message)?;
             let flags = flags.unwrap_or_else(StashFlags::empty);
             try_call!(raw::git_stash_save(
                 &mut raw_oid,
@@ -2315,11 +2313,9 @@ impl Repository {
         let path = if cfg!(windows) {
             // `git_ignore_path_is_ignored` dose not work with windows path separator
             // so we convert \ to /
-            try!(::std::ffi::CString::new(
-                path.as_ref().to_string_lossy().replace('\\', "/")
-            ))
+            std::ffi::CString::new(path.as_ref().to_string_lossy().replace('\\', "/"))?
         } else {
-            try!(path.as_ref().into_c_string())
+            path.as_ref().into_c_string()?
         };
         let mut ignored: c_int = 0;
         unsafe {
@@ -2498,23 +2494,23 @@ impl RepositoryInitOptions {
         );
         opts.flags = self.flags;
         opts.mode = self.mode;
-        opts.workdir_path = ::call::convert(&self.workdir_path);
-        opts.description = ::call::convert(&self.description);
-        opts.template_path = ::call::convert(&self.template_path);
-        opts.initial_head = ::call::convert(&self.initial_head);
-        opts.origin_url = ::call::convert(&self.origin_url);
+        opts.workdir_path = crate::call::convert(&self.workdir_path);
+        opts.description = crate::call::convert(&self.description);
+        opts.template_path = crate::call::convert(&self.template_path);
+        opts.initial_head = crate::call::convert(&self.initial_head);
+        opts.origin_url = crate::call::convert(&self.origin_url);
         opts
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use build::CheckoutBuilder;
+    use crate::build::CheckoutBuilder;
+    use crate::{ObjectType, Oid, Repository, ResetType};
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
     use tempdir::TempDir;
-    use {ObjectType, Oid, Repository, ResetType};
 
     #[test]
     fn smoke_init() {
@@ -2545,10 +2541,10 @@ mod tests {
         assert!(!repo.is_shallow());
         assert!(repo.is_empty().unwrap());
         assert_eq!(
-            ::test::realpath(&repo.path()).unwrap(),
-            ::test::realpath(&td.path().join(".git/")).unwrap()
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
-        assert_eq!(repo.state(), ::RepositoryState::Clean);
+        assert_eq!(repo.state(), crate::RepositoryState::Clean);
     }
 
     #[test]
@@ -2560,20 +2556,20 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            ::test::realpath(&repo.path()).unwrap(),
-            ::test::realpath(&td.path().join("")).unwrap()
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
 
     #[test]
     fn smoke_checkout() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         repo.checkout_head(None).unwrap();
     }
 
     #[test]
     fn smoke_revparse() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let rev = repo.revparse("HEAD").unwrap();
         assert!(rev.to().is_none());
         let from = rev.from().unwrap();
@@ -2602,8 +2598,8 @@ mod tests {
         Repository::init_bare(td.path()).unwrap();
         let repo = Repository::discover(&subdir).unwrap();
         assert_eq!(
-            ::test::realpath(&repo.path()).unwrap(),
-            ::test::realpath(&td.path().join("")).unwrap()
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
 
@@ -2614,32 +2610,43 @@ mod tests {
         fs::create_dir(&subdir).unwrap();
         Repository::init(td.path()).unwrap();
 
-        let repo = Repository::open_ext(&subdir, ::RepositoryOpenFlags::empty(), &[] as &[&OsStr])
-            .unwrap();
+        let repo = Repository::open_ext(
+            &subdir,
+            crate::RepositoryOpenFlags::empty(),
+            &[] as &[&OsStr],
+        )
+        .unwrap();
         assert!(!repo.is_bare());
         assert_eq!(
-            ::test::realpath(&repo.path()).unwrap(),
-            ::test::realpath(&td.path().join(".git")).unwrap()
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join(".git")).unwrap()
         );
 
         let repo =
-            Repository::open_ext(&subdir, ::RepositoryOpenFlags::BARE, &[] as &[&OsStr]).unwrap();
+            Repository::open_ext(&subdir, crate::RepositoryOpenFlags::BARE, &[] as &[&OsStr])
+                .unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            ::test::realpath(&repo.path()).unwrap(),
-            ::test::realpath(&td.path().join(".git")).unwrap()
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join(".git")).unwrap()
         );
 
-        let err = Repository::open_ext(&subdir, ::RepositoryOpenFlags::NO_SEARCH, &[] as &[&OsStr])
-            .err()
-            .unwrap();
-        assert_eq!(err.code(), ::ErrorCode::NotFound);
+        let err = Repository::open_ext(
+            &subdir,
+            crate::RepositoryOpenFlags::NO_SEARCH,
+            &[] as &[&OsStr],
+        )
+        .err()
+        .unwrap();
+        assert_eq!(err.code(), crate::ErrorCode::NotFound);
 
-        assert!(Repository::open_ext(&subdir, ::RepositoryOpenFlags::empty(), &[&subdir]).is_ok());
+        assert!(
+            Repository::open_ext(&subdir, crate::RepositoryOpenFlags::empty(), &[&subdir]).is_ok()
+        );
     }
 
     fn graph_repo_init() -> (TempDir, Repository) {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         {
             let head = repo.head().unwrap().target().unwrap();
             let head = repo.find_commit(head).unwrap();
@@ -2683,7 +2690,7 @@ mod tests {
 
     #[test]
     fn smoke_reference_has_log_ensure_log() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         assert_eq!(repo.reference_has_log("HEAD").unwrap(), true);
         assert_eq!(repo.reference_has_log("refs/heads/master").unwrap(), true);
@@ -2699,7 +2706,7 @@ mod tests {
 
     #[test]
     fn smoke_set_head() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         assert!(repo.set_head("refs/heads/does-not-exist").is_ok());
         assert!(repo.head().is_err());
@@ -2712,7 +2719,7 @@ mod tests {
 
     #[test]
     fn smoke_set_head_detached() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let void_oid = Oid::from_bytes(b"00000000000000000000").unwrap();
         assert!(repo.set_head_detached(void_oid).is_err());

@@ -33,8 +33,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open(&Path::new(".")));
-    let mut index = try!(repo.index());
+    let repo = Repository::open(&Path::new("."))?;
+    let mut index = repo.index()?;
 
     let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
         let status = repo.status_file(path).unwrap();
@@ -61,12 +61,12 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     };
 
     if args.flag_update {
-        try!(index.update_all(args.arg_spec.iter(), cb));
+        index.update_all(args.arg_spec.iter(), cb)?;
     } else {
-        try!(index.add_all(args.arg_spec.iter(), git2::IndexAddOption::DEFAULT, cb));
+        index.add_all(args.arg_spec.iter(), git2::IndexAddOption::DEFAULT, cb)?;
     }
 
-    try!(index.write());
+    index.write()?;
     Ok(())
 }
 

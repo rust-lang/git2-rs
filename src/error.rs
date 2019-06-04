@@ -5,7 +5,7 @@ use std::ffi::{CStr, NulError};
 use std::fmt;
 use std::str;
 
-use {raw, ErrorClass, ErrorCode};
+use crate::{raw, ErrorClass, ErrorCode};
 
 /// A structure to represent errors coming out of libgit2.
 #[derive(Debug, PartialEq)]
@@ -26,7 +26,7 @@ impl Error {
     /// safe to unwrap the return value. This API will change in the next major
     /// version.
     pub fn last_error(code: c_int) -> Option<Error> {
-        ::init();
+        crate::init();
         unsafe {
             // Note that whenever libgit2 returns an error any negative value
             // indicates that an error happened. Auxiliary information is
@@ -280,11 +280,11 @@ impl From<JoinPathsError> for Error {
 
 #[cfg(test)]
 mod tests {
-    use {ErrorClass, ErrorCode};
+    use crate::{ErrorClass, ErrorCode};
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let err = repo.find_submodule("does_not_exist").err().unwrap();
         assert_eq!(err.code(), ErrorCode::NotFound);

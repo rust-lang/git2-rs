@@ -7,9 +7,9 @@ use std::ffi::CString;
 
 use libc::{c_char, c_int, c_void, size_t};
 
-use panic;
-use util::Binding;
-use {raw, Error, Object, ObjectType, Oid};
+use crate::panic;
+use crate::util::Binding;
+use crate::{raw, Error, Object, ObjectType, Oid};
 
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
@@ -187,7 +187,7 @@ impl<'repo> Odb<'repo> {
     /// Adds an alternate disk backend to the object database.
     pub fn add_disk_alternate(&self, path: &str) -> Result<(), Error> {
         unsafe {
-            let path = try!(CString::new(path));
+            let path = CString::new(path)?;
             try_call!(raw::git_odb_add_disk_alternate(self.raw, path));
             Ok(())
         }
@@ -376,9 +376,9 @@ extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int
 
 #[cfg(test)]
 mod tests {
+    use crate::{ObjectType, Oid, Repository};
     use std::io::prelude::*;
     use tempdir::TempDir;
-    use {ObjectType, Oid, Repository};
 
     #[test]
     fn read() {

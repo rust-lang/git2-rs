@@ -36,22 +36,22 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
 
     if let Some(ref name) = args.arg_tagname {
         let target = args.arg_object.as_ref().map(|s| &s[..]).unwrap_or("HEAD");
-        let obj = try!(repo.revparse_single(target));
+        let obj = repo.revparse_single(target)?;
 
         if let Some(ref message) = args.flag_message {
-            let sig = try!(repo.signature());
-            try!(repo.tag(name, &obj, &sig, message, args.flag_force));
+            let sig = repo.signature()?;
+            repo.tag(name, &obj, &sig, message, args.flag_force)?;
         } else {
-            try!(repo.tag_lightweight(name, &obj, args.flag_force));
+            repo.tag_lightweight(name, &obj, args.flag_force)?;
         }
     } else if let Some(ref name) = args.flag_delete {
-        let obj = try!(repo.revparse_single(name));
-        let id = try!(obj.short_id());
-        try!(repo.tag_delete(name));
+        let obj = repo.revparse_single(name)?;
+        let id = obj.short_id()?;
+        repo.tag_delete(name)?;
         println!(
             "Deleted tag '{}' (was {})",
             name,
@@ -59,9 +59,9 @@ fn run(args: &Args) -> Result<(), Error> {
         );
     } else if args.flag_list {
         let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
-        for name in try!(repo.tag_names(Some(pattern))).iter() {
+        for name in repo.tag_names(Some(pattern))?.iter() {
             let name = name.unwrap();
-            let obj = try!(repo.revparse_single(name));
+            let obj = repo.revparse_single(name)?;
 
             if let Some(tag) = obj.as_tag() {
                 print_tag(tag, args);

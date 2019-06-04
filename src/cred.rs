@@ -6,8 +6,8 @@ use std::process::{Command, Stdio};
 use std::ptr;
 use url;
 
-use util::Binding;
-use {raw, Config, Error, IntoCString};
+use crate::util::Binding;
+use crate::{raw, Config, Error, IntoCString};
 
 /// A structure to represent git credentials in libgit2.
 pub struct Cred {
@@ -29,7 +29,7 @@ impl Cred {
     /// Create a "default" credential usable for Negotiate mechanisms like NTLM
     /// or Kerberos authentication.
     pub fn default() -> Result<Cred, Error> {
-        ::init();
+        crate::init();
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_default_new(&mut out));
@@ -41,9 +41,9 @@ impl Cred {
     ///
     /// The username specified is the username to authenticate.
     pub fn ssh_key_from_agent(username: &str) -> Result<Cred, Error> {
-        ::init();
+        crate::init();
         let mut out = ptr::null_mut();
-        let username = try!(CString::new(username));
+        let username = CString::new(username)?;
         unsafe {
             try_call!(raw::git_cred_ssh_key_from_agent(&mut out, username));
             Ok(Binding::from_raw(out))
@@ -57,11 +57,11 @@ impl Cred {
         privatekey: &Path,
         passphrase: Option<&str>,
     ) -> Result<Cred, Error> {
-        ::init();
-        let username = try!(CString::new(username));
-        let publickey = try!(::opt_cstr(publickey));
-        let privatekey = try!(privatekey.into_c_string());
-        let passphrase = try!(::opt_cstr(passphrase));
+        crate::init();
+        let username = CString::new(username)?;
+        let publickey = crate::opt_cstr(publickey)?;
+        let privatekey = privatekey.into_c_string()?;
+        let passphrase = crate::opt_cstr(passphrase)?;
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_ssh_key_new(
@@ -78,11 +78,11 @@ impl Cred {
         privatekey: &str,
         passphrase: Option<&str>,
     ) -> Result<Cred, Error> {
-        ::init();
-        let username = try!(CString::new(username));
-        let publickey = try!(::opt_cstr(publickey));
-        let privatekey = try!(CString::new(privatekey));
-        let passphrase = try!(::opt_cstr(passphrase));
+        crate::init();
+        let username = CString::new(username)?;
+        let publickey = crate::opt_cstr(publickey)?;
+        let privatekey = CString::new(privatekey)?;
+        let passphrase = crate::opt_cstr(passphrase)?;
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_ssh_key_memory_new(
@@ -94,9 +94,9 @@ impl Cred {
 
     /// Create a new plain-text username and password credential object.
     pub fn userpass_plaintext(username: &str, password: &str) -> Result<Cred, Error> {
-        ::init();
-        let username = try!(CString::new(username));
-        let password = try!(CString::new(password));
+        crate::init();
+        let username = CString::new(username)?;
+        let password = CString::new(password)?;
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_userpass_plaintext_new(
@@ -139,8 +139,8 @@ impl Cred {
     /// THis is used with ssh authentication to query for the username if non is
     /// specified in the url.
     pub fn username(username: &str) -> Result<Cred, Error> {
-        ::init();
-        let username = try!(CString::new(username));
+        crate::init();
+        let username = CString::new(username)?;
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_cred_username_new(&mut out, username));
@@ -437,7 +437,7 @@ mod test {
     use std::path::Path;
     use tempdir::TempDir;
 
-    use {Config, ConfigLevel, Cred, CredentialHelper};
+    use crate::{Config, ConfigLevel, Cred, CredentialHelper};
 
     macro_rules! test_cfg( ($($k:expr => $v:expr),*) => ({
         let td = TempDir::new("git2-rs").unwrap();

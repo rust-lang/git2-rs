@@ -5,8 +5,8 @@ use std::ptr;
 
 use libc::{c_int, c_uint};
 
-use util::Binding;
-use {raw, Buf, Error, Repository};
+use crate::util::Binding;
+use crate::{raw, Buf, Error, Repository};
 
 /// The result of a `describe` operation on either an `Describe` or a
 /// `Repository`.
@@ -178,11 +178,11 @@ impl Binding for DescribeOptions {
 
 #[cfg(test)]
 mod tests {
-    use DescribeOptions;
+    use crate::DescribeOptions;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = t!(repo.head()).target().unwrap();
 
         let d = t!(repo.describe(DescribeOptions::new().show_commit_oid_as_fallback(true)));

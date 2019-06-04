@@ -3,8 +3,8 @@
 use std::ops::Range;
 use std::str;
 
-use raw;
-use util::Binding;
+use crate::raw;
+use crate::util::Binding;
 
 /// A string array structure used by libgit2
 ///
@@ -38,7 +38,7 @@ impl StringArray {
         if i < self.raw.count as usize {
             unsafe {
                 let ptr = *self.raw.strings.offset(i as isize) as *const _;
-                Some(::opt_bytes(self, ptr).unwrap())
+                Some(crate::opt_bytes(self, ptr).unwrap())
             }
         } else {
             None

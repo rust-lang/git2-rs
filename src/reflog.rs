@@ -3,8 +3,8 @@ use std::marker;
 use std::ops::Range;
 use std::str;
 
-use util::Binding;
-use {raw, signature, Error, Oid, Signature};
+use crate::util::Binding;
+use crate::{raw, signature, Error, Oid, Signature};
 
 /// A reference log of a git repository.
 pub struct Reflog {
@@ -31,7 +31,7 @@ impl Reflog {
         committer: &Signature,
         msg: Option<&str>,
     ) -> Result<(), Error> {
-        let msg = try!(::opt_cstr(msg));
+        let msg = crate::opt_cstr(msg)?;
         unsafe {
             try_call!(raw::git_reflog_append(
                 self.raw,
@@ -142,7 +142,7 @@ impl<'reflog> ReflogEntry<'reflog> {
 
     /// Get the log message as a byte array.
     pub fn message_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_reflog_entry_message(self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_reflog_entry_message(self.raw)) }
     }
 }
 
@@ -180,7 +180,7 @@ impl<'reflog> ExactSizeIterator for ReflogIter<'reflog> {}
 mod tests {
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut reflog = repo.reflog("HEAD").unwrap();
         assert_eq!(reflog.iter().len(), 1);
         reflog.write().unwrap();

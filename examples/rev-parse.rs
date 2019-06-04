@@ -30,9 +30,9 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), git2::Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(path));
+    let repo = Repository::open(path)?;
 
-    let revspec = try!(repo.revparse(&args.arg_spec));
+    let revspec = repo.revparse(&args.arg_spec)?;
 
     if revspec.mode().contains(git2::RevparseMode::SINGLE) {
         println!("{}", revspec.from().unwrap().id());
@@ -42,7 +42,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         println!("{}", to.id());
 
         if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
-            let base = try!(repo.merge_base(from.id(), to.id()));
+            let base = repo.merge_base(from.id(), to.id())?;
             println!("{}", base);
         }
 

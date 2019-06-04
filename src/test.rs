@@ -5,7 +5,7 @@ use std::ptr;
 use tempdir::TempDir;
 use url::Url;
 
-use Repository;
+use crate::Repository;
 
 macro_rules! t {
     ($e:expr) => {
@@ -51,7 +51,7 @@ pub fn realpath(original: &Path) -> io::Result<PathBuf> {
         fn realpath(name: *const c_char, resolved: *mut c_char) -> *mut c_char;
     }
     unsafe {
-        let cstr = try!(CString::new(original.as_os_str().as_bytes()));
+        let cstr = CString::new(original.as_os_str().as_bytes())?;
         let ptr = realpath(cstr.as_ptr(), ptr::null_mut());
         if ptr.is_null() {
             return Err(io::Error::last_os_error());

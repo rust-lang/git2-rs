@@ -5,9 +5,11 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use object::CastOrPanic;
-use util::{c_cmp_to_ordering, Binding};
-use {raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceType, Repository, Tag, Tree};
+use crate::object::CastOrPanic;
+use crate::util::{c_cmp_to_ordering, Binding};
+use crate::{
+    raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceType, Repository, Tag, Tree,
+};
 
 struct Refdb<'repo>(&'repo Repository);
 
@@ -33,7 +35,7 @@ pub struct ReferenceNames<'repo: 'references, 'references> {
 impl<'repo> Reference<'repo> {
     /// Ensure the reference name is well-formed.
     pub fn is_valid_name(refname: &str) -> bool {
-        ::init();
+        crate::init();
         let refname = CString::new(refname).unwrap();
         unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
     }
@@ -93,7 +95,7 @@ impl<'repo> Reference<'repo> {
 
     /// Get the full name of a reference.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_reference_name(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_reference_name(&*self.raw)).unwrap() }
     }
 
     /// Get the full shorthand of a reference.
@@ -108,7 +110,7 @@ impl<'repo> Reference<'repo> {
 
     /// Get the full shorthand of a reference.
     pub fn shorthand_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_reference_shorthand(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_reference_shorthand(&*self.raw)).unwrap() }
     }
 
     /// Get the OID pointed to by a direct reference.
@@ -140,7 +142,7 @@ impl<'repo> Reference<'repo> {
     ///
     /// Only available if the reference is symbolic.
     pub fn symbolic_target_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_reference_symbolic_target(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_reference_symbolic_target(&*self.raw)) }
     }
 
     /// Resolve a symbolic reference to a direct reference.
@@ -175,7 +177,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a blob.
     pub fn peel_to_blob(&self) -> Result<Blob<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Blob)).cast_or_panic(ObjectType::Blob))
+        Ok(self.peel(ObjectType::Blob)?.cast_or_panic(ObjectType::Blob))
     }
 
     /// Peel a reference to a commit
@@ -183,7 +185,9 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a commit.
     pub fn peel_to_commit(&self) -> Result<Commit<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Commit)).cast_or_panic(ObjectType::Commit))
+        Ok(self
+            .peel(ObjectType::Commit)?
+            .cast_or_panic(ObjectType::Commit))
     }
 
     /// Peel a reference to a tree
@@ -191,7 +195,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a tree.
     pub fn peel_to_tree(&self) -> Result<Tree<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Tree)).cast_or_panic(ObjectType::Tree))
+        Ok(self.peel(ObjectType::Tree)?.cast_or_panic(ObjectType::Tree))
     }
 
     /// Peel a reference to a tag
@@ -199,7 +203,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a tag.
     pub fn peel_to_tag(&self) -> Result<Tag<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Tag)).cast_or_panic(ObjectType::Tag))
+        Ok(self.peel(ObjectType::Tag)?.cast_or_panic(ObjectType::Tag))
     }
 
     /// Rename an existing reference.
@@ -215,8 +219,8 @@ impl<'repo> Reference<'repo> {
         msg: &str,
     ) -> Result<Reference<'repo>, Error> {
         let mut raw = ptr::null_mut();
-        let new_name = try!(CString::new(new_name));
-        let msg = try!(CString::new(msg));
+        let new_name = CString::new(new_name)?;
+        let msg = CString::new(msg)?;
         unsafe {
             try_call!(raw::git_reference_rename(
                 &mut raw, self.raw, new_name, force, msg
@@ -233,7 +237,7 @@ impl<'repo> Reference<'repo> {
     /// reference.
     pub fn set_target(&mut self, id: Oid, reflog_msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = ptr::null_mut();
-        let msg = try!(CString::new(reflog_msg));
+        let msg = CString::new(reflog_msg)?;
         unsafe {
             try_call!(raw::git_reference_set_target(
                 &mut raw,
@@ -334,7 +338,7 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
         let mut out = ptr::null();
         unsafe {
             try_call_iter!(raw::git_reference_next_name(&mut out, self.inner.raw));
-            let bytes = ::opt_bytes(self, out).unwrap();
+            let bytes = crate::opt_bytes(self, out).unwrap();
             let s = str::from_utf8(bytes).unwrap();
             Some(Ok(mem::transmute::<&str, &'references str>(s)))
         }
@@ -343,7 +347,7 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
 
 #[cfg(test)]
 mod tests {
-    use {ObjectType, Reference, ReferenceType};
+    use crate::{ObjectType, Reference, ReferenceType};
 
     #[test]
     fn smoke() {
@@ -353,7 +357,7 @@ mod tests {
 
     #[test]
     fn smoke2() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut head = repo.head().unwrap();
         assert!(head.is_branch());
         assert!(!head.is_remote());

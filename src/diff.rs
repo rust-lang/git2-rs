@@ -7,9 +7,9 @@ use std::path::Path;
 use std::ptr;
 use std::slice;
 
-use util::{self, Binding};
-use {panic, raw, Buf, Delta, DiffFormat, Error, Oid, Repository};
-use {DiffStatsFormat, IntoCString};
+use crate::util::{self, Binding};
+use crate::{panic, raw, Buf, Delta, DiffFormat, Error, Oid, Repository};
+use crate::{DiffStatsFormat, IntoCString};
 
 /// The diff object that contains all individual file deltas.
 ///
@@ -457,7 +457,7 @@ impl<'a> DiffFile<'a> {
     /// directory of the repository.
     pub fn path_bytes(&self) -> Option<&'a [u8]> {
         static FOO: () = ();
-        unsafe { ::opt_bytes(&FOO, (*self.raw).path) }
+        unsafe { crate::opt_bytes(&FOO, (*self.raw).path) }
     }
 
     /// Returns the path of the entry relative to the working directory of the
@@ -1213,15 +1213,15 @@ impl DiffFindOptions {
 
 #[cfg(test)]
 mod tests {
+    use crate::DiffOptions;
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
     use std::path::Path;
-    use DiffOptions;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let diff = repo.diff_tree_to_workdir(None, None).unwrap();
         assert_eq!(diff.deltas().len(), 0);
         let stats = diff.stats().unwrap();
@@ -1232,7 +1232,7 @@ mod tests {
 
     #[test]
     fn foreach_smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let diff = t!(repo.diff_tree_to_workdir(None, None));
         let mut count = 0;
         t!(diff.foreach(
@@ -1250,7 +1250,7 @@ mod tests {
     #[test]
     fn foreach_file_only() {
         let path = Path::new("foo");
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
         let mut opts = DiffOptions::new();
         opts.include_untracked(true);
@@ -1274,7 +1274,7 @@ mod tests {
     #[test]
     fn foreach_file_and_hunk() {
         let path = Path::new("foo");
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
         let mut index = t!(repo.index());
         t!(index.add_path(path));
@@ -1302,7 +1302,7 @@ mod tests {
         let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0, 0, 53, 0, 21];
         let foo_path = Path::new("foo");
         let bin_path = Path::new("bin");
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
         t!(t!(File::create(&td.path().join(bin_path))).write_all(&fib));
         let mut index = t!(repo.index());

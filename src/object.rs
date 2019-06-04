@@ -2,9 +2,9 @@ use std::marker;
 use std::mem;
 use std::ptr;
 
-use util::Binding;
-use {raw, Blob, Buf, Commit, Error, ObjectType, Oid, Repository, Tag, Tree};
-use {Describe, DescribeOptions};
+use crate::util::Binding;
+use crate::{raw, Blob, Buf, Commit, Error, ObjectType, Oid, Repository, Tag, Tree};
+use crate::{Describe, DescribeOptions};
 
 /// A structure to represent a git [object][1]
 ///
@@ -212,8 +212,8 @@ impl<'repo> Clone for Object<'repo> {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Object<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Object<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Object");
         match self.kind() {
             Some(kind) => ds.field("kind", &kind),

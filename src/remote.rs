@@ -7,10 +7,10 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use string_array::StringArray;
-use util::Binding;
-use {raw, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
-use {AutotagOption, Progress, RemoteCallbacks, Repository};
+use crate::string_array::StringArray;
+use crate::util::Binding;
+use crate::{raw, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
+use crate::{AutotagOption, Progress, RemoteCallbacks, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -71,7 +71,7 @@ pub fn remote_into_raw(remote: Remote) -> *mut raw::git_remote {
 impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
-        ::init();
+        crate::init();
         let remote_name = CString::new(remote_name).unwrap();
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
     }
@@ -88,7 +88,7 @@ impl<'repo> Remote<'repo> {
     ///
     /// Returns `None` if this remote has not yet been named
     pub fn name_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_remote_name(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_remote_name(&*self.raw)) }
     }
 
     /// Get the remote's url.
@@ -100,7 +100,7 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's url as a byte array.
     pub fn url_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap() }
     }
 
     /// Get the remote's pushurl.
@@ -112,7 +112,7 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's pushurl as a byte array.
     pub fn pushurl_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_remote_pushurl(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_remote_pushurl(&*self.raw)) }
     }
 
     /// Open a connection to a remote.
@@ -183,7 +183,7 @@ impl<'repo> Remote<'repo> {
         specs: &[&str],
         opts: Option<&mut FetchOptions>,
     ) -> Result<(), Error> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(specs.iter()));
+        let (_a, _b, arr) = crate::util::iter2cstrs(specs.iter())?;
         let raw = opts.map(|o| o.raw());
         unsafe {
             try_call!(raw::git_remote_download(self.raw, &arr, raw.as_ref()));
@@ -233,8 +233,8 @@ impl<'repo> Remote<'repo> {
         opts: Option<&mut FetchOptions>,
         reflog_msg: Option<&str>,
     ) -> Result<(), Error> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
-        let msg = try!(::opt_cstr(reflog_msg));
+        let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
+        let msg = crate::opt_cstr(reflog_msg)?;
         let raw = opts.map(|o| o.raw());
         unsafe {
             try_call!(raw::git_remote_fetch(self.raw, &arr, raw.as_ref(), msg));
@@ -250,7 +250,7 @@ impl<'repo> Remote<'repo> {
         download_tags: AutotagOption,
         msg: Option<&str>,
     ) -> Result<(), Error> {
-        let msg = try!(::opt_cstr(msg));
+        let msg = crate::opt_cstr(msg)?;
         let cbs = callbacks.map(|cb| cb.raw());
         unsafe {
             try_call!(raw::git_remote_update_tips(
@@ -273,7 +273,7 @@ impl<'repo> Remote<'repo> {
     /// `push_update_reference` to test whether all the references were pushed
     /// successfully.
     pub fn push(&mut self, refspecs: &[&str], opts: Option<&mut PushOptions>) -> Result<(), Error> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
+        let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
         let raw = opts.map(|o| o.raw());
         unsafe {
             try_call!(raw::git_remote_push(self.raw, &arr, raw.as_ref()));
@@ -395,12 +395,12 @@ impl<'remote> RemoteHead<'remote> {
     }
 
     pub fn name(&self) -> &str {
-        let b = unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() };
+        let b = unsafe { crate::opt_bytes(self, (*self.raw).name).unwrap() };
         str::from_utf8(b).unwrap()
     }
 
     pub fn symref_target(&self) -> Option<&str> {
-        let b = unsafe { ::opt_bytes(self, (*self.raw).symref_target) };
+        let b = unsafe { crate::opt_bytes(self, (*self.raw).symref_target) };
         b.map(|b| str::from_utf8(b).unwrap())
     }
 }
@@ -478,9 +478,9 @@ impl<'cb> Binding for FetchOptions<'cb> {
                 .as_ref()
                 .map(|m| m.raw())
                 .unwrap_or_else(|| ProxyOptions::new().raw()),
-            prune: ::call::convert(&self.prune),
-            update_fetchhead: ::call::convert(&self.update_fetchhead),
-            download_tags: ::call::convert(&self.download_tags),
+            prune: crate::call::convert(&self.prune),
+            update_fetchhead: crate::call::convert(&self.update_fetchhead),
+            download_tags: crate::call::convert(&self.download_tags),
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
                 count: 0,
@@ -582,14 +582,14 @@ impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb>
 
 #[cfg(test)]
 mod tests {
+    use crate::{AutotagOption, PushOptions};
+    use crate::{Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
     use tempdir::TempDir;
-    use {AutotagOption, PushOptions};
-    use {Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
 
     #[test]
     fn smoke() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(repo.remote("origin", "/path/to/nowhere"));
         drop(repo);
 
@@ -612,7 +612,7 @@ mod tests {
         let remote = td.path().join("remote");
         Repository::init_bare(&remote).unwrap();
 
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let url = if cfg!(unix) {
             format!("file://{}", remote.display())
         } else {
@@ -681,7 +681,7 @@ mod tests {
 
     #[test]
     fn rename_remote() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         repo.remote("origin", "foo").unwrap();
         drop(repo.remote_rename("origin", "foo"));
         drop(repo.remote_delete("foo"));
@@ -705,9 +705,9 @@ mod tests {
 
     #[test]
     fn transfer_cb() {
-        let (td, _repo) = ::test::repo_init();
+        let (td, _repo) = crate::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
-        let url = ::test::path2url(&td.path());
+        let url = crate::test::path2url(&td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let progress_hit = Cell::new(false);
@@ -741,9 +741,9 @@ mod tests {
     /// segfaults
     #[test]
     fn connect_list() {
-        let (td, _repo) = ::test::repo_init();
+        let (td, _repo) = crate::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
-        let url = ::test::path2url(&td.path());
+        let url = crate::test::path2url(&td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let mut callbacks = RemoteCallbacks::new();
@@ -772,10 +772,10 @@ mod tests {
 
     #[test]
     fn push() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let td2 = TempDir::new("git1").unwrap();
         let td3 = TempDir::new("git2").unwrap();
-        let url = ::test::path2url(&td2.path());
+        let url = crate::test::path2url(&td2.path());
 
         Repository::init_bare(td2.path()).unwrap();
         // git push

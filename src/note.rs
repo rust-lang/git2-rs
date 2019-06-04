@@ -1,8 +1,8 @@
 use std::marker;
 use std::str;
 
-use util::Binding;
-use {raw, signature, Error, Oid, Repository, Signature};
+use crate::util::Binding;
+use crate::{raw, signature, Error, Oid, Repository, Signature};
 
 /// A structure representing a [note][note] in git.
 ///
@@ -35,7 +35,7 @@ impl<'repo> Note<'repo> {
 
     /// Get the note message, in bytes.
     pub fn message_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_note_message(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_note_message(&*self.raw)).unwrap() }
     }
 
     /// Get the note message as a string, returning `None` if it is not UTF-8.
@@ -62,8 +62,8 @@ impl<'repo> Binding for Note<'repo> {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Note<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Note<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         f.debug_struct("Note").field("id", &self.id()).finish()
     }
 }
@@ -122,7 +122,7 @@ impl<'repo> Drop for Notes<'repo> {
 mod tests {
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         assert!(repo.notes(None).is_err());
 
         let sig = repo.signature().unwrap();

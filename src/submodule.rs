@@ -5,9 +5,9 @@ use std::path::Path;
 use std::ptr;
 use std::str;
 
-use build::CheckoutBuilder;
-use util::{self, Binding};
-use {raw, Error, FetchOptions, Oid, Repository};
+use crate::build::CheckoutBuilder;
+use crate::util::{self, Binding};
+use crate::{raw, Error, FetchOptions, Oid, Repository};
 
 /// A structure to represent a git [submodule][1]
 ///
@@ -30,7 +30,7 @@ impl<'repo> Submodule<'repo> {
     ///
     /// Returns `None` if the branch is not yet available.
     pub fn branch_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_submodule_branch(self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_submodule_branch(self.raw)) }
     }
 
     /// Get the submodule's url.
@@ -53,7 +53,7 @@ impl<'repo> Submodule<'repo> {
     // TODO: delete this method and fix the signature of `url_bytes` on next
     // major version bump
     pub fn opt_url_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_submodule_url(self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_submodule_url(self.raw)) }
     }
 
     /// Get the submodule's name.
@@ -65,12 +65,14 @@ impl<'repo> Submodule<'repo> {
 
     /// Get the name for the submodule.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_submodule_name(self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_submodule_name(self.raw)).unwrap() }
     }
 
     /// Get the path for the submodule.
     pub fn path(&self) -> &Path {
-        util::bytes2path(unsafe { ::opt_bytes(self, raw::git_submodule_path(self.raw)).unwrap() })
+        util::bytes2path(unsafe {
+            crate::opt_bytes(self, raw::git_submodule_path(self.raw)).unwrap()
+        })
     }
 
     /// Get the OID for the submodule in the current HEAD tree.
@@ -282,8 +284,8 @@ mod tests {
     use tempdir::TempDir;
     use url::Url;
 
-    use Repository;
-    use SubmoduleUpdateOptions;
+    use crate::Repository;
+    use crate::SubmoduleUpdateOptions;
 
     #[test]
     fn smoke() {
@@ -318,8 +320,8 @@ mod tests {
 
     #[test]
     fn add_a_submodule() {
-        let (_td, repo1) = ::test::repo_init();
-        let (td, repo2) = ::test::repo_init();
+        let (_td, repo1) = crate::test::repo_init();
+        let (td, repo2) = crate::test::repo_init();
 
         let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
         let mut s = repo2
@@ -335,8 +337,8 @@ mod tests {
     fn update_submodule() {
         // -----------------------------------
         // Same as `add_a_submodule()`
-        let (_td, repo1) = ::test::repo_init();
-        let (td, repo2) = ::test::repo_init();
+        let (_td, repo1) = crate::test::repo_init();
+        let (td, repo2) = crate::test::repo_init();
 
         let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
         let mut s = repo2

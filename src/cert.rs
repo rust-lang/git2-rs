@@ -5,8 +5,8 @@ use std::marker;
 use std::mem;
 use std::slice;
 
-use raw;
-use util::Binding;
+use crate::raw;
+use crate::util::Binding;
 
 /// A certificate for a remote connection, viewable as one of `CertHostkey` or
 /// `CertX509` currently.

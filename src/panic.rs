@@ -5,7 +5,7 @@ thread_local!(static LAST_ERROR: RefCell<Option<Box<dyn Any + Send>>> = {
     RefCell::new(None)
 });
 
-pub fn wrap<T, F: FnOnce() -> T + ::std::panic::UnwindSafe>(f: F) -> Option<T> {
+pub fn wrap<T, F: FnOnce() -> T + std::panic::UnwindSafe>(f: F) -> Option<T> {
     use std::panic;
     if LAST_ERROR.with(|slot| slot.borrow().is_some()) {
         return None;

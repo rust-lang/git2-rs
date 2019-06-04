@@ -6,9 +6,9 @@ use std::ptr;
 use std::slice;
 use std::str;
 
-use cert::Cert;
-use util::Binding;
-use {panic, raw, Cred, CredentialType, Error, Oid};
+use crate::cert::Cert;
+use crate::util::Binding;
+use crate::{panic, raw, Cred, CredentialType, Error, Oid};
 
 /// A structure to contain the callbacks which are invoked when a repository is
 /// being updated or downloaded.
@@ -276,17 +276,17 @@ extern "C" fn credentials_cb(
     unsafe {
         let ok = panic::wrap(|| {
             let payload = &mut *(payload as *mut RemoteCallbacks);
-            let callback = try!(payload
+            let callback = payload
                 .credentials
                 .as_mut()
-                .ok_or(raw::GIT_PASSTHROUGH as c_int));
+                .ok_or(raw::GIT_PASSTHROUGH as c_int)?;
             *ret = ptr::null_mut();
-            let url = try!(str::from_utf8(CStr::from_ptr(url).to_bytes())
-                .map_err(|_| raw::GIT_PASSTHROUGH as c_int));
-            let username_from_url = match ::opt_bytes(&url, username_from_url) {
-                Some(username) => Some(try!(
-                    str::from_utf8(username).map_err(|_| raw::GIT_PASSTHROUGH as c_int)
-                )),
+            let url = str::from_utf8(CStr::from_ptr(url).to_bytes())
+                .map_err(|_| raw::GIT_PASSTHROUGH as c_int)?;
+            let username_from_url = match crate::opt_bytes(&url, username_from_url) {
+                Some(username) => {
+                    Some(str::from_utf8(username).map_err(|_| raw::GIT_PASSTHROUGH as c_int)?)
+                }
                 None => None,
             };
 

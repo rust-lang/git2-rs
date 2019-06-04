@@ -140,8 +140,7 @@ impl CurlSubtransport {
 
         // Parse our input URL to figure out the host
         let url = format!("{}{}", self.base_url.lock().unwrap(), self.url_path);
-        let parsed =
-            try!(Url::parse(&url).map_err(|_| { self.err("invalid url, failed to parse") }));
+        let parsed = Url::parse(&url).map_err(|_| self.err("invalid url, failed to parse"))?;
         let host = match parsed.host_str() {
             Some(host) => host,
             None => return Err(self.err("invalid url, did not have a host")),
@@ -150,34 +149,34 @@ impl CurlSubtransport {
         // Prep the request
         debug!("request to {}", url);
         let mut h = self.handle.lock().unwrap();
-        try!(h.url(&url));
-        try!(h.useragent(&agent));
-        try!(h.follow_location(true));
+        h.url(&url)?;
+        h.useragent(&agent)?;
+        h.follow_location(true)?;
         match self.method {
-            "GET" => try!(h.get(true)),
-            "PUT" => try!(h.put(true)),
-            "POST" => try!(h.post(true)),
-            other => try!(h.custom_request(other)),
+            "GET" => h.get(true)?,
+            "PUT" => h.put(true)?,
+            "POST" => h.post(true)?,
+            other => h.custom_request(other)?,
         }
 
         let mut headers = List::new();
-        try!(headers.append(&format!("Host: {}", host)));
+        headers.append(&format!("Host: {}", host))?;
         if data.len() > 0 {
-            try!(h.post_fields_copy(data));
-            try!(headers.append(&format!(
+            h.post_fields_copy(data)?;
+            headers.append(&format!(
                 "Accept: application/x-git-{}-result",
                 self.service
-            )));
-            try!(headers.append(&format!(
+            ))?;
+            headers.append(&format!(
                 "Content-Type: \
                  application/x-git-{}-request",
                 self.service
-            )));
+            ))?;
         } else {
-            try!(headers.append("Accept: */*"));
+            headers.append("Accept: */*")?;
         }
-        try!(headers.append("Expect:"));
-        try!(h.http_headers(headers));
+        headers.append("Expect:")?;
+        h.http_headers(headers)?;
 
         let mut content_type = None;
         let mut data = Vec::new();
@@ -185,7 +184,7 @@ impl CurlSubtransport {
             let mut h = h.transfer();
 
             // Look for the Content-Type header
-            try!(h.header_function(|header| {
+            h.header_function(|header| {
                 let header = match str::from_utf8(header) {
                     Ok(s) => s,
                     Err(..) => return true,
@@ -201,19 +200,19 @@ impl CurlSubtransport {
                 }
 
                 true
-            }));
+            })?;
 
             // Collect the request's response in-memory
-            try!(h.write_function(|buf| {
+            h.write_function(|buf| {
                 data.extend_from_slice(buf);
                 Ok(buf.len())
-            }));
+            })?;
 
             // Send the request
-            try!(h.perform());
+            h.perform()?;
         }
 
-        let code = try!(h.response_code());
+        let code = h.response_code()?;
         if code != 200 {
             return Err(self.err(
                 &format!(
@@ -275,7 +274,7 @@ impl CurlSubtransport {
 impl Read for CurlSubtransport {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.reader.is_none() {
-            try!(self.execute(&[]));
+            self.execute(&[])?;
         }
         self.reader.as_mut().unwrap().read(buf)
     }
@@ -284,7 +283,7 @@ impl Read for CurlSubtransport {
 impl Write for CurlSubtransport {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         if self.reader.is_none() {
-            try!(self.execute(data));
+            self.execute(data)?;
         }
         Ok(data.len())
     }

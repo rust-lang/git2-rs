@@ -5,8 +5,8 @@ use std::mem;
 use std::ops::Range;
 use std::str;
 
-use util::Binding;
-use {raw, DiffDelta, IntoCString, Repository, Status};
+use crate::util::Binding;
+use crate::{raw, DiffDelta, IntoCString, Repository, Status};
 
 /// Options that can be provided to `repo.statuses()` to control how the status
 /// information is gathered.
@@ -302,9 +302,9 @@ impl<'statuses> StatusEntry<'statuses> {
     pub fn path_bytes(&self) -> &[u8] {
         unsafe {
             if (*self.raw).head_to_index.is_null() {
-                ::opt_bytes(self, (*(*self.raw).index_to_workdir).old_file.path)
+                crate::opt_bytes(self, (*(*self.raw).index_to_workdir).old_file.path)
             } else {
-                ::opt_bytes(self, (*(*self.raw).head_to_index).old_file.path)
+                crate::opt_bytes(self, (*(*self.raw).head_to_index).old_file.path)
             }
             .unwrap()
         }
@@ -358,15 +358,15 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         assert_eq!(repo.statuses(None).unwrap().len(), 0);
         File::create(&td.path().join("foo")).unwrap();
         let statuses = repo.statuses(None).unwrap();
         assert_eq!(statuses.iter().count(), 1);
         let status = statuses.iter().next().unwrap();
         assert_eq!(status.path(), Some("foo"));
-        assert!(status.status().contains(::Status::WT_NEW));
-        assert!(!status.status().contains(::Status::INDEX_NEW));
+        assert!(status.status().contains(crate::Status::WT_NEW));
+        assert!(!status.status().contains(crate::Status::INDEX_NEW));
         assert!(status.head_to_index().is_none());
         let diff = status.index_to_workdir().unwrap();
         assert_eq!(diff.old_file().path_bytes().unwrap(), b"foo");
@@ -375,7 +375,7 @@ mod tests {
 
     #[test]
     fn filter() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(File::create(&td.path().join("foo")));
         t!(File::create(&td.path().join("bar")));
         let mut opts = StatusOptions::new();
@@ -389,7 +389,7 @@ mod tests {
 
     #[test]
     fn gitignore() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(td.path().join(".gitignore"))).write_all(b"foo\n"));
         assert!(!t!(repo.status_should_ignore(Path::new("bar"))));
         assert!(t!(repo.status_should_ignore(Path::new("foo"))));
@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     fn status_file() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         assert!(repo.status_file(Path::new("foo")).is_err());
         if cfg!(windows) {
             assert!(repo.status_file(Path::new("bar\\foo.txt")).is_err());
@@ -408,10 +408,10 @@ mod tests {
             t!(File::create(td.path().join("bar").join("foo.txt")));
         }
         let status = t!(repo.status_file(Path::new("foo")));
-        assert!(status.contains(::Status::WT_NEW));
+        assert!(status.contains(crate::Status::WT_NEW));
         if cfg!(windows) {
             let status = t!(repo.status_file(Path::new("bar\\foo.txt")));
-            assert!(status.contains(::Status::WT_NEW));
+            assert!(status.contains(crate::Status::WT_NEW));
         }
     }
 }

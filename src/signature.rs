@@ -6,8 +6,8 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use util::Binding;
-use {raw, Error, Time};
+use crate::util::Binding;
+use crate::{raw, Error, Time};
 
 /// A Signature is used to indicate authorship of various actions throughout the
 /// library.
@@ -29,10 +29,10 @@ impl<'a> Signature<'a> {
     ///
     /// See `new` for more information
     pub fn now(name: &str, email: &str) -> Result<Signature<'static>, Error> {
-        ::init();
+        crate::init();
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
-        let email = try!(CString::new(email));
+        let name = CString::new(name)?;
+        let email = CString::new(email)?;
         unsafe {
             try_call!(raw::git_signature_now(&mut ret, name, email));
             Ok(Binding::from_raw(ret))
@@ -46,10 +46,10 @@ impl<'a> Signature<'a> {
     ///
     /// Returns error if either `name` or `email` contain angle brackets.
     pub fn new(name: &str, email: &str, time: &Time) -> Result<Signature<'static>, Error> {
-        ::init();
+        crate::init();
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
-        let email = try!(CString::new(email));
+        let name = CString::new(name)?;
+        let email = CString::new(email)?;
         unsafe {
             try_call!(raw::git_signature_new(
                 &mut ret,
@@ -71,7 +71,7 @@ impl<'a> Signature<'a> {
 
     /// Gets the name on the signature as a byte slice.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() }
+        unsafe { crate::opt_bytes(self, (*self.raw).name).unwrap() }
     }
 
     /// Gets the email on the signature.
@@ -83,7 +83,7 @@ impl<'a> Signature<'a> {
 
     /// Gets the email on the signature as a byte slice.
     pub fn email_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).email).unwrap() }
+        unsafe { crate::opt_bytes(self, (*self.raw).email).unwrap() }
     }
 
     /// Get the `when` of this signature.
@@ -160,7 +160,7 @@ impl<'a> fmt::Display for Signature<'a> {
 
 #[cfg(test)]
 mod tests {
-    use {Signature, Time};
+    use crate::{Signature, Time};
 
     #[test]
     fn smoke() {

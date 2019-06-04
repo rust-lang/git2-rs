@@ -1,4 +1,4 @@
-use {Object, RevparseMode};
+use crate::{Object, RevparseMode};
 
 /// A revspec represents a range of revisions within a repository.
 pub struct Revspec<'repo> {

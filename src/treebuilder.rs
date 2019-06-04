@@ -3,8 +3,8 @@ use std::ptr;
 
 use libc::{c_int, c_void};
 
-use util::{Binding, IntoCString};
-use {panic, raw, tree, Error, Oid, Repository, TreeEntry};
+use crate::util::{Binding, IntoCString};
+use crate::{panic, raw, tree, Error, Oid, Repository, TreeEntry};
 
 /// Constructor for in-memory trees
 pub struct TreeBuilder<'repo> {
@@ -33,7 +33,7 @@ impl<'repo> TreeBuilder<'repo> {
     where
         P: IntoCString,
     {
-        let filename = try!(filename.into_c_string());
+        let filename = filename.into_c_string()?;
         unsafe {
             let ret = raw::git_treebuilder_get(self.raw, filename.as_ptr());
             if ret.is_null() {
@@ -57,7 +57,7 @@ impl<'repo> TreeBuilder<'repo> {
         oid: Oid,
         filemode: i32,
     ) -> Result<TreeEntry, Error> {
-        let filename = try!(filename.into_c_string());
+        let filename = filename.into_c_string()?;
         let filemode = filemode as raw::git_filemode_t;
 
         let mut ret = ptr::null();
@@ -75,7 +75,7 @@ impl<'repo> TreeBuilder<'repo> {
 
     /// Remove an entry from the builder by its filename
     pub fn remove<P: IntoCString>(&mut self, filename: P) -> Result<(), Error> {
-        let filename = try!(filename.into_c_string());
+        let filename = filename.into_c_string()?;
         unsafe {
             try_call!(raw::git_treebuilder_remove(self.raw, filename));
         }
@@ -153,11 +153,11 @@ impl<'repo> Drop for TreeBuilder<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use ObjectType;
+    use crate::ObjectType;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let mut builder = repo.treebuilder(None).unwrap();
         assert_eq!(builder.len(), 0);
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn write() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let mut builder = repo.treebuilder(None).unwrap();
         let data = repo.blob(b"data").unwrap();
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn filter() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let mut builder = repo.treebuilder(None).unwrap();
         let blob = repo.blob(b"data").unwrap();

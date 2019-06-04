@@ -5,8 +5,8 @@ use std::ops::Range;
 use std::ptr;
 use std::str;
 
-use util::Binding;
-use {raw, signature, Error, Object, Oid, Signature, Time, Tree};
+use crate::util::Binding;
+use crate::{raw, signature, Error, Object, Oid, Signature, Time, Tree};
 
 /// A structure to represent a git [commit][1]
 ///
@@ -74,7 +74,7 @@ impl<'repo> Commit<'repo> {
     /// The returned message will be slightly prettified by removing any
     /// potential leading newlines.
     pub fn message_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_commit_message(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_commit_message(&*self.raw)).unwrap() }
     }
 
     /// Get the encoding for the message of a commit, as a string representing a
@@ -82,7 +82,7 @@ impl<'repo> Commit<'repo> {
     ///
     /// `None` will be returned if the encoding is not known
     pub fn message_encoding(&self) -> Option<&str> {
-        let bytes = unsafe { ::opt_bytes(self, raw::git_commit_message_encoding(&*self.raw)) };
+        let bytes = unsafe { crate::opt_bytes(self, raw::git_commit_message_encoding(&*self.raw)) };
         bytes.and_then(|b| str::from_utf8(b).ok())
     }
 
@@ -95,7 +95,7 @@ impl<'repo> Commit<'repo> {
 
     /// Get the full raw message of a commit.
     pub fn message_raw_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_commit_message_raw(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_commit_message_raw(&*self.raw)).unwrap() }
     }
 
     /// Get the full raw text of the commit header.
@@ -107,7 +107,7 @@ impl<'repo> Commit<'repo> {
 
     /// Get the full raw text of the commit header.
     pub fn raw_header_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_commit_raw_header(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_commit_raw_header(&*self.raw)).unwrap() }
     }
 
     /// Get the short "summary" of the git commit message.
@@ -128,7 +128,7 @@ impl<'repo> Commit<'repo> {
     ///
     /// `None` may be returned if an error occurs
     pub fn summary_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_commit_summary(self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_commit_summary(self.raw)) }
     }
 
     /// Get the commit time (i.e. committer time) of a commit.
@@ -198,9 +198,9 @@ impl<'repo> Commit<'repo> {
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
-        let update_ref = try!(::opt_cstr(update_ref));
-        let encoding = try!(::opt_cstr(message_encoding));
-        let message = try!(::opt_cstr(message));
+        let update_ref = crate::opt_cstr(update_ref)?;
+        let encoding = crate::opt_cstr(message_encoding)?;
+        let message = crate::opt_cstr(message)?;
         unsafe {
             try_call!(raw::git_commit_amend(
                 &mut raw,
@@ -280,8 +280,8 @@ impl<'repo> Binding for Commit<'repo> {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Commit<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Commit<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Commit");
         ds.field("id", &self.id());
         if let Some(summary) = self.summary() {
@@ -353,7 +353,7 @@ impl<'repo> Drop for Commit<'repo> {
 mod tests {
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();

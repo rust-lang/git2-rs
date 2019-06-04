@@ -79,7 +79,7 @@ enum Cache {
 
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(path));
+    let repo = Repository::open(path)?;
 
     // Prepare our diff options based on the arguments given
     let mut opts = DiffOptions::new();
@@ -112,25 +112,25 @@ fn run(args: &Args) -> Result<(), Error> {
     }
 
     // Prepare the diff to inspect
-    let t1 = try!(tree_to_treeish(&repo, args.arg_from_oid.as_ref()));
-    let t2 = try!(tree_to_treeish(&repo, args.arg_to_oid.as_ref()));
-    let head = try!(tree_to_treeish(&repo, Some(&"HEAD".to_string()))).unwrap();
+    let t1 = tree_to_treeish(&repo, args.arg_from_oid.as_ref())?;
+    let t2 = tree_to_treeish(&repo, args.arg_to_oid.as_ref())?;
+    let head = tree_to_treeish(&repo, Some(&"HEAD".to_string()))?.unwrap();
     let mut diff = match (t1, t2, args.cache()) {
         (Some(t1), Some(t2), _) => {
-            try!(repo.diff_tree_to_tree(t1.as_tree(), t2.as_tree(), Some(&mut opts)))
+            repo.diff_tree_to_tree(t1.as_tree(), t2.as_tree(), Some(&mut opts))?
         }
         (t1, None, Cache::None) => {
             let t1 = t1.unwrap_or(head);
-            try!(repo.diff_tree_to_workdir(t1.as_tree(), Some(&mut opts)))
+            repo.diff_tree_to_workdir(t1.as_tree(), Some(&mut opts))?
         }
         (t1, None, Cache::Only) => {
             let t1 = t1.unwrap_or(head);
-            try!(repo.diff_tree_to_index(t1.as_tree(), None, Some(&mut opts)))
+            repo.diff_tree_to_index(t1.as_tree(), None, Some(&mut opts))?
         }
         (Some(t1), None, _) => {
-            try!(repo.diff_tree_to_workdir_with_index(t1.as_tree(), Some(&mut opts)))
+            repo.diff_tree_to_workdir_with_index(t1.as_tree(), Some(&mut opts))?
         }
-        (None, None, _) => try!(repo.diff_index_to_workdir(None, Some(&mut opts))),
+        (None, None, _) => repo.diff_index_to_workdir(None, Some(&mut opts))?,
         (None, Some(_), _) => unreachable!(),
     };
 
@@ -151,20 +151,20 @@ fn run(args: &Args) -> Result<(), Error> {
         }
         opts.copies_from_unmodified(args.flag_find_copies_harder)
             .rewrites(args.flag_break_rewrites);
-        try!(diff.find_similar(Some(&mut opts)));
+        diff.find_similar(Some(&mut opts))?;
     }
 
     // Generate simple output
     let stats = args.flag_stat | args.flag_numstat | args.flag_shortstat | args.flag_summary;
     if stats {
-        try!(print_stats(&diff, args));
+        print_stats(&diff, args)?;
     }
     if args.flag_patch || !stats {
         if args.color() {
             print!("{}", RESET);
         }
         let mut last_color = None;
-        try!(diff.print(args.diff_format(), |_delta, _hunk, line| {
+        diff.print(args.diff_format(), |_delta, _hunk, line| {
             if args.color() {
                 let next = match line.origin() {
                     '+' => Some(GREEN),
@@ -190,7 +190,7 @@ fn run(args: &Args) -> Result<(), Error> {
             }
             print!("{}", str::from_utf8(line.content()).unwrap());
             true
-        }));
+        })?;
         if args.color() {
             print!("{}", RESET);
         }
@@ -200,7 +200,7 @@ fn run(args: &Args) -> Result<(), Error> {
 }
 
 fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
-    let stats = try!(diff.stats());
+    let stats = diff.stats()?;
     let mut format = git2::DiffStatsFormat::NONE;
     if args.flag_stat {
         format |= git2::DiffStatsFormat::FULL;
@@ -214,7 +214,7 @@ fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
     if args.flag_summary {
         format |= git2::DiffStatsFormat::INCLUDE_SUMMARY;
     }
-    let buf = try!(stats.to_buf(format, 80));
+    let buf = stats.to_buf(format, 80)?;
     print!("{}", str::from_utf8(&*buf).unwrap());
     Ok(())
 }
@@ -227,8 +227,8 @@ fn tree_to_treeish<'a>(
         Some(s) => s,
         None => return Ok(None),
     };
-    let obj = try!(repo.revparse_single(arg));
-    let tree = try!(obj.peel(ObjectType::Tree));
+    let obj = repo.revparse_single(arg)?;
+    let tree = obj.peel(ObjectType::Tree)?;
     Ok(Some(tree))
 }
 

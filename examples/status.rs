@@ -48,7 +48,7 @@ enum Format {
 
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.clone().unwrap_or_else(|| ".".to_string());
-    let repo = try!(Repository::open(&path));
+    let repo = Repository::open(&path)?;
     if repo.is_bare() {
         return Err(Error::from_str("cannot report status on bare repository"));
     }
@@ -85,13 +85,13 @@ fn run(args: &Args) -> Result<(), Error> {
             println!("\u{1b}[H\u{1b}[2J");
         }
 
-        let statuses = try!(repo.statuses(Some(&mut opts)));
+        let statuses = repo.statuses(Some(&mut opts))?;
 
         if args.flag_branch {
-            try!(show_branch(&repo, &args.format()));
+            show_branch(&repo, &args.format())?;
         }
         if args.flag_list_submodules {
-            try!(print_submodules(&repo));
+            print_submodules(&repo)?;
         }
 
         if args.format() == Format::Long {
@@ -130,7 +130,7 @@ fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
 }
 
 fn print_submodules(repo: &Repository) -> Result<(), Error> {
-    let modules = try!(repo.submodules());
+    let modules = repo.submodules()?;
     println!("# Submodules");
     for sm in &modules {
         println!(

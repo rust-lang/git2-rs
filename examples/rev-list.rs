@@ -33,8 +33,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
-    let mut revwalk = try!(repo.revwalk());
+    let repo = Repository::open(".")?;
+    let mut revwalk = repo.revwalk()?;
 
     let base = if args.flag_reverse {
         git2::Sort::REVERSE
@@ -65,20 +65,20 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         });
     for (spec, hide) in specs {
         let id = if spec.contains("..") {
-            let revspec = try!(repo.revparse(spec));
+            let revspec = repo.revparse(spec)?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 return Err(Error::from_str("merge bases not implemented"));
             }
-            try!(push(&mut revwalk, revspec.from().unwrap().id(), !hide));
+            push(&mut revwalk, revspec.from().unwrap().id(), !hide)?;
             revspec.to().unwrap().id()
         } else {
-            try!(repo.revparse_single(spec)).id()
+            repo.revparse_single(spec)?.id()
         };
-        try!(push(&mut revwalk, id, hide));
+        push(&mut revwalk, id, hide)?;
     }
 
     for id in revwalk {
-        let id = try!(id);
+        let id = id?;
         println!("{}", id);
     }
     Ok(())

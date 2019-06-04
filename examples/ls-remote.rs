@@ -28,19 +28,19 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
     let remote = &args.arg_remote;
-    let mut remote = try!(repo
+    let mut remote = repo
         .find_remote(remote)
-        .or_else(|_| { repo.remote_anonymous(remote) }));
+        .or_else(|_| repo.remote_anonymous(remote))?;
 
     // Connect to the remote and call the printing function for each of the
     // remote references.
-    let connection = try!(remote.connect_auth(Direction::Fetch, None, None));
+    let connection = remote.connect_auth(Direction::Fetch, None, None)?;
 
     // Get the list of references on the remote and print out their name next to
     // what they point to.
-    for head in try!(connection.list()).iter() {
+    for head in connection.list()?.iter() {
         println!("{}\t{}", head.oid(), head.name());
     }
     Ok(())

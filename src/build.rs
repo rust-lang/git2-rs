@@ -6,9 +6,9 @@ use std::mem;
 use std::path::Path;
 use std::ptr;
 
-use util::{self, Binding};
-use {panic, raw, Error, FetchOptions, IntoCString, Repository};
-use {CheckoutNotificationType, DiffFile, Remote};
+use crate::util::{self, Binding};
+use crate::{panic, raw, Error, FetchOptions, IntoCString, Repository};
+use crate::{CheckoutNotificationType, DiffFile, Remote};
 
 /// A builder struct which is used to build configuration for cloning a new git
 /// repository.
@@ -102,7 +102,7 @@ impl<'cb> RepoBuilder<'cb> {
     /// When ready, the `clone()` method can be used to clone a new repository
     /// using this configuration.
     pub fn new() -> RepoBuilder<'cb> {
-        ::init();
+        crate::init();
         RepoBuilder {
             bare: false,
             branch: None,
@@ -231,8 +231,8 @@ impl<'cb> RepoBuilder<'cb> {
             opts.remote_cb_payload = callback as *mut _ as *mut _;
         }
 
-        let url = try!(CString::new(url));
-        let into = try!(into.into_c_string());
+        let url = CString::new(url)?;
+        let into = into.into_c_string()?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_clone(&mut raw, url, into, &opts));
@@ -256,7 +256,7 @@ extern "C" fn remote_create_cb(
             let f = payload as *mut Box<RemoteCreate>;
             match (*f)(&repo, name, url) {
                 Ok(remote) => {
-                    *out = ::remote::remote_into_raw(remote);
+                    *out = crate::remote::remote_into_raw(remote);
                     0
                 }
                 Err(e) => e.raw_code(),
@@ -277,7 +277,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Creates a new builder for checkouts with all of its default
     /// configuration.
     pub fn new() -> CheckoutBuilder<'cb> {
-        ::init();
+        crate::init();
         CheckoutBuilder {
             disable_filters: false,
             dir_perm: None,
@@ -642,10 +642,10 @@ extern "C" fn notify_cb(
 #[cfg(test)]
 mod tests {
     use super::{CheckoutBuilder, RepoBuilder};
+    use crate::{CheckoutNotificationType, Repository};
     use std::fs;
     use std::path::Path;
     use tempdir::TempDir;
-    use {CheckoutNotificationType, Repository};
 
     #[test]
     fn smoke() {

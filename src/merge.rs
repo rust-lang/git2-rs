@@ -2,9 +2,9 @@ use libc::c_uint;
 use std::marker;
 use std::mem;
 
-use call::Convert;
-use util::Binding;
-use {raw, Commit, FileFavor, Oid};
+use crate::call::Convert;
+use crate::util::Binding;
+use crate::{raw, Commit, FileFavor, Oid};
 
 /// A structure to represent an annotated commit, the input to merge and rebase.
 ///

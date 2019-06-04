@@ -33,7 +33,7 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
     let path = Path::new(&args.arg_path[..]);
 
     // Prepare our blame options
@@ -46,7 +46,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     // Parse spec
     if let Some(spec) = args.arg_spec.as_ref() {
-        let revspec = try!(repo.revparse(spec));
+        let revspec = repo.revparse(spec)?;
 
         let (oldest, newest) = if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             (None, revspec.from())
@@ -69,9 +69,9 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     }
 
     let spec = format!("{}:{}", commit_id, path.display());
-    let blame = try!(repo.blame_file(path, Some(&mut opts)));
-    let object = try!(repo.revparse_single(&spec[..]));
-    let blob = try!(repo.find_blob(object.id()));
+    let blame = repo.blame_file(path, Some(&mut opts))?;
+    let object = repo.revparse_single(&spec[..])?;
+    let blob = repo.find_blob(object.id())?;
     let reader = BufReader::new(blob.content());
 
     for (i, line) in reader.lines().enumerate() {

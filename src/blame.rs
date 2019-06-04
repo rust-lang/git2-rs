@@ -1,9 +1,9 @@
+use crate::util::{self, Binding};
+use crate::{raw, signature, Oid, Repository, Signature};
 use std::marker;
 use std::mem;
 use std::ops::Range;
 use std::path::Path;
-use util::{self, Binding};
-use {raw, signature, Oid, Repository, Signature};
 
 /// Opaque structure to hold blame results.
 pub struct Blame<'repo> {
@@ -124,7 +124,7 @@ impl<'blame> BlameHunk<'blame> {
     /// Note: `None` could be returned for non-unicode paths on Widnows.
     pub fn path(&self) -> Option<&Path> {
         unsafe {
-            if let Some(bytes) = ::opt_bytes(self, (*self.raw).orig_path) {
+            if let Some(bytes) = crate::opt_bytes(self, (*self.raw).orig_path) {
                 Some(util::bytes2path(bytes))
             } else {
                 None
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut index = repo.index().unwrap();
 
         let root = repo.path().parent().unwrap();

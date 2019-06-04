@@ -2,8 +2,8 @@ use std::ffi::CString;
 use std::marker;
 use std::str;
 
-use util::Binding;
-use {raw, Direction};
+use crate::util::Binding;
+use crate::{raw, Direction};
 
 /// A structure to represent a git [refspec][1].
 ///
@@ -34,7 +34,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Get the destination specifier, in bytes.
     pub fn dst_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_refspec_dst(self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_refspec_dst(self.raw)).unwrap() }
     }
 
     /// Check if a refspec's destination descriptor matches a reference
@@ -52,7 +52,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Get the source specifier, in bytes.
     pub fn src_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_refspec_src(self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_refspec_src(self.raw)).unwrap() }
     }
 
     /// Check if a refspec's source descriptor matches a reference
@@ -75,7 +75,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Get the refspec's string as a byte array
     pub fn bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_refspec_string(self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_refspec_string(self.raw)).unwrap() }
     }
 }
 
