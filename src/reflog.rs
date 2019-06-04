@@ -28,7 +28,7 @@ impl Reflog {
     pub fn append(
         &mut self,
         new_oid: Oid,
-        committer: &Signature,
+        committer: &Signature<'_>,
         msg: Option<&str>,
     ) -> Result<(), Error> {
         let msg = crate::opt_cstr(msg)?;
@@ -64,7 +64,7 @@ impl Reflog {
     ///
     /// Requesting the reflog entry with an index of 0 (zero) will return the
     /// most recently created entry.
-    pub fn get(&self, i: usize) -> Option<ReflogEntry> {
+    pub fn get(&self, i: usize) -> Option<ReflogEntry<'_>> {
         unsafe {
             let ptr = raw::git_reflog_entry_byindex(self.raw, i as size_t);
             Binding::from_raw_opt(ptr)
@@ -82,7 +82,7 @@ impl Reflog {
     }
 
     /// Get an iterator to all entries inside of this reflog
-    pub fn iter(&self) -> ReflogIter {
+    pub fn iter(&self) -> ReflogIter<'_> {
         ReflogIter {
             range: 0..self.len(),
             reflog: self,
@@ -118,7 +118,7 @@ impl Drop for Reflog {
 
 impl<'reflog> ReflogEntry<'reflog> {
     /// Get the committer of this entry
-    pub fn committer(&self) -> Signature {
+    pub fn committer(&self) -> Signature<'_> {
         unsafe {
             let ptr = raw::git_reflog_entry_committer(self.raw);
             signature::from_raw_const(self, ptr)

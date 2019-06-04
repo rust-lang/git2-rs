@@ -167,7 +167,7 @@ impl Config {
         unsafe {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw, name));
         }
-        Ok(!(out == 0))
+        Ok(out != 0)
     }
 
     /// Get the value of an integer config variable.
@@ -244,7 +244,7 @@ impl Config {
     }
 
     /// Get the ConfigEntry for a config variable.
-    pub fn get_entry(&self, name: &str) -> Result<ConfigEntry, Error> {
+    pub fn get_entry(&self, name: &str) -> Result<ConfigEntry<'_>, Error> {
         let mut ret = ptr::null_mut();
         let name = CString::new(name)?;
         unsafe {
@@ -271,7 +271,7 @@ impl Config {
     ///     println!("{} => {}", entry.name().unwrap(), entry.value().unwrap());
     /// }
     /// ```
-    pub fn entries(&self, glob: Option<&str>) -> Result<ConfigEntries, Error> {
+    pub fn entries(&self, glob: Option<&str>) -> Result<ConfigEntries<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             match glob {

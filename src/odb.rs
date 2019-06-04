@@ -51,7 +51,7 @@ impl<'repo> Odb<'repo> {
     ///
     /// Note that most backends do not support streaming reads because they store their objects as compressed/delta'ed blobs.
     /// If the backend does not support streaming reads, use the `read` method instead.
-    pub fn reader(&self, oid: Oid) -> Result<(OdbReader, usize, ObjectType), Error> {
+    pub fn reader(&self, oid: Oid) -> Result<(OdbReader<'_>, usize, ObjectType), Error> {
         let mut out = ptr::null_mut();
         let mut size = 0usize;
         let mut otype: raw::git_object_t = ObjectType::Any.raw();
@@ -75,7 +75,7 @@ impl<'repo> Odb<'repo> {
     ///
     /// The type and final length of the object must be specified when opening the stream.
     /// If the backend does not support streaming writes, use the `write` method instead.
-    pub fn writer(&self, size: usize, obj_type: ObjectType) -> Result<OdbWriter, Error> {
+    pub fn writer(&self, size: usize, obj_type: ObjectType) -> Result<OdbWriter<'_>, Error> {
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_odb_open_wstream(
@@ -107,7 +107,7 @@ impl<'repo> Odb<'repo> {
     }
 
     /// Read an object from the database.
-    pub fn read(&self, oid: Oid) -> Result<OdbObject, Error> {
+    pub fn read(&self, oid: Oid) -> Result<OdbObject<'_>, Error> {
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_odb_read(&mut out, self.raw, oid.raw()));
@@ -359,7 +359,7 @@ struct ForeachCbData<'a> {
 
 extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int {
     panic::wrap(|| unsafe {
-        let data = &mut *(payload as *mut ForeachCbData);
+        let data = &mut *(payload as *mut ForeachCbData<'_>);
         let res = {
             let callback = &mut data.callback;
             callback(&Binding::from_raw(id))

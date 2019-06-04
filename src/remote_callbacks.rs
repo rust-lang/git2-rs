@@ -51,7 +51,7 @@ pub type Credentials<'a> =
 /// continue. A return value of `false` will cancel the transfer.
 ///
 /// * `progress` - the progress being made so far.
-pub type TransferProgress<'a> = dyn FnMut(Progress) -> bool + 'a;
+pub type TransferProgress<'a> = dyn FnMut(Progress<'_>) -> bool + 'a;
 
 /// Callback for receiving messages delivered by the transport.
 ///
@@ -68,7 +68,7 @@ pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 ///
 /// The second argument is the hostname for the connection is passed as the last
 /// argument.
-pub type CertificateCheck<'a> = dyn FnMut(&Cert, &str) -> bool + 'a;
+pub type CertificateCheck<'a> = dyn FnMut(&Cert<'_>, &str) -> bool + 'a;
 
 /// Callback for each updated reference on push.
 ///
@@ -108,7 +108,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// The callback through which progress is monitored.
     pub fn transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
-        F: FnMut(Progress) -> bool + 'a,
+        F: FnMut(Progress<'_>) -> bool + 'a,
     {
         self.progress = Some(Box::new(cb) as Box<TransferProgress<'a>>);
         self
@@ -141,7 +141,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// connection to proceed.
     pub fn certificate_check<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
-        F: FnMut(&Cert, &str) -> bool + 'a,
+        F: FnMut(&Cert<'_>, &str) -> bool + 'a,
     {
         self.certificate_check = Some(Box::new(cb) as Box<CertificateCheck<'a>>);
         self
@@ -275,7 +275,7 @@ extern "C" fn credentials_cb(
 ) -> c_int {
     unsafe {
         let ok = panic::wrap(|| {
-            let payload = &mut *(payload as *mut RemoteCallbacks);
+            let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
             let callback = payload
                 .credentials
                 .as_mut()
@@ -320,7 +320,7 @@ extern "C" fn transfer_progress_cb(
     payload: *mut c_void,
 ) -> c_int {
     let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut RemoteCallbacks);
+        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
         let callback = match payload.progress {
             Some(ref mut c) => c,
             None => return true,
@@ -337,7 +337,7 @@ extern "C" fn transfer_progress_cb(
 
 extern "C" fn sideband_progress_cb(str: *const c_char, len: c_int, payload: *mut c_void) -> c_int {
     let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut RemoteCallbacks);
+        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
         let callback = match payload.sideband_progress {
             Some(ref mut c) => c,
             None => return true,
@@ -359,7 +359,7 @@ extern "C" fn update_tips_cb(
     data: *mut c_void,
 ) -> c_int {
     let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks);
+        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
         let callback = match payload.update_tips {
             Some(ref mut c) => c,
             None => return true,
@@ -383,7 +383,7 @@ extern "C" fn certificate_check_cb(
     data: *mut c_void,
 ) -> c_int {
     let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks);
+        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
         let callback = match payload.certificate_check {
             Some(ref mut c) => c,
             None => return true,
@@ -405,7 +405,7 @@ extern "C" fn push_update_reference_cb(
     data: *mut c_void,
 ) -> c_int {
     panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks);
+        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
         let callback = match payload.push_update_reference {
             Some(ref mut c) => c,
             None => return 0,

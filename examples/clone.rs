@@ -14,14 +14,10 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{FetchOptions, Progress, RemoteCallbacks};
+use serde_derive::Deserialize;
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -52,7 +48,7 @@ fn print(state: &mut State) {
     let kbytes = stats.received_bytes() / 1024;
     if stats.received_objects() == stats.total_objects() {
         if !state.newline {
-            println!("");
+            println!();
             state.newline = true;
         }
         print!(
@@ -115,13 +111,13 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         .fetch_options(fo)
         .with_checkout(co)
         .clone(&args.arg_url, Path::new(&args.arg_path))?;
-    println!("");
+    println!();
 
     Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: add [options] <url> <path>
 
 Options:

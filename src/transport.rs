@@ -73,7 +73,7 @@ pub trait SmartSubtransportStream: Read + Write + Send + 'static {}
 
 impl<T: Read + Write + Send + 'static> SmartSubtransportStream for T {}
 
-type TransportFactory = dyn Fn(&Remote) -> Result<Transport, Error> + Send + Sync + 'static;
+type TransportFactory = dyn Fn(&Remote<'_>) -> Result<Transport, Error> + Send + Sync + 'static;
 
 /// Boxed data payload used for registering new transports.
 ///
@@ -105,7 +105,7 @@ struct RawSmartSubtransportStream {
 /// to creation of other transports.
 pub unsafe fn register<F>(prefix: &str, factory: F) -> Result<(), Error>
 where
-    F: Fn(&Remote) -> Result<Transport, Error> + Send + Sync + 'static,
+    F: Fn(&Remote<'_>) -> Result<Transport, Error> + Send + Sync + 'static,
 {
     crate::init();
     let mut data = Box::new(TransportData {
@@ -133,7 +133,7 @@ impl Transport {
     ///
     /// The `rpc` argument is `true` if the protocol is stateless, false
     /// otherwise. For example `http://` is stateless but `git://` is not.
-    pub fn smart<S>(remote: &Remote, rpc: bool, subtransport: S) -> Result<Transport, Error>
+    pub fn smart<S>(remote: &Remote<'_>, rpc: bool, subtransport: S) -> Result<Transport, Error>
     where
         S: SmartSubtransport,
     {

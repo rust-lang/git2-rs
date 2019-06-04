@@ -14,16 +14,11 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
-use std::str;
-
 use docopt::Docopt;
 use git2::{Diff, DiffOptions, Error, Object, ObjectType, Repository};
 use git2::{DiffFindOptions, DiffFormat};
+use serde_derive::Deserialize;
+use std::str;
 
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
@@ -64,11 +59,11 @@ struct Args {
     flag_git_dir: Option<String>,
 }
 
-const RESET: &'static str = "\u{1b}[m";
-const BOLD: &'static str = "\u{1b}[1m";
-const RED: &'static str = "\u{1b}[31m";
-const GREEN: &'static str = "\u{1b}[32m";
-const CYAN: &'static str = "\u{1b}[36m";
+const RESET: &str = "\u{1b}[m";
+const BOLD: &str = "\u{1b}[1m";
+const RED: &str = "\u{1b}[31m";
+const GREEN: &str = "\u{1b}[32m";
+const CYAN: &str = "\u{1b}[36m";
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 enum Cache {
@@ -267,7 +262,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: diff [options] [<from-oid> [<to-oid>]]
 
 Options:

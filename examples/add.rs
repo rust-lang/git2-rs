@@ -15,13 +15,9 @@
 #![deny(warnings)]
 #![allow(trivial_casts)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::Repository;
+use serde_derive::Deserialize;
 use std::path::Path;
 
 #[derive(Deserialize)]
@@ -71,7 +67,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: add [options] [--] [<spec>..]
 
 Options:

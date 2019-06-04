@@ -37,7 +37,7 @@ impl StringArray {
     pub fn get_bytes(&self, i: usize) -> Option<&[u8]> {
         if i < self.raw.count as usize {
             unsafe {
-                let ptr = *self.raw.strings.offset(i as isize) as *const _;
+                let ptr = *self.raw.strings.add(i) as *const _;
                 Some(crate::opt_bytes(self, ptr).unwrap())
             }
         } else {
@@ -49,7 +49,7 @@ impl StringArray {
     ///
     /// The iterator yields `Option<&str>` as it is unknown whether the contents
     /// are utf-8 or not.
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> Iter<'_> {
         Iter {
             range: 0..self.len(),
             arr: self,
@@ -58,7 +58,7 @@ impl StringArray {
 
     /// Returns an iterator over the strings contained within this array,
     /// yielding byte slices.
-    pub fn iter_bytes(&self) -> IterBytes {
+    pub fn iter_bytes(&self) -> IterBytes<'_> {
         IterBytes {
             range: 0..self.len(),
             arr: self,

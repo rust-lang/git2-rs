@@ -16,12 +16,9 @@
 //! >           operation, only clones.
 
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
-
-extern crate curl;
-extern crate git2;
-extern crate url;
-#[macro_use]
-extern crate log;
+#![deny(missing_docs)]
+#![warn(rust_2018_idioms)]
+#![cfg_attr(test, deny(warnings))]
 
 use std::error;
 use std::io::prelude::*;
@@ -33,6 +30,7 @@ use curl::easy::{Easy, List};
 use git2::transport::SmartSubtransportStream;
 use git2::transport::{Service, SmartSubtransport, Transport};
 use git2::Error;
+use log::{debug, info};
 use url::Url;
 
 struct CurlTransport {
@@ -81,7 +79,7 @@ pub unsafe fn register(handle: Easy) {
     });
 }
 
-fn factory(remote: &git2::Remote, handle: Arc<Mutex<Easy>>) -> Result<Transport, Error> {
+fn factory(remote: &git2::Remote<'_>, handle: Arc<Mutex<Easy>>) -> Result<Transport, Error> {
     Transport::smart(
         remote,
         true,

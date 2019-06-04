@@ -24,12 +24,12 @@ pub struct Notes<'repo> {
 
 impl<'repo> Note<'repo> {
     /// Get the note author
-    pub fn author(&self) -> Signature {
+    pub fn author(&self) -> Signature<'_> {
         unsafe { signature::from_raw_const(self, raw::git_note_author(&*self.raw)) }
     }
 
     /// Get the note committer
-    pub fn committer(&self) -> Signature {
+    pub fn committer(&self) -> Signature<'_> {
         unsafe { signature::from_raw_const(self, raw::git_note_committer(&*self.raw)) }
     }
 
@@ -63,7 +63,7 @@ impl<'repo> Binding for Note<'repo> {
 }
 
 impl<'repo> std::fmt::Debug for Note<'repo> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_struct("Note").field("id", &self.id()).finish()
     }
 }

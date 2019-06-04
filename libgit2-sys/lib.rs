@@ -1,16 +1,12 @@
 #![doc(html_root_url = "http://alexcrichton.com/git2-rs")]
 #![allow(non_camel_case_types, unused_extern_crates)]
 
-#[cfg(feature = "curl")]
-extern crate curl_sys;
-extern crate libc;
-#[cfg(feature = "ssh")]
-extern crate libssh2_sys as libssh2;
+// This is required to link libz when libssh2-sys is not included.
 extern crate libz_sys as libz;
-#[cfg(all(unix, feature = "https"))]
-extern crate openssl_sys;
 
 use libc::{c_char, c_int, c_uchar, c_uint, c_void, size_t};
+#[cfg(feature = "ssh")]
+use libssh2_sys as libssh2;
 
 pub const GIT_OID_RAWSZ: usize = 20;
 pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;

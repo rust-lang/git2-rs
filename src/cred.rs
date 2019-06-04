@@ -1,3 +1,4 @@
+use log::{debug, trace};
 use std::ffi::CString;
 use std::io::Write;
 use std::mem;

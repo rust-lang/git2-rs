@@ -40,7 +40,7 @@ impl Binding for OidArray {
 }
 
 impl<'repo> std::fmt::Debug for OidArray {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_tuple("OidArray").field(&self.deref()).finish()
     }
 }

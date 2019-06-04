@@ -15,13 +15,9 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{Error, Oid, Repository, Revwalk};
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -93,7 +89,7 @@ fn push(revwalk: &mut Revwalk, id: Oid, hide: bool) -> Result<(), Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: rev-list [options] [--] <spec>...
 
 Options:

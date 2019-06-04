@@ -272,7 +272,7 @@ impl Index {
         &mut self,
         pathspecs: I,
         flag: IndexAddOption,
-        mut cb: Option<&mut IndexMatchedPath>,
+        mut cb: Option<&mut IndexMatchedPath<'_>>,
     ) -> Result<(), Error>
     where
         T: IntoCString,
@@ -329,7 +329,7 @@ impl Index {
     }
 
     /// Get an iterator over the entries in this index.
-    pub fn iter(&self) -> IndexEntries {
+    pub fn iter(&self) -> IndexEntries<'_> {
         IndexEntries {
             range: 0..self.len(),
             index: self,
@@ -337,7 +337,7 @@ impl Index {
     }
 
     /// Get an iterator over the index entries that have conflicts
-    pub fn conflicts(&self) -> Result<IndexConflicts, Error> {
+    pub fn conflicts(&self) -> Result<IndexConflicts<'_>, Error> {
         crate::init();
         let mut conflict_iter = ptr::null_mut();
         unsafe {
@@ -397,7 +397,7 @@ impl Index {
     /// Read a tree into the index file with stats
     ///
     /// The current index contents will be replaced by the specified tree.
-    pub fn read_tree(&mut self, tree: &Tree) -> Result<(), Error> {
+    pub fn read_tree(&mut self, tree: &Tree<'_>) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_index_read_tree(self.raw, &*tree.raw()));
         }
@@ -450,7 +450,7 @@ impl Index {
     pub fn remove_all<T, I>(
         &mut self,
         pathspecs: I,
-        mut cb: Option<&mut IndexMatchedPath>,
+        mut cb: Option<&mut IndexMatchedPath<'_>>,
     ) -> Result<(), Error>
     where
         T: IntoCString,
@@ -488,7 +488,7 @@ impl Index {
     pub fn update_all<T, I>(
         &mut self,
         pathspecs: I,
-        mut cb: Option<&mut IndexMatchedPath>,
+        mut cb: Option<&mut IndexMatchedPath<'_>>,
     ) -> Result<(), Error>
     where
         T: IntoCString,
@@ -589,7 +589,7 @@ extern "C" fn index_matched_path_cb(
         let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
 
         panic::wrap(|| {
-            let payload = payload as *mut &mut IndexMatchedPath;
+            let payload = payload as *mut &mut IndexMatchedPath<'_>;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         })
         .unwrap_or(-1)

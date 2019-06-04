@@ -102,12 +102,12 @@ pub enum DiffBinaryKind {
     Delta,
 }
 
-type PrintCb<'a> = dyn FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+type PrintCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
-pub type FileCb<'a> = dyn FnMut(DiffDelta, f32) -> bool + 'a;
-pub type BinaryCb<'a> = dyn FnMut(DiffDelta, DiffBinary) -> bool + 'a;
-pub type HunkCb<'a> = dyn FnMut(DiffDelta, DiffHunk) -> bool + 'a;
-pub type LineCb<'a> = dyn FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+pub type FileCb<'a> = dyn FnMut(DiffDelta<'_>, f32) -> bool + 'a;
+pub type BinaryCb<'a> = dyn FnMut(DiffDelta<'_>, DiffBinary<'_>) -> bool + 'a;
+pub type HunkCb<'a> = dyn FnMut(DiffDelta<'_>, DiffHunk<'_>) -> bool + 'a;
+pub type LineCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
 struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
     file: &'a mut FileCb<'b>,
@@ -133,7 +133,7 @@ impl<'repo> Diff<'repo> {
     }
 
     /// Returns an iterator over the deltas in this diff.
-    pub fn deltas(&self) -> Deltas {
+    pub fn deltas(&self) -> Deltas<'_> {
         let num_deltas = unsafe { raw::git_diff_num_deltas(&*self.raw) };
         Deltas {
             range: 0..(num_deltas as usize),
@@ -142,7 +142,7 @@ impl<'repo> Diff<'repo> {
     }
 
     /// Return the diff delta for an entry in the diff list.
-    pub fn get_delta(&self, i: usize) -> Option<DiffDelta> {
+    pub fn get_delta(&self, i: usize) -> Option<DiffDelta<'_>> {
         unsafe {
             let ptr = raw::git_diff_get_delta(&*self.raw, i as size_t);
             Binding::from_raw_opt(ptr as *mut _)
@@ -160,9 +160,9 @@ impl<'repo> Diff<'repo> {
     /// return an error from this function.
     pub fn print<F>(&self, format: DiffFormat, mut cb: F) -> Result<(), Error>
     where
-        F: FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool,
+        F: FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool,
     {
-        let mut cb: &mut PrintCb = &mut cb;
+        let mut cb: &mut PrintCb<'_> = &mut cb;
         let ptr = &mut cb as *mut _;
         unsafe {
             try_call!(raw::git_diff_print(
@@ -181,10 +181,10 @@ impl<'repo> Diff<'repo> {
     /// return an error from this function.
     pub fn foreach(
         &self,
-        file_cb: &mut FileCb,
-        binary_cb: Option<&mut BinaryCb>,
-        hunk_cb: Option<&mut HunkCb>,
-        line_cb: Option<&mut LineCb>,
+        file_cb: &mut FileCb<'_>,
+        binary_cb: Option<&mut BinaryCb<'_>>,
+        hunk_cb: Option<&mut HunkCb<'_>>,
+        line_cb: Option<&mut LineCb<'_>>,
     ) -> Result<(), Error> {
         let mut cbs = ForeachCallbacks {
             file: file_cb,
@@ -259,7 +259,7 @@ pub extern "C" fn print_cb(
         let line = Binding::from_raw(line);
 
         let r = panic::wrap(|| {
-            let data = data as *mut &mut PrintCb;
+            let data = data as *mut &mut PrintCb<'_>;
             (*data)(delta, hunk, line)
         });
         if r == Some(true) {
@@ -279,7 +279,7 @@ extern "C" fn file_cb_c(
         let delta = Binding::from_raw(delta as *mut _);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             ((*cbs).file)(delta, progress)
         });
         if r == Some(true) {
@@ -300,7 +300,7 @@ extern "C" fn binary_cb_c(
         let binary = Binding::from_raw(binary);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).binary {
                 Some(ref mut cb) => cb(delta, binary),
                 None => false,
@@ -324,7 +324,7 @@ extern "C" fn hunk_cb_c(
         let hunk = Binding::from_raw(hunk);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).hunk {
                 Some(ref mut cb) => cb(delta, hunk),
                 None => false,
@@ -350,7 +350,7 @@ extern "C" fn line_cb_c(
         let line = Binding::from_raw(line);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).line {
                 Some(ref mut cb) => cb(delta, hunk, line),
                 None => false,

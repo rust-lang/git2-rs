@@ -58,7 +58,7 @@ impl<'repo> Tag<'repo> {
     /// Get the tagger (author) of a tag
     ///
     /// If the author is unspecified, then `None` is returned.
-    pub fn tagger(&self) -> Option<Signature> {
+    pub fn tagger(&self) -> Option<Signature<'_>> {
         unsafe {
             let ptr = raw::git_tag_tagger(&*self.raw);
             if ptr.is_null() {
@@ -98,13 +98,13 @@ impl<'repo> Tag<'repo> {
 
     /// Consumes Tag to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
-        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
         unsafe { mem::transmute(self) }
     }
 }
 
 impl<'repo> std::fmt::Debug for Tag<'repo> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Tag");
         if let Some(name) = self.name() {
             ds.field("name", &name);

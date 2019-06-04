@@ -12,13 +12,9 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{BlameOptions, Repository};
+use serde_derive::Deserialize;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
@@ -91,7 +87,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: blame [options] [<spec>] <path>
 
 Options:

@@ -1,5 +1,3 @@
-extern crate ctest;
-
 use std::env;
 use std::path::PathBuf;
 

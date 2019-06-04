@@ -231,7 +231,7 @@ impl<'repo> Statuses<'repo> {
     /// Gets a status entry from this list at the specified index.
     ///
     /// Returns `None` if the index is out of bounds.
-    pub fn get(&self, index: usize) -> Option<StatusEntry> {
+    pub fn get(&self, index: usize) -> Option<StatusEntry<'_>> {
         unsafe {
             let p = raw::git_status_byindex(self.raw, index as size_t);
             Binding::from_raw_opt(p)
@@ -252,7 +252,7 @@ impl<'repo> Statuses<'repo> {
     }
 
     /// Returns an iterator over the statuses in this list.
-    pub fn iter(&self) -> StatusIter {
+    pub fn iter(&self) -> StatusIter<'_> {
         StatusIter {
             statuses: self,
             range: 0..self.len(),

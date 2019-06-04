@@ -66,17 +66,11 @@
 #![doc(html_root_url = "https://docs.rs/git2/0.6")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
+#![warn(rust_2018_idioms)]
 #![cfg_attr(test, deny(warnings))]
 
-extern crate libc;
-extern crate libgit2_sys as raw;
-extern crate url;
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate log;
-#[cfg(test)]
-extern crate tempdir;
+use bitflags::bitflags;
+use libgit2_sys as raw;
 
 use std::ffi::{CStr, CString};
 use std::fmt;
@@ -674,8 +668,6 @@ fn init() {
     feature = "https"
 ))]
 fn openssl_env_init() {
-    extern crate openssl_probe;
-
     // Currently, libgit2 leverages OpenSSL for SSL support when cloning
     // repositories over HTTPS. This means that we're picking up an OpenSSL
     // dependency on non-Windows platforms (where it has its own HTTPS
@@ -853,7 +845,7 @@ impl ObjectType {
 }
 
 impl fmt::Display for ObjectType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.str().fmt(f)
     }
 }
@@ -862,8 +854,8 @@ impl ReferenceType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         match self {
-            &ReferenceType::Direct => "direct",
-            &ReferenceType::Symbolic => "symbolic",
+            ReferenceType::Direct => "direct",
+            ReferenceType::Symbolic => "symbolic",
         }
     }
 
@@ -878,7 +870,7 @@ impl ReferenceType {
 }
 
 impl fmt::Display for ReferenceType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.str().fmt(f)
     }
 }

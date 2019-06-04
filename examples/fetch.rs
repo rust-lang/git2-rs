@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{AutotagOption, FetchOptions, RemoteCallbacks, Repository};
+use serde_derive::Deserialize;
 use std::io::{self, Write};
 use std::str;
 
@@ -123,7 +119,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: fetch [options] [<remote>]
 
 Options:

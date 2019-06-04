@@ -62,9 +62,9 @@ pub type Progress<'a> = dyn FnMut(Option<&Path>, usize, usize) + 'a;
 pub type Notify<'a> = dyn FnMut(
         CheckoutNotificationType,
         Option<&Path>,
-        Option<DiffFile>,
-        Option<DiffFile>,
-        Option<DiffFile>,
+        Option<DiffFile<'_>>,
+        Option<DiffFile<'_>>,
+        Option<DiffFile<'_>>,
     ) -> bool
     + 'a;
 
@@ -253,7 +253,7 @@ extern "C" fn remote_create_cb(
         let code = panic::wrap(|| {
             let name = CStr::from_ptr(name).to_str().unwrap();
             let url = CStr::from_ptr(url).to_str().unwrap();
-            let f = payload as *mut Box<RemoteCreate>;
+            let f = payload as *mut Box<RemoteCreate<'_>>;
             match (*f)(&repo, name, url) {
                 Ok(remote) => {
                     *out = crate::remote::remote_into_raw(remote);
@@ -516,9 +516,9 @@ impl<'cb> CheckoutBuilder<'cb> {
         F: FnMut(
                 CheckoutNotificationType,
                 Option<&Path>,
-                Option<DiffFile>,
-                Option<DiffFile>,
-                Option<DiffFile>,
+                Option<DiffFile<'_>>,
+                Option<DiffFile<'_>>,
+                Option<DiffFile<'_>>,
             ) -> bool
             + 'cb,
     {
@@ -575,7 +575,7 @@ extern "C" fn progress_cb(
     data: *mut c_void,
 ) {
     panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut CheckoutBuilder);
+        let payload = &mut *(data as *mut CheckoutBuilder<'_>);
         let callback = match payload.progress {
             Some(ref mut c) => c,
             None => return,
@@ -599,7 +599,7 @@ extern "C" fn notify_cb(
 ) -> c_int {
     // pack callback etc
     panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut CheckoutBuilder);
+        let payload = &mut *(data as *mut CheckoutBuilder<'_>);
         let callback = match payload.notify {
             Some(ref mut c) => c,
             None => return 0,

@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{Error, ErrorCode, Repository, StatusOptions, SubmoduleIgnore};
+use serde_derive::Deserialize;
 use std::str;
 use std::time::Duration;
 
@@ -415,7 +411,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: status [options] [--] [<spec>..]
 
 Options:

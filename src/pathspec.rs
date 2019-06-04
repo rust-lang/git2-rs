@@ -61,9 +61,9 @@ impl Pathspec {
     /// specified.
     pub fn match_diff(
         &self,
-        diff: &Diff,
+        diff: &Diff<'_>,
         flags: PathspecFlags,
-    ) -> Result<PathspecMatchList, Error> {
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_diff(
@@ -84,9 +84,9 @@ impl Pathspec {
     /// specified.
     pub fn match_tree(
         &self,
-        tree: &Tree,
+        tree: &Tree<'_>,
         flags: PathspecFlags,
-    ) -> Result<PathspecMatchList, Error> {
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_tree(
@@ -109,7 +109,7 @@ impl Pathspec {
         &self,
         index: &Index,
         flags: PathspecFlags,
-    ) -> Result<PathspecMatchList, Error> {
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_index(
@@ -138,7 +138,7 @@ impl Pathspec {
         &self,
         repo: &Repository,
         flags: PathspecFlags,
-    ) -> Result<PathspecMatchList, Error> {
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_pathspec_match_workdir(
@@ -190,7 +190,7 @@ impl<'ps> PathspecMatchList<'ps> {
     }
 
     /// Returns an iterator over the matching filenames in this list.
-    pub fn entries(&self) -> PathspecEntries {
+    pub fn entries(&self) -> PathspecEntries<'_> {
         let n = self.entrycount();
         let n = if n > 0 && self.entry(0).is_none() {
             0
@@ -215,7 +215,7 @@ impl<'ps> PathspecMatchList<'ps> {
     }
 
     /// Returns an iterator over the matching diff entries in this list.
-    pub fn diff_entries(&self) -> PathspecDiffEntries {
+    pub fn diff_entries(&self) -> PathspecDiffEntries<'_> {
         let n = self.entrycount();
         let n = if n > 0 && self.diff_entry(0).is_none() {
             0
@@ -232,7 +232,7 @@ impl<'ps> PathspecMatchList<'ps> {
     ///
     /// If the list was not generated from a diff, then the return value will
     /// always be `None`.
-    pub fn diff_entry(&self, i: usize) -> Option<DiffDelta> {
+    pub fn diff_entry(&self, i: usize) -> Option<DiffDelta<'_>> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_diff_entry(&*self.raw, i as size_t);
             Binding::from_raw_opt(ptr as *mut _)
@@ -240,7 +240,7 @@ impl<'ps> PathspecMatchList<'ps> {
     }
 
     /// Returns an iterator over the non-matching entries in this list.
-    pub fn failed_entries(&self) -> PathspecFailedEntries {
+    pub fn failed_entries(&self) -> PathspecFailedEntries<'_> {
         let n = self.failed_entrycount();
         let n = if n > 0 && self.failed_entry(0).is_none() {
             0

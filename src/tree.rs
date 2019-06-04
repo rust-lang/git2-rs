@@ -87,7 +87,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Returns an iterator over the entries in this tree.
-    pub fn iter(&self) -> TreeIter {
+    pub fn iter(&self) -> TreeIter<'_> {
         TreeIter {
             range: 0..self.len(),
             tree: self,
@@ -118,11 +118,11 @@ impl<'repo> Tree<'repo> {
     /// [1]: https://libgit2.org/libgit2/#HEAD/group/tree/git_tree_walk
     pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
     where
-        C: FnMut(&str, &TreeEntry) -> T,
+        C: FnMut(&str, &TreeEntry<'_>) -> T,
         T: Into<i32>,
     {
         #[allow(unused)]
-        struct TreeWalkCbData<'a, T: 'a> {
+        struct TreeWalkCbData<'a, T> {
             pub callback: &'a mut TreeWalkCb<'a, T>,
         }
         unsafe {
@@ -140,7 +140,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Lookup a tree entry by SHA value.
-    pub fn get_id(&self, id: Oid) -> Option<TreeEntry> {
+    pub fn get_id(&self, id: Oid) -> Option<TreeEntry<'_>> {
         unsafe {
             let ptr = raw::git_tree_entry_byid(&*self.raw(), &*id.raw());
             if ptr.is_null() {
@@ -152,7 +152,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Lookup a tree entry by its position in the tree
-    pub fn get(&self, n: usize) -> Option<TreeEntry> {
+    pub fn get(&self, n: usize) -> Option<TreeEntry<'_>> {
         unsafe {
             let ptr = raw::git_tree_entry_byindex(&*self.raw(), n as libc::size_t);
             if ptr.is_null() {
@@ -164,7 +164,7 @@ impl<'repo> Tree<'repo> {
     }
 
     /// Lookup a tree entry by its filename
-    pub fn get_name(&self, filename: &str) -> Option<TreeEntry> {
+    pub fn get_name(&self, filename: &str) -> Option<TreeEntry<'_>> {
         let filename = CString::new(filename).unwrap();
         unsafe {
             let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
@@ -194,12 +194,12 @@ impl<'repo> Tree<'repo> {
 
     /// Consumes Commit to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
-        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
         unsafe { mem::transmute(self) }
     }
 }
 
-type TreeWalkCb<'a, T> = dyn FnMut(&str, &TreeEntry) -> T + 'a;
+type TreeWalkCb<'a, T> = dyn FnMut(&str, &TreeEntry<'_>) -> T + 'a;
 
 extern "C" fn treewalk_cb<T: Into<i32>>(
     root: *const c_char,
@@ -212,7 +212,7 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
             _ => return -1,
         };
         let entry = entry_from_raw_const(entry);
-        let payload = payload as *mut &mut TreeWalkCb<T>;
+        let payload = payload as *mut &mut TreeWalkCb<'_, T>;
         (*payload)(root, &entry).into()
     }) {
         Some(value) => value,
@@ -235,7 +235,7 @@ impl<'repo> Binding for Tree<'repo> {
 }
 
 impl<'repo> std::fmt::Debug for Tree<'repo> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_struct("Tree").field("id", &self.id()).finish()
     }
 }

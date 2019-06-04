@@ -94,7 +94,7 @@ pub extern "C" fn stash_cb(
     payload: *mut c_void,
 ) -> c_int {
     panic::wrap(|| unsafe {
-        let mut data = &mut *(payload as *mut StashCbData);
+        let mut data = &mut *(payload as *mut StashCbData<'_>);
         let res = {
             let mut callback = &mut data.callback;
             callback(
@@ -134,7 +134,7 @@ extern "C" fn stash_apply_progress_cb(
     payload: *mut c_void,
 ) -> c_int {
     panic::wrap(|| unsafe {
-        let mut options = &mut *(payload as *mut StashApplyOptions);
+        let mut options = &mut *(payload as *mut StashApplyOptions<'_>);
         let res = {
             let mut callback = options.progress.as_mut().unwrap();
             callback(convert_progress(progress))

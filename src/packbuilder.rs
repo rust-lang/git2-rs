@@ -55,7 +55,7 @@ impl<'repo> PackBuilder<'repo> {
 
     /// Insert objects as given by the walk. Those commits and all objects they
     /// reference will be inserted into the packbuilder.
-    pub fn insert_walk(&mut self, walk: &mut Revwalk) -> Result<(), Error> {
+    pub fn insert_walk(&mut self, walk: &mut Revwalk<'_>) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_packbuilder_insert_walk(self.raw, walk.raw()));
         }
@@ -87,7 +87,7 @@ impl<'repo> PackBuilder<'repo> {
     where
         F: FnMut(&[u8]) -> bool,
     {
-        let mut cb = &mut cb as &mut ForEachCb;
+        let mut cb = &mut cb as &mut ForEachCb<'_>;
         let ptr = &mut cb as *mut _;
         unsafe {
             try_call!(raw::git_packbuilder_foreach(
@@ -110,7 +110,7 @@ impl<'repo> PackBuilder<'repo> {
     where
         F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo,
     {
-        let mut progress = Box::new(Box::new(progress) as Box<ProgressCb>);
+        let mut progress = Box::new(Box::new(progress) as Box<ProgressCb<'_>>);
         let ptr = &mut *progress as *mut _;
         let progress_c = Some(progress_c as raw::git_packbuilder_progress);
         unsafe {
@@ -205,7 +205,7 @@ extern "C" fn foreach_c(buf: *const c_void, size: size_t, data: *mut c_void) -> 
         let buf = slice::from_raw_parts(buf as *const u8, size as usize);
 
         let r = panic::wrap(|| {
-            let data = data as *mut &mut ForEachCb;
+            let data = data as *mut &mut ForEachCb<'_>;
             (*data)(buf)
         });
         if r == Some(true) {
@@ -226,7 +226,7 @@ extern "C" fn progress_c(
         let stage = Binding::from_raw(stage);
 
         let r = panic::wrap(|| {
-            let data = data as *mut Box<ProgressCb>;
+            let data = data as *mut Box<ProgressCb<'_>>;
             (*data)(stage, current, total)
         });
         if r == Some(true) {

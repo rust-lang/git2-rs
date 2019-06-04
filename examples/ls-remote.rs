@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{Direction, Repository};
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -47,7 +43,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: ls-remote [option] <remote>
 
 Options:

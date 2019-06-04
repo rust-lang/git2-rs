@@ -1,12 +1,5 @@
-extern crate civet;
-extern crate conduit;
-extern crate conduit_git_http_backend as git_backend;
-extern crate curl;
-extern crate git2;
-extern crate git2_curl;
-extern crate tempfile;
-
 use civet::{Config, Server};
+use conduit_git_http_backend as git_backend;
 use std::fs::File;
 use std::path::Path;
 use tempfile::TempDir;

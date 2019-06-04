@@ -40,7 +40,7 @@ impl<'repo> Blame<'repo> {
     }
 
     /// Gets the blame hunk at the given index.
-    pub fn get_index(&self, index: usize) -> Option<BlameHunk> {
+    pub fn get_index(&self, index: usize) -> Option<BlameHunk<'_>> {
         unsafe {
             let ptr = raw::git_blame_get_hunk_byindex(self.raw(), index as u32);
             if ptr.is_null() {
@@ -53,7 +53,7 @@ impl<'repo> Blame<'repo> {
 
     /// Gets the hunk that relates to the given line number in the newest
     /// commit.
-    pub fn get_line(&self, lineno: usize) -> Option<BlameHunk> {
+    pub fn get_line(&self, lineno: usize) -> Option<BlameHunk<'_>> {
         unsafe {
             let ptr = raw::git_blame_get_hunk_byline(self.raw(), lineno);
             if ptr.is_null() {
@@ -65,7 +65,7 @@ impl<'repo> Blame<'repo> {
     }
 
     /// Returns an iterator over the hunks in this blame.
-    pub fn iter(&self) -> BlameIter {
+    pub fn iter(&self) -> BlameIter<'_> {
         BlameIter {
             range: 0..self.len(),
             blame: self,
@@ -87,7 +87,7 @@ impl<'blame> BlameHunk<'blame> {
     }
 
     /// Returns signature of the commit.
-    pub fn final_signature(&self) -> Signature {
+    pub fn final_signature(&self) -> Signature<'_> {
         unsafe { signature::from_raw_const(self, (*self.raw).final_signature) }
     }
 
@@ -108,7 +108,7 @@ impl<'blame> BlameHunk<'blame> {
     }
 
     /// Returns signature of the commit.
-    pub fn orig_signature(&self) -> Signature {
+    pub fn orig_signature(&self) -> Signature<'_> {
         unsafe { signature::from_raw_const(self, (*self.raw).orig_signature) }
     }
 

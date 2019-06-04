@@ -14,15 +14,10 @@
 
 #![deny(warnings)]
 
-#[macro_use]
-extern crate serde_derive;
-extern crate docopt;
-extern crate git2;
-extern crate time;
-
 use docopt::Docopt;
 use git2::{Commit, DiffOptions, ObjectType, Repository, Signature, Time};
 use git2::{DiffFormat, Error, Pathspec};
+use serde_derive::Deserialize;
 use std::str;
 
 #[derive(Deserialize)]
@@ -274,7 +269,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: log [options] [<commit>..] [--] [<spec>..]
 
 Options:

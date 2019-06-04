@@ -154,7 +154,7 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Creates a new iterator over the parents of this commit.
-    pub fn parent_ids(&self) -> ParentIds {
+    pub fn parent_ids(&self) -> ParentIds<'_> {
         ParentIds {
             range: 0..self.parent_count(),
             commit: self,
@@ -162,7 +162,7 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the author of this commit.
-    pub fn author(&self) -> Signature {
+    pub fn author(&self) -> Signature<'_> {
         unsafe {
             let ptr = raw::git_commit_author(&*self.raw);
             signature::from_raw_const(self, ptr)
@@ -170,7 +170,7 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the committer of this commit.
-    pub fn committer(&self) -> Signature {
+    pub fn committer(&self) -> Signature<'_> {
         unsafe {
             let ptr = raw::git_commit_committer(&*self.raw);
             signature::from_raw_const(self, ptr)
@@ -189,8 +189,8 @@ impl<'repo> Commit<'repo> {
     pub fn amend(
         &self,
         update_ref: Option<&str>,
-        author: Option<&Signature>,
-        committer: Option<&Signature>,
+        author: Option<&Signature<'_>>,
+        committer: Option<&Signature<'_>>,
         message_encoding: Option<&str>,
         message: Option<&str>,
         tree: Option<&Tree<'repo>>,
@@ -262,7 +262,7 @@ impl<'repo> Commit<'repo> {
 
     /// Consumes Commit to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
-        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
         unsafe { mem::transmute(self) }
     }
 }
@@ -281,7 +281,7 @@ impl<'repo> Binding for Commit<'repo> {
 }
 
 impl<'repo> std::fmt::Debug for Commit<'repo> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Commit");
         ds.field("id", &self.id());
         if let Some(summary) = self.summary() {

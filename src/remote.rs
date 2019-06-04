@@ -62,7 +62,7 @@ where
     remote: &'connection mut Remote<'repo>,
 }
 
-pub fn remote_into_raw(remote: Remote) -> *mut raw::git_remote {
+pub fn remote_into_raw(remote: Remote<'_>) -> *mut raw::git_remote {
     let ret = remote.raw;
     mem::forget(remote);
     return ret;
@@ -181,7 +181,7 @@ impl<'repo> Remote<'repo> {
     pub fn download(
         &mut self,
         specs: &[&str],
-        opts: Option<&mut FetchOptions>,
+        opts: Option<&mut FetchOptions<'_>>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(specs.iter())?;
         let raw = opts.map(|o| o.raw());
@@ -192,7 +192,7 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Get the number of refspecs for a remote
-    pub fn refspecs<'a>(&'a self) -> Refspecs<'a> {
+    pub fn refspecs(&self) -> Refspecs<'_> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
         Refspecs {
             range: 0..cnt,
@@ -230,7 +230,7 @@ impl<'repo> Remote<'repo> {
     pub fn fetch(
         &mut self,
         refspecs: &[&str],
-        opts: Option<&mut FetchOptions>,
+        opts: Option<&mut FetchOptions<'_>>,
         reflog_msg: Option<&str>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
@@ -245,7 +245,7 @@ impl<'repo> Remote<'repo> {
     /// Update the tips to the new state
     pub fn update_tips(
         &mut self,
-        callbacks: Option<&mut RemoteCallbacks>,
+        callbacks: Option<&mut RemoteCallbacks<'_>>,
         update_fetchhead: bool,
         download_tags: AutotagOption,
         msg: Option<&str>,
@@ -272,7 +272,11 @@ impl<'repo> Remote<'repo> {
     /// Note that you'll likely want to use `RemoteCallbacks` and set
     /// `push_update_reference` to test whether all the references were pushed
     /// successfully.
-    pub fn push(&mut self, refspecs: &[&str], opts: Option<&mut PushOptions>) -> Result<(), Error> {
+    pub fn push(
+        &mut self,
+        refspecs: &[&str],
+        opts: Option<&mut PushOptions<'_>>,
+    ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
         let raw = opts.map(|o| o.raw());
         unsafe {
@@ -282,7 +286,7 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Get the statistics structure that is filled in by the fetch operation.
-    pub fn stats(&self) -> Progress {
+    pub fn stats(&self) -> Progress<'_> {
         unsafe { Binding::from_raw(raw::git_remote_stats(self.raw)) }
     }
 
@@ -294,19 +298,19 @@ impl<'repo> Remote<'repo> {
     /// The remote (or more exactly its transport) must have connected to the
     /// remote repository. This list is available as soon as the connection to
     /// the remote is initiated and it remains available after disconnecting.
-    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+    pub fn list(&self) -> Result<&[RemoteHead<'_>], Error> {
         let mut size = 0;
         let mut base = ptr::null_mut();
         unsafe {
             try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
             assert_eq!(
-                mem::size_of::<RemoteHead>(),
+                mem::size_of::<RemoteHead<'_>>(),
                 mem::size_of::<*const raw::git_remote_head>()
             );
             let slice = slice::from_raw_parts(base as *const _, size as usize);
             Ok(mem::transmute::<
                 &[*const raw::git_remote_head],
-                &[RemoteHead],
+                &[RemoteHead<'_>],
             >(slice))
         }
     }
@@ -569,7 +573,7 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
     ///
     /// This list is available as soon as the connection to
     /// the remote is initiated and it remains available after disconnecting.
-    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+    pub fn list(&self) -> Result<&[RemoteHead<'_>], Error> {
         self.remote.list()
     }
 }

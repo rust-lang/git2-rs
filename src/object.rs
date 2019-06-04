@@ -137,7 +137,7 @@ impl<'repo> Object<'repo> {
     /// Describes a commit
     ///
     /// Performs a describe operation on this commitish object.
-    pub fn describe(&self, opts: &DescribeOptions) -> Result<Describe, Error> {
+    pub fn describe(&self, opts: &DescribeOptions) -> Result<Describe<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_describe_commit(&mut ret, self.raw, opts.raw()));
@@ -146,7 +146,7 @@ impl<'repo> Object<'repo> {
     }
 
     fn cast<T>(&self, kind: ObjectType) -> Option<&T> {
-        assert_eq!(mem::size_of::<Object>(), mem::size_of::<T>());
+        assert_eq!(mem::size_of::<Object<'_>>(), mem::size_of::<T>());
         if self.kind() == Some(kind) {
             unsafe { Some(&*(self as *const _ as *const T)) }
         } else {
@@ -213,7 +213,7 @@ impl<'repo> Clone for Object<'repo> {
 }
 
 impl<'repo> std::fmt::Debug for Object<'repo> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Object");
         match self.kind() {
             Some(kind) => ds.field("kind", &kind),

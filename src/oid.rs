@@ -123,14 +123,14 @@ impl Binding for Oid {
 }
 
 impl fmt::Debug for Oid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)
     }
 }
 
 impl fmt::Display for Oid {
     /// Hex-encode this Oid into a formatter.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
         unsafe {
             raw::git_oid_tostr(

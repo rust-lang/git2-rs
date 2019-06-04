@@ -41,7 +41,7 @@ impl<'repo> Blob<'repo> {
 
     /// Consumes Blob to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
-        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
         unsafe { mem::transmute(self) }
     }
 }
@@ -61,7 +61,7 @@ impl<'repo> Binding for Blob<'repo> {
 }
 
 impl<'repo> std::fmt::Debug for Blob<'repo> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_struct("Blob").field("id", &self.id()).finish()
     }
 }

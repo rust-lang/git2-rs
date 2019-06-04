@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
+use serde_derive::Deserialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
@@ -129,7 +125,7 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: init [options] <directory>
 
 Options:

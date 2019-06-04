@@ -14,15 +14,11 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use std::io::{self, Write};
 
 use docopt::Docopt;
 use git2::{Blob, Commit, ObjectType, Repository, Signature, Tag, Tree};
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -132,7 +128,7 @@ fn show_sig(header: &str, sig: Option<Signature>) {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: cat-file (-t | -s | -e | -p) [options] <object>
 
 Options:

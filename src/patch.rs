@@ -35,7 +35,7 @@ impl Patch {
     /// Return a Patch for one file in a Diff.
     ///
     /// Returns Ok(None) for an unchanged or binary file.
-    pub fn from_diff(diff: &Diff, idx: usize) -> Result<Option<Patch>, Error> {
+    pub fn from_diff(diff: &Diff<'_>, idx: usize) -> Result<Option<Patch>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_patch_from_diff(&mut ret, diff.raw(), idx));
@@ -45,9 +45,9 @@ impl Patch {
 
     /// Generate a Patch by diffing two blobs.
     pub fn from_blobs(
-        old_blob: &Blob,
+        old_blob: &Blob<'_>,
         old_path: Option<&Path>,
-        new_blob: &Blob,
+        new_blob: &Blob<'_>,
         new_path: Option<&Path>,
         opts: Option<&mut DiffOptions>,
     ) -> Result<Patch, Error> {
@@ -69,7 +69,7 @@ impl Patch {
 
     /// Generate a Patch by diffing a blob and a buffer.
     pub fn from_blob_and_buffer(
-        old_blob: &Blob,
+        old_blob: &Blob<'_>,
         old_path: Option<&Path>,
         new_buffer: &[u8],
         new_path: Option<&Path>,
@@ -119,7 +119,7 @@ impl Patch {
     }
 
     /// Get the DiffDelta associated with the Patch.
-    pub fn delta(&self) -> DiffDelta {
+    pub fn delta(&self) -> DiffDelta<'_> {
         unsafe { Binding::from_raw(raw::git_patch_get_delta(self.raw) as *mut _) }
     }
 
@@ -145,7 +145,7 @@ impl Patch {
     }
 
     /// Get a DiffHunk and its total line count from the Patch.
-    pub fn hunk(&self, hunk_idx: usize) -> Result<(DiffHunk, usize), Error> {
+    pub fn hunk(&self, hunk_idx: usize) -> Result<(DiffHunk<'_>, usize), Error> {
         let mut ret = ptr::null();
         let mut lines = 0;
         unsafe {
@@ -162,7 +162,11 @@ impl Patch {
     }
 
     /// Get a DiffLine from a hunk of the Patch.
-    pub fn line_in_hunk(&self, hunk_idx: usize, line_of_hunk: usize) -> Result<DiffLine, Error> {
+    pub fn line_in_hunk(
+        &self,
+        hunk_idx: usize,
+        line_of_hunk: usize,
+    ) -> Result<DiffLine<'_>, Error> {
         let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_patch_get_line_in_hunk(
@@ -193,7 +197,7 @@ impl Patch {
     }
 
     /// Print the Patch to text via a callback.
-    pub fn print(&mut self, mut line_cb: &mut LineCb) -> Result<(), Error> {
+    pub fn print(&mut self, mut line_cb: &mut LineCb<'_>) -> Result<(), Error> {
         let ptr = &mut line_cb as *mut _ as *mut c_void;
         unsafe {
             try_call!(raw::git_patch_print(self.raw, print_cb, ptr));

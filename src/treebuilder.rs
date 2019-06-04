@@ -29,7 +29,7 @@ impl<'repo> TreeBuilder<'repo> {
     }
 
     /// Get en entry from the builder from its filename
-    pub fn get<P>(&self, filename: P) -> Result<Option<TreeEntry>, Error>
+    pub fn get<P>(&self, filename: P) -> Result<Option<TreeEntry<'_>>, Error>
     where
         P: IntoCString,
     {
@@ -56,7 +56,7 @@ impl<'repo> TreeBuilder<'repo> {
         filename: P,
         oid: Oid,
         filemode: i32,
-    ) -> Result<TreeEntry, Error> {
+    ) -> Result<TreeEntry<'_>, Error> {
         let filename = filename.into_c_string()?;
         let filemode = filemode as raw::git_filemode_t;
 
@@ -88,9 +88,9 @@ impl<'repo> TreeBuilder<'repo> {
     /// that this behavior is different from the libgit2 C interface.
     pub fn filter<F>(&mut self, mut filter: F)
     where
-        F: FnMut(&TreeEntry) -> bool,
+        F: FnMut(&TreeEntry<'_>) -> bool,
     {
-        let mut cb: &mut FilterCb = &mut filter;
+        let mut cb: &mut FilterCb<'_> = &mut filter;
         let ptr = &mut cb as *mut _;
         unsafe {
             raw::git_treebuilder_filter(self.raw, filter_cb, ptr as *mut _);
@@ -111,7 +111,7 @@ impl<'repo> TreeBuilder<'repo> {
     }
 }
 
-type FilterCb<'a> = dyn FnMut(&TreeEntry) -> bool + 'a;
+type FilterCb<'a> = dyn FnMut(&TreeEntry<'_>) -> bool + 'a;
 
 extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
     let ret = panic::wrap(|| unsafe {
@@ -120,7 +120,7 @@ extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void)
             true
         } else {
             let entry = tree::entry_from_raw_const(entry);
-            let payload = payload as *mut &mut FilterCb;
+            let payload = payload as *mut &mut FilterCb<'_>;
             (*payload)(&entry)
         }
     });

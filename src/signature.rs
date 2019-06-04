@@ -148,7 +148,7 @@ impl<'a> Drop for Signature<'a> {
 }
 
 impl<'a> fmt::Display for Signature<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{} <{}>",

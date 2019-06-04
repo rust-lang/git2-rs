@@ -108,7 +108,7 @@ impl<'repo> Rebase<'repo> {
     }
 
     ///  Gets the rebase operation specified by the given index.
-    pub fn nth(&mut self, n: usize) -> Option<RebaseOperation> {
+    pub fn nth(&mut self, n: usize) -> Option<RebaseOperation<'_>> {
         unsafe {
             let op = raw::git_rebase_operation_byindex(self.raw, n);
             if op.is_null() {
@@ -152,8 +152,8 @@ impl<'repo> Rebase<'repo> {
     /// them as None
     pub fn commit(
         &mut self,
-        author: Option<&Signature>,
-        committer: &Signature,
+        author: Option<&Signature<'_>>,
+        committer: &Signature<'_>,
         message: Option<&str>,
     ) -> Result<Oid, Error> {
         let mut id: raw::git_oid = unsafe { mem::zeroed() };
@@ -183,7 +183,7 @@ impl<'repo> Rebase<'repo> {
 
     /// Finishes a rebase that is currently in progress once all patches have
     /// been applied.
-    pub fn finish(&mut self, signature: Option<&Signature>) -> Result<(), Error> {
+    pub fn finish(&mut self, signature: Option<&Signature<'_>>) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_rebase_finish(self.raw, signature.map(|s| s.raw())));
         }
@@ -341,7 +341,7 @@ mod tests {
 
         let branch = repo.find_annotated_commit(c2).unwrap();
         let upstream = repo.find_annotated_commit(tip.id()).unwrap();
-        let mut opts: RebaseOptions = Default::default();
+        let mut opts: RebaseOptions<'_> = Default::default();
         opts.inmemory(true);
         let mut rebase = repo
             .rebase(Some(&branch), Some(&upstream), None, Some(&mut opts))
@@ -393,7 +393,7 @@ mod tests {
 
         let branch = repo.find_annotated_commit(c2).unwrap();
         let upstream = repo.find_annotated_commit(tip.id()).unwrap();
-        let mut opts: RebaseOptions = Default::default();
+        let mut opts: RebaseOptions<'_> = Default::default();
         let mut rebase = repo
             .rebase(Some(&branch), Some(&upstream), None, Some(&mut opts))
             .unwrap();

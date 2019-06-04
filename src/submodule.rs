@@ -186,7 +186,7 @@ impl<'repo> Submodule<'repo> {
     pub fn update(
         &mut self,
         init: bool,
-        opts: Option<&mut SubmoduleUpdateOptions>,
+        opts: Option<&mut SubmoduleUpdateOptions<'_>>,
     ) -> Result<(), Error> {
         unsafe {
             let mut raw_opts = opts.map(|o| o.raw());

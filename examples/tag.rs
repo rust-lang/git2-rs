@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::{Commit, Error, Repository, Tag};
+use serde_derive::Deserialize;
 use std::str;
 
 #[derive(Deserialize)]
@@ -80,7 +76,7 @@ fn print_tag(tag: &Tag, args: &Args) {
     if args.flag_n.is_some() {
         print_list_lines(tag.message(), args);
     } else {
-        println!("");
+        println!();
     }
 }
 
@@ -89,7 +85,7 @@ fn print_commit(commit: &Commit, name: &str, args: &Args) {
     if args.flag_n.is_some() {
         print_list_lines(commit.message(), args);
     } else {
-        println!("");
+        println!();
     }
 }
 
@@ -106,7 +102,7 @@ fn print_list_lines(message: Option<&str>, args: &Args) {
     if let Some(first) = lines.next() {
         print!("{}", first);
     }
-    println!("");
+    println!();
 
     for line in lines.take(args.flag_n.unwrap_or(0) as usize) {
         print!("    {}", line);
@@ -114,7 +110,7 @@ fn print_list_lines(message: Option<&str>, args: &Args) {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage:
     tag [-a] [-f] [-m <msg>] <tagname> [<object>]
     tag -d <tag>
