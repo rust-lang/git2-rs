@@ -3,8 +3,8 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use {raw, signature, Error, Oid, Object, Signature, ObjectType};
 use util::Binding;
+use {raw, signature, Error, Object, ObjectType, Oid, Signature};
 
 /// A structure to represent a git [tag][1]
 ///
@@ -93,17 +93,13 @@ impl<'repo> Tag<'repo> {
 
     /// Casts this Tag to be usable as an `Object`
     pub fn as_object(&self) -> &Object<'repo> {
-        unsafe {
-            &*(self as *const _ as *const Object<'repo>)
-        }
+        unsafe { &*(self as *const _ as *const Object<'repo>) }
     }
 
     /// Consumes Tag to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
         assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
-        unsafe {
-            mem::transmute(self)
-        }
+        unsafe { mem::transmute(self) }
     }
 }
 
@@ -121,9 +117,14 @@ impl<'repo> ::std::fmt::Debug for Tag<'repo> {
 impl<'repo> Binding for Tag<'repo> {
     type Raw = *mut raw::git_tag;
     unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
-        Tag { raw: raw, _marker: marker::PhantomData }
+        Tag {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_tag { self.raw }
+    fn raw(&self) -> *mut raw::git_tag {
+        self.raw
+    }
 }
 
 impl<'repo> Clone for Tag<'repo> {
@@ -168,7 +169,11 @@ mod tests {
         tag.into_object();
 
         repo.find_object(tag_id, None).unwrap().as_tag().unwrap();
-        repo.find_object(tag_id, None).unwrap().into_tag().ok().unwrap();
+        repo.find_object(tag_id, None)
+            .unwrap()
+            .into_tag()
+            .ok()
+            .unwrap();
 
         repo.tag_delete("foo").unwrap();
     }

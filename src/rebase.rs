@@ -1,9 +1,9 @@
-use std::{marker, ptr, mem, str};
 use std::ffi::CString;
+use std::{marker, mem, ptr, str};
 
-use {raw, Oid, Error, Signature, MergeOptions, Index};
 use build::CheckoutBuilder;
 use util::Binding;
+use {raw, Error, Index, MergeOptions, Oid, Signature};
 
 /// Rebase options
 ///
@@ -28,9 +28,7 @@ impl<'cb> RebaseOptions<'cb> {
             merge_options: None,
             checkout_options: None,
         };
-        assert_eq!(unsafe {
-            raw::git_rebase_init_options(&mut opts.raw, 1)
-        }, 0);
+        assert_eq!(unsafe { raw::git_rebase_init_options(&mut opts.raw, 1) }, 0);
         opts
     }
 
@@ -95,7 +93,6 @@ impl<'cb> RebaseOptions<'cb> {
         }
         &self.raw
     }
-
 }
 
 /// Representation of a rebase
@@ -104,7 +101,7 @@ pub struct Rebase<'repo> {
     _marker: marker::PhantomData<&'repo raw::git_rebase>,
 }
 
-impl <'repo> Rebase<'repo> {
+impl<'repo> Rebase<'repo> {
     /// Gets the count of rebase operations that are to be applied.
     pub fn len(&self) -> usize {
         unsafe { raw::git_rebase_operation_entrycount(self.raw) }
@@ -153,11 +150,23 @@ impl <'repo> Rebase<'repo> {
     /// were introduced during the patch application from the `git_rebase_next`
     /// invocation. To keep the author and message from the original commit leave
     /// them as None
-    pub fn commit(&mut self, author: Option<&Signature>, committer: &Signature, message: Option<&str>) -> Result<Oid, Error> {
+    pub fn commit(
+        &mut self,
+        author: Option<&Signature>,
+        committer: &Signature,
+        message: Option<&str>,
+    ) -> Result<Oid, Error> {
         let mut id: raw::git_oid = unsafe { mem::zeroed() };
         let message = try!(::opt_cstr(message));
         unsafe {
-            try_call!(raw::git_rebase_commit(&mut id, self.raw, author.map(|a| a.raw()), committer.raw(), ptr::null(), message));
+            try_call!(raw::git_rebase_commit(
+                &mut id,
+                self.raw,
+                author.map(|a| a.raw()),
+                committer.raw(),
+                ptr::null(),
+                message
+            ));
             Ok(Binding::from_raw(&id as *const _))
         }
     }
@@ -183,7 +192,7 @@ impl <'repo> Rebase<'repo> {
     }
 }
 
-impl <'rebase> Iterator for Rebase<'rebase> {
+impl<'rebase> Iterator for Rebase<'rebase> {
     type Item = Result<RebaseOperation<'rebase>, Error>;
 
     /// Performs the next rebase operation and returns the information about it.
@@ -200,19 +209,18 @@ impl <'rebase> Iterator for Rebase<'rebase> {
     }
 }
 
-
 impl<'repo> Binding for Rebase<'repo> {
     type Raw = *mut raw::git_rebase;
-    unsafe fn from_raw(raw: *mut raw::git_rebase)
-                       -> Rebase<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_rebase) -> Rebase<'repo> {
         Rebase {
             raw: raw,
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_rebase { self.raw }
+    fn raw(&self) -> *mut raw::git_rebase {
+        self.raw
+    }
 }
-
 
 impl<'repo> Drop for Rebase<'repo> {
     fn drop(&mut self) {
@@ -279,25 +287,19 @@ pub struct RebaseOperation<'rebase> {
 impl<'rebase> RebaseOperation<'rebase> {
     /// The type of rebase operation
     pub fn kind(&self) -> Option<RebaseOperationType> {
-        unsafe {
-            RebaseOperationType::from_raw((*self.raw).kind)
-        }
+        unsafe { RebaseOperationType::from_raw((*self.raw).kind) }
     }
 
     /// The commit ID being cherry-picked. This will be populated for all
     /// operations except those of type `GIT_REBASE_OPERATION_EXEC`.
     pub fn id(&self) -> Oid {
-        unsafe {
-            Binding::from_raw(&(*self.raw).id as *const _)
-        }
+        unsafe { Binding::from_raw(&(*self.raw).id as *const _) }
     }
 
     ///The executable the user has requested be run.  This will only
     /// be populated for operations of type RebaseOperationType::Exec
     pub fn exec(&self) -> Option<&str> {
-        unsafe {
-            str::from_utf8(::opt_bytes(self, (*self.raw).exec).unwrap()).ok()
-        }
+        unsafe { str::from_utf8(::opt_bytes(self, (*self.raw).exec).unwrap()).ok() }
     }
 }
 
@@ -309,13 +311,15 @@ impl<'rebase> Binding for RebaseOperation<'rebase> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *const raw::git_rebase_operation { self.raw }
+    fn raw(&self) -> *const raw::git_rebase_operation {
+        self.raw
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::{fs, path};
-    use {RebaseOptions, RebaseOperationType, Signature};
+    use {RebaseOperationType, RebaseOptions, Signature};
 
     #[test]
     fn smoke() {
@@ -327,15 +331,21 @@ mod tests {
 
         // We just want to see the iteration work so we can create commits with
         // no changes
-        let c1 = repo.commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&tip]).unwrap();
+        let c1 = repo
+            .commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&tip])
+            .unwrap();
         let c1 = repo.find_commit(c1).unwrap();
-        let c2 = repo.commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&c1]).unwrap();
+        let c2 = repo
+            .commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&c1])
+            .unwrap();
 
         let branch = repo.find_annotated_commit(c2).unwrap();
-        let upstream = repo .find_annotated_commit(tip.id()).unwrap();
+        let upstream = repo.find_annotated_commit(tip.id()).unwrap();
         let mut opts: RebaseOptions = Default::default();
         opts.inmemory(true);
-        let mut rebase = repo.rebase(Some(&branch), Some(&upstream), None, Some(&mut opts)).unwrap();
+        let mut rebase = repo
+            .rebase(Some(&branch), Some(&upstream), None, Some(&mut opts))
+            .unwrap();
 
         assert_eq!(rebase.len(), 2);
         {

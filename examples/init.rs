@@ -14,14 +14,14 @@
 
 #![deny(warnings)]
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
 use docopt::Docopt;
-use git2::{Repository, RepositoryInitOptions, RepositoryInitMode, Error};
-use std::path::{PathBuf, Path};
+use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
+use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
 struct Args {
@@ -36,9 +36,11 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), Error> {
     let mut path = PathBuf::from(&args.arg_directory);
-    let repo = if !args.flag_bare && args.flag_template.is_none() &&
-                  args.flag_shared.is_none() &&
-                  args.flag_separate_git_dir.is_none() {
+    let repo = if !args.flag_bare
+        && args.flag_template.is_none()
+        && args.flag_shared.is_none()
+        && args.flag_separate_git_dir.is_none()
+    {
         try!(Repository::init(&path))
     } else {
         let mut opts = RepositoryInitOptions::new();
@@ -116,12 +118,8 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
         _ => {
             if shared.starts_with('0') {
                 match u32::from_str_radix(&shared[1..], 8).ok() {
-                    Some(n) => {
-                        Ok(RepositoryInitMode::from_bits_truncate(n))
-                    }
-                    None => {
-                        Err(Error::from_str("invalid octal value for --shared"))
-                    }
+                    Some(n) => Ok(RepositoryInitMode::from_bits_truncate(n)),
+                    None => Err(Error::from_str("invalid octal value for --shared")),
                 }
             } else {
                 Err(Error::from_str("unknown value for --shared"))
@@ -143,8 +141,9 @@ Options:
     --shared <perms>            permissions to create the repository with
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

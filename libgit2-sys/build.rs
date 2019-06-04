@@ -16,13 +16,14 @@ fn main() {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
-            return
+            return;
         }
     }
 
     if !Path::new("libgit2/.git").exists() {
-        let _ = Command::new("git").args(&["submodule", "update", "--init"])
-                                   .status();
+        let _ = Command::new("git")
+            .args(&["submodule", "update", "--init"])
+            .status();
     }
 
     let target = env::var("TARGET").unwrap();
@@ -152,7 +153,7 @@ fn main() {
         println!("cargo:rustc-link-lib=rpcrt4");
         println!("cargo:rustc-link-lib=ole32");
         println!("cargo:rustc-link-lib=crypt32");
-        return
+        return;
     }
 
     if target.contains("apple") {

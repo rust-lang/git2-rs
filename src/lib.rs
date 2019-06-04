@@ -69,11 +69,14 @@
 #![cfg_attr(test, deny(warnings))]
 
 extern crate libc;
-extern crate url;
 extern crate libgit2_sys as raw;
-#[macro_use] extern crate bitflags;
-#[macro_use] extern crate log;
-#[cfg(test)] extern crate tempdir;
+extern crate url;
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate log;
+#[cfg(test)]
+extern crate tempdir;
 
 use std::ffi::{CStr, CString};
 use std::fmt;
@@ -85,43 +88,43 @@ pub use blob::{Blob, BlobWriter};
 pub use branch::{Branch, Branches};
 pub use buf::Buf;
 pub use commit::{Commit, Parents};
-pub use config::{Config, ConfigEntry, ConfigEntries};
+pub use config::{Config, ConfigEntries, ConfigEntry};
 pub use cred::{Cred, CredentialHelper};
 pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
-pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
+pub use diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
-pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
+pub use diff::{DiffFindOptions, DiffHunk, DiffLine, DiffStats};
 pub use error::Error;
-pub use index::{Index, IndexConflict, IndexConflicts, IndexEntry, IndexEntries, IndexMatchedPath};
+pub use index::{Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath};
 pub use merge::{AnnotatedCommit, MergeOptions};
 pub use message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use note::{Note, Notes};
 pub use object::Object;
+pub use odb::{Odb, OdbObject, OdbReader, OdbWriter};
 pub use oid::Oid;
 pub use packbuilder::{PackBuilder, PackBuilderStage};
-pub use pathspec::{Pathspec, PathspecMatchList, PathspecFailedEntries};
-pub use pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use patch::Patch;
+pub use pathspec::{Pathspec, PathspecFailedEntries, PathspecMatchList};
+pub use pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use proxy_options::ProxyOptions;
-pub use rebase::{Rebase, RebaseOptions, RebaseOperation, RebaseOperationType};
-pub use reference::{Reference, References, ReferenceNames};
+pub use rebase::{Rebase, RebaseOperation, RebaseOperationType, RebaseOptions};
+pub use reference::{Reference, ReferenceNames, References};
 pub use reflog::{Reflog, ReflogEntry, ReflogIter};
 pub use refspec::Refspec;
-pub use remote::{Remote, RemoteConnection, Refspecs, RemoteHead, FetchOptions, PushOptions};
-pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
-pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
+pub use remote::{FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead};
+pub use remote_callbacks::{Credentials, RemoteCallbacks, TransferProgress};
+pub use remote_callbacks::{Progress, TransportMessage, UpdateTips};
 pub use repo::{Repository, RepositoryInitOptions};
 pub use revspec::Revspec;
 pub use revwalk::Revwalk;
 pub use signature::Signature;
-pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
-pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
+pub use stash::{StashApplyOptions, StashApplyProgressCb, StashCb};
+pub use status::{StatusEntry, StatusIter, StatusOptions, StatusShow, Statuses};
 pub use submodule::{Submodule, SubmoduleUpdateOptions};
 pub use tag::Tag;
-pub use time::{Time, IndexTime};
+pub use time::{IndexTime, Time};
 pub use tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use treebuilder::TreeBuilder;
-pub use odb::{Odb, OdbObject, OdbReader, OdbWriter};
 pub use util::IntoCString;
 
 // Create a convinience method on bitflag struct which checks the given flag
@@ -491,7 +494,10 @@ bitflags! {
 impl IndexAddOption {
     is_bit_set!(is_default, IndexAddOption::DEFAULT);
     is_bit_set!(is_force, IndexAddOption::FORCE);
-    is_bit_set!(is_disable_pathspec_match, IndexAddOption::DISABLE_PATHSPEC_MATCH);
+    is_bit_set!(
+        is_disable_pathspec_match,
+        IndexAddOption::DISABLE_PATHSPEC_MATCH
+    );
     is_bit_set!(is_check_pathspec, IndexAddOption::CHECK_PATHSPEC);
 }
 
@@ -594,15 +600,18 @@ impl MergePreference {
     is_bit_set!(is_fastforward_only, MergePreference::FASTFORWARD_ONLY);
 }
 
-#[cfg(test)] #[macro_use] mod test;
-#[macro_use] mod panic;
+#[cfg(test)]
+#[macro_use]
+mod test;
+#[macro_use]
+mod panic;
 mod call;
 mod util;
 
 pub mod build;
 pub mod cert;
-pub mod string_array;
 pub mod oid_array;
+pub mod string_array;
 pub mod transport;
 
 mod blame;
@@ -623,8 +632,8 @@ mod object;
 mod odb;
 mod oid;
 mod packbuilder;
-mod pathspec;
 mod patch;
+mod pathspec;
 mod proxy_options;
 mod rebase;
 mod reference;
@@ -636,9 +645,9 @@ mod repo;
 mod revspec;
 mod revwalk;
 mod signature;
+mod stash;
 mod status;
 mod submodule;
-mod stash;
 mod tag;
 mod time;
 mod tree;
@@ -654,7 +663,12 @@ fn init() {
     raw::init();
 }
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
+#[cfg(all(
+    unix,
+    not(target_os = "macos"),
+    not(target_os = "ios"),
+    feature = "https"
+))]
 fn openssl_env_init() {
     extern crate openssl_probe;
 
@@ -772,11 +786,15 @@ fn openssl_env_init() {
     openssl_probe::init_ssl_cert_env_vars();
 }
 
-#[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
+#[cfg(any(
+    windows,
+    target_os = "macos",
+    target_os = "ios",
+    not(feature = "https")
+))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<'a, T>(_anchor: &'a T,
-                           c: *const libc::c_char) -> Option<&'a [u8]> {
+unsafe fn opt_bytes<'a, T>(_anchor: &'a T, c: *const libc::c_char) -> Option<&'a [u8]> {
     if c.is_null() {
         None
     } else {
@@ -787,7 +805,7 @@ unsafe fn opt_bytes<'a, T>(_anchor: &'a T,
 fn opt_cstr<T: IntoCString>(o: Option<T>) -> Result<Option<CString>, Error> {
     match o {
         Some(s) => s.into_c_string().map(Some),
-        None => Ok(None)
+        None => Ok(None),
     }
 }
 

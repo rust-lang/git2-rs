@@ -1,10 +1,10 @@
+use libc::{c_int, c_uint, c_void, size_t};
 use std::marker;
 use std::ptr;
 use std::slice;
-use libc::{c_int, c_uint, c_void, size_t};
 
-use {raw, panic, Repository, Error, Oid, Revwalk, Buf};
 use util::Binding;
+use {panic, raw, Buf, Error, Oid, Repository, Revwalk};
 
 /// Stages that are reported by the `PackBuilder` progress callback.
 pub enum PackBuilderStage {
@@ -27,8 +27,7 @@ pub struct PackBuilder<'repo> {
 impl<'repo> PackBuilder<'repo> {
     /// Insert a single object. For an optimal pack it's mandatory to insert
     /// objects in recency order, commits followed by trees and blobs.
-    pub fn insert_object(&mut self, id: Oid, name: Option<&str>)
-                         -> Result<(), Error> {
+    pub fn insert_object(&mut self, id: Oid, name: Option<&str>) -> Result<(), Error> {
         let name = try!(::opt_cstr(name));
         unsafe {
             try_call!(raw::git_packbuilder_insert(self.raw, id.raw(), name));
@@ -65,13 +64,10 @@ impl<'repo> PackBuilder<'repo> {
 
     /// Recursively insert an object and its referenced objects. Insert the
     /// object as well as any object it references.
-    pub fn insert_recursive(&mut self, id: Oid, name: Option<&str>)
-                            -> Result<(), Error> {
+    pub fn insert_recursive(&mut self, id: Oid, name: Option<&str>) -> Result<(), Error> {
         let name = try!(::opt_cstr(name));
         unsafe {
-            try_call!(raw::git_packbuilder_insert_recur(self.raw,
-                                                        id.raw(),
-                                                        name));
+            try_call!(raw::git_packbuilder_insert_recur(self.raw, id.raw(), name));
         }
         Ok(())
     }
@@ -88,14 +84,17 @@ impl<'repo> PackBuilder<'repo> {
 
     /// Create the new pack and pass each object to the callback.
     pub fn foreach<F>(&mut self, mut cb: F) -> Result<(), Error>
-        where F: FnMut(&[u8]) -> bool
+    where
+        F: FnMut(&[u8]) -> bool,
     {
         let mut cb = &mut cb as &mut ForEachCb;
         let ptr = &mut cb as *mut _;
         unsafe {
-            try_call!(raw::git_packbuilder_foreach(self.raw,
-                                                   foreach_c,
-                                                   ptr as *mut _));
+            try_call!(raw::git_packbuilder_foreach(
+                self.raw,
+                foreach_c,
+                ptr as *mut _
+            ));
         }
         Ok(())
     }
@@ -108,15 +107,18 @@ impl<'repo> PackBuilder<'repo> {
     /// existing one. See `unset_progress_callback` to remove the current
     /// progress callback without attaching a new one.
     pub fn set_progress_callback<F>(&mut self, progress: F) -> Result<(), Error>
-        where F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo
+    where
+        F: FnMut(PackBuilderStage, u32, u32) -> bool + 'repo,
     {
         let mut progress = Box::new(Box::new(progress) as Box<ProgressCb>);
         let ptr = &mut *progress as *mut _;
         let progress_c = Some(progress_c as raw::git_packbuilder_progress);
         unsafe {
-            try_call!(raw::git_packbuilder_set_callbacks(self.raw,
-                                                         progress_c,
-                                                         ptr as *mut _));
+            try_call!(raw::git_packbuilder_set_callbacks(
+                self.raw,
+                progress_c,
+                ptr as *mut _
+            ));
         }
         self.progress = Some(progress);
         Ok(())
@@ -126,9 +128,11 @@ impl<'repo> PackBuilder<'repo> {
     /// set the progress callback.
     pub fn unset_progress_callback(&mut self) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_packbuilder_set_callbacks(self.raw,
-                                                         None,
-                                                         ptr::null_mut()));
+            try_call!(raw::git_packbuilder_set_callbacks(
+                self.raw,
+                None,
+                ptr::null_mut()
+            ));
             self.progress = None;
         }
         Ok(())
@@ -149,9 +153,7 @@ impl<'repo> PackBuilder<'repo> {
     /// has been written.
     pub fn hash(&self) -> Option<Oid> {
         if self.object_count() == 0 {
-            unsafe {
-                Some(Binding::from_raw(raw::git_packbuilder_hash(self.raw)))
-            }
+            unsafe { Some(Binding::from_raw(raw::git_packbuilder_hash(self.raw))) }
         } else {
             None
         }
@@ -198,10 +200,7 @@ impl Binding for PackBuilderStage {
     }
 }
 
-extern fn foreach_c(buf: *const c_void,
-                    size: size_t,
-                    data: *mut c_void)
-                    -> c_int {
+extern "C" fn foreach_c(buf: *const c_void, size: size_t, data: *mut c_void) -> c_int {
     unsafe {
         let buf = slice::from_raw_parts(buf as *const u8, size as usize);
 
@@ -217,11 +216,12 @@ extern fn foreach_c(buf: *const c_void,
     }
 }
 
-extern fn progress_c(stage: raw::git_packbuilder_stage_t,
-                     current: c_uint,
-                     total: c_uint,
-                     data: *mut c_void)
-                     -> c_int {
+extern "C" fn progress_c(
+    stage: raw::git_packbuilder_stage_t,
+    current: c_uint,
+    total: c_uint,
+    data: *mut c_void,
+) -> c_int {
     unsafe {
         let stage = Binding::from_raw(stage);
 
@@ -241,7 +241,7 @@ extern fn progress_c(stage: raw::git_packbuilder_stage_t,
 mod tests {
     use std::fs::File;
     use std::path::Path;
-    use {Buf, Repository, Oid};
+    use {Buf, Oid, Repository};
 
     fn commit(repo: &Repository) -> (Oid, Oid) {
         let mut index = t!(repo.index());
@@ -254,30 +254,30 @@ mod tests {
         let sig = t!(repo.signature());
         let head_id = t!(repo.refname_to_id("HEAD"));
         let parent = t!(repo.find_commit(head_id));
-        let commit = t!(repo.commit(Some("HEAD"),
-                                    &sig,
-                                    &sig,
-                                    "commit",
-                                    &tree,
-                                    &[&parent]));
+        let commit = t!(repo.commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent]));
         (commit, tree_id)
     }
 
     fn pack_header(len: u8) -> Vec<u8> {
         [].into_iter()
-          .chain(b"PACK") // signature
-          .chain(&[0, 0, 0, 2]) // version number
-          .chain(&[0, 0, 0, len]) // number of objects
-          .cloned().collect::<Vec<u8>>()
+            .chain(b"PACK") // signature
+            .chain(&[0, 0, 0, 2]) // version number
+            .chain(&[0, 0, 0, len]) // number of objects
+            .cloned()
+            .collect::<Vec<u8>>()
     }
 
     fn empty_pack_header() -> Vec<u8> {
-        pack_header(0).iter()
-          .chain(&[0x02, 0x9d, 0x08, 0x82, 0x3b,  // ^
-                   0xd8, 0xa8, 0xea, 0xb5, 0x10,  // | SHA-1 of the zero
-                   0xad, 0x6a, 0xc7, 0x5c, 0x82,  // | object pack header
-                   0x3c, 0xfd, 0x3e, 0xd3, 0x1e]) // v
-          .cloned().collect::<Vec<u8>>()
+        pack_header(0)
+            .iter()
+            .chain(&[
+                0x02, 0x9d, 0x08, 0x82, 0x3b, // ^
+                0xd8, 0xa8, 0xea, 0xb5, 0x10, // | SHA-1 of the zero
+                0xad, 0x6a, 0xc7, 0x5c, 0x82, // | object pack header
+                0x3c, 0xfd, 0x3e, 0xd3, 0x1e,
+            ]) // v
+            .cloned()
+            .collect::<Vec<u8>>()
     }
 
     #[test]

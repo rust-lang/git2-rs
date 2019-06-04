@@ -1,12 +1,12 @@
+use libc;
 use std::ffi::CString;
 use std::marker;
 use std::path::{Path, PathBuf};
 use std::ptr;
 use std::str;
-use libc;
 
-use {raw, Error, ConfigLevel, Buf, IntoCString};
 use util::{self, Binding};
+use {raw, Buf, ConfigLevel, Error, IntoCString};
 
 /// A structure representing a git configuration key/value store
 pub struct Config {
@@ -81,7 +81,9 @@ impl Config {
     pub fn find_global() -> Result<PathBuf, Error> {
         ::init();
         let buf = Buf::new();
-        unsafe { try_call!(raw::git_config_find_global(buf.raw())); }
+        unsafe {
+            try_call!(raw::git_config_find_global(buf.raw()));
+        }
         Ok(util::bytes2path(&buf).to_path_buf())
     }
 
@@ -91,7 +93,9 @@ impl Config {
     pub fn find_system() -> Result<PathBuf, Error> {
         ::init();
         let buf = Buf::new();
-        unsafe { try_call!(raw::git_config_find_system(buf.raw())); }
+        unsafe {
+            try_call!(raw::git_config_find_system(buf.raw()));
+        }
         Ok(util::bytes2path(&buf).to_path_buf())
     }
 
@@ -102,7 +106,9 @@ impl Config {
     pub fn find_xdg() -> Result<PathBuf, Error> {
         ::init();
         let buf = Buf::new();
-        unsafe { try_call!(raw::git_config_find_xdg(buf.raw())); }
+        unsafe {
+            try_call!(raw::git_config_find_xdg(buf.raw()));
+        }
         Ok(util::bytes2path(&buf).to_path_buf())
     }
 
@@ -115,12 +121,16 @@ impl Config {
     /// Further queries on this config object will access each of the config
     /// file instances in order (instances with a higher priority level will be
     /// accessed first).
-    pub fn add_file(&mut self, path: &Path, level: ConfigLevel,
-                    force: bool) -> Result<(), Error> {
+    pub fn add_file(&mut self, path: &Path, level: ConfigLevel, force: bool) -> Result<(), Error> {
         let path = try!(path.into_c_string());
         unsafe {
-            try_call!(raw::git_config_add_file_ondisk(self.raw, path, level,
-                                                      ptr::null(), force));
+            try_call!(raw::git_config_add_file_ondisk(
+                self.raw,
+                path,
+                level,
+                ptr::null(),
+                force
+            ));
             Ok(())
         }
     }
@@ -156,7 +166,6 @@ impl Config {
         let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw, name));
-
         }
         Ok(!(out == 0))
     }
@@ -171,7 +180,6 @@ impl Config {
         let name = try!(CString::new(name));
         unsafe {
             try_call!(raw::git_config_get_int32(&mut out, &*self.raw, name));
-
         }
         Ok(out)
     }
@@ -195,9 +203,8 @@ impl Config {
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
     pub fn get_str(&self, name: &str) -> Result<&str, Error> {
-        str::from_utf8(try!(self.get_bytes(name))).map_err(|_| {
-            Error::from_str("configuration value is not valid utf8")
-        })
+        str::from_utf8(try!(self.get_bytes(name)))
+            .map_err(|_| Error::from_str("configuration value is not valid utf8"))
     }
 
     /// Get the value of a string config variable as a byte slice.
@@ -221,9 +228,9 @@ impl Config {
         unsafe {
             try_call!(raw::git_config_get_string_buf(ret.raw(), self.raw, name));
         }
-        str::from_utf8(&ret).map(|s| s.to_string()).map_err(|_| {
-            Error::from_str("configuration value is not valid utf8")
-        })
+        str::from_utf8(&ret)
+            .map(|s| s.to_string())
+            .map_err(|_| Error::from_str("configuration value is not valid utf8"))
     }
 
     /// Get the value of a path config variable as an owned .
@@ -270,9 +277,7 @@ impl Config {
             match glob {
                 Some(s) => {
                     let s = try!(CString::new(s));
-                    try_call!(raw::git_config_iterator_glob_new(&mut ret,
-                                                                &*self.raw,
-                                                                s));
+                    try_call!(raw::git_config_iterator_glob_new(&mut ret, &*self.raw, s));
                 }
                 None => {
                     try_call!(raw::git_config_iterator_new(&mut ret, &*self.raw));
@@ -417,7 +422,9 @@ impl Binding for Config {
     unsafe fn from_raw(raw: *mut raw::git_config) -> Config {
         Config { raw: raw }
     }
-    fn raw(&self) -> *mut raw::git_config { self.raw }
+    fn raw(&self) -> *mut raw::git_config {
+        self.raw
+    }
 }
 
 impl Drop for Config {
@@ -430,7 +437,9 @@ impl<'cfg> ConfigEntry<'cfg> {
     /// Gets the name of this entry.
     ///
     /// May return `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()).ok() }
+    pub fn name(&self) -> Option<&str> {
+        str::from_utf8(self.name_bytes()).ok()
+    }
 
     /// Gets the name of this entry as a byte slice.
     pub fn name_bytes(&self) -> &[u8] {
@@ -440,7 +449,9 @@ impl<'cfg> ConfigEntry<'cfg> {
     /// Gets the value of this entry.
     ///
     /// May return `None` if the value is not valid utf-8
-    pub fn value(&self) -> Option<&str> { str::from_utf8(self.value_bytes()).ok() }
+    pub fn value(&self) -> Option<&str> {
+        str::from_utf8(self.value_bytes()).ok()
+    }
 
     /// Gets the value of this entry as a byte slice.
     pub fn value_bytes(&self) -> &[u8] {
@@ -452,7 +463,7 @@ impl<'cfg> ConfigEntry<'cfg> {
         unsafe { ConfigLevel::from_raw((*self.raw).level) }
     }
 
-	/// Depth of includes where this variable was found
+    /// Depth of includes where this variable was found
     pub fn include_depth(&self) -> u32 {
         unsafe { (*self.raw).include_depth as u32 }
     }
@@ -461,28 +472,30 @@ impl<'cfg> ConfigEntry<'cfg> {
 impl<'cfg> Binding for ConfigEntry<'cfg> {
     type Raw = *mut raw::git_config_entry;
 
-    unsafe fn from_raw(raw: *mut raw::git_config_entry)
-                           -> ConfigEntry<'cfg> {
+    unsafe fn from_raw(raw: *mut raw::git_config_entry) -> ConfigEntry<'cfg> {
         ConfigEntry {
             raw: raw,
             _marker: marker::PhantomData,
             owned: true,
         }
     }
-    fn raw(&self) -> *mut raw::git_config_entry { self.raw }
+    fn raw(&self) -> *mut raw::git_config_entry {
+        self.raw
+    }
 }
 
 impl<'cfg> Binding for ConfigEntries<'cfg> {
     type Raw = *mut raw::git_config_iterator;
 
-    unsafe fn from_raw(raw: *mut raw::git_config_iterator)
-                           -> ConfigEntries<'cfg> {
+    unsafe fn from_raw(raw: *mut raw::git_config_iterator) -> ConfigEntries<'cfg> {
         ConfigEntries {
             raw: raw,
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_config_iterator { self.raw }
+    fn raw(&self) -> *mut raw::git_config_iterator {
+        self.raw
+    }
 }
 
 // entries are only valid until the iterator is freed, so this impl is for
@@ -573,7 +586,8 @@ mod tests {
         cfg.set_multivar("foo.bar", "^$", "baz").unwrap();
         cfg.set_multivar("foo.bar", "^$", "qux").unwrap();
 
-        let mut values: Vec<String> = cfg.entries(None)
+        let mut values: Vec<String> = cfg
+            .entries(None)
             .unwrap()
             .into_iter()
             .map(|entry| entry.unwrap().value().unwrap().into())
@@ -612,7 +626,7 @@ mod tests {
         assert_eq!(Config::parse_i32("1k").unwrap(), 1024);
         assert_eq!(Config::parse_i32("4k").unwrap(), 4096);
         assert_eq!(Config::parse_i32("1M").unwrap(), 1048576);
-        assert_eq!(Config::parse_i32("1G").unwrap(), 1024*1024*1024);
+        assert_eq!(Config::parse_i32("1G").unwrap(), 1024 * 1024 * 1024);
 
         assert_eq!(Config::parse_i64("0").unwrap(), 0);
         assert_eq!(Config::parse_i64("1").unwrap(), 1);
@@ -622,7 +636,7 @@ mod tests {
         assert_eq!(Config::parse_i64("1k").unwrap(), 1024);
         assert_eq!(Config::parse_i64("4k").unwrap(), 4096);
         assert_eq!(Config::parse_i64("1M").unwrap(), 1048576);
-        assert_eq!(Config::parse_i64("1G").unwrap(), 1024*1024*1024);
-        assert_eq!(Config::parse_i64("100G").unwrap(), 100*1024*1024*1024);
+        assert_eq!(Config::parse_i64("1G").unwrap(), 1024 * 1024 * 1024);
+        assert_eq!(Config::parse_i64("100G").unwrap(), 100 * 1024 * 1024 * 1024);
     }
 }

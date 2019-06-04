@@ -2,8 +2,8 @@ use std::ffi::CString;
 use std::marker;
 use std::str;
 
-use {raw, Direction};
 use util::Binding;
+use {raw, Direction};
 
 /// A structure to represent a git [refspec][1].
 ///
@@ -83,7 +83,12 @@ impl<'remote> Binding for Refspec<'remote> {
     type Raw = *const raw::git_refspec;
 
     unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
-        Refspec { raw: raw, _marker: marker::PhantomData }
+        Refspec {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *const raw::git_refspec { self.raw }
+    fn raw(&self) -> *const raw::git_refspec {
+        self.raw
+    }
 }

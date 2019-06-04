@@ -12,17 +12,18 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
 use docopt::Docopt;
-use git2::{Repository, BlameOptions};
+use git2::{BlameOptions, Repository};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::io::{BufReader, BufRead};
 
-#[derive(Deserialize)] #[allow(non_snake_case)]
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
 struct Args {
     arg_path: String,
     arg_spec: Option<String>,
@@ -45,7 +46,6 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     // Parse spec
     if let Some(spec) = args.arg_spec.as_ref() {
-
         let revspec = try!(repo.revparse(spec));
 
         let (oldest, newest) = if revspec.mode().contains(git2::RevparseMode::SINGLE) {
@@ -66,7 +66,6 @@ fn run(args: &Args) -> Result<(), git2::Error> {
                 commit_id = format!("{}", commit.id())
             }
         }
-
     }
 
     let spec = format!("{}:{}", commit_id, path.display());
@@ -76,11 +75,15 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let reader = BufReader::new(blob.content());
 
     for (i, line) in reader.lines().enumerate() {
-        if let (Ok(line), Some(hunk)) = (line, blame.get_line(i+1)) {
+        if let (Ok(line), Some(hunk)) = (line, blame.get_line(i + 1)) {
             let sig = hunk.final_signature();
-            println!("{} {} <{}> {}", hunk.final_commit_id(),
-                     String::from_utf8_lossy(sig.name_bytes()),
-                     String::from_utf8_lossy(sig.email_bytes()), line);
+            println!(
+                "{} {} <{}> {}",
+                hunk.final_commit_id(),
+                String::from_utf8_lossy(sig.name_bytes()),
+                String::from_utf8_lossy(sig.email_bytes()),
+                line
+            );
         }
     }
 
@@ -97,8 +100,9 @@ Options:
     -F                  follow only the first parent commits
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

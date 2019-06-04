@@ -1,13 +1,13 @@
+use libc;
 use std::ffi::CString;
+use std::fmt;
 use std::marker;
 use std::mem;
 use std::ptr;
 use std::str;
-use std::fmt;
-use libc;
 
-use {raw, Error, Time};
 use util::Binding;
+use {raw, Error, Time};
 
 /// A Signature is used to indicate authorship of various actions throughout the
 /// library.
@@ -45,16 +45,19 @@ impl<'a> Signature<'a> {
     /// the time zone offset in minutes.
     ///
     /// Returns error if either `name` or `email` contain angle brackets.
-    pub fn new(name: &str, email: &str, time: &Time)
-               -> Result<Signature<'static>, Error> {
+    pub fn new(name: &str, email: &str, time: &Time) -> Result<Signature<'static>, Error> {
         ::init();
         let mut ret = ptr::null_mut();
         let name = try!(CString::new(name));
         let email = try!(CString::new(email));
         unsafe {
-            try_call!(raw::git_signature_new(&mut ret, name, email,
-                                             time.seconds() as raw::git_time_t,
-                                             time.offset_minutes() as libc::c_int));
+            try_call!(raw::git_signature_new(
+                &mut ret,
+                name,
+                email,
+                time.seconds() as raw::git_time_t,
+                time.offset_minutes() as libc::c_int
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -107,7 +110,9 @@ impl<'a> Binding for Signature<'a> {
             owned: true,
         }
     }
-    fn raw(&self) -> *mut raw::git_signature { self.raw }
+    fn raw(&self) -> *mut raw::git_signature {
+        self.raw
+    }
 }
 
 /// Creates a new signature from the give raw pointer, tied to the lifetime
@@ -115,9 +120,7 @@ impl<'a> Binding for Signature<'a> {
 ///
 /// This function is unsafe as there is no guarantee that `raw` is valid for
 /// `'a` nor if it's a valid pointer.
-pub unsafe fn from_raw_const<'b, T>(_lt: &'b T,
-                                    raw: *const raw::git_signature)
-                                    -> Signature<'b> {
+pub unsafe fn from_raw_const<'b, T>(_lt: &'b T, raw: *const raw::git_signature) -> Signature<'b> {
     Signature {
         raw: raw as *mut raw::git_signature,
         _marker: marker::PhantomData,
@@ -145,13 +148,14 @@ impl<'a> Drop for Signature<'a> {
 }
 
 impl<'a> fmt::Display for Signature<'a> {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} <{}>",
-               String::from_utf8_lossy(self.name_bytes()),
-               String::from_utf8_lossy(self.email_bytes()))
+        write!(
+            f,
+            "{} <{}>",
+            String::from_utf8_lossy(self.name_bytes()),
+            String::from_utf8_lossy(self.email_bytes())
+        )
     }
-
 }
 
 #[cfg(test)]

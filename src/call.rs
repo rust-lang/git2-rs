@@ -33,7 +33,9 @@ pub trait Convert<T> {
     fn convert(&self) -> T;
 }
 
-pub fn convert<T, U: Convert<T>>(u: &U) -> T { u.convert() }
+pub fn convert<T, U: Convert<T>>(u: &U) -> T {
+    u.convert()
+}
 
 pub fn try(ret: libc::c_int) -> Result<libc::c_int, Error> {
     match ret {
@@ -54,29 +56,41 @@ mod impls {
 
     use libc;
 
-    use {raw, ConfigLevel, ResetType, ObjectType, BranchType, Direction};
-    use {DiffFormat, FileFavor, SubmoduleIgnore, AutotagOption, FetchPrune};
     use call::Convert;
+    use {raw, BranchType, ConfigLevel, Direction, ObjectType, ResetType};
+    use {AutotagOption, DiffFormat, FetchPrune, FileFavor, SubmoduleIgnore};
 
     impl<T: Copy> Convert<T> for T {
-        fn convert(&self) -> T { *self }
+        fn convert(&self) -> T {
+            *self
+        }
     }
 
     impl Convert<libc::c_int> for bool {
-        fn convert(&self) -> libc::c_int { *self as libc::c_int }
+        fn convert(&self) -> libc::c_int {
+            *self as libc::c_int
+        }
     }
     impl<'a, T> Convert<*const T> for &'a T {
-        fn convert(&self) -> *const T { *self as *const T }
+        fn convert(&self) -> *const T {
+            *self as *const T
+        }
     }
     impl<'a, T> Convert<*mut T> for &'a mut T {
-        fn convert(&self) -> *mut T { &**self as *const T as *mut T }
+        fn convert(&self) -> *mut T {
+            &**self as *const T as *mut T
+        }
     }
     impl<T> Convert<*const T> for *mut T {
-        fn convert(&self) -> *const T { *self as *const T }
+        fn convert(&self) -> *const T {
+            *self as *const T
+        }
     }
 
     impl Convert<*const libc::c_char> for CString {
-        fn convert(&self) -> *const libc::c_char { self.as_ptr() }
+        fn convert(&self) -> *const libc::c_char {
+            self.as_ptr()
+        }
     }
 
     impl<T, U: Convert<*const T>> Convert<*const T> for Option<U> {
@@ -87,7 +101,9 @@ mod impls {
 
     impl<T, U: Convert<*mut T>> Convert<*mut T> for Option<U> {
         fn convert(&self) -> *mut T {
-            self.as_ref().map(|s| s.convert()).unwrap_or(ptr::null_mut())
+            self.as_ref()
+                .map(|s| s.convert())
+                .unwrap_or(ptr::null_mut())
         }
     }
 
@@ -183,8 +199,7 @@ mod impls {
     impl Convert<raw::git_submodule_ignore_t> for SubmoduleIgnore {
         fn convert(&self) -> raw::git_submodule_ignore_t {
             match *self {
-                SubmoduleIgnore::Unspecified =>
-                    raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED,
+                SubmoduleIgnore::Unspecified => raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED,
                 SubmoduleIgnore::None => raw::GIT_SUBMODULE_IGNORE_NONE,
                 SubmoduleIgnore::Untracked => raw::GIT_SUBMODULE_IGNORE_UNTRACKED,
                 SubmoduleIgnore::Dirty => raw::GIT_SUBMODULE_IGNORE_DIRTY,
@@ -196,8 +211,7 @@ mod impls {
     impl Convert<raw::git_remote_autotag_option_t> for AutotagOption {
         fn convert(&self) -> raw::git_remote_autotag_option_t {
             match *self {
-                AutotagOption::Unspecified =>
-                    raw::GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED,
+                AutotagOption::Unspecified => raw::GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED,
                 AutotagOption::None => raw::GIT_REMOTE_DOWNLOAD_TAGS_NONE,
                 AutotagOption::Auto => raw::GIT_REMOTE_DOWNLOAD_TAGS_AUTO,
                 AutotagOption::All => raw::GIT_REMOTE_DOWNLOAD_TAGS_ALL,

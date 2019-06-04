@@ -1,8 +1,8 @@
 use std::marker;
 use std::str;
 
-use {raw, signature, Signature, Oid, Repository, Error};
 use util::Binding;
+use {raw, signature, Error, Oid, Repository, Signature};
 
 /// A structure representing a [note][note] in git.
 ///
@@ -25,16 +25,12 @@ pub struct Notes<'repo> {
 impl<'repo> Note<'repo> {
     /// Get the note author
     pub fn author(&self) -> Signature {
-        unsafe {
-            signature::from_raw_const(self, raw::git_note_author(&*self.raw))
-        }
+        unsafe { signature::from_raw_const(self, raw::git_note_author(&*self.raw)) }
     }
 
     /// Get the note committer
     pub fn committer(&self) -> Signature {
-        unsafe {
-            signature::from_raw_const(self, raw::git_note_committer(&*self.raw))
-        }
+        unsafe { signature::from_raw_const(self, raw::git_note_committer(&*self.raw)) }
     }
 
     /// Get the note message, in bytes.
@@ -56,9 +52,14 @@ impl<'repo> Note<'repo> {
 impl<'repo> Binding for Note<'repo> {
     type Raw = *mut raw::git_note;
     unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
-        Note { raw: raw, _marker: marker::PhantomData, }
+        Note {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_note { self.raw }
+    fn raw(&self) -> *mut raw::git_note {
+        self.raw
+    }
 }
 
 impl<'repo> ::std::fmt::Debug for Note<'repo> {
@@ -69,35 +70,51 @@ impl<'repo> ::std::fmt::Debug for Note<'repo> {
 
 impl<'repo> Drop for Note<'repo> {
     fn drop(&mut self) {
-        unsafe { raw::git_note_free(self.raw); }
+        unsafe {
+            raw::git_note_free(self.raw);
+        }
     }
 }
 
 impl<'repo> Binding for Notes<'repo> {
     type Raw = *mut raw::git_note_iterator;
     unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
-        Notes { raw: raw, _marker: marker::PhantomData, }
+        Notes {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_note_iterator { self.raw }
+    fn raw(&self) -> *mut raw::git_note_iterator {
+        self.raw
+    }
 }
 
 impl<'repo> Iterator for Notes<'repo> {
     type Item = Result<(Oid, Oid), Error>;
     fn next(&mut self) -> Option<Result<(Oid, Oid), Error>> {
-        let mut note_id = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut note_id = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         let mut annotated_id = note_id;
         unsafe {
-            try_call_iter!(raw::git_note_next(&mut note_id, &mut annotated_id,
-                                              self.raw));
-            Some(Ok((Binding::from_raw(&note_id as *const _),
-                     Binding::from_raw(&annotated_id as *const _))))
+            try_call_iter!(raw::git_note_next(
+                &mut note_id,
+                &mut annotated_id,
+                self.raw
+            ));
+            Some(Ok((
+                Binding::from_raw(&note_id as *const _),
+                Binding::from_raw(&annotated_id as *const _),
+            )))
         }
     }
 }
 
 impl<'repo> Drop for Notes<'repo> {
     fn drop(&mut self) {
-        unsafe { raw::git_note_iterator_free(self.raw); }
+        unsafe {
+            raw::git_note_iterator_free(self.raw);
+        }
     }
 }
 

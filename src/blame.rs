@@ -1,9 +1,9 @@
 use std::marker;
-use {raw, Repository, Oid, signature, Signature};
-use util::{self, Binding};
-use std::path::Path;
-use std::ops::Range;
 use std::mem;
+use std::ops::Range;
+use std::path::Path;
+use util::{self, Binding};
+use {raw, signature, Oid, Repository, Signature};
 
 /// Opaque structure to hold blame results.
 pub struct Blame<'repo> {
@@ -29,7 +29,6 @@ pub struct BlameIter<'blame> {
 }
 
 impl<'repo> Blame<'repo> {
-
     /// Gets the number of hunks that exist in the blame structure.
     pub fn len(&self) -> usize {
         unsafe { raw::git_blame_get_hunk_count(self.raw) as usize }
@@ -67,15 +66,15 @@ impl<'repo> Blame<'repo> {
 
     /// Returns an iterator over the hunks in this blame.
     pub fn iter(&self) -> BlameIter {
-        BlameIter { range: 0..self.len(), blame: self }
+        BlameIter {
+            range: 0..self.len(),
+            blame: self,
+        }
     }
-
 }
 
 impl<'blame> BlameHunk<'blame> {
-
-    unsafe fn from_raw_const(raw: *const raw::git_blame_hunk)
-                                 -> BlameHunk<'blame> {
+    unsafe fn from_raw_const(raw: *const raw::git_blame_hunk) -> BlameHunk<'blame> {
         BlameHunk {
             raw: raw as *mut raw::git_blame_hunk,
             _marker: marker::PhantomData,
@@ -117,7 +116,7 @@ impl<'blame> BlameHunk<'blame> {
     ///
     /// Note that the start line is counting from 1.
     pub fn orig_start_line(&self) -> usize {
-        unsafe { (*self.raw).orig_start_line_number}
+        unsafe { (*self.raw).orig_start_line_number }
     }
 
     /// Returns path to the file where this hunk originated.
@@ -145,7 +144,6 @@ impl<'blame> BlameHunk<'blame> {
     }
 }
 
-
 impl Default for BlameOptions {
     fn default() -> Self {
         Self::new()
@@ -153,15 +151,14 @@ impl Default for BlameOptions {
 }
 
 impl BlameOptions {
-
     /// Initialize options
     pub fn new() -> BlameOptions {
         unsafe {
             let mut raw: raw::git_blame_options = mem::zeroed();
             assert_eq!(
-                raw::git_blame_init_options(&mut raw,
-                                            raw::GIT_BLAME_OPTIONS_VERSION)
-            , 0);
+                raw::git_blame_init_options(&mut raw, raw::GIT_BLAME_OPTIONS_VERSION),
+                0
+            );
 
             Binding::from_raw(&raw as *const _ as *mut _)
         }
@@ -206,26 +203,34 @@ impl BlameOptions {
 
     /// Setter for the id of the newest commit to consider.
     pub fn newest_commit(&mut self, id: Oid) -> &mut BlameOptions {
-        unsafe { self.raw.newest_commit = *id.raw(); }
+        unsafe {
+            self.raw.newest_commit = *id.raw();
+        }
         self
     }
 
     /// Setter for the id of the oldest commit to consider.
     pub fn oldest_commit(&mut self, id: Oid) -> &mut BlameOptions {
-        unsafe { self.raw.oldest_commit = *id.raw(); }
+        unsafe {
+            self.raw.oldest_commit = *id.raw();
+        }
         self
     }
-
 }
 
 impl<'repo> Binding for Blame<'repo> {
     type Raw = *mut raw::git_blame;
 
     unsafe fn from_raw(raw: *mut raw::git_blame) -> Blame<'repo> {
-        Blame { raw: raw, _marker: marker::PhantomData }
+        Blame {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
 
-    fn raw(&self) -> *mut raw::git_blame { self.raw }
+    fn raw(&self) -> *mut raw::git_blame {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Blame<'repo> {
@@ -238,10 +243,15 @@ impl<'blame> Binding for BlameHunk<'blame> {
     type Raw = *mut raw::git_blame_hunk;
 
     unsafe fn from_raw(raw: *mut raw::git_blame_hunk) -> BlameHunk<'blame> {
-        BlameHunk { raw: raw, _marker: marker::PhantomData }
+        BlameHunk {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
 
-    fn raw(&self) -> *mut raw::git_blame_hunk { self.raw }
+    fn raw(&self) -> *mut raw::git_blame_hunk {
+        self.raw
+    }
 }
 
 impl Binding for BlameOptions {
@@ -262,7 +272,9 @@ impl<'blame> Iterator for BlameIter<'blame> {
         self.range.next().and_then(|i| self.blame.get_index(i))
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 
 impl<'blame> DoubleEndedIterator for BlameIter<'blame> {
@@ -293,8 +305,9 @@ mod tests {
         let sig = repo.signature().unwrap();
         let id = repo.refname_to_id("HEAD").unwrap();
         let parent = repo.find_commit(id).unwrap();
-        let commit = repo.commit(Some("HEAD"), &sig, &sig, "commit",
-                                 &tree, &[&parent]).unwrap();
+        let commit = repo
+            .commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent])
+            .unwrap();
 
         let blame = repo.blame_file(Path::new("foo/bar"), None).unwrap();
 
@@ -312,4 +325,3 @@ mod tests {
     }
 
 }
-
