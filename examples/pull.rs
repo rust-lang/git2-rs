@@ -99,7 +99,7 @@ fn normal_merge(
     let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
     if idx.has_conflicts() {
-        // TODO(jwall): Handle conflicts somehow
+        println!("Merge conficts detected...");
     }
     let result_tree = repo.find_tree(idx.write_tree_to(repo)?)?;
     // now create the merge commit
@@ -130,8 +130,8 @@ fn do_merge<'a>(repo: &'a Repository, remote_branch: &str, fetch_commit: git2::A
             // do a fast forward
             match repo.find_reference(remote_branch) {
                 Ok(r) => {
-                    let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
-                    fast_forward(&mut repo.find_reference(remote_branch)?, &fetch_commit)?;
+                    let head_commit = repo.reference_to_annotated_commit(&r)?;
+                    fast_forward(&mut repo.find_reference(remote_branch)?, &head_commit)?;
                 }
                 Err(_) => {
                     // The branch doesn't exist so just set the reference to the
@@ -161,8 +161,8 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let remote_name = args.arg_remote.as_ref().map(|s| &s[..]).unwrap_or("origin");
     let remote_branch = args.arg_branch.as_ref().map(|s| &s[..]).unwrap_or("master");
     let repo = Repository::open(".")?;
-    let mut remote = repo.find_remote(&remote_name)?;
-    let fetch_commit = do_fetch(&repo, &[&remote_branch], &mut remote)?;
+    let mut remote = repo.find_remote(remote_name)?;
+    let fetch_commit = do_fetch(&repo, &[remote_branch], &mut remote)?;
     do_merge(
         &repo,
         &remote_branch,
