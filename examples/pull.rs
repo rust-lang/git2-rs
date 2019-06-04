@@ -12,13 +12,13 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-extern crate git2;
 extern crate docopt;
+extern crate git2;
 #[macro_use]
 extern crate serde_derive;
 
 use docopt::Docopt;
-use git2::{Repository};
+use git2::Repository;
 use std::io::{self, Write};
 use std::str;
 
@@ -38,14 +38,19 @@ fn do_fetch<'a>(
     // Print out our transfer progress.
     cb.transfer_progress(|stats| {
         if stats.received_objects() == stats.total_objects() {
-            print!("Resolving deltas {}/{}\r", stats.indexed_deltas(),
-                    stats.total_deltas());
+            print!(
+                "Resolving deltas {}/{}\r",
+                stats.indexed_deltas(),
+                stats.total_deltas()
+            );
         } else if stats.total_objects() > 0 {
-            print!("Received {}/{} objects ({}) in {} bytes\r",
-                    stats.received_objects(),
-                    stats.total_objects(),
-                    stats.indexed_objects(),
-                    stats.received_bytes());
+            print!(
+                "Received {}/{} objects ({}) in {} bytes\r",
+                stats.received_objects(),
+                stats.total_objects(),
+                stats.indexed_objects(),
+                stats.received_bytes()
+            );
         }
         io::stdout().flush().unwrap();
         true
@@ -54,7 +59,7 @@ fn do_fetch<'a>(
     let mut fo = git2::FetchOptions::new();
     fo.remote_callbacks(cb);
     fo.download_tags(git2::AutotagOption::All); // Always fetch all tags.
-    // Perform a download and also update tips
+                                                // Perform a download and also update tips
     println!("Fetching {} for repo", remote.name().unwrap());
     remote.fetch(refs, Some(&mut fo), None)?;
 
@@ -63,14 +68,21 @@ fn do_fetch<'a>(
         // how many objects we saved from having to cross the network.
         let stats = remote.stats();
         if stats.local_objects() > 0 {
-            println!("\rReceived {}/{} objects in {} bytes (used {} local \
-                      objects)", stats.indexed_objects(),
-                     stats.total_objects(), stats.received_bytes(),
-                     stats.local_objects());
+            println!(
+                "\rReceived {}/{} objects in {} bytes (used {} local \
+                 objects)",
+                stats.indexed_objects(),
+                stats.total_objects(),
+                stats.received_bytes(),
+                stats.local_objects()
+            );
         } else {
-            println!("\rReceived {}/{} objects in {} bytes",
-                     stats.indexed_objects(), stats.total_objects(),
-                     stats.received_bytes());
+            println!(
+                "\rReceived {}/{} objects in {} bytes",
+                stats.indexed_objects(),
+                stats.total_objects(),
+                stats.received_bytes()
+            );
         }
     }
 
@@ -121,40 +133,44 @@ fn normal_merge(
     Ok(())
 }
 
-fn do_merge<'a>(repo: &'a Repository, remote_branch: &str, fetch_commit: git2::AnnotatedCommit<'a>) -> Result<(), git2::Error> {
-        // 1. do a merge analysis
-        let analysis = repo.merge_analysis(&[&fetch_commit])?;
+fn do_merge<'a>(
+    repo: &'a Repository,
+    remote_branch: &str,
+    fetch_commit: git2::AnnotatedCommit<'a>,
+) -> Result<(), git2::Error> {
+    // 1. do a merge analysis
+    let analysis = repo.merge_analysis(&[&fetch_commit])?;
 
-        // 2. Do the appopriate merge
-        if analysis.0.is_fast_forward() {
-            // do a fast forward
-            match repo.find_reference(remote_branch) {
-                Ok(r) => {
-                    let head_commit = repo.reference_to_annotated_commit(&r)?;
-                    fast_forward(&mut repo.find_reference(remote_branch)?, &head_commit)?;
-                }
-                Err(_) => {
-                    // The branch doesn't exist so just set the reference to the
-                    // commit direcly. Usually this is because you are pulling
-                    // into an empty repository.
-                    let refname = format!("refs/heads/{}", remote_branch);
-                    repo.reference(
-                        &refname,
-                        fetch_commit.id(),
-                        true,
-                        &format!("Setting {} to {}", remote_branch, fetch_commit.id()),
-                    )?;
-                    repo.set_head(&refname)?;
-                }
-            };
-        } else if analysis.0.is_normal() {
-            // do a normal merge
-            let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
-            normal_merge(&repo, &head_commit, &fetch_commit)?;
-        } else {
-            println!("Nothing to do...");
-        }
-        Ok(())
+    // 2. Do the appopriate merge
+    if analysis.0.is_fast_forward() {
+        // do a fast forward
+        match repo.find_reference(remote_branch) {
+            Ok(r) => {
+                let head_commit = repo.reference_to_annotated_commit(&r)?;
+                fast_forward(&mut repo.find_reference(remote_branch)?, &head_commit)?;
+            }
+            Err(_) => {
+                // The branch doesn't exist so just set the reference to the
+                // commit direcly. Usually this is because you are pulling
+                // into an empty repository.
+                let refname = format!("refs/heads/{}", remote_branch);
+                repo.reference(
+                    &refname,
+                    fetch_commit.id(),
+                    true,
+                    &format!("Setting {} to {}", remote_branch, fetch_commit.id()),
+                )?;
+                repo.set_head(&refname)?;
+            }
+        };
+    } else if analysis.0.is_normal() {
+        // do a normal merge
+        let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
+        normal_merge(&repo, &head_commit, &fetch_commit)?;
+    } else {
+        println!("Nothing to do...");
+    }
+    Ok(())
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
@@ -163,10 +179,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = Repository::open(".")?;
     let mut remote = repo.find_remote(remote_name)?;
     let fetch_commit = do_fetch(&repo, &[remote_branch], &mut remote)?;
-    do_merge(
-        &repo,
-        &remote_branch,
-        fetch_commit)
+    do_merge(&repo, &remote_branch, fetch_commit)
 }
 
 fn main() {
@@ -177,8 +190,9 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
