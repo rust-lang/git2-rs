@@ -3,8 +3,8 @@ use std::marker;
 use std::ptr;
 use std::str;
 
-use {raw, Error, Reference, BranchType, References};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, BranchType, Error, Reference, References};
 
 /// A structure to represent a git [branch][1]
 ///
@@ -24,17 +24,25 @@ pub struct Branches<'repo> {
 
 impl<'repo> Branch<'repo> {
     /// Creates Branch type from a Reference
-    pub fn wrap(reference: Reference) -> Branch { Branch { inner: reference } }
+    pub fn wrap(reference: Reference<'_>) -> Branch<'_> {
+        Branch { inner: reference }
+    }
 
     /// Gain access to the reference that is this branch
-    pub fn get(&self) -> &Reference<'repo> { &self.inner }
+    pub fn get(&self) -> &Reference<'repo> {
+        &self.inner
+    }
 
     /// Take ownership of the underlying reference.
-    pub fn into_reference(self) -> Reference<'repo> { self.inner }
+    pub fn into_reference(self) -> Reference<'repo> {
+        self.inner
+    }
 
     /// Delete an existing branch reference.
     pub fn delete(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_branch_delete(self.get().raw())); }
+        unsafe {
+            try_call!(raw::git_branch_delete(self.get().raw()));
+        }
         Ok(())
     }
 
@@ -44,13 +52,16 @@ impl<'repo> Branch<'repo> {
     }
 
     /// Move/rename an existing local branch reference.
-    pub fn rename(&mut self, new_branch_name: &str, force: bool)
-                  -> Result<Branch<'repo>, Error> {
+    pub fn rename(&mut self, new_branch_name: &str, force: bool) -> Result<Branch<'repo>, Error> {
         let mut ret = ptr::null_mut();
-        let new_branch_name = try!(CString::new(new_branch_name));
+        let new_branch_name = CString::new(new_branch_name)?;
         unsafe {
-            try_call!(raw::git_branch_move(&mut ret, self.get().raw(),
-                                           new_branch_name, force));
+            try_call!(raw::git_branch_move(
+                &mut ret,
+                self.get().raw(),
+                new_branch_name,
+                force
+            ));
             Ok(Branch::wrap(Binding::from_raw(ret)))
         }
     }
@@ -67,7 +78,7 @@ impl<'repo> Branch<'repo> {
         let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_branch_name(&mut ret, &*self.get().raw()));
-            Ok(::opt_bytes(self, ret).unwrap())
+            Ok(crate::opt_bytes(self, ret).unwrap())
         }
     }
 
@@ -85,12 +96,13 @@ impl<'repo> Branch<'repo> {
     ///
     /// If `None` is specified, then the upstream branch is unset. The name
     /// provided is the name of the branch to set as upstream.
-    pub fn set_upstream(&mut self,
-                        upstream_name: Option<&str>) -> Result<(), Error> {
-        let upstream_name = try!(::opt_cstr(upstream_name));
+    pub fn set_upstream(&mut self, upstream_name: Option<&str>) -> Result<(), Error> {
+        let upstream_name = crate::opt_cstr(upstream_name)?;
         unsafe {
-            try_call!(raw::git_branch_set_upstream(self.get().raw(),
-                                                   upstream_name));
+            try_call!(raw::git_branch_set_upstream(
+                self.get().raw(),
+                upstream_name
+            ));
             Ok(())
         }
     }
@@ -101,8 +113,7 @@ impl<'repo> Branches<'repo> {
     ///
     /// This function is unsafe as it is not guaranteed that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator)
-                           -> Branches<'repo> {
+    pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Branches<'repo> {
         Branches {
             raw: raw,
             _marker: marker::PhantomData,
@@ -135,11 +146,11 @@ impl<'repo> Drop for Branches<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use BranchType;
+    use crate::BranchType;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();

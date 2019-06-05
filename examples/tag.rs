@@ -14,14 +14,10 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
-use std::str;
 use docopt::Docopt;
-use git2::{Repository, Error, Tag, Commit};
+use git2::{Commit, Error, Repository, Tag};
+use serde_derive::Deserialize;
+use std::str;
 
 #[derive(Deserialize)]
 struct Args {
@@ -36,31 +32,32 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
 
     if let Some(ref name) = args.arg_tagname {
         let target = args.arg_object.as_ref().map(|s| &s[..]).unwrap_or("HEAD");
-        let obj = try!(repo.revparse_single(target));
+        let obj = repo.revparse_single(target)?;
 
         if let Some(ref message) = args.flag_message {
-            let sig = try!(repo.signature());
-            try!(repo.tag(name, &obj, &sig, message, args.flag_force));
+            let sig = repo.signature()?;
+            repo.tag(name, &obj, &sig, message, args.flag_force)?;
         } else {
-            try!(repo.tag_lightweight(name, &obj, args.flag_force));
+            repo.tag_lightweight(name, &obj, args.flag_force)?;
         }
-
     } else if let Some(ref name) = args.flag_delete {
-        let obj = try!(repo.revparse_single(name));
-        let id = try!(obj.short_id());
-        try!(repo.tag_delete(name));
-        println!("Deleted tag '{}' (was {})", name,
-                 str::from_utf8(&*id).unwrap());
-
+        let obj = repo.revparse_single(name)?;
+        let id = obj.short_id()?;
+        repo.tag_delete(name)?;
+        println!(
+            "Deleted tag '{}' (was {})",
+            name,
+            str::from_utf8(&*id).unwrap()
+        );
     } else if args.flag_list {
         let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
-        for name in try!(repo.tag_names(Some(pattern))).iter() {
+        for name in repo.tag_names(Some(pattern))?.iter() {
             let name = name.unwrap();
-            let obj = try!(repo.revparse_single(name));
+            let obj = repo.revparse_single(name)?;
 
             if let Some(tag) = obj.as_tag() {
                 print_tag(tag, args);
@@ -79,7 +76,7 @@ fn print_tag(tag: &Tag, args: &Args) {
     if args.flag_n.is_some() {
         print_list_lines(tag.message(), args);
     } else {
-        println!("");
+        println!();
     }
 }
 
@@ -88,7 +85,7 @@ fn print_commit(commit: &Commit, name: &str, args: &Args) {
     if args.flag_n.is_some() {
         print_list_lines(commit.message(), args);
     } else {
-        println!("");
+        println!();
     }
 }
 
@@ -97,12 +94,15 @@ fn print_name(name: &str) {
 }
 
 fn print_list_lines(message: Option<&str>, args: &Args) {
-    let message = match message { Some(s) => s, None => return };
+    let message = match message {
+        Some(s) => s,
+        None => return,
+    };
     let mut lines = message.lines().filter(|l| !l.trim().is_empty());
     if let Some(first) = lines.next() {
         print!("{}", first);
     }
-    println!("");
+    println!();
 
     for line in lines.take(args.flag_n.unwrap_or(0) as usize) {
         print!("    {}", line);
@@ -110,7 +110,7 @@ fn print_list_lines(message: Option<&str>, args: &Args) {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage:
     tag [-a] [-f] [-m <msg>] <tagname> [<object>]
     tag -d <tag>
@@ -125,8 +125,9 @@ Options:
     -h, --help              show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

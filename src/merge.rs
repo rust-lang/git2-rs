@@ -1,10 +1,10 @@
+use libc::c_uint;
 use std::marker;
 use std::mem;
-use libc::c_uint;
 
-use {raw, Oid, Commit, FileFavor};
-use util::Binding;
-use call::Convert;
+use crate::call::Convert;
+use crate::util::Binding;
+use crate::{raw, Commit, FileFavor, Oid};
 
 /// A structure to represent an annotated commit, the input to merge and rebase.
 ///
@@ -40,9 +40,7 @@ impl MergeOptions {
         let mut opts = MergeOptions {
             raw: unsafe { mem::zeroed() },
         };
-        assert_eq!(unsafe {
-            raw::git_merge_init_options(&mut opts.raw, 1)
-        }, 0);
+        assert_eq!(unsafe { raw::git_merge_init_options(&mut opts.raw, 1) }, 0);
         opts
     }
 
@@ -165,14 +163,15 @@ impl MergeOptions {
 
 impl<'repo> Binding for AnnotatedCommit<'repo> {
     type Raw = *mut raw::git_annotated_commit;
-    unsafe fn from_raw(raw: *mut raw::git_annotated_commit)
-                       -> AnnotatedCommit<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_annotated_commit) -> AnnotatedCommit<'repo> {
         AnnotatedCommit {
             raw: raw,
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_annotated_commit { self.raw }
+    fn raw(&self) -> *mut raw::git_annotated_commit {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for AnnotatedCommit<'repo> {

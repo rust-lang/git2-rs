@@ -3,8 +3,8 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use {raw, signature, Error, Oid, Object, Signature, ObjectType};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, signature, Error, Object, ObjectType, Oid, Signature};
 
 /// A structure to represent a git [tag][1]
 ///
@@ -31,7 +31,7 @@ impl<'repo> Tag<'repo> {
     ///
     /// Returns None if there is no message
     pub fn message_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_tag_message(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_tag_message(&*self.raw)) }
     }
 
     /// Get the name of a tag
@@ -43,7 +43,7 @@ impl<'repo> Tag<'repo> {
 
     /// Get the name of a tag
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_tag_name(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_tag_name(&*self.raw)).unwrap() }
     }
 
     /// Recursively peel a tag until a non tag git_object is found
@@ -58,7 +58,7 @@ impl<'repo> Tag<'repo> {
     /// Get the tagger (author) of a tag
     ///
     /// If the author is unspecified, then `None` is returned.
-    pub fn tagger(&self) -> Option<Signature> {
+    pub fn tagger(&self) -> Option<Signature<'_>> {
         unsafe {
             let ptr = raw::git_tag_tagger(&*self.raw);
             if ptr.is_null() {
@@ -93,22 +93,18 @@ impl<'repo> Tag<'repo> {
 
     /// Casts this Tag to be usable as an `Object`
     pub fn as_object(&self) -> &Object<'repo> {
-        unsafe {
-            &*(self as *const _ as *const Object<'repo>)
-        }
+        unsafe { &*(self as *const _ as *const Object<'repo>) }
     }
 
     /// Consumes Tag to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
-        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
-        unsafe {
-            mem::transmute(self)
-        }
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
+        unsafe { mem::transmute(self) }
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Tag<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Tag<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Tag");
         if let Some(name) = self.name() {
             ds.field("name", &name);
@@ -121,9 +117,14 @@ impl<'repo> ::std::fmt::Debug for Tag<'repo> {
 impl<'repo> Binding for Tag<'repo> {
     type Raw = *mut raw::git_tag;
     unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
-        Tag { raw: raw, _marker: marker::PhantomData }
+        Tag {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_tag { self.raw }
+    fn raw(&self) -> *mut raw::git_tag {
+        self.raw
+    }
 }
 
 impl<'repo> Clone for Tag<'repo> {
@@ -142,7 +143,7 @@ impl<'repo> Drop for Tag<'repo> {
 mod tests {
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = repo.head().unwrap();
         let id = head.target().unwrap();
         assert!(repo.find_tag(id).is_err());
@@ -161,21 +162,25 @@ mod tests {
         assert_eq!(tag.message(), Some("msg"));
         assert_eq!(tag.peel().unwrap().id(), obj.id());
         assert_eq!(tag.target_id(), obj.id());
-        assert_eq!(tag.target_type(), Some(::ObjectType::Commit));
+        assert_eq!(tag.target_type(), Some(crate::ObjectType::Commit));
 
         assert_eq!(tag.tagger().unwrap().name(), sig.name());
         tag.target().unwrap();
         tag.into_object();
 
         repo.find_object(tag_id, None).unwrap().as_tag().unwrap();
-        repo.find_object(tag_id, None).unwrap().into_tag().ok().unwrap();
+        repo.find_object(tag_id, None)
+            .unwrap()
+            .into_tag()
+            .ok()
+            .unwrap();
 
         repo.tag_delete("foo").unwrap();
     }
 
     #[test]
     fn lite() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = t!(repo.head());
         let id = head.target().unwrap();
         let obj = t!(repo.find_object(id, None));

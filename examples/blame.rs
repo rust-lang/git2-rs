@@ -12,17 +12,14 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
-use git2::{Repository, BlameOptions};
+use git2::{BlameOptions, Repository};
+use serde_derive::Deserialize;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::io::{BufReader, BufRead};
 
-#[derive(Deserialize)] #[allow(non_snake_case)]
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
 struct Args {
     arg_path: String,
     arg_spec: Option<String>,
@@ -32,7 +29,7 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
     let path = Path::new(&args.arg_path[..]);
 
     // Prepare our blame options
@@ -45,8 +42,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     // Parse spec
     if let Some(spec) = args.arg_spec.as_ref() {
-
-        let revspec = try!(repo.revparse(spec));
+        let revspec = repo.revparse(spec)?;
 
         let (oldest, newest) = if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             (None, revspec.from())
@@ -66,21 +62,24 @@ fn run(args: &Args) -> Result<(), git2::Error> {
                 commit_id = format!("{}", commit.id())
             }
         }
-
     }
 
     let spec = format!("{}:{}", commit_id, path.display());
-    let blame = try!(repo.blame_file(path, Some(&mut opts)));
-    let object = try!(repo.revparse_single(&spec[..]));
-    let blob = try!(repo.find_blob(object.id()));
+    let blame = repo.blame_file(path, Some(&mut opts))?;
+    let object = repo.revparse_single(&spec[..])?;
+    let blob = repo.find_blob(object.id())?;
     let reader = BufReader::new(blob.content());
 
     for (i, line) in reader.lines().enumerate() {
-        if let (Ok(line), Some(hunk)) = (line, blame.get_line(i+1)) {
+        if let (Ok(line), Some(hunk)) = (line, blame.get_line(i + 1)) {
             let sig = hunk.final_signature();
-            println!("{} {} <{}> {}", hunk.final_commit_id(),
-                     String::from_utf8_lossy(sig.name_bytes()),
-                     String::from_utf8_lossy(sig.email_bytes()), line);
+            println!(
+                "{} {} <{}> {}",
+                hunk.final_commit_id(),
+                String::from_utf8_lossy(sig.name_bytes()),
+                String::from_utf8_lossy(sig.email_bytes()),
+                line
+            );
         }
     }
 
@@ -88,7 +87,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: blame [options] [<spec>] <path>
 
 Options:
@@ -97,8 +96,9 @@ Options:
     -F                  follow only the first parent commits
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

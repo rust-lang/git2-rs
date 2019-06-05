@@ -5,8 +5,8 @@ use std::marker;
 use std::mem;
 use std::slice;
 
-use raw;
-use util::Binding;
+use crate::raw;
+use crate::util::Binding;
 
 /// A certificate for a remote connection, viewable as one of `CertHostkey` or
 /// `CertX509` currently.
@@ -81,17 +81,19 @@ impl<'a> CertHostkey<'a> {
 impl<'a> CertX509<'a> {
     /// Return the X.509 certificate data as a byte slice
     pub fn data(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts((*self.raw).data as *const u8,
-                                  (*self.raw).len as usize)
-        }
+        unsafe { slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).len as usize) }
     }
 }
 
 impl<'a> Binding for Cert<'a> {
     type Raw = *mut raw::git_cert;
     unsafe fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
-        Cert { raw: raw, _marker: marker::PhantomData }
+        Cert {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_cert { self.raw }
+    fn raw(&self) -> *mut raw::git_cert {
+        self.raw
+    }
 }

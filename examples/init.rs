@@ -14,14 +14,10 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
-use git2::{Repository, RepositoryInitOptions, RepositoryInitMode, Error};
-use std::path::{PathBuf, Path};
+use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
+use serde_derive::Deserialize;
+use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
 struct Args {
@@ -36,10 +32,12 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), Error> {
     let mut path = PathBuf::from(&args.arg_directory);
-    let repo = if !args.flag_bare && args.flag_template.is_none() &&
-                  args.flag_shared.is_none() &&
-                  args.flag_separate_git_dir.is_none() {
-        try!(Repository::init(&path))
+    let repo = if !args.flag_bare
+        && args.flag_template.is_none()
+        && args.flag_shared.is_none()
+        && args.flag_separate_git_dir.is_none()
+    {
+        Repository::init(&path)?
     } else {
         let mut opts = RepositoryInitOptions::new();
         opts.bare(args.flag_bare);
@@ -56,9 +54,9 @@ fn run(args: &Args) -> Result<(), Error> {
         }
 
         if let Some(ref s) = args.flag_shared {
-            opts.mode(try!(parse_shared(s)));
+            opts.mode(parse_shared(s)?);
         }
-        try!(Repository::init_opts(&path, &opts))
+        Repository::init_opts(&path, &opts)?
     };
 
     // Print a message to stdout like "git init" does
@@ -72,7 +70,7 @@ fn run(args: &Args) -> Result<(), Error> {
     }
 
     if args.flag_initial_commit {
-        try!(create_initial_commit(&repo));
+        create_initial_commit(&repo)?;
         println!("Created empty initial commit");
     }
 
@@ -83,27 +81,27 @@ fn run(args: &Args) -> Result<(), Error> {
 /// commit in the repository. This is the helper function that does that.
 fn create_initial_commit(repo: &Repository) -> Result<(), Error> {
     // First use the config to initialize a commit signature for the user.
-    let sig = try!(repo.signature());
+    let sig = repo.signature()?;
 
     // Now let's create an empty tree for this commit
     let tree_id = {
-        let mut index = try!(repo.index());
+        let mut index = repo.index()?;
 
         // Outside of this example, you could call index.add_path()
         // here to put actual files into the index. For our purposes, we'll
         // leave it empty for now.
 
-        try!(index.write_tree())
+        index.write_tree()?
     };
 
-    let tree = try!(repo.find_tree(tree_id));
+    let tree = repo.find_tree(tree_id)?;
 
     // Ready to create the initial commit.
     //
     // Normally creating a commit would involve looking up the current HEAD
     // commit and making that be the parent of the initial commit, but here this
     // is the first commit so there will be no parent.
-    try!(repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[]));
+    repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])?;
 
     Ok(())
 }
@@ -116,12 +114,8 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
         _ => {
             if shared.starts_with('0') {
                 match u32::from_str_radix(&shared[1..], 8).ok() {
-                    Some(n) => {
-                        Ok(RepositoryInitMode::from_bits_truncate(n))
-                    }
-                    None => {
-                        Err(Error::from_str("invalid octal value for --shared"))
-                    }
+                    Some(n) => Ok(RepositoryInitMode::from_bits_truncate(n)),
+                    None => Err(Error::from_str("invalid octal value for --shared")),
                 }
             } else {
                 Err(Error::from_str("unknown value for --shared"))
@@ -131,7 +125,7 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: init [options] <directory>
 
 Options:
@@ -143,8 +137,9 @@ Options:
     --shared <perms>            permissions to create the repository with
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

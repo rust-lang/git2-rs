@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
-use git2::{Repository, RemoteCallbacks, AutotagOption, FetchOptions};
+use git2::{AutotagOption, FetchOptions, RemoteCallbacks, Repository};
+use serde_derive::Deserialize;
 use std::io::{self, Write};
 use std::str;
 
@@ -30,15 +26,15 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
     let remote = args.arg_remote.as_ref().map(|s| &s[..]).unwrap_or("origin");
 
     // Figure out whether it's a named remote or a URL
     println!("Fetching {} for repo", remote);
     let mut cb = RemoteCallbacks::new();
-    let mut remote = try!(repo.find_remote(remote).or_else(|_| {
-        repo.remote_anonymous(remote)
-    }));
+    let mut remote = repo
+        .find_remote(remote)
+        .or_else(|_| repo.remote_anonymous(remote))?;
     cb.sideband_progress(|data| {
         print!("remote: {}", str::from_utf8(data).unwrap());
         io::stdout().flush().unwrap();
@@ -62,14 +58,19 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // the download rate.
     cb.transfer_progress(|stats| {
         if stats.received_objects() == stats.total_objects() {
-            print!("Resolving deltas {}/{}\r", stats.indexed_deltas(),
-                   stats.total_deltas());
+            print!(
+                "Resolving deltas {}/{}\r",
+                stats.indexed_deltas(),
+                stats.total_deltas()
+            );
         } else if stats.total_objects() > 0 {
-            print!("Received {}/{} objects ({}) in {} bytes\r",
-                   stats.received_objects(),
-                   stats.total_objects(),
-                   stats.indexed_objects(),
-                   stats.received_bytes());
+            print!(
+                "Received {}/{} objects ({}) in {} bytes\r",
+                stats.received_objects(),
+                stats.total_objects(),
+                stats.indexed_objects(),
+                stats.received_bytes()
+            );
         }
         io::stdout().flush().unwrap();
         true
@@ -80,21 +81,28 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // progress.
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(cb);
-    try!(remote.download(&[], Some(&mut fo)));
+    remote.download(&[], Some(&mut fo))?;
 
     {
         // If there are local objects (we got a thin pack), then tell the user
         // how many objects we saved from having to cross the network.
         let stats = remote.stats();
         if stats.local_objects() > 0 {
-            println!("\rReceived {}/{} objects in {} bytes (used {} local \
-                      objects)", stats.indexed_objects(),
-                     stats.total_objects(), stats.received_bytes(),
-                     stats.local_objects());
+            println!(
+                "\rReceived {}/{} objects in {} bytes (used {} local \
+                 objects)",
+                stats.indexed_objects(),
+                stats.total_objects(),
+                stats.received_bytes(),
+                stats.local_objects()
+            );
         } else {
-            println!("\rReceived {}/{} objects in {} bytes",
-                     stats.indexed_objects(), stats.total_objects(),
-                     stats.received_bytes());
+            println!(
+                "\rReceived {}/{} objects in {} bytes",
+                stats.indexed_objects(),
+                stats.total_objects(),
+                stats.received_bytes()
+            );
         }
     }
 
@@ -105,22 +113,22 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // commits. This may be needed even if there was no packfile to download,
     // which can happen e.g. when the branches have been changed but all the
     // needed objects are available locally.
-    try!(remote.update_tips(None, true,
-                            AutotagOption::Unspecified, None));
+    remote.update_tips(None, true, AutotagOption::Unspecified, None)?;
 
     Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: fetch [options] [<remote>]
 
 Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

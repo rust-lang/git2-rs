@@ -14,14 +14,10 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
-use git2::build::{RepoBuilder, CheckoutBuilder};
-use git2::{RemoteCallbacks, Progress, FetchOptions};
+use git2::build::{CheckoutBuilder, RepoBuilder};
+use git2::{FetchOptions, Progress, RemoteCallbacks};
+use serde_derive::Deserialize;
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -52,22 +48,34 @@ fn print(state: &mut State) {
     let kbytes = stats.received_bytes() / 1024;
     if stats.received_objects() == stats.total_objects() {
         if !state.newline {
-            println!("");
+            println!();
             state.newline = true;
         }
-        print!("Resolving deltas {}/{}\r", stats.indexed_deltas(),
-               stats.total_deltas());
+        print!(
+            "Resolving deltas {}/{}\r",
+            stats.indexed_deltas(),
+            stats.total_deltas()
+        );
     } else {
-        print!("net {:3}% ({:4} kb, {:5}/{:5})  /  idx {:3}% ({:5}/{:5})  \
-                /  chk {:3}% ({:4}/{:4}) {}\r",
-               network_pct, kbytes, stats.received_objects(),
-               stats.total_objects(),
-               index_pct, stats.indexed_objects(), stats.total_objects(),
-               co_pct, state.current, state.total,
-               state.path
-                    .as_ref()
-                    .map(|s| s.to_string_lossy().into_owned())
-                    .unwrap_or_default())
+        print!(
+            "net {:3}% ({:4} kb, {:5}/{:5})  /  idx {:3}% ({:5}/{:5})  \
+             /  chk {:3}% ({:4}/{:4}) {}\r",
+            network_pct,
+            kbytes,
+            stats.received_objects(),
+            stats.total_objects(),
+            index_pct,
+            stats.indexed_objects(),
+            stats.total_objects(),
+            co_pct,
+            state.current,
+            state.total,
+            state
+                .path
+                .as_ref()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default()
+        )
     }
     io::stdout().flush().unwrap();
 }
@@ -99,26 +107,28 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(cb);
-    try!(RepoBuilder::new().fetch_options(fo).with_checkout(co)
-                           .clone(&args.arg_url, Path::new(&args.arg_path)));
-    println!("");
+    RepoBuilder::new()
+        .fetch_options(fo)
+        .with_checkout(co)
+        .clone(&args.arg_url, Path::new(&args.arg_path))?;
+    println!();
 
     Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: add [options] <url> <path>
 
 Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
     }
 }
-

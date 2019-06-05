@@ -1,12 +1,12 @@
+use std::ffi::CString;
 use std::marker;
 use std::mem;
-use std::ffi::CString;
 use std::ptr;
 
-use libc::{c_uint, c_int};
+use libc::{c_int, c_uint};
 
-use {raw, Repository, Error, Buf};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, Buf, Error, Repository};
 
 /// The result of a `describe` operation on either an `Describe` or a
 /// `Repository`.
@@ -29,8 +29,7 @@ pub struct DescribeFormatOptions {
 
 impl<'repo> Describe<'repo> {
     /// Prints this describe result, returning the result as a string.
-    pub fn format(&self, opts: Option<&DescribeFormatOptions>)
-                  -> Result<String, Error> {
+    pub fn format(&self, opts: Option<&DescribeFormatOptions>) -> Result<String, Error> {
         let buf = Buf::new();
         let opts = opts.map(|o| &o.raw as *const _).unwrap_or(ptr::null());
         unsafe {
@@ -44,9 +43,14 @@ impl<'repo> Binding for Describe<'repo> {
     type Raw = *mut raw::git_describe_result;
 
     unsafe fn from_raw(raw: *mut raw::git_describe_result) -> Describe<'repo> {
-        Describe { raw: raw, _marker: marker::PhantomData, }
+        Describe {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_describe_result { self.raw }
+    fn raw(&self) -> *mut raw::git_describe_result {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Describe<'repo> {
@@ -164,8 +168,7 @@ impl DescribeOptions {
 impl Binding for DescribeOptions {
     type Raw = *mut raw::git_describe_options;
 
-    unsafe fn from_raw(_raw: *mut raw::git_describe_options)
-                       -> DescribeOptions {
+    unsafe fn from_raw(_raw: *mut raw::git_describe_options) -> DescribeOptions {
         panic!("unimplemened")
     }
     fn raw(&self) -> *mut raw::git_describe_options {
@@ -175,15 +178,14 @@ impl Binding for DescribeOptions {
 
 #[cfg(test)]
 mod tests {
-    use DescribeOptions;
+    use crate::DescribeOptions;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let head = t!(repo.head()).target().unwrap();
 
-        let d = t!(repo.describe(DescribeOptions::new()
-                                        .show_commit_oid_as_fallback(true)));
+        let d = t!(repo.describe(DescribeOptions::new().show_commit_oid_as_fallback(true)));
         let id = head.to_string();
         assert_eq!(t!(d.format(None)), &id[..7]);
 

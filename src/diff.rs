@@ -1,3 +1,4 @@
+use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::CString;
 use std::marker;
 use std::mem;
@@ -5,11 +6,10 @@ use std::ops::Range;
 use std::path::Path;
 use std::ptr;
 use std::slice;
-use libc::{c_char, size_t, c_void, c_int};
 
-use {raw, panic, Buf, Delta, Oid, Repository, Error, DiffFormat};
-use {DiffStatsFormat, IntoCString};
-use util::{self, Binding};
+use crate::util::{self, Binding};
+use crate::{panic, raw, Buf, Delta, DiffFormat, Error, Oid, Repository};
+use crate::{DiffStatsFormat, IntoCString};
 
 /// The diff object that contains all individual file deltas.
 ///
@@ -102,12 +102,12 @@ pub enum DiffBinaryKind {
     Delta,
 }
 
-type PrintCb<'a> = dyn FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+type PrintCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
-pub type FileCb<'a> = dyn FnMut(DiffDelta, f32) -> bool + 'a;
-pub type BinaryCb<'a> = dyn FnMut(DiffDelta, DiffBinary) -> bool + 'a;
-pub type HunkCb<'a> = dyn FnMut(DiffDelta, DiffHunk) -> bool + 'a;
-pub type LineCb<'a> = dyn FnMut(DiffDelta, Option<DiffHunk>, DiffLine) -> bool + 'a;
+pub type FileCb<'a> = dyn FnMut(DiffDelta<'_>, f32) -> bool + 'a;
+pub type BinaryCb<'a> = dyn FnMut(DiffDelta<'_>, DiffBinary<'_>) -> bool + 'a;
+pub type HunkCb<'a> = dyn FnMut(DiffDelta<'_>, DiffHunk<'_>) -> bool + 'a;
+pub type LineCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
 struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
     file: &'a mut FileCb<'b>,
@@ -126,18 +126,23 @@ impl<'repo> Diff<'repo> {
     /// is from the "from" list (with the exception that if the item has a
     /// pending DELETE in the middle, then it will show as deleted).
     pub fn merge(&mut self, from: &Diff<'repo>) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_diff_merge(self.raw, &*from.raw)); }
+        unsafe {
+            try_call!(raw::git_diff_merge(self.raw, &*from.raw));
+        }
         Ok(())
     }
 
     /// Returns an iterator over the deltas in this diff.
-    pub fn deltas(&self) -> Deltas {
+    pub fn deltas(&self) -> Deltas<'_> {
         let num_deltas = unsafe { raw::git_diff_num_deltas(&*self.raw) };
-        Deltas { range: 0..(num_deltas as usize), diff: self }
+        Deltas {
+            range: 0..(num_deltas as usize),
+            diff: self,
+        }
     }
 
     /// Return the diff delta for an entry in the diff list.
-    pub fn get_delta(&self, i: usize) -> Option<DiffDelta> {
+    pub fn get_delta(&self, i: usize) -> Option<DiffDelta<'_>> {
         unsafe {
             let ptr = raw::git_diff_get_delta(&*self.raw, i as size_t);
             Binding::from_raw_opt(ptr as *mut _)
@@ -154,14 +159,18 @@ impl<'repo> Diff<'repo> {
     /// Returning `false` from the callback will terminate the iteration and
     /// return an error from this function.
     pub fn print<F>(&self, format: DiffFormat, mut cb: F) -> Result<(), Error>
-                    where F: FnMut(DiffDelta,
-                                   Option<DiffHunk>,
-                                   DiffLine) -> bool {
-        let mut cb: &mut PrintCb = &mut cb;
+    where
+        F: FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool,
+    {
+        let mut cb: &mut PrintCb<'_> = &mut cb;
         let ptr = &mut cb as *mut _;
         unsafe {
-            try_call!(raw::git_diff_print(self.raw, format, print_cb,
-                                          ptr as *mut _));
+            try_call!(raw::git_diff_print(
+                self.raw,
+                format,
+                print_cb,
+                ptr as *mut _
+            ));
             Ok(())
         }
     }
@@ -170,11 +179,13 @@ impl<'repo> Diff<'repo> {
     ///
     /// Returning `false` from any callback will terminate the iteration and
     /// return an error from this function.
-    pub fn foreach(&self,
-                   file_cb: &mut FileCb,
-                   binary_cb: Option<&mut BinaryCb>,
-                   hunk_cb: Option<&mut HunkCb>,
-                   line_cb: Option<&mut LineCb>) -> Result<(), Error> {
+    pub fn foreach(
+        &self,
+        file_cb: &mut FileCb<'_>,
+        binary_cb: Option<&mut BinaryCb<'_>>,
+        hunk_cb: Option<&mut HunkCb<'_>>,
+        line_cb: Option<&mut LineCb<'_>>,
+    ) -> Result<(), Error> {
         let mut cbs = ForeachCallbacks {
             file: file_cb,
             binary: binary_cb,
@@ -198,9 +209,14 @@ impl<'repo> Diff<'repo> {
             } else {
                 None
             };
-            try_call!(raw::git_diff_foreach(self.raw, file_cb_c, binary_cb_c,
-                                            hunk_cb_c, line_cb_c,
-                                            ptr as *mut _));
+            try_call!(raw::git_diff_foreach(
+                self.raw,
+                file_cb_c,
+                binary_cb_c,
+                hunk_cb_c,
+                line_cb_c,
+                ptr as *mut _
+            ));
             Ok(())
         }
     }
@@ -220,113 +236,145 @@ impl<'repo> Diff<'repo> {
     /// renames or copies with new entries reflecting those changes. This also
     /// will, if requested, break modified files into add/remove pairs if the
     /// amount of change is above a threshold.
-    pub fn find_similar(&mut self, opts: Option<&mut DiffFindOptions>)
-                        -> Result<(), Error> {
+    pub fn find_similar(&mut self, opts: Option<&mut DiffFindOptions>) -> Result<(), Error> {
         let opts = opts.map(|opts| &opts.raw);
-        unsafe { try_call!(raw::git_diff_find_similar(self.raw, opts)); }
+        unsafe {
+            try_call!(raw::git_diff_find_similar(self.raw, opts));
+        }
         Ok(())
     }
 
     // TODO: num_deltas_of_type, format_email, find_similar
 }
 
-pub extern fn print_cb(delta: *const raw::git_diff_delta,
-                   hunk: *const raw::git_diff_hunk,
-                   line: *const raw::git_diff_line,
-                   data: *mut c_void) -> c_int {
+pub extern "C" fn print_cb(
+    delta: *const raw::git_diff_delta,
+    hunk: *const raw::git_diff_hunk,
+    line: *const raw::git_diff_line,
+    data: *mut c_void,
+) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw_opt(hunk);
         let line = Binding::from_raw(line);
 
         let r = panic::wrap(|| {
-            let data = data as *mut &mut PrintCb;
+            let data = data as *mut &mut PrintCb<'_>;
             (*data)(delta, hunk, line)
         });
-        if r == Some(true) {0} else {-1}
+        if r == Some(true) {
+            0
+        } else {
+            -1
+        }
     }
 }
 
-extern fn file_cb_c(delta: *const raw::git_diff_delta,
-                    progress: f32,
-                    data: *mut c_void) -> c_int {
+extern "C" fn file_cb_c(
+    delta: *const raw::git_diff_delta,
+    progress: f32,
+    data: *mut c_void,
+) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             ((*cbs).file)(delta, progress)
         });
-        if r == Some(true) {0} else {-1}
+        if r == Some(true) {
+            0
+        } else {
+            -1
+        }
     }
 }
 
-extern fn binary_cb_c(delta: *const raw::git_diff_delta,
-                      binary: *const raw::git_diff_binary,
-                      data: *mut c_void) -> c_int {
+extern "C" fn binary_cb_c(
+    delta: *const raw::git_diff_delta,
+    binary: *const raw::git_diff_binary,
+    data: *mut c_void,
+) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let binary = Binding::from_raw(binary);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).binary {
                 Some(ref mut cb) => cb(delta, binary),
                 None => false,
             }
         });
-        if r == Some(true) {0} else {-1}
+        if r == Some(true) {
+            0
+        } else {
+            -1
+        }
     }
 }
 
-extern fn hunk_cb_c(delta: *const raw::git_diff_delta,
-                    hunk: *const raw::git_diff_hunk,
-                    data: *mut c_void) -> c_int {
+extern "C" fn hunk_cb_c(
+    delta: *const raw::git_diff_delta,
+    hunk: *const raw::git_diff_hunk,
+    data: *mut c_void,
+) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw(hunk);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).hunk {
                 Some(ref mut cb) => cb(delta, hunk),
                 None => false,
             }
         });
-        if r == Some(true) {0} else {-1}
+        if r == Some(true) {
+            0
+        } else {
+            -1
+        }
     }
 }
 
-extern fn line_cb_c(delta: *const raw::git_diff_delta,
-                    hunk: *const raw::git_diff_hunk,
-                    line: *const raw::git_diff_line,
-                    data: *mut c_void) -> c_int {
+extern "C" fn line_cb_c(
+    delta: *const raw::git_diff_delta,
+    hunk: *const raw::git_diff_hunk,
+    line: *const raw::git_diff_line,
+    data: *mut c_void,
+) -> c_int {
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw_opt(hunk);
         let line = Binding::from_raw(line);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks;
+            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).line {
                 Some(ref mut cb) => cb(delta, hunk, line),
                 None => false,
             }
         });
-        if r == Some(true) {0} else {-1}
+        if r == Some(true) {
+            0
+        } else {
+            -1
+        }
     }
 }
-
 
 impl<'repo> Binding for Diff<'repo> {
     type Raw = *mut raw::git_diff;
     unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff<'repo> {
         Diff {
-          raw: raw,
-          _marker: marker::PhantomData,
+            raw: raw,
+            _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_diff { self.raw }
+    fn raw(&self) -> *mut raw::git_diff {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Diff<'repo> {
@@ -391,7 +439,9 @@ impl<'a> Binding for DiffDelta<'a> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_diff_delta { self.raw }
+    fn raw(&self) -> *mut raw::git_diff_delta {
+        self.raw
+    }
 }
 
 impl<'a> DiffFile<'a> {
@@ -407,7 +457,7 @@ impl<'a> DiffFile<'a> {
     /// directory of the repository.
     pub fn path_bytes(&self) -> Option<&'a [u8]> {
         static FOO: () = ();
-        unsafe { ::opt_bytes(&FOO, (*self.raw).path) }
+        unsafe { crate::opt_bytes(&FOO, (*self.raw).path) }
     }
 
     /// Returns the path of the entry relative to the working directory of the
@@ -417,7 +467,9 @@ impl<'a> DiffFile<'a> {
     }
 
     /// Returns the size of this entry, in bytes
-    pub fn size(&self) -> u64 { unsafe { (*self.raw).size as u64 } }
+    pub fn size(&self) -> u64 {
+        unsafe { (*self.raw).size as u64 }
+    }
 
     // TODO: expose flags/mode
 }
@@ -430,7 +482,9 @@ impl<'a> Binding for DiffFile<'a> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *const raw::git_diff_file { self.raw }
+    fn raw(&self) -> *const raw::git_diff_file {
+        self.raw
+    }
 }
 
 impl Default for DiffOptions {
@@ -452,9 +506,7 @@ impl DiffOptions {
             old_prefix: None,
             new_prefix: None,
         };
-        assert_eq!(unsafe {
-            raw::git_diff_init_options(&mut opts.raw, 1)
-        }, 0);
+        assert_eq!(unsafe { raw::git_diff_init_options(&mut opts.raw, 1) }, 0);
         opts
     }
 
@@ -549,8 +601,7 @@ impl DiffOptions {
     ///
     /// This flag turns off that scan and immediately labels an untracked
     /// directory as untracked (changing the behavior to not match core git).
-    pub fn enable_fast_untracked_dirs(&mut self, enable: bool)
-                                      -> &mut DiffOptions {
+    pub fn enable_fast_untracked_dirs(&mut self, enable: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS, enable)
     }
 
@@ -568,8 +619,7 @@ impl DiffOptions {
     }
 
     /// Include unreadable files in the diff
-    pub fn include_unreadable_as_untracked(&mut self, include: bool)
-                                           -> &mut DiffOptions {
+    pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
 
@@ -690,8 +740,7 @@ impl DiffOptions {
     }
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
-    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
-                                       -> &mut DiffOptions {
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut DiffOptions {
         let s = pathspec.into_c_string().unwrap();
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
@@ -703,10 +752,16 @@ impl DiffOptions {
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_options {
-        self.raw.old_prefix = self.old_prefix.as_ref().map(|s| s.as_ptr())
-                                  .unwrap_or(ptr::null());
-        self.raw.new_prefix = self.new_prefix.as_ref().map(|s| s.as_ptr())
-                                  .unwrap_or(ptr::null());
+        self.raw.old_prefix = self
+            .old_prefix
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
+        self.raw.new_prefix = self
+            .new_prefix
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
         self.raw.pathspec.count = self.pathspec_ptrs.len() as size_t;
         self.raw.pathspec.strings = self.pathspec_ptrs.as_ptr() as *mut _;
         &self.raw as *const _
@@ -720,7 +775,9 @@ impl<'diff> Iterator for Deltas<'diff> {
     fn next(&mut self) -> Option<DiffDelta<'diff>> {
         self.range.next().and_then(|i| self.diff.get_delta(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'diff> DoubleEndedIterator for Deltas<'diff> {
     fn next_back(&mut self) -> Option<DiffDelta<'diff>> {
@@ -759,8 +816,10 @@ impl<'a> DiffLine<'a> {
     /// Content of this line as bytes.
     pub fn content(&self) -> &[u8] {
         unsafe {
-            slice::from_raw_parts((*self.raw).content as *const u8,
-                                  (*self.raw).content_len as usize)
+            slice::from_raw_parts(
+                (*self.raw).content as *const u8,
+                (*self.raw).content_len as usize,
+            )
         }
     }
 
@@ -799,7 +858,9 @@ impl<'a> Binding for DiffLine<'a> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *const raw::git_diff_line { self.raw }
+    fn raw(&self) -> *const raw::git_diff_line {
+        self.raw
+    }
 }
 
 impl<'a> DiffHunk<'a> {
@@ -826,8 +887,10 @@ impl<'a> DiffHunk<'a> {
     /// Header text
     pub fn header(&self) -> &[u8] {
         unsafe {
-            slice::from_raw_parts((*self.raw).header.as_ptr() as *const u8,
-                                  (*self.raw).header_len as usize)
+            slice::from_raw_parts(
+                (*self.raw).header.as_ptr() as *const u8,
+                (*self.raw).header_len as usize,
+            )
         }
     }
 }
@@ -840,7 +903,9 @@ impl<'a> Binding for DiffHunk<'a> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *const raw::git_diff_hunk { self.raw }
+    fn raw(&self) -> *const raw::git_diff_hunk {
+        self.raw
+    }
 }
 
 impl DiffStats {
@@ -860,13 +925,15 @@ impl DiffStats {
     }
 
     /// Print diff statistics to a Buf
-    pub fn to_buf(&self, format: DiffStatsFormat, width: usize)
-                  -> Result<Buf, Error> {
+    pub fn to_buf(&self, format: DiffStatsFormat, width: usize) -> Result<Buf, Error> {
         let buf = Buf::new();
         unsafe {
-            try_call!(raw::git_diff_stats_to_buf(buf.raw(), self.raw,
-                                                 format.bits(),
-                                                 width as size_t));
+            try_call!(raw::git_diff_stats_to_buf(
+                buf.raw(),
+                self.raw,
+                format.bits(),
+                width as size_t
+            ));
         }
         Ok(buf)
     }
@@ -878,7 +945,9 @@ impl Binding for DiffStats {
     unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
         DiffStats { raw: raw }
     }
-    fn raw(&self) -> *mut raw::git_diff_stats { self.raw }
+    fn raw(&self) -> *mut raw::git_diff_stats {
+        self.raw
+    }
 }
 
 impl Drop for DiffStats {
@@ -917,7 +986,9 @@ impl<'a> Binding for DiffBinary<'a> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *const raw::git_diff_binary { self.raw }
+    fn raw(&self) -> *const raw::git_diff_binary {
+        self.raw
+    }
 }
 
 impl<'a> DiffBinaryFile<'a> {
@@ -929,8 +1000,7 @@ impl<'a> DiffBinaryFile<'a> {
     /// The binary data, deflated
     pub fn data(&self) -> &[u8] {
         unsafe {
-            slice::from_raw_parts((*self.raw).data as *const u8,
-                                  (*self.raw).datalen as usize)
+            slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).datalen as usize)
         }
     }
 
@@ -938,7 +1008,6 @@ impl<'a> DiffBinaryFile<'a> {
     pub fn inflated_len(&self) -> usize {
         unsafe { (*self.raw).inflatedlen as usize }
     }
-
 }
 
 impl<'a> Binding for DiffBinaryFile<'a> {
@@ -949,7 +1018,9 @@ impl<'a> Binding for DiffBinaryFile<'a> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *const raw::git_diff_binary_file { self.raw }
+    fn raw(&self) -> *const raw::git_diff_binary_file {
+        self.raw
+    }
 }
 
 impl Binding for DiffBinaryKind {
@@ -986,9 +1057,10 @@ impl DiffFindOptions {
         let mut opts = DiffFindOptions {
             raw: unsafe { mem::zeroed() },
         };
-        assert_eq!(unsafe {
-            raw::git_diff_find_init_options(&mut opts.raw, 1)
-        }, 0);
+        assert_eq!(
+            unsafe { raw::git_diff_find_init_options(&mut opts.raw, 1) },
+            0
+        );
         opts
     }
 
@@ -1027,8 +1099,7 @@ impl DiffFindOptions {
     ///
     /// For this to work correctly, use `include_unmodified` when the initial
     /// diff is being generated.
-    pub fn copies_from_unmodified(&mut self, find: bool)
-                                  -> &mut DiffFindOptions {
+    pub fn copies_from_unmodified(&mut self, find: bool) -> &mut DiffFindOptions {
         self.flag(raw::GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED, find)
     }
 
@@ -1061,8 +1132,7 @@ impl DiffFindOptions {
     }
 
     /// Measure similarity ignoring leading whitespace (default)
-    pub fn ignore_leading_whitespace(&mut self, ignore: bool)
-                                     -> &mut DiffFindOptions {
+    pub fn ignore_leading_whitespace(&mut self, ignore: bool) -> &mut DiffFindOptions {
         self.flag(raw::GIT_DIFF_FIND_IGNORE_LEADING_WHITESPACE, ignore)
     }
 
@@ -1091,8 +1161,7 @@ impl DiffFindOptions {
     /// If you add this flag in and the split pair is not used for an actual
     /// rename or copy, then the modified record will be restored to a regular
     /// modified record instead of being split.
-    pub fn break_rewrites_for_renames_only(&mut self, b: bool)
-                                           -> &mut DiffFindOptions {
+    pub fn break_rewrites_for_renames_only(&mut self, b: bool) -> &mut DiffFindOptions {
         self.flag(raw::GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY, b)
     }
 
@@ -1113,8 +1182,7 @@ impl DiffFindOptions {
     }
 
     /// Similarity of modified to be glegible rename source (default 50)
-    pub fn rename_from_rewrite_threshold(&mut self, thresh: u16)
-                                         -> &mut DiffFindOptions {
+    pub fn rename_from_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
         self.raw.rename_from_rewrite_threshold = thresh;
         self
     }
@@ -1126,8 +1194,7 @@ impl DiffFindOptions {
     }
 
     /// Similarity to split modify into delete/add pair (default 60)
-    pub fn break_rewrite_threshold(&mut self, thresh: u16)
-                                   -> &mut DiffFindOptions {
+    pub fn break_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
         self.raw.break_rewrite_threshold = thresh;
         self
     }
@@ -1146,15 +1213,15 @@ impl DiffFindOptions {
 
 #[cfg(test)]
 mod tests {
-    use DiffOptions;
-    use std::fs::File;
-    use std::path::Path;
+    use crate::DiffOptions;
     use std::borrow::Borrow;
+    use std::fs::File;
     use std::io::Write;
+    use std::path::Path;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let diff = repo.diff_tree_to_workdir(None, None).unwrap();
         assert_eq!(diff.deltas().len(), 0);
         let stats = diff.stats().unwrap();
@@ -1165,29 +1232,41 @@ mod tests {
 
     #[test]
     fn foreach_smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let diff = t!(repo.diff_tree_to_workdir(None, None));
         let mut count = 0;
-        t!(diff.foreach(&mut |_file, _progress| { count = count + 1; true },
-                        None, None, None));
+        t!(diff.foreach(
+            &mut |_file, _progress| {
+                count = count + 1;
+                true
+            },
+            None,
+            None,
+            None
+        ));
         assert_eq!(count, 0);
     }
 
     #[test]
     fn foreach_file_only() {
         let path = Path::new("foo");
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
         let mut opts = DiffOptions::new();
         opts.include_untracked(true);
         let diff = t!(repo.diff_tree_to_workdir(None, Some(&mut opts)));
         let mut count = 0;
         let mut result = None;
-        t!(diff.foreach(&mut |file, _progress| {
-            count = count + 1;
-            result = file.new_file().path().map(ToOwned::to_owned);
-            true
-        }, None, None, None));
+        t!(diff.foreach(
+            &mut |file, _progress| {
+                count = count + 1;
+                result = file.new_file().path().map(ToOwned::to_owned);
+                true
+            },
+            None,
+            None,
+            None
+        ));
         assert_eq!(result.as_ref().map(Borrow::borrow), Some(path));
         assert_eq!(count, 1);
     }
@@ -1195,14 +1274,13 @@ mod tests {
     #[test]
     fn foreach_file_and_hunk() {
         let path = Path::new("foo");
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
         let mut index = t!(repo.index());
         t!(index.add_path(path));
         let mut opts = DiffOptions::new();
         opts.include_untracked(true);
-        let diff = t!(repo.diff_tree_to_index(None, Some(&index),
-                                              Some(&mut opts)));
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(&mut opts)));
         let mut new_lines = 0;
         t!(diff.foreach(
             &mut |_file, _progress| { true },
@@ -1211,7 +1289,8 @@ mod tests {
                 new_lines = hunk.new_lines();
                 true
             }),
-            None));
+            None
+        ));
         assert_eq!(new_lines, 1);
     }
 
@@ -1220,11 +1299,10 @@ mod tests {
         let fib = vec![0, 1, 1, 2, 3, 5, 8];
         // Verified with a node implementation of deflate, might be worth
         // adding a deflate lib to do this inline here.
-        let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0,
-                                0, 53, 0, 21];
+        let deflated_fib = vec![120, 156, 99, 96, 100, 100, 98, 102, 229, 0, 0, 0, 53, 0, 21];
         let foo_path = Path::new("foo");
         let bin_path = Path::new("bin");
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
         t!(t!(File::create(&td.path().join(bin_path))).write_all(&fib));
         let mut index = t!(repo.index());
@@ -1232,8 +1310,7 @@ mod tests {
         t!(index.add_path(bin_path));
         let mut opts = DiffOptions::new();
         opts.include_untracked(true).show_binary(true);
-        let diff = t!(repo.diff_tree_to_index(None, Some(&index),
-                                              Some(&mut opts)));
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(&mut opts)));
         let mut bin_content = None;
         let mut new_lines = 0;
         let mut line_content = None;
@@ -1250,7 +1327,8 @@ mod tests {
             Some(&mut |_file, _hunk, line| {
                 line_content = String::from_utf8(line.content().into()).ok();
                 true
-            })));
+            })
+        ));
         assert_eq!(bin_content, Some(deflated_fib));
         assert_eq!(new_lines, 1);
         assert_eq!(line_content, Some("bar\n".to_string()));

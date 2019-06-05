@@ -1,18 +1,18 @@
-use std::fmt;
-use std::cmp::Ordering;
-use std::hash::{Hasher, Hash};
-use std::str;
-use std::path::Path;
 use libc;
+use std::cmp::Ordering;
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::path::Path;
+use std::str;
 
-use {raw, Error, ObjectType, IntoCString};
+use crate::{raw, Error, IntoCString, ObjectType};
 
-use util::{c_cmp_to_ordering, Binding};
+use crate::util::{c_cmp_to_ordering, Binding};
 
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
 pub struct Oid {
-    raw: raw::git_oid
+    raw: raw::git_oid,
 }
 
 impl Oid {
@@ -23,13 +23,16 @@ impl Oid {
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
-        ::init();
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        crate::init();
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
-            try_call!(raw::git_oid_fromstrn(&mut raw,
-                                            s.as_bytes().as_ptr()
-                                                as *const libc::c_char,
-                                            s.len() as libc::size_t));
+            try_call!(raw::git_oid_fromstrn(
+                &mut raw,
+                s.as_bytes().as_ptr() as *const libc::c_char,
+                s.len() as libc::size_t
+            ));
         }
         Ok(Oid { raw: raw })
     }
@@ -38,8 +41,10 @@ impl Oid {
     ///
     /// If the array given is not 20 bytes in length, an error is returned.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
-        ::init();
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        crate::init();
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         if bytes.len() != raw::GIT_OID_RAWSZ {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
@@ -50,7 +55,9 @@ impl Oid {
 
     /// Creates an all zero Oid structure.
     pub fn zero() -> Oid {
-        let out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let out = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         Oid { raw: out }
     }
 
@@ -58,15 +65,18 @@ impl Oid {
     /// an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
     pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
-        ::init();
+        crate::init();
 
-        let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut out = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
-            try_call!(raw::git_odb_hash(&mut out,
-                                        bytes.as_ptr()
-                                            as *const libc::c_void,
-                                        bytes.len(),
-                                        kind.raw()));
+            try_call!(raw::git_odb_hash(
+                &mut out,
+                bytes.as_ptr() as *const libc::c_void,
+                bytes.len(),
+                kind.raw()
+            ));
         }
 
         Ok(Oid { raw: out })
@@ -76,22 +86,24 @@ impl Oid {
     /// and returns an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
     pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
-        ::init();
+        crate::init();
 
-        let rpath = try!(path.as_ref().into_c_string());
+        let rpath = path.as_ref().into_c_string()?;
 
-        let mut out = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut out = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
-            try_call!(raw::git_odb_hashfile(&mut out,
-                                            rpath,
-                                            kind.raw()));
+            try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
         }
 
         Ok(Oid { raw: out })
     }
 
     /// View this OID as a byte-slice 20 bytes in length.
-    pub fn as_bytes(&self) -> &[u8] { &self.raw.id }
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.raw.id
+    }
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {
@@ -105,22 +117,27 @@ impl Binding for Oid {
     unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
         Oid { raw: *oid }
     }
-    fn raw(&self) -> *const raw::git_oid { &self.raw as *const _ }
+    fn raw(&self) -> *const raw::git_oid {
+        &self.raw as *const _
+    }
 }
 
 impl fmt::Debug for Oid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)
     }
 }
 
 impl fmt::Display for Oid {
     /// Hex-encode this Oid into a formatter.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
         unsafe {
-            raw::git_oid_tostr(dst.as_mut_ptr() as *mut libc::c_char,
-                               dst.len() as libc::size_t, &self.raw);
+            raw::git_oid_tostr(
+                dst.as_mut_ptr() as *mut libc::c_char,
+                dst.len() as libc::size_t,
+                &self.raw,
+            );
         }
         let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
         str::from_utf8(s).unwrap().fmt(f)
@@ -167,18 +184,20 @@ impl Hash for Oid {
 }
 
 impl AsRef<[u8]> for Oid {
-    fn as_ref(&self) -> &[u8] { self.as_bytes() }
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::prelude::*;
     use std::fs::File;
+    use std::io::prelude::*;
 
-    use tempdir::TempDir;
-    use {ObjectType};
     use super::Error;
     use super::Oid;
+    use crate::ObjectType;
+    use tempdir::TempDir;
 
     #[test]
     fn conversions() {
@@ -234,4 +253,3 @@ mod tests {
         assert!(Oid::hash_file(ObjectType::Blob, &path).is_ok());
     }
 }
-

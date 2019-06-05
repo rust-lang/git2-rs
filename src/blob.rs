@@ -1,10 +1,10 @@
+use std::io;
 use std::marker;
 use std::mem;
 use std::slice;
-use std::io;
 
-use {raw, Oid, Object, Error};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, Error, Object, Oid};
 
 /// A structure to represent a git [blob][1]
 ///
@@ -36,17 +36,13 @@ impl<'repo> Blob<'repo> {
 
     /// Casts this Blob to be usable as an `Object`
     pub fn as_object(&self) -> &Object<'repo> {
-        unsafe {
-            &*(self as *const _ as *const Object<'repo>)
-        }
+        unsafe { &*(self as *const _ as *const Object<'repo>) }
     }
 
     /// Consumes Blob to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
-        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object>());
-        unsafe {
-            mem::transmute(self)
-        }
+        assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
+        unsafe { mem::transmute(self) }
     }
 }
 
@@ -59,12 +55,14 @@ impl<'repo> Binding for Blob<'repo> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_blob { self.raw }
+    fn raw(&self) -> *mut raw::git_blob {
+        self.raw
+    }
 }
 
-impl<'repo> ::std::fmt::Debug for Blob<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-		f.debug_struct("Blob").field("id", &self.id()).finish()
+impl<'repo> std::fmt::Debug for Blob<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.debug_struct("Blob").field("id", &self.id()).finish()
     }
 }
 
@@ -92,7 +90,9 @@ impl<'repo> BlobWriter<'repo> {
     pub fn commit(mut self) -> Result<Oid, Error> {
         // After commit we already doesn't need cleanup on drop
         self.need_cleanup = false;
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
             try_call!(raw::git_blob_create_fromstream_commit(&mut raw, self.raw));
             Ok(Binding::from_raw(&raw as *const _))
@@ -110,7 +110,9 @@ impl<'repo> Binding for BlobWriter<'repo> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_writestream { self.raw }
+    fn raw(&self) -> *mut raw::git_writestream {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for BlobWriter<'repo> {
@@ -133,16 +135,18 @@ impl<'repo> io::Write for BlobWriter<'repo> {
             }
         }
     }
-    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::prelude::*;
+    use crate::Repository;
     use std::fs::File;
+    use std::io::prelude::*;
     use std::path::Path;
     use tempdir::TempDir;
-    use Repository;
 
     #[test]
     fn buffer() {
@@ -156,7 +160,11 @@ mod tests {
         assert!(blob.is_binary());
 
         repo.find_object(id, None).unwrap().as_blob().unwrap();
-        repo.find_object(id, None).unwrap().into_blob().ok().unwrap();
+        repo.find_object(id, None)
+            .unwrap()
+            .into_blob()
+            .ok()
+            .unwrap();
     }
 
     #[test]

@@ -14,18 +14,14 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
+use docopt::Docopt;
+use git2::{Diff, DiffOptions, Error, Object, ObjectType, Repository};
+use git2::{DiffFindOptions, DiffFormat};
+use serde_derive::Deserialize;
 use std::str;
 
-use docopt::Docopt;
-use git2::{Repository, Error, Object, ObjectType, DiffOptions, Diff};
-use git2::{DiffFindOptions, DiffFormat};
-
-#[derive(Deserialize)] #[allow(non_snake_case)]
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
 struct Args {
     arg_from_oid: Option<String>,
     arg_to_oid: Option<String>,
@@ -63,18 +59,22 @@ struct Args {
     flag_git_dir: Option<String>,
 }
 
-const RESET: &'static str = "\u{1b}[m";
-const BOLD: &'static str = "\u{1b}[1m";
-const RED: &'static str = "\u{1b}[31m";
-const GREEN: &'static str = "\u{1b}[32m";
-const CYAN: &'static str = "\u{1b}[36m";
+const RESET: &str = "\u{1b}[m";
+const BOLD: &str = "\u{1b}[1m";
+const RED: &str = "\u{1b}[31m";
+const GREEN: &str = "\u{1b}[32m";
+const CYAN: &str = "\u{1b}[36m";
 
 #[derive(PartialEq, Eq, Copy, Clone)]
-enum Cache { Normal, Only, None }
+enum Cache {
+    Normal,
+    Only,
+    None,
+}
 
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(path));
+    let repo = Repository::open(path)?;
 
     // Prepare our diff options based on the arguments given
     let mut opts = DiffOptions::new();
@@ -87,45 +87,53 @@ fn run(args: &Args) -> Result<(), Error> {
         .include_untracked(args.flag_untracked)
         .patience(args.flag_patience)
         .minimal(args.flag_minimal);
-    if let Some(amt) = args.flag_unified { opts.context_lines(amt); }
-    if let Some(amt) = args.flag_inter_hunk_context { opts.interhunk_lines(amt); }
-    if let Some(amt) = args.flag_abbrev { opts.id_abbrev(amt); }
-    if let Some(ref s) = args.flag_src_prefix { opts.old_prefix(&s); }
-    if let Some(ref s) = args.flag_dst_prefix { opts.new_prefix(&s); }
+    if let Some(amt) = args.flag_unified {
+        opts.context_lines(amt);
+    }
+    if let Some(amt) = args.flag_inter_hunk_context {
+        opts.interhunk_lines(amt);
+    }
+    if let Some(amt) = args.flag_abbrev {
+        opts.id_abbrev(amt);
+    }
+    if let Some(ref s) = args.flag_src_prefix {
+        opts.old_prefix(&s);
+    }
+    if let Some(ref s) = args.flag_dst_prefix {
+        opts.new_prefix(&s);
+    }
     if let Some("diff-index") = args.flag_format.as_ref().map(|s| &s[..]) {
         opts.id_abbrev(40);
     }
 
     // Prepare the diff to inspect
-    let t1 = try!(tree_to_treeish(&repo, args.arg_from_oid.as_ref()));
-    let t2 = try!(tree_to_treeish(&repo, args.arg_to_oid.as_ref()));
-    let head = try!(tree_to_treeish(&repo, Some(&"HEAD".to_string()))).unwrap();
+    let t1 = tree_to_treeish(&repo, args.arg_from_oid.as_ref())?;
+    let t2 = tree_to_treeish(&repo, args.arg_to_oid.as_ref())?;
+    let head = tree_to_treeish(&repo, Some(&"HEAD".to_string()))?.unwrap();
     let mut diff = match (t1, t2, args.cache()) {
         (Some(t1), Some(t2), _) => {
-            try!(repo.diff_tree_to_tree(t1.as_tree(), t2.as_tree(),
-                                        Some(&mut opts)))
+            repo.diff_tree_to_tree(t1.as_tree(), t2.as_tree(), Some(&mut opts))?
         }
         (t1, None, Cache::None) => {
             let t1 = t1.unwrap_or(head);
-            try!(repo.diff_tree_to_workdir(t1.as_tree(), Some(&mut opts)))
+            repo.diff_tree_to_workdir(t1.as_tree(), Some(&mut opts))?
         }
         (t1, None, Cache::Only) => {
             let t1 = t1.unwrap_or(head);
-            try!(repo.diff_tree_to_index(t1.as_tree(), None, Some(&mut opts)))
+            repo.diff_tree_to_index(t1.as_tree(), None, Some(&mut opts))?
         }
         (Some(t1), None, _) => {
-            try!(repo.diff_tree_to_workdir_with_index(t1.as_tree(),
-                                                      Some(&mut opts)))
+            repo.diff_tree_to_workdir_with_index(t1.as_tree(), Some(&mut opts))?
         }
-        (None, None, _) => {
-            try!(repo.diff_index_to_workdir(None, Some(&mut opts)))
-        }
+        (None, None, _) => repo.diff_index_to_workdir(None, Some(&mut opts))?,
         (None, Some(_), _) => unreachable!(),
     };
 
     // Apply rename and copy detection if requested
-    if args.flag_break_rewrites || args.flag_find_copies_harder ||
-       args.flag_find_renames.is_some() || args.flag_find_copies.is_some()
+    if args.flag_break_rewrites
+        || args.flag_find_copies_harder
+        || args.flag_find_renames.is_some()
+        || args.flag_find_copies.is_some()
     {
         let mut opts = DiffFindOptions::new();
         if let Some(t) = args.flag_find_renames {
@@ -138,19 +146,20 @@ fn run(args: &Args) -> Result<(), Error> {
         }
         opts.copies_from_unmodified(args.flag_find_copies_harder)
             .rewrites(args.flag_break_rewrites);
-        try!(diff.find_similar(Some(&mut opts)));
+        diff.find_similar(Some(&mut opts))?;
     }
 
     // Generate simple output
-    let stats = args.flag_stat | args.flag_numstat | args.flag_shortstat |
-                args.flag_summary;
+    let stats = args.flag_stat | args.flag_numstat | args.flag_shortstat | args.flag_summary;
     if stats {
-        try!(print_stats(&diff, args));
+        print_stats(&diff, args)?;
     }
     if args.flag_patch || !stats {
-        if args.color() { print!("{}", RESET); }
+        if args.color() {
+            print!("{}", RESET);
+        }
         let mut last_color = None;
-        try!(diff.print(args.diff_format(), |_delta, _hunk, line| {
+        diff.print(args.diff_format(), |_delta, _hunk, line| {
             if args.color() {
                 let next = match line.origin() {
                     '+' => Some(GREEN),
@@ -159,7 +168,7 @@ fn run(args: &Args) -> Result<(), Error> {
                     '<' => Some(RED),
                     'F' => Some(BOLD),
                     'H' => Some(CYAN),
-                    _ => None
+                    _ => None,
                 };
                 if args.color() && next != last_color {
                     if last_color == Some(BOLD) || next == Some(BOLD) {
@@ -176,15 +185,17 @@ fn run(args: &Args) -> Result<(), Error> {
             }
             print!("{}", str::from_utf8(line.content()).unwrap());
             true
-        }));
-        if args.color() { print!("{}", RESET); }
+        })?;
+        if args.color() {
+            print!("{}", RESET);
+        }
     }
 
     Ok(())
 }
 
 fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
-    let stats = try!(diff.stats());
+    let stats = diff.stats()?;
     let mut format = git2::DiffStatsFormat::NONE;
     if args.flag_stat {
         format |= git2::DiffStatsFormat::FULL;
@@ -198,32 +209,47 @@ fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
     if args.flag_summary {
         format |= git2::DiffStatsFormat::INCLUDE_SUMMARY;
     }
-    let buf = try!(stats.to_buf(format, 80));
+    let buf = stats.to_buf(format, 80)?;
     print!("{}", str::from_utf8(&*buf).unwrap());
     Ok(())
 }
 
-fn tree_to_treeish<'a>(repo: &'a Repository, arg: Option<&String>)
-                       -> Result<Option<Object<'a>>, Error> {
-    let arg = match arg { Some(s) => s, None => return Ok(None) };
-    let obj = try!(repo.revparse_single(arg));
-    let tree = try!(obj.peel(ObjectType::Tree));
+fn tree_to_treeish<'a>(
+    repo: &'a Repository,
+    arg: Option<&String>,
+) -> Result<Option<Object<'a>>, Error> {
+    let arg = match arg {
+        Some(s) => s,
+        None => return Ok(None),
+    };
+    let obj = repo.revparse_single(arg)?;
+    let tree = obj.peel(ObjectType::Tree)?;
     Ok(Some(tree))
 }
 
 impl Args {
     fn cache(&self) -> Cache {
-        if self.flag_cached {Cache::Only}
-        else if self.flag_nocached {Cache::None}
-        else {Cache::Normal}
+        if self.flag_cached {
+            Cache::Only
+        } else if self.flag_nocached {
+            Cache::None
+        } else {
+            Cache::Normal
+        }
     }
-    fn color(&self) -> bool { self.flag_color && !self.flag_no_color }
+    fn color(&self) -> bool {
+        self.flag_color && !self.flag_no_color
+    }
     fn diff_format(&self) -> DiffFormat {
-        if self.flag_patch {DiffFormat::Patch}
-        else if self.flag_name_only {DiffFormat::NameOnly}
-        else if self.flag_name_status {DiffFormat::NameStatus}
-        else if self.flag_raw {DiffFormat::Raw}
-        else {
+        if self.flag_patch {
+            DiffFormat::Patch
+        } else if self.flag_name_only {
+            DiffFormat::NameOnly
+        } else if self.flag_name_status {
+            DiffFormat::NameStatus
+        } else if self.flag_raw {
+            DiffFormat::Raw
+        } else {
             match self.flag_format.as_ref().map(|s| &s[..]) {
                 Some("name") => DiffFormat::NameOnly,
                 Some("name-status") => DiffFormat::NameStatus,
@@ -236,7 +262,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: diff [options] [<from-oid> [<to-oid>]]
 
 Options:
@@ -275,8 +301,9 @@ Options:
     -h, --help                  show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

@@ -3,8 +3,8 @@ use std::ptr;
 
 use libc::{c_int, c_void};
 
-use {panic, raw, tree, Error, Oid, Repository, TreeEntry};
-use util::{Binding, IntoCString};
+use crate::util::{Binding, IntoCString};
+use crate::{panic, raw, tree, Error, Oid, Repository, TreeEntry};
 
 /// Constructor for in-memory trees
 pub struct TreeBuilder<'repo> {
@@ -29,10 +29,11 @@ impl<'repo> TreeBuilder<'repo> {
     }
 
     /// Get en entry from the builder from its filename
-    pub fn get<P>(&self, filename: P) -> Result<Option<TreeEntry>, Error>
-        where P: IntoCString
+    pub fn get<P>(&self, filename: P) -> Result<Option<TreeEntry<'_>>, Error>
+    where
+        P: IntoCString,
     {
-        let filename = try!(filename.into_c_string());
+        let filename = filename.into_c_string()?;
         unsafe {
             let ret = raw::git_treebuilder_get(self.raw, filename.as_ptr());
             if ret.is_null() {
@@ -50,22 +51,31 @@ impl<'repo> TreeBuilder<'repo> {
     ///
     /// The mode given must be one of 0o040000, 0o100644, 0o100755, 0o120000 or
     /// 0o160000 currently.
-    pub fn insert<P: IntoCString>(&mut self, filename: P, oid: Oid,
-                                  filemode: i32) -> Result<TreeEntry, Error> {
-        let filename = try!(filename.into_c_string());
+    pub fn insert<P: IntoCString>(
+        &mut self,
+        filename: P,
+        oid: Oid,
+        filemode: i32,
+    ) -> Result<TreeEntry<'_>, Error> {
+        let filename = filename.into_c_string()?;
         let filemode = filemode as raw::git_filemode_t;
 
         let mut ret = ptr::null();
         unsafe {
-            try_call!(raw::git_treebuilder_insert(&mut ret, self.raw, filename,
-                                                  oid.raw(), filemode));
+            try_call!(raw::git_treebuilder_insert(
+                &mut ret,
+                self.raw,
+                filename,
+                oid.raw(),
+                filemode
+            ));
             Ok(tree::entry_from_raw_const(ret))
         }
     }
 
     /// Remove an entry from the builder by its filename
     pub fn remove<P: IntoCString>(&mut self, filename: P) -> Result<(), Error> {
-        let filename = try!(filename.into_c_string());
+        let filename = filename.into_c_string()?;
         unsafe {
             try_call!(raw::git_treebuilder_remove(self.raw, filename));
         }
@@ -77,9 +87,10 @@ impl<'repo> TreeBuilder<'repo> {
     /// Values for which the filter returns `true` will be kept.  Note
     /// that this behavior is different from the libgit2 C interface.
     pub fn filter<F>(&mut self, mut filter: F)
-        where F: FnMut(&TreeEntry) -> bool
+    where
+        F: FnMut(&TreeEntry<'_>) -> bool,
     {
-        let mut cb: &mut FilterCb = &mut filter;
+        let mut cb: &mut FilterCb<'_> = &mut filter;
         let ptr = &mut cb as *mut _;
         unsafe {
             raw::git_treebuilder_filter(self.raw, filter_cb, ptr as *mut _);
@@ -90,7 +101,9 @@ impl<'repo> TreeBuilder<'repo> {
     /// Write the contents of the TreeBuilder as a Tree object and
     /// return its Oid
     pub fn write(&self) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid { id: [0; raw::GIT_OID_RAWSZ] };
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
         unsafe {
             try_call!(raw::git_treebuilder_write(&mut raw, self.raw()));
             Ok(Binding::from_raw(&raw as *const _))
@@ -98,30 +111,38 @@ impl<'repo> TreeBuilder<'repo> {
     }
 }
 
-type FilterCb<'a> = dyn FnMut(&TreeEntry) -> bool + 'a;
+type FilterCb<'a> = dyn FnMut(&TreeEntry<'_>) -> bool + 'a;
 
-extern fn filter_cb(entry: *const raw::git_tree_entry,
-                    payload: *mut c_void) -> c_int {
+extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
     let ret = panic::wrap(|| unsafe {
         // There's no way to return early from git_treebuilder_filter.
         if panic::panicked() {
             true
         } else {
             let entry = tree::entry_from_raw_const(entry);
-            let payload = payload as *mut &mut FilterCb;
+            let payload = payload as *mut &mut FilterCb<'_>;
             (*payload)(&entry)
         }
     });
-    if ret == Some(false) {1} else {0}
+    if ret == Some(false) {
+        1
+    } else {
+        0
+    }
 }
 
 impl<'repo> Binding for TreeBuilder<'repo> {
     type Raw = *mut raw::git_treebuilder;
 
     unsafe fn from_raw(raw: *mut raw::git_treebuilder) -> TreeBuilder<'repo> {
-        TreeBuilder { raw: raw, _marker: marker::PhantomData }
+        TreeBuilder {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_treebuilder { self.raw }
+    fn raw(&self) -> *mut raw::git_treebuilder {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for TreeBuilder<'repo> {
@@ -132,11 +153,11 @@ impl<'repo> Drop for TreeBuilder<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use ObjectType;
+    use crate::ObjectType;
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let mut builder = repo.treebuilder(None).unwrap();
         assert_eq!(builder.len(), 0);
@@ -156,7 +177,7 @@ mod tests {
 
     #[test]
     fn write() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let mut builder = repo.treebuilder(None).unwrap();
         let data = repo.blob(b"data").unwrap();
@@ -175,13 +196,12 @@ mod tests {
 
     #[test]
     fn filter() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let mut builder = repo.treebuilder(None).unwrap();
         let blob = repo.blob(b"data").unwrap();
         let tree = {
-            let head = repo.head().unwrap()
-                .peel(ObjectType::Commit).unwrap();
+            let head = repo.head().unwrap().peel(ObjectType::Commit).unwrap();
             let head = head.as_commit().unwrap();
             head.tree_id()
         };

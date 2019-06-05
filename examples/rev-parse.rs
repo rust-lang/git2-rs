@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
 use git2::Repository;
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -30,9 +26,9 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), git2::Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(path));
+    let repo = Repository::open(path)?;
 
-    let revspec = try!(repo.revparse(&args.arg_spec));
+    let revspec = repo.revparse(&args.arg_spec)?;
 
     if revspec.mode().contains(git2::RevparseMode::SINGLE) {
         println!("{}", revspec.from().unwrap().id());
@@ -42,27 +38,28 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         println!("{}", to.id());
 
         if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
-            let base = try!(repo.merge_base(from.id(), to.id()));
+            let base = repo.merge_base(from.id(), to.id())?;
             println!("{}", base);
         }
 
         println!("^{}", from.id());
     } else {
-        return Err(git2::Error::from_str("invalid results from revparse"))
+        return Err(git2::Error::from_str("invalid results from revparse"));
     }
     Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: rev-parse [options] <spec>
 
 Options:
     --git-dir <dir>     directory of the git repository to check
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

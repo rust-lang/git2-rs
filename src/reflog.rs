@@ -1,10 +1,10 @@
-use std::ops::Range;
-use std::marker;
-use std::str;
 use libc::size_t;
+use std::marker;
+use std::ops::Range;
+use std::str;
 
-use {raw, signature, Oid, Error, Signature};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, signature, Error, Oid, Signature};
 
 /// A reference log of a git repository.
 pub struct Reflog {
@@ -25,12 +25,20 @@ pub struct ReflogIter<'reflog> {
 
 impl Reflog {
     /// Add a new entry to the in-memory reflog.
-    pub fn append(&mut self, new_oid: Oid, committer: &Signature,
-                  msg: Option<&str>) -> Result<(), Error> {
-        let msg = try!(::opt_cstr(msg));
+    pub fn append(
+        &mut self,
+        new_oid: Oid,
+        committer: &Signature<'_>,
+        msg: Option<&str>,
+    ) -> Result<(), Error> {
+        let msg = crate::opt_cstr(msg)?;
         unsafe {
-            try_call!(raw::git_reflog_append(self.raw, new_oid.raw(),
-                                             committer.raw(), msg));
+            try_call!(raw::git_reflog_append(
+                self.raw,
+                new_oid.raw(),
+                committer.raw(),
+                msg
+            ));
         }
         Ok(())
     }
@@ -41,11 +49,13 @@ impl Reflog {
     /// param value to `true`. When deleting entry n, member old_oid of entry
     /// n-1 (if any) will be updated with the value of member new_oid of entry
     /// n+1.
-    pub fn remove(&mut self, i: usize, rewrite_previous_entry: bool)
-                  -> Result<(), Error> {
+    pub fn remove(&mut self, i: usize, rewrite_previous_entry: bool) -> Result<(), Error> {
         unsafe {
-            try_call!(raw::git_reflog_drop(self.raw, i as size_t,
-                                           rewrite_previous_entry));
+            try_call!(raw::git_reflog_drop(
+                self.raw,
+                i as size_t,
+                rewrite_previous_entry
+            ));
         }
         Ok(())
     }
@@ -54,7 +64,7 @@ impl Reflog {
     ///
     /// Requesting the reflog entry with an index of 0 (zero) will return the
     /// most recently created entry.
-    pub fn get(&self, i: usize) -> Option<ReflogEntry> {
+    pub fn get(&self, i: usize) -> Option<ReflogEntry<'_>> {
         unsafe {
             let ptr = raw::git_reflog_entry_byindex(self.raw, i as size_t);
             Binding::from_raw_opt(ptr)
@@ -72,14 +82,19 @@ impl Reflog {
     }
 
     /// Get an iterator to all entries inside of this reflog
-    pub fn iter(&self) -> ReflogIter {
-        ReflogIter { range: 0..self.len(), reflog: self }
+    pub fn iter(&self) -> ReflogIter<'_> {
+        ReflogIter {
+            range: 0..self.len(),
+            reflog: self,
+        }
     }
 
     /// Write an existing in-memory reflog object back to disk using an atomic
     /// file lock.
     pub fn write(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_reflog_write(self.raw)); }
+        unsafe {
+            try_call!(raw::git_reflog_write(self.raw));
+        }
         Ok(())
     }
 }
@@ -90,7 +105,9 @@ impl Binding for Reflog {
     unsafe fn from_raw(raw: *mut raw::git_reflog) -> Reflog {
         Reflog { raw: raw }
     }
-    fn raw(&self) -> *mut raw::git_reflog { self.raw }
+    fn raw(&self) -> *mut raw::git_reflog {
+        self.raw
+    }
 }
 
 impl Drop for Reflog {
@@ -101,7 +118,7 @@ impl Drop for Reflog {
 
 impl<'reflog> ReflogEntry<'reflog> {
     /// Get the committer of this entry
-    pub fn committer(&self) -> Signature {
+    pub fn committer(&self) -> Signature<'_> {
         unsafe {
             let ptr = raw::git_reflog_entry_committer(self.raw);
             signature::from_raw_const(self, ptr)
@@ -125,9 +142,7 @@ impl<'reflog> ReflogEntry<'reflog> {
 
     /// Get the log message as a byte array.
     pub fn message_bytes(&self) -> Option<&[u8]> {
-        unsafe {
-            ::opt_bytes(self, raw::git_reflog_entry_message(self.raw))
-        }
+        unsafe { crate::opt_bytes(self, raw::git_reflog_entry_message(self.raw)) }
     }
 }
 
@@ -135,9 +150,14 @@ impl<'reflog> Binding for ReflogEntry<'reflog> {
     type Raw = *const raw::git_reflog_entry;
 
     unsafe fn from_raw(raw: *const raw::git_reflog_entry) -> ReflogEntry<'reflog> {
-        ReflogEntry { raw: raw, _marker: marker::PhantomData }
+        ReflogEntry {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *const raw::git_reflog_entry { self.raw }
+    fn raw(&self) -> *const raw::git_reflog_entry {
+        self.raw
+    }
 }
 
 impl<'reflog> Iterator for ReflogIter<'reflog> {
@@ -145,7 +165,9 @@ impl<'reflog> Iterator for ReflogIter<'reflog> {
     fn next(&mut self) -> Option<ReflogEntry<'reflog>> {
         self.range.next().and_then(|i| self.reflog.get(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'reflog> DoubleEndedIterator for ReflogIter<'reflog> {
     fn next_back(&mut self) -> Option<ReflogEntry<'reflog>> {
@@ -158,7 +180,7 @@ impl<'reflog> ExactSizeIterator for ReflogIter<'reflog> {}
 mod tests {
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut reflog = repo.reflog("HEAD").unwrap();
         assert_eq!(reflog.iter().len(), 1);
         reflog.write().unwrap();

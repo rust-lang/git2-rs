@@ -1,12 +1,12 @@
+use libc::size_t;
 use std::iter::IntoIterator;
 use std::marker;
 use std::ops::Range;
 use std::path::Path;
 use std::ptr;
-use libc::size_t;
 
-use {raw, Error, Diff, Tree, PathspecFlags, Index, Repository, DiffDelta, IntoCString};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, Diff, DiffDelta, Error, Index, IntoCString, PathspecFlags, Repository, Tree};
 
 /// Structure representing a compiled pathspec used for matching against various
 /// structures.
@@ -41,8 +41,11 @@ pub struct PathspecFailedEntries<'list> {
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
     pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
-                     where T: IntoCString, I: IntoIterator<Item=T> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(specs));
+    where
+        T: IntoCString,
+        I: IntoIterator<Item = T>,
+    {
+        let (_a, _b, arr) = crate::util::iter2cstrs(specs)?;
         unsafe {
             let mut ret = ptr::null_mut();
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
@@ -56,12 +59,19 @@ impl Pathspec {
     /// pass `PATHSPEC_FAILURES_ONLY` in the flags) and may also contain the
     /// list of pathspecs with no match if the `PATHSPEC_FIND_FAILURES` flag is
     /// specified.
-    pub fn match_diff(&self, diff: &Diff, flags: PathspecFlags)
-                      -> Result<PathspecMatchList, Error> {
+    pub fn match_diff(
+        &self,
+        diff: &Diff<'_>,
+        flags: PathspecFlags,
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_pathspec_match_diff(&mut ret, diff.raw(),
-                                                   flags.bits(), self.raw));
+            try_call!(raw::git_pathspec_match_diff(
+                &mut ret,
+                diff.raw(),
+                flags.bits(),
+                self.raw
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -72,12 +82,19 @@ impl Pathspec {
     /// pass `PATHSPEC_FAILURES_ONLY` in the flags) and may also contain the
     /// list of pathspecs with no match if the `PATHSPEC_FIND_FAILURES` flag is
     /// specified.
-    pub fn match_tree(&self, tree: &Tree, flags: PathspecFlags)
-                      -> Result<PathspecMatchList, Error> {
+    pub fn match_tree(
+        &self,
+        tree: &Tree<'_>,
+        flags: PathspecFlags,
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_pathspec_match_tree(&mut ret, tree.raw(),
-                                                   flags.bits(), self.raw));
+            try_call!(raw::git_pathspec_match_tree(
+                &mut ret,
+                tree.raw(),
+                flags.bits(),
+                self.raw
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -88,12 +105,19 @@ impl Pathspec {
     /// pass `PATHSPEC_FAILURES_ONLY` in the flags) and may also contain the
     /// list of pathspecs with no match if the `PATHSPEC_FIND_FAILURES` flag is
     /// specified.
-    pub fn match_index(&self, index: &Index, flags: PathspecFlags)
-                       -> Result<PathspecMatchList, Error> {
+    pub fn match_index(
+        &self,
+        index: &Index,
+        flags: PathspecFlags,
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_pathspec_match_index(&mut ret, index.raw(),
-                                                    flags.bits(), self.raw));
+            try_call!(raw::git_pathspec_match_index(
+                &mut ret,
+                index.raw(),
+                flags.bits(),
+                self.raw
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -110,12 +134,19 @@ impl Pathspec {
     /// pass `PATHSPEC_FAILURES_ONLY` in the flags) and may also contain the
     /// list of pathspecs with no match if the `PATHSPEC_FIND_FAILURES` flag is
     /// specified.
-    pub fn match_workdir(&self, repo: &Repository, flags: PathspecFlags)
-                         -> Result<PathspecMatchList, Error> {
+    pub fn match_workdir(
+        &self,
+        repo: &Repository,
+        flags: PathspecFlags,
+    ) -> Result<PathspecMatchList<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_pathspec_match_workdir(&mut ret, repo.raw(),
-                                                      flags.bits(), self.raw));
+            try_call!(raw::git_pathspec_match_workdir(
+                &mut ret,
+                repo.raw(),
+                flags.bits(),
+                self.raw
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -128,10 +159,7 @@ impl Pathspec {
     /// back on being case sensitive.
     pub fn matches_path(&self, path: &Path, flags: PathspecFlags) -> bool {
         let path = path.into_c_string().unwrap();
-        unsafe {
-            raw::git_pathspec_matches_path(&*self.raw, flags.bits(),
-                                           path.as_ptr()) == 1
-        }
+        unsafe { raw::git_pathspec_matches_path(&*self.raw, flags.bits(), path.as_ptr()) == 1 }
     }
 }
 
@@ -141,7 +169,9 @@ impl Binding for Pathspec {
     unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Pathspec {
         Pathspec { raw: raw }
     }
-    fn raw(&self) -> *mut raw::git_pathspec { self.raw }
+    fn raw(&self) -> *mut raw::git_pathspec {
+        self.raw
+    }
 }
 
 impl Drop for Pathspec {
@@ -160,10 +190,17 @@ impl<'ps> PathspecMatchList<'ps> {
     }
 
     /// Returns an iterator over the matching filenames in this list.
-    pub fn entries(&self) -> PathspecEntries {
+    pub fn entries(&self) -> PathspecEntries<'_> {
         let n = self.entrycount();
-        let n = if n > 0 && self.entry(0).is_none() {0} else {n};
-        PathspecEntries { range: 0..n, list: self }
+        let n = if n > 0 && self.entry(0).is_none() {
+            0
+        } else {
+            n
+        };
+        PathspecEntries {
+            range: 0..n,
+            list: self,
+        }
     }
 
     /// Get a matching filename by position.
@@ -173,42 +210,54 @@ impl<'ps> PathspecMatchList<'ps> {
     pub fn entry(&self, i: usize) -> Option<&[u8]> {
         unsafe {
             let ptr = raw::git_pathspec_match_list_entry(&*self.raw, i as size_t);
-            ::opt_bytes(self, ptr)
+            crate::opt_bytes(self, ptr)
         }
     }
 
     /// Returns an iterator over the matching diff entries in this list.
-    pub fn diff_entries(&self) -> PathspecDiffEntries {
+    pub fn diff_entries(&self) -> PathspecDiffEntries<'_> {
         let n = self.entrycount();
-        let n = if n > 0 && self.diff_entry(0).is_none() {0} else {n};
-        PathspecDiffEntries { range: 0..n, list: self }
+        let n = if n > 0 && self.diff_entry(0).is_none() {
+            0
+        } else {
+            n
+        };
+        PathspecDiffEntries {
+            range: 0..n,
+            list: self,
+        }
     }
 
     /// Get a matching diff delta by position.
     ///
     /// If the list was not generated from a diff, then the return value will
     /// always be `None`.
-    pub fn diff_entry(&self, i: usize) -> Option<DiffDelta> {
+    pub fn diff_entry(&self, i: usize) -> Option<DiffDelta<'_>> {
         unsafe {
-            let ptr = raw::git_pathspec_match_list_diff_entry(&*self.raw,
-                                                              i as size_t);
+            let ptr = raw::git_pathspec_match_list_diff_entry(&*self.raw, i as size_t);
             Binding::from_raw_opt(ptr as *mut _)
         }
     }
 
     /// Returns an iterator over the non-matching entries in this list.
-    pub fn failed_entries(&self) -> PathspecFailedEntries {
+    pub fn failed_entries(&self) -> PathspecFailedEntries<'_> {
         let n = self.failed_entrycount();
-        let n = if n > 0 && self.failed_entry(0).is_none() {0} else {n};
-        PathspecFailedEntries { range: 0..n, list: self }
+        let n = if n > 0 && self.failed_entry(0).is_none() {
+            0
+        } else {
+            n
+        };
+        PathspecFailedEntries {
+            range: 0..n,
+            list: self,
+        }
     }
 
     /// Get an original pathspec string that had no matches.
     pub fn failed_entry(&self, i: usize) -> Option<&[u8]> {
         unsafe {
-            let ptr = raw::git_pathspec_match_list_failed_entry(&*self.raw,
-                                                                i as size_t);
-            ::opt_bytes(self, ptr)
+            let ptr = raw::git_pathspec_match_list_failed_entry(&*self.raw, i as size_t);
+            crate::opt_bytes(self, ptr)
         }
     }
 }
@@ -216,11 +265,15 @@ impl<'ps> PathspecMatchList<'ps> {
 impl<'ps> Binding for PathspecMatchList<'ps> {
     type Raw = *mut raw::git_pathspec_match_list;
 
-    unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list)
-                       -> PathspecMatchList<'ps> {
-        PathspecMatchList { raw: raw, _marker: marker::PhantomData }
+    unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list) -> PathspecMatchList<'ps> {
+        PathspecMatchList {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_pathspec_match_list { self.raw }
+    fn raw(&self) -> *mut raw::git_pathspec_match_list {
+        self.raw
+    }
 }
 
 impl<'ps> Drop for PathspecMatchList<'ps> {
@@ -234,7 +287,9 @@ impl<'list> Iterator for PathspecEntries<'list> {
     fn next(&mut self) -> Option<&'list [u8]> {
         self.range.next().and_then(|i| self.list.entry(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'list> DoubleEndedIterator for PathspecEntries<'list> {
     fn next_back(&mut self) -> Option<&'list [u8]> {
@@ -248,7 +303,9 @@ impl<'list> Iterator for PathspecDiffEntries<'list> {
     fn next(&mut self) -> Option<DiffDelta<'list>> {
         self.range.next().and_then(|i| self.list.diff_entry(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'list> DoubleEndedIterator for PathspecDiffEntries<'list> {
     fn next_back(&mut self) -> Option<DiffDelta<'list>> {
@@ -262,19 +319,23 @@ impl<'list> Iterator for PathspecFailedEntries<'list> {
     fn next(&mut self) -> Option<&'list [u8]> {
         self.range.next().and_then(|i| self.list.failed_entry(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'list> DoubleEndedIterator for PathspecFailedEntries<'list> {
     fn next_back(&mut self) -> Option<&'list [u8]> {
-        self.range.next_back().and_then(|i| self.list.failed_entry(i))
+        self.range
+            .next_back()
+            .and_then(|i| self.list.failed_entry(i))
     }
 }
 impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 
 #[cfg(test)]
 mod tests {
-    use PathspecFlags;
     use super::Pathspec;
+    use crate::PathspecFlags;
     use std::fs::File;
     use std::path::Path;
 
@@ -286,7 +347,7 @@ mod tests {
         assert!(!ps.matches_path(Path::new("b"), PathspecFlags::DEFAULT));
         assert!(!ps.matches_path(Path::new("ab/c"), PathspecFlags::DEFAULT));
 
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         let list = ps.match_workdir(&repo, PathspecFlags::DEFAULT).unwrap();
         assert_eq!(list.entries().len(), 0);
         assert_eq!(list.diff_entries().len(), 0);
@@ -294,7 +355,9 @@ mod tests {
 
         File::create(&td.path().join("a")).unwrap();
 
-        let list = ps.match_workdir(&repo, ::PathspecFlags::FIND_FAILURES).unwrap();
+        let list = ps
+            .match_workdir(&repo, crate::PathspecFlags::FIND_FAILURES)
+            .unwrap();
         assert_eq!(list.entries().len(), 1);
         assert_eq!(list.entries().next(), Some("a".as_bytes()));
     }

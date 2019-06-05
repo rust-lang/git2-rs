@@ -1,13 +1,13 @@
 use std::marker;
 use std::mem;
-use std::ptr;
-use std::str;
 use std::os::raw::c_int;
 use std::path::Path;
+use std::ptr;
+use std::str;
 
-use {raw, Oid, Repository, Error, FetchOptions};
-use build::CheckoutBuilder;
-use util::{self, Binding};
+use crate::build::CheckoutBuilder;
+use crate::util::{self, Binding};
+use crate::{raw, Error, FetchOptions, Oid, Repository};
 
 /// A structure to represent a git [submodule][1]
 ///
@@ -30,9 +30,7 @@ impl<'repo> Submodule<'repo> {
     ///
     /// Returns `None` if the branch is not yet available.
     pub fn branch_bytes(&self) -> Option<&[u8]> {
-        unsafe {
-            ::opt_bytes(self, raw::git_submodule_branch(self.raw))
-        }
+        unsafe { crate::opt_bytes(self, raw::git_submodule_branch(self.raw)) }
     }
 
     /// Get the submodule's url.
@@ -55,42 +53,36 @@ impl<'repo> Submodule<'repo> {
     // TODO: delete this method and fix the signature of `url_bytes` on next
     // major version bump
     pub fn opt_url_bytes(&self) -> Option<&[u8]> {
-        unsafe {
-            ::opt_bytes(self, raw::git_submodule_url(self.raw))
-        }
+        unsafe { crate::opt_bytes(self, raw::git_submodule_url(self.raw)) }
     }
 
     /// Get the submodule's name.
     ///
     /// Returns `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()).ok() }
+    pub fn name(&self) -> Option<&str> {
+        str::from_utf8(self.name_bytes()).ok()
+    }
 
     /// Get the name for the submodule.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe {
-            ::opt_bytes(self, raw::git_submodule_name(self.raw)).unwrap()
-        }
+        unsafe { crate::opt_bytes(self, raw::git_submodule_name(self.raw)).unwrap() }
     }
 
     /// Get the path for the submodule.
     pub fn path(&self) -> &Path {
         util::bytes2path(unsafe {
-            ::opt_bytes(self, raw::git_submodule_path(self.raw)).unwrap()
+            crate::opt_bytes(self, raw::git_submodule_path(self.raw)).unwrap()
         })
     }
 
     /// Get the OID for the submodule in the current HEAD tree.
     pub fn head_id(&self) -> Option<Oid> {
-        unsafe {
-            Binding::from_raw_opt(raw::git_submodule_head_id(self.raw))
-        }
+        unsafe { Binding::from_raw_opt(raw::git_submodule_head_id(self.raw)) }
     }
 
     /// Get the OID for the submodule in the index.
     pub fn index_id(&self) -> Option<Oid> {
-        unsafe {
-            Binding::from_raw_opt(raw::git_submodule_index_id(self.raw))
-        }
+        unsafe { Binding::from_raw_opt(raw::git_submodule_index_id(self.raw)) }
     }
 
     /// Get the OID for the submodule in the current working directory.
@@ -99,9 +91,7 @@ impl<'repo> Submodule<'repo> {
     /// checked out submodule. If there are pending changes in the index or
     /// anything else, this won't notice that.
     pub fn workdir_id(&self) -> Option<Oid> {
-        unsafe {
-            Binding::from_raw_opt(raw::git_submodule_wd_id(self.raw))
-        }
+        unsafe { Binding::from_raw_opt(raw::git_submodule_wd_id(self.raw)) }
     }
 
     /// Copy submodule info into ".git/config" file.
@@ -153,7 +143,9 @@ impl<'repo> Submodule<'repo> {
     /// if you have altered the URL for the submodule (or it has been altered
     /// by a fetch of upstream changes) and you need to update your local repo.
     pub fn sync(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_submodule_sync(self.raw)); }
+        unsafe {
+            try_call!(raw::git_submodule_sync(self.raw));
+        }
         Ok(())
     }
 
@@ -176,7 +168,9 @@ impl<'repo> Submodule<'repo> {
     /// newly cloned submodule to the index to be ready to be committed (but
     /// doesn't actually do the commit).
     pub fn add_finalize(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_submodule_add_finalize(self.raw)); }
+        unsafe {
+            try_call!(raw::git_submodule_add_finalize(self.raw));
+        }
         Ok(())
     }
 
@@ -189,13 +183,18 @@ impl<'repo> Submodule<'repo> {
     ///
     /// `init` indicates if the submodule should be initialized first if it has
     /// not been initialized yet.
-    pub fn update(&mut self, init: bool,
-                  opts: Option<&mut SubmoduleUpdateOptions>)
-                  -> Result<(), Error> {
+    pub fn update(
+        &mut self,
+        init: bool,
+        opts: Option<&mut SubmoduleUpdateOptions<'_>>,
+    ) -> Result<(), Error> {
         unsafe {
             let mut raw_opts = opts.map(|o| o.raw());
-            try_call!(raw::git_submodule_update(self.raw, init as c_int,
-                raw_opts.as_mut().map_or(ptr::null_mut(), |o| o)));
+            try_call!(raw::git_submodule_update(
+                self.raw,
+                init as c_int,
+                raw_opts.as_mut().map_or(ptr::null_mut(), |o| o)
+            ));
         }
         Ok(())
     }
@@ -204,9 +203,14 @@ impl<'repo> Submodule<'repo> {
 impl<'repo> Binding for Submodule<'repo> {
     type Raw = *mut raw::git_submodule;
     unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
-        Submodule { raw: raw, _marker: marker::PhantomData }
+        Submodule {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_submodule { self.raw }
+    fn raw(&self) -> *mut raw::git_submodule {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Submodule<'repo> {
@@ -234,8 +238,8 @@ impl<'cb> SubmoduleUpdateOptions<'cb> {
 
     unsafe fn raw(&mut self) -> raw::git_submodule_update_options {
         let mut checkout_opts: raw::git_checkout_options = mem::zeroed();
-        let init_res = raw::git_checkout_init_options(&mut checkout_opts,
-            raw::GIT_CHECKOUT_OPTIONS_VERSION);
+        let init_res =
+            raw::git_checkout_init_options(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
         assert_eq!(0, init_res);
         self.checkout_builder.configure(&mut checkout_opts);
         let opts = raw::git_submodule_update_options {
@@ -275,25 +279,27 @@ impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use std::fs;
+    use std::path::Path;
     use tempdir::TempDir;
     use url::Url;
 
-    use Repository;
-    use SubmoduleUpdateOptions;
+    use crate::Repository;
+    use crate::SubmoduleUpdateOptions;
 
     #[test]
     fn smoke() {
         let td = TempDir::new("test").unwrap();
         let repo = Repository::init(td.path()).unwrap();
-        let mut s1 = repo.submodule("/path/to/nowhere",
-                                    Path::new("foo"), true).unwrap();
+        let mut s1 = repo
+            .submodule("/path/to/nowhere", Path::new("foo"), true)
+            .unwrap();
         s1.init(false).unwrap();
         s1.sync().unwrap();
 
-        let s2 = repo.submodule("/path/to/nowhere",
-                                Path::new("bar"), true).unwrap();
+        let s2 = repo
+            .submodule("/path/to/nowhere", Path::new("bar"), true)
+            .unwrap();
         drop((s1, s2));
 
         let mut submodules = repo.submodules().unwrap();
@@ -314,15 +320,15 @@ mod tests {
 
     #[test]
     fn add_a_submodule() {
-        let (_td, repo1) = ::test::repo_init();
-        let (td, repo2) = ::test::repo_init();
+        let (_td, repo1) = crate::test::repo_init();
+        let (td, repo2) = crate::test::repo_init();
 
         let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
-        let mut s = repo2.submodule(&url.to_string(), Path::new("bar"),
-                                    true).unwrap();
+        let mut s = repo2
+            .submodule(&url.to_string(), Path::new("bar"), true)
+            .unwrap();
         t!(fs::remove_dir_all(td.path().join("bar")));
-        t!(Repository::clone(&url.to_string(),
-                             td.path().join("bar")));
+        t!(Repository::clone(&url.to_string(), td.path().join("bar")));
         t!(s.add_to_index(false));
         t!(s.add_finalize());
     }
@@ -331,15 +337,15 @@ mod tests {
     fn update_submodule() {
         // -----------------------------------
         // Same as `add_a_submodule()`
-        let (_td, repo1) = ::test::repo_init();
-        let (td, repo2) = ::test::repo_init();
+        let (_td, repo1) = crate::test::repo_init();
+        let (td, repo2) = crate::test::repo_init();
 
         let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
-        let mut s = repo2.submodule(&url.to_string(), Path::new("bar"),
-                                    true).unwrap();
+        let mut s = repo2
+            .submodule(&url.to_string(), Path::new("bar"), true)
+            .unwrap();
         t!(fs::remove_dir_all(td.path().join("bar")));
-        t!(Repository::clone(&url.to_string(),
-                             td.path().join("bar")));
+        t!(Repository::clone(&url.to_string(), td.path().join("bar")));
         t!(s.add_to_index(false));
         t!(s.add_finalize());
         // -----------------------------------

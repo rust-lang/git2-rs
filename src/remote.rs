@@ -1,16 +1,16 @@
+use libc;
 use std::ffi::CString;
-use std::ops::Range;
 use std::marker;
 use std::mem;
+use std::ops::Range;
 use std::ptr;
 use std::slice;
 use std::str;
-use libc;
 
-use {raw, Direction, Error, Refspec, Oid, FetchPrune, ProxyOptions};
-use {RemoteCallbacks, Progress, Repository, AutotagOption};
-use string_array::StringArray;
-use util::Binding;
+use crate::string_array::StringArray;
+use crate::util::Binding;
+use crate::{raw, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
+use crate::{AutotagOption, Progress, RemoteCallbacks, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -53,22 +53,25 @@ pub struct PushOptions<'cb> {
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
-pub struct RemoteConnection<'repo, 'connection, 'cb> where 'repo: 'connection {
+pub struct RemoteConnection<'repo, 'connection, 'cb>
+where
+    'repo: 'connection,
+{
     _callbacks: Box<RemoteCallbacks<'cb>>,
     _proxy: ProxyOptions<'cb>,
     remote: &'connection mut Remote<'repo>,
 }
 
-pub fn remote_into_raw(remote: Remote) -> *mut raw::git_remote {
+pub fn remote_into_raw(remote: Remote<'_>) -> *mut raw::git_remote {
     let ret = remote.raw;
     mem::forget(remote);
-    return ret
+    return ret;
 }
 
 impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
-        ::init();
+        crate::init();
         let remote_name = CString::new(remote_name).unwrap();
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
     }
@@ -85,7 +88,7 @@ impl<'repo> Remote<'repo> {
     ///
     /// Returns `None` if this remote has not yet been named
     pub fn name_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_remote_name(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_remote_name(&*self.raw)) }
     }
 
     /// Get the remote's url.
@@ -97,7 +100,7 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's url as a byte array.
     pub fn url_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap() }
     }
 
     /// Get the remote's pushurl.
@@ -109,17 +112,20 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's pushurl as a byte array.
     pub fn pushurl_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_remote_pushurl(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_remote_pushurl(&*self.raw)) }
     }
 
     /// Open a connection to a remote.
     pub fn connect(&mut self, dir: Direction) -> Result<(), Error> {
         // TODO: can callbacks be exposed safely?
         unsafe {
-            try_call!(raw::git_remote_connect(self.raw, dir,
-                                              ptr::null(),
-                                              ptr::null(),
-                                              ptr::null()));
+            try_call!(raw::git_remote_connect(
+                self.raw,
+                dir,
+                ptr::null(),
+                ptr::null(),
+                ptr::null()
+            ));
         }
         Ok(())
     }
@@ -127,19 +133,22 @@ impl<'repo> Remote<'repo> {
     /// Open a connection to a remote with callbacks and proxy settings
     ///
     /// Returns a `RemoteConnection` that will disconnect once dropped
-    pub fn connect_auth<'connection, 'cb>(&'connection mut self,
-                                          dir: Direction,
-                                          cb: Option<RemoteCallbacks<'cb>>,
-                                          proxy_options: Option<ProxyOptions<'cb>>)
-                    -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
-
+    pub fn connect_auth<'connection, 'cb>(
+        &'connection mut self,
+        dir: Direction,
+        cb: Option<RemoteCallbacks<'cb>>,
+        proxy_options: Option<ProxyOptions<'cb>>,
+    ) -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
         let cb = Box::new(cb.unwrap_or_else(RemoteCallbacks::new));
         let proxy_options = proxy_options.unwrap_or_else(ProxyOptions::new);
         unsafe {
-            try_call!(raw::git_remote_connect(self.raw, dir,
-                                              &cb.raw(),
-                                              &proxy_options.raw(),
-                                              ptr::null()));
+            try_call!(raw::git_remote_connect(
+                self.raw,
+                dir,
+                &cb.raw(),
+                &proxy_options.raw(),
+                ptr::null()
+            ));
         }
 
         Ok(RemoteConnection {
@@ -169,9 +178,12 @@ impl<'repo> Remote<'repo> {
     ///
     /// The `specs` argument is a list of refspecs to use for this negotiation
     /// and download. Use an empty array to use the base refspecs.
-    pub fn download(&mut self, specs: &[&str], opts: Option<&mut FetchOptions>)
-                    -> Result<(), Error> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(specs.iter()));
+    pub fn download(
+        &mut self,
+        specs: &[&str],
+        opts: Option<&mut FetchOptions<'_>>,
+    ) -> Result<(), Error> {
+        let (_a, _b, arr) = crate::util::iter2cstrs(specs.iter())?;
         let raw = opts.map(|o| o.raw());
         unsafe {
             try_call!(raw::git_remote_download(self.raw, &arr, raw.as_ref()));
@@ -180,9 +192,12 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Get the number of refspecs for a remote
-    pub fn refspecs<'a>(&'a self) -> Refspecs<'a> {
+    pub fn refspecs(&self) -> Refspecs<'_> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
-        Refspecs { range: 0..cnt, remote: self }
+        Refspecs {
+            range: 0..cnt,
+            remote: self,
+        }
     }
 
     /// Get the `nth` refspec from this remote.
@@ -190,8 +205,7 @@ impl<'repo> Remote<'repo> {
     /// The `refspecs` iterator can be used to iterate over all refspecs.
     pub fn get_refspec(&self, i: usize) -> Option<Refspec<'repo>> {
         unsafe {
-            let ptr = raw::git_remote_get_refspec(&*self.raw,
-                                                  i as libc::size_t);
+            let ptr = raw::git_remote_get_refspec(&*self.raw, i as libc::size_t);
             Binding::from_raw_opt(ptr)
         }
     }
@@ -213,12 +227,14 @@ impl<'repo> Remote<'repo> {
     /// let repo = git2::Repository::discover("rust").unwrap();
     /// fetch_origin_master(repo).unwrap();
     /// ```
-    pub fn fetch(&mut self,
-                 refspecs: &[&str],
-                 opts: Option<&mut FetchOptions>,
-                 reflog_msg: Option<&str>) -> Result<(), Error> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
-        let msg = try!(::opt_cstr(reflog_msg));
+    pub fn fetch(
+        &mut self,
+        refspecs: &[&str],
+        opts: Option<&mut FetchOptions<'_>>,
+        reflog_msg: Option<&str>,
+    ) -> Result<(), Error> {
+        let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
+        let msg = crate::opt_cstr(reflog_msg)?;
         let raw = opts.map(|o| o.raw());
         unsafe {
             try_call!(raw::git_remote_fetch(self.raw, &arr, raw.as_ref(), msg));
@@ -227,17 +243,23 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Update the tips to the new state
-    pub fn update_tips(&mut self,
-                       callbacks: Option<&mut RemoteCallbacks>,
-                       update_fetchhead: bool,
-                       download_tags: AutotagOption,
-                       msg: Option<&str>) -> Result<(), Error> {
-        let msg = try!(::opt_cstr(msg));
+    pub fn update_tips(
+        &mut self,
+        callbacks: Option<&mut RemoteCallbacks<'_>>,
+        update_fetchhead: bool,
+        download_tags: AutotagOption,
+        msg: Option<&str>,
+    ) -> Result<(), Error> {
+        let msg = crate::opt_cstr(msg)?;
         let cbs = callbacks.map(|cb| cb.raw());
         unsafe {
-            try_call!(raw::git_remote_update_tips(self.raw, cbs.as_ref(),
-                                                  update_fetchhead,
-                                                  download_tags, msg));
+            try_call!(raw::git_remote_update_tips(
+                self.raw,
+                cbs.as_ref(),
+                update_fetchhead,
+                download_tags,
+                msg
+            ));
         }
         Ok(())
     }
@@ -250,10 +272,12 @@ impl<'repo> Remote<'repo> {
     /// Note that you'll likely want to use `RemoteCallbacks` and set
     /// `push_update_reference` to test whether all the references were pushed
     /// successfully.
-    pub fn push(&mut self,
-                refspecs: &[&str],
-                opts: Option<&mut PushOptions>) -> Result<(), Error> {
-        let (_a, _b, arr) = try!(::util::iter2cstrs(refspecs.iter()));
+    pub fn push(
+        &mut self,
+        refspecs: &[&str],
+        opts: Option<&mut PushOptions<'_>>,
+    ) -> Result<(), Error> {
+        let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
         let raw = opts.map(|o| o.raw());
         unsafe {
             try_call!(raw::git_remote_push(self.raw, &arr, raw.as_ref()));
@@ -262,10 +286,8 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Get the statistics structure that is filled in by the fetch operation.
-    pub fn stats(&self) -> Progress {
-        unsafe {
-            Binding::from_raw(raw::git_remote_stats(self.raw))
-        }
+    pub fn stats(&self) -> Progress<'_> {
+        unsafe { Binding::from_raw(raw::git_remote_stats(self.raw)) }
     }
 
     /// Get the remote repository's reference advertisement list.
@@ -276,16 +298,20 @@ impl<'repo> Remote<'repo> {
     /// The remote (or more exactly its transport) must have connected to the
     /// remote repository. This list is available as soon as the connection to
     /// the remote is initiated and it remains available after disconnecting.
-    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+    pub fn list(&self) -> Result<&[RemoteHead<'_>], Error> {
         let mut size = 0;
         let mut base = ptr::null_mut();
         unsafe {
             try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
-            assert_eq!(mem::size_of::<RemoteHead>(),
-                       mem::size_of::<*const raw::git_remote_head>());
+            assert_eq!(
+                mem::size_of::<RemoteHead<'_>>(),
+                mem::size_of::<*const raw::git_remote_head>()
+            );
             let slice = slice::from_raw_parts(base as *const _, size as usize);
-            Ok(mem::transmute::<&[*const raw::git_remote_head],
-                                &[RemoteHead]>(slice))
+            Ok(mem::transmute::<
+                &[*const raw::git_remote_head],
+                &[RemoteHead<'_>],
+            >(slice))
         }
     }
 
@@ -329,7 +355,9 @@ impl<'repo> Binding for Remote<'repo> {
             _marker: marker::PhantomData,
         }
     }
-    fn raw(&self) -> *mut raw::git_remote { self.raw }
+    fn raw(&self) -> *mut raw::git_remote {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Remote<'repo> {
@@ -343,11 +371,15 @@ impl<'repo> Iterator for Refspecs<'repo> {
     fn next(&mut self) -> Option<Refspec<'repo>> {
         self.range.next().and_then(|i| self.remote.get_refspec(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'repo> DoubleEndedIterator for Refspecs<'repo> {
     fn next_back(&mut self) -> Option<Refspec<'repo>> {
-        self.range.next_back().and_then(|i| self.remote.get_refspec(i))
+        self.range
+            .next_back()
+            .and_then(|i| self.remote.get_refspec(i))
     }
 }
 impl<'repo> ExactSizeIterator for Refspecs<'repo> {}
@@ -367,12 +399,12 @@ impl<'remote> RemoteHead<'remote> {
     }
 
     pub fn name(&self) -> &str {
-        let b = unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() };
+        let b = unsafe { crate::opt_bytes(self, (*self.raw).name).unwrap() };
         str::from_utf8(b).unwrap()
     }
 
     pub fn symref_target(&self) -> Option<&str> {
-        let b = unsafe { ::opt_bytes(self, (*self.raw).symref_target) };
+        let b = unsafe { crate::opt_bytes(self, (*self.raw).symref_target) };
         b.map(|b| str::from_utf8(b).unwrap())
     }
 }
@@ -440,13 +472,19 @@ impl<'cb> Binding for FetchOptions<'cb> {
     fn raw(&self) -> raw::git_fetch_options {
         raw::git_fetch_options {
             version: 1,
-            callbacks: self.callbacks.as_ref().map(|m| m.raw())
-                           .unwrap_or_else(|| RemoteCallbacks::new().raw()),
-            proxy_opts: self.proxy.as_ref().map(|m| m.raw())
-                            .unwrap_or_else(|| ProxyOptions::new().raw()),
-            prune: ::call::convert(&self.prune),
-            update_fetchhead: ::call::convert(&self.update_fetchhead),
-            download_tags: ::call::convert(&self.download_tags),
+            callbacks: self
+                .callbacks
+                .as_ref()
+                .map(|m| m.raw())
+                .unwrap_or_else(|| RemoteCallbacks::new().raw()),
+            proxy_opts: self
+                .proxy
+                .as_ref()
+                .map(|m| m.raw())
+                .unwrap_or_else(|| ProxyOptions::new().raw()),
+            prune: crate::call::convert(&self.prune),
+            update_fetchhead: crate::call::convert(&self.update_fetchhead),
+            download_tags: crate::call::convert(&self.download_tags),
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
                 count: 0,
@@ -455,7 +493,6 @@ impl<'cb> Binding for FetchOptions<'cb> {
         }
     }
 }
-
 
 impl<'cb> Default for PushOptions<'cb> {
     fn default() -> Self {
@@ -506,11 +543,16 @@ impl<'cb> Binding for PushOptions<'cb> {
     fn raw(&self) -> raw::git_push_options {
         raw::git_push_options {
             version: 1,
-            callbacks: self.callbacks.as_ref()
-                           .map(|m| m.raw())
-                           .unwrap_or_else(|| RemoteCallbacks::new().raw()),
-            proxy_opts: self.proxy.as_ref().map(|m| m.raw())
-                            .unwrap_or_else(|| ProxyOptions::new().raw()),
+            callbacks: self
+                .callbacks
+                .as_ref()
+                .map(|m| m.raw())
+                .unwrap_or_else(|| RemoteCallbacks::new().raw()),
+            proxy_opts: self
+                .proxy
+                .as_ref()
+                .map(|m| m.raw())
+                .unwrap_or_else(|| ProxyOptions::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
             // TODO: expose this as a builder option
             custom_headers: raw::git_strarray {
@@ -531,7 +573,7 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
     ///
     /// This list is available as soon as the connection to
     /// the remote is initiated and it remains available after disconnecting.
-    pub fn list(&self) -> Result<&[RemoteHead], Error> {
+    pub fn list(&self) -> Result<&[RemoteHead<'_>], Error> {
         self.remote.list()
     }
 }
@@ -544,14 +586,14 @@ impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb>
 
 #[cfg(test)]
 mod tests {
+    use crate::{AutotagOption, PushOptions};
+    use crate::{Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
     use tempdir::TempDir;
-    use {Repository, Remote, RemoteCallbacks, Direction, FetchOptions};
-    use {AutotagOption, PushOptions};
 
     #[test]
     fn smoke() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(repo.remote("origin", "/path/to/nowhere"));
         drop(repo);
 
@@ -574,12 +616,14 @@ mod tests {
         let remote = td.path().join("remote");
         Repository::init_bare(&remote).unwrap();
 
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let url = if cfg!(unix) {
             format!("file://{}", remote.display())
         } else {
-            format!("file:///{}", remote.display().to_string()
-                                        .replace("\\", "/"))
+            format!(
+                "file:///{}",
+                remote.display().to_string().replace("\\", "/")
+            )
         };
 
         let mut origin = repo.remote("origin", &url).unwrap();
@@ -628,8 +672,12 @@ mod tests {
 
         origin.fetch(&[], None, None).unwrap();
         origin.fetch(&[], None, Some("foo")).unwrap();
-        origin.update_tips(None, true, AutotagOption::Unspecified, None).unwrap();
-        origin.update_tips(None, true, AutotagOption::All, Some("foo")).unwrap();
+        origin
+            .update_tips(None, true, AutotagOption::Unspecified, None)
+            .unwrap();
+        origin
+            .update_tips(None, true, AutotagOption::All, Some("foo"))
+            .unwrap();
 
         t!(repo.remote_add_fetch("origin", "foo"));
         t!(repo.remote_add_fetch("origin", "bar"));
@@ -637,7 +685,7 @@ mod tests {
 
     #[test]
     fn rename_remote() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         repo.remote("origin", "foo").unwrap();
         drop(repo.remote_rename("origin", "foo"));
         drop(repo.remote_delete("foo"));
@@ -661,9 +709,9 @@ mod tests {
 
     #[test]
     fn transfer_cb() {
-        let (td, _repo) = ::test::repo_init();
+        let (td, _repo) = crate::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
-        let url = ::test::path2url(&td.path());
+        let url = crate::test::path2url(&td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let progress_hit = Cell::new(false);
@@ -675,9 +723,13 @@ mod tests {
                 progress_hit.set(true);
                 true
             });
-            origin.fetch(&[],
-                         Some(FetchOptions::new().remote_callbacks(callbacks)),
-                         None).unwrap();
+            origin
+                .fetch(
+                    &[],
+                    Some(FetchOptions::new().remote_callbacks(callbacks)),
+                    None,
+                )
+                .unwrap();
 
             let list = t!(origin.list());
             assert_eq!(list.len(), 2);
@@ -693,9 +745,9 @@ mod tests {
     /// segfaults
     #[test]
     fn connect_list() {
-        let (td, _repo) = ::test::repo_init();
+        let (td, _repo) = crate::test::repo_init();
         let td2 = TempDir::new("git").unwrap();
-        let url = ::test::path2url(&td.path());
+        let url = crate::test::path2url(&td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let mut callbacks = RemoteCallbacks::new();
@@ -707,7 +759,9 @@ mod tests {
         let mut origin = repo.remote("origin", &url).unwrap();
 
         {
-            let mut connection = origin.connect_auth(Direction::Fetch, Some(callbacks), None).unwrap();
+            let mut connection = origin
+                .connect_auth(Direction::Fetch, Some(callbacks), None)
+                .unwrap();
             assert!(connection.connected());
 
             let list = t!(connection.list());
@@ -722,10 +776,10 @@ mod tests {
 
     #[test]
     fn push() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let td2 = TempDir::new("git1").unwrap();
         let td3 = TempDir::new("git2").unwrap();
-        let url = ::test::path2url(&td2.path());
+        let url = crate::test::path2url(&td2.path());
 
         Repository::init_bare(td2.path()).unwrap();
         // git push
@@ -741,7 +795,9 @@ mod tests {
             });
             let mut options = PushOptions::new();
             options.remote_callbacks(callbacks);
-            remote.push(&["refs/heads/master"], Some(&mut options)).unwrap();
+            remote
+                .push(&["refs/heads/master"], Some(&mut options))
+                .unwrap();
         }
         assert!(updated);
 

@@ -1,14 +1,14 @@
+use libc::c_int;
 use std::env::JoinPathsError;
-use std::ffi::{CStr, NulError};
 use std::error;
+use std::ffi::{CStr, NulError};
 use std::fmt;
 use std::str;
-use libc::c_int;
 
-use {raw, ErrorClass, ErrorCode};
+use crate::{raw, ErrorClass, ErrorCode};
 
 /// A structure to represent errors coming out of libgit2.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Error {
     code: c_int,
     klass: c_int,
@@ -26,7 +26,7 @@ impl Error {
     /// safe to unwrap the return value. This API will change in the next major
     /// version.
     pub fn last_error(code: c_int) -> Option<Error> {
-        ::init();
+        crate::init();
         unsafe {
             // Note that whenever libgit2 returns an error any negative value
             // indicates that an error happened. Auxiliary information is
@@ -59,7 +59,11 @@ impl Error {
     unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Error {
         let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
         let msg = String::from_utf8_lossy(msg).into_owned();
-        Error { code: code, klass: (*ptr).klass, message: msg }
+        Error {
+            code: code,
+            klass: (*ptr).klass,
+            message: msg,
+        }
     }
 
     /// Creates a new error from the given string as the error.
@@ -233,15 +237,19 @@ impl Error {
     }
 
     /// Return the message associated with this error
-    pub fn message(&self) -> &str { &self.message }
+    pub fn message(&self) -> &str {
+        &self.message
+    }
 }
 
 impl error::Error for Error {
-    fn description(&self) -> &str { &self.message }
+    fn description(&self) -> &str {
+        &self.message
+    }
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.message)?;
         match self.class() {
             ErrorClass::None => {}
@@ -257,8 +265,10 @@ impl fmt::Display for Error {
 
 impl From<NulError> for Error {
     fn from(_: NulError) -> Error {
-        Error::from_str("data contained a nul byte that could not be \
-                         represented as a string")
+        Error::from_str(
+            "data contained a nul byte that could not be \
+             represented as a string",
+        )
     }
 }
 
@@ -268,14 +278,13 @@ impl From<JoinPathsError> for Error {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use {ErrorClass, ErrorCode};
+    use crate::{ErrorClass, ErrorCode};
 
     #[test]
     fn smoke() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
 
         let err = repo.find_submodule("does_not_exist").err().unwrap();
         assert_eq!(err.code(), ErrorCode::NotFound);

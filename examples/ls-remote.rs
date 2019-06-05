@@ -14,13 +14,9 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
-use git2::{Repository, Direction};
+use git2::{Direction, Repository};
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -28,34 +24,35 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
+    let repo = Repository::open(".")?;
     let remote = &args.arg_remote;
-    let mut remote = try!(repo.find_remote(remote).or_else(|_| {
-        repo.remote_anonymous(remote)
-    }));
+    let mut remote = repo
+        .find_remote(remote)
+        .or_else(|_| repo.remote_anonymous(remote))?;
 
     // Connect to the remote and call the printing function for each of the
     // remote references.
-    let connection = try!(remote.connect_auth(Direction::Fetch, None, None));
+    let connection = remote.connect_auth(Direction::Fetch, None, None)?;
 
     // Get the list of references on the remote and print out their name next to
     // what they point to.
-    for head in try!(connection.list()).iter() {
+    for head in connection.list()?.iter() {
         println!("{}\t{}", head.oid(), head.name());
     }
     Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: ls-remote [option] <remote>
 
 Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

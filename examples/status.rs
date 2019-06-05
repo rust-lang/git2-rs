@@ -14,15 +14,11 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
+use docopt::Docopt;
+use git2::{Error, ErrorCode, Repository, StatusOptions, SubmoduleIgnore};
+use serde_derive::Deserialize;
 use std::str;
 use std::time::Duration;
-use docopt::Docopt;
-use git2::{Repository, Error, StatusOptions, ErrorCode, SubmoduleIgnore};
 
 #[derive(Deserialize)]
 struct Args {
@@ -40,20 +36,28 @@ struct Args {
 }
 
 #[derive(Eq, PartialEq)]
-enum Format { Long, Short, Porcelain }
+enum Format {
+    Long,
+    Short,
+    Porcelain,
+}
 
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.clone().unwrap_or_else(|| ".".to_string());
-    let repo = try!(Repository::open(&path));
+    let repo = Repository::open(&path)?;
     if repo.is_bare() {
-        return Err(Error::from_str("cannot report status on bare repository"))
+        return Err(Error::from_str("cannot report status on bare repository"));
     }
 
     let mut opts = StatusOptions::new();
     opts.include_ignored(args.flag_ignored);
     match args.flag_untracked_files.as_ref().map(|s| &s[..]) {
-        Some("no") => { opts.include_untracked(false); }
-        Some("normal") => { opts.include_untracked(true); }
+        Some("no") => {
+            opts.include_untracked(false);
+        }
+        Some("normal") => {
+            opts.include_untracked(true);
+        }
         Some("all") => {
             opts.include_untracked(true).recurse_untracked_dirs(true);
         }
@@ -61,7 +65,9 @@ fn run(args: &Args) -> Result<(), Error> {
         None => {}
     }
     match args.flag_ignore_submodules.as_ref().map(|s| &s[..]) {
-        Some("all") => { opts.exclude_submodules(true); }
+        Some("all") => {
+            opts.exclude_submodules(true);
+        }
         Some(_) => return Err(Error::from_str("invalid ignore-submodules value")),
         None => {}
     }
@@ -75,13 +81,13 @@ fn run(args: &Args) -> Result<(), Error> {
             println!("\u{1b}[H\u{1b}[2J");
         }
 
-        let statuses = try!(repo.statuses(Some(&mut opts)));
+        let statuses = repo.statuses(Some(&mut opts))?;
 
         if args.flag_branch {
-            try!(show_branch(&repo, &args.format()));
+            show_branch(&repo, &args.format())?;
         }
         if args.flag_list_submodules {
-            try!(print_submodules(&repo));
+            print_submodules(&repo)?;
         }
 
         if args.format() == Format::Long {
@@ -93,7 +99,7 @@ fn run(args: &Args) -> Result<(), Error> {
         if args.flag_repeat {
             std::thread::sleep(Duration::new(10, 0));
         } else {
-            return Ok(())
+            return Ok(());
         }
     }
 }
@@ -101,15 +107,18 @@ fn run(args: &Args) -> Result<(), Error> {
 fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
-        Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
-                      e.code() == ErrorCode::NotFound => None,
+        Err(ref e) if e.code() == ErrorCode::UnbornBranch || e.code() == ErrorCode::NotFound => {
+            None
+        }
         Err(e) => return Err(e),
     };
     let head = head.as_ref().and_then(|h| h.shorthand());
 
     if format == &Format::Long {
-        println!("# On branch {}",
-                 head.unwrap_or("Not currently on any branch"));
+        println!(
+            "# On branch {}",
+            head.unwrap_or("Not currently on any branch")
+        );
     } else {
         println!("## {}", head.unwrap_or("HEAD (no branch)"));
     }
@@ -117,11 +126,14 @@ fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
 }
 
 fn print_submodules(repo: &Repository) -> Result<(), Error> {
-    let modules = try!(repo.submodules());
+    let modules = repo.submodules()?;
     println!("# Submodules");
     for sm in &modules {
-        println!("# - submodule '{}' at {}", sm.name().unwrap(),
-                 sm.path().display());
+        println!(
+            "# - submodule '{}' at {}",
+            sm.name().unwrap(),
+            sm.path().display()
+        );
     }
     Ok(())
 }
@@ -135,7 +147,10 @@ fn print_long(statuses: &git2::Statuses) {
     let mut changed_in_workdir = false;
 
     // Print index changes
-    for entry in statuses.iter().filter(|e| e.status() != git2::Status::CURRENT) {
+    for entry in statuses
+        .iter()
+        .filter(|e| e.status() != git2::Status::CURRENT)
+    {
         if entry.status().contains(git2::Status::WT_DELETED) {
             rm_in_workdir = true;
         }
@@ -148,10 +163,12 @@ fn print_long(statuses: &git2::Statuses) {
             _ => continue,
         };
         if !header {
-            println!("\
+            println!(
+                "\
 # Changes to be committed:
 #   (use \"git reset HEAD <file>...\" to unstage)
-#");
+#"
+            );
             header = true;
         }
 
@@ -159,8 +176,7 @@ fn print_long(statuses: &git2::Statuses) {
         let new_path = entry.head_to_index().unwrap().new_file().path();
         match (old_path, new_path) {
             (Some(old), Some(new)) if old != new => {
-                println!("#\t{}  {} -> {}", istatus, old.display(),
-                         new.display());
+                println!("#\t{}  {} -> {}", istatus, old.display(), new.display());
             }
             (old, new) => {
                 println!("#\t{}  {}", istatus, old.or(new).unwrap().display());
@@ -179,9 +195,8 @@ fn print_long(statuses: &git2::Statuses) {
         // With `Status::OPT_INCLUDE_UNMODIFIED` (not used in this example)
         // `index_to_workdir` may not be `None` even if there are no differences,
         // in which case it will be a `Delta::Unmodified`.
-        if entry.status() == git2::Status::CURRENT ||
-           entry.index_to_workdir().is_none() {
-            continue
+        if entry.status() == git2::Status::CURRENT || entry.index_to_workdir().is_none() {
+            continue;
         }
 
         let istatus = match entry.status() {
@@ -193,12 +208,15 @@ fn print_long(statuses: &git2::Statuses) {
         };
 
         if !header {
-            println!("\
+            println!(
+                "\
 # Changes not staged for commit:
 #   (use \"git add{} <file>...\" to update what will be committed)
 #   (use \"git checkout -- <file>...\" to discard changes in working directory)
 #\
-                ", if rm_in_workdir {"/rm"} else {""});
+                ",
+                if rm_in_workdir { "/rm" } else { "" }
+            );
             header = true;
         }
 
@@ -206,8 +224,7 @@ fn print_long(statuses: &git2::Statuses) {
         let new_path = entry.index_to_workdir().unwrap().new_file().path();
         match (old_path, new_path) {
             (Some(old), Some(new)) if old != new => {
-                println!("#\t{}  {} -> {}", istatus, old.display(),
-                         new.display());
+                println!("#\t{}  {} -> {}", istatus, old.display(), new.display());
             }
             (old, new) => {
                 println!("#\t{}  {}", istatus, old.or(new).unwrap().display());
@@ -222,12 +239,17 @@ fn print_long(statuses: &git2::Statuses) {
     header = false;
 
     // Print untracked files
-    for entry in statuses.iter().filter(|e| e.status() == git2::Status::WT_NEW) {
+    for entry in statuses
+        .iter()
+        .filter(|e| e.status() == git2::Status::WT_NEW)
+    {
         if !header {
-            println!("\
+            println!(
+                "\
 # Untracked files
 #   (use \"git add <file>...\" to include in what will be committed)
-#");
+#"
+            );
             header = true;
         }
         let file = entry.index_to_workdir().unwrap().old_file().path().unwrap();
@@ -236,12 +258,17 @@ fn print_long(statuses: &git2::Statuses) {
     header = false;
 
     // Print ignored files
-    for entry in statuses.iter().filter(|e| e.status() == git2::Status::IGNORED) {
+    for entry in statuses
+        .iter()
+        .filter(|e| e.status() == git2::Status::IGNORED)
+    {
         if !header {
-            println!("\
+            println!(
+                "\
 # Ignored files
 #   (use \"git add -f <file>...\" to include in what will be committed)
-#");
+#"
+            );
             header = true;
         }
         let file = entry.index_to_workdir().unwrap().old_file().path().unwrap();
@@ -249,15 +276,20 @@ fn print_long(statuses: &git2::Statuses) {
     }
 
     if !changes_in_index && changed_in_workdir {
-        println!("no changes added to commit (use \"git add\" and/or \
-                  \"git commit -a\")");
+        println!(
+            "no changes added to commit (use \"git add\" and/or \
+             \"git commit -a\")"
+        );
     }
 }
 
 // This version of the output prefixes each path with two status columns and
 // shows submodule status information.
 fn print_short(repo: &Repository, statuses: &git2::Statuses) {
-    for entry in statuses.iter().filter(|e| e.status() != git2::Status::CURRENT) {
+    for entry in statuses
+        .iter()
+        .filter(|e| e.status() != git2::Status::CURRENT)
+    {
         let mut istatus = match entry.status() {
             s if s.contains(git2::Status::INDEX_NEW) => 'A',
             s if s.contains(git2::Status::INDEX_MODIFIED) => 'M',
@@ -268,7 +300,10 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
         };
         let mut wstatus = match entry.status() {
             s if s.contains(git2::Status::WT_NEW) => {
-                if istatus == ' ' { istatus = '?'; } '?'
+                if istatus == ' ' {
+                    istatus = '?';
+                }
+                '?'
             }
             s if s.contains(git2::Status::WT_MODIFIED) => 'M',
             s if s.contains(git2::Status::WT_DELETED) => 'D',
@@ -281,7 +316,9 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
             istatus = '!';
             wstatus = '!';
         }
-        if istatus == '?' && wstatus == '?' { continue }
+        if istatus == '?' && wstatus == '?' {
+            continue;
+        }
         let mut extra = "";
 
         // A commit in a tree is how submodules are stored, so let's go take a
@@ -290,14 +327,17 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
         // TODO: check for GIT_FILEMODE_COMMIT
         let status = entry.index_to_workdir().and_then(|diff| {
             let ignore = SubmoduleIgnore::Unspecified;
-            diff.new_file().path_bytes()
+            diff.new_file()
+                .path_bytes()
                 .and_then(|s| str::from_utf8(s).ok())
                 .and_then(|name| repo.submodule_status(name, ignore).ok())
         });
         if let Some(status) = status {
             if status.contains(git2::SubmoduleStatus::WD_MODIFIED) {
                 extra = " (new commits)";
-            } else if status.contains(git2::SubmoduleStatus::WD_INDEX_MODIFIED) || status.contains(git2::SubmoduleStatus::WD_WD_MODIFIED) {
+            } else if status.contains(git2::SubmoduleStatus::WD_INDEX_MODIFIED)
+                || status.contains(git2::SubmoduleStatus::WD_WD_MODIFIED)
+            {
                 extra = " (modified content)";
             } else if status.contains(git2::SubmoduleStatus::WD_UNTRACKED) {
                 extra = " (untracked content)";
@@ -316,33 +356,62 @@ fn print_short(repo: &Repository, statuses: &git2::Statuses) {
         }
 
         match (istatus, wstatus) {
-            ('R', 'R') => println!("RR {} {} {}{}", a.unwrap().display(),
-                                   b.unwrap().display(), c.unwrap().display(),
-                                   extra),
-            ('R', w) => println!("R{} {} {}{}", w, a.unwrap().display(),
-                                 b.unwrap().display(), extra),
-            (i, 'R') => println!("{}R {} {}{}", i, a.unwrap().display(),
-                                 c.unwrap().display(), extra),
+            ('R', 'R') => println!(
+                "RR {} {} {}{}",
+                a.unwrap().display(),
+                b.unwrap().display(),
+                c.unwrap().display(),
+                extra
+            ),
+            ('R', w) => println!(
+                "R{} {} {}{}",
+                w,
+                a.unwrap().display(),
+                b.unwrap().display(),
+                extra
+            ),
+            (i, 'R') => println!(
+                "{}R {} {}{}",
+                i,
+                a.unwrap().display(),
+                c.unwrap().display(),
+                extra
+            ),
             (i, w) => println!("{}{} {}{}", i, w, a.unwrap().display(), extra),
         }
     }
 
-    for entry in statuses.iter().filter(|e| e.status() == git2::Status::WT_NEW) {
-        println!("?? {}", entry.index_to_workdir().unwrap().old_file()
-                               .path().unwrap().display());
+    for entry in statuses
+        .iter()
+        .filter(|e| e.status() == git2::Status::WT_NEW)
+    {
+        println!(
+            "?? {}",
+            entry
+                .index_to_workdir()
+                .unwrap()
+                .old_file()
+                .path()
+                .unwrap()
+                .display()
+        );
     }
 }
 
 impl Args {
     fn format(&self) -> Format {
-        if self.flag_short { Format::Short }
-        else if self.flag_porcelain || self.flag_z { Format::Porcelain }
-        else { Format::Long }
+        if self.flag_short {
+            Format::Short
+        } else if self.flag_porcelain || self.flag_z {
+            Format::Porcelain
+        } else {
+            Format::Long
+        }
     }
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: status [options] [--] [<spec>..]
 
 Options:
@@ -360,8 +429,9 @@ Options:
     -h, --help                  show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

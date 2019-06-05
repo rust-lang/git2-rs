@@ -5,9 +5,11 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use {raw, Error, Oid, Repository, ReferenceType, Object, ObjectType, Blob, Commit, Tree, Tag};
-use object::CastOrPanic;
-use util::{c_cmp_to_ordering, Binding};
+use crate::object::CastOrPanic;
+use crate::util::{c_cmp_to_ordering, Binding};
+use crate::{
+    raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceType, Repository, Tag, Tree,
+};
 
 struct Refdb<'repo>(&'repo Repository);
 
@@ -33,13 +35,15 @@ pub struct ReferenceNames<'repo: 'references, 'references> {
 impl<'repo> Reference<'repo> {
     /// Ensure the reference name is well-formed.
     pub fn is_valid_name(refname: &str) -> bool {
-        ::init();
+        crate::init();
         let refname = CString::new(refname).unwrap();
         unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
     }
 
     /// Get access to the underlying raw pointer.
-    pub fn raw(&self) -> *mut raw::git_reference { self.raw }
+    pub fn raw(&self) -> *mut raw::git_reference {
+        self.raw
+    }
 
     /// Delete an existing reference.
     ///
@@ -49,7 +53,9 @@ impl<'repo> Reference<'repo> {
     /// This function will return an error if the reference has changed from the
     /// time it was looked up.
     pub fn delete(&mut self) -> Result<(), Error> {
-        unsafe { try_call!(raw::git_reference_delete(self.raw)); }
+        unsafe {
+            try_call!(raw::git_reference_delete(self.raw));
+        }
         Ok(())
     }
 
@@ -83,11 +89,13 @@ impl<'repo> Reference<'repo> {
     /// Get the full name of a reference.
     ///
     /// Returns `None` if the name is not valid utf-8.
-    pub fn name(&self) -> Option<&str> { str::from_utf8(self.name_bytes()).ok() }
+    pub fn name(&self) -> Option<&str> {
+        str::from_utf8(self.name_bytes()).ok()
+    }
 
     /// Get the full name of a reference.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, raw::git_reference_name(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_reference_name(&*self.raw)).unwrap() }
     }
 
     /// Get the full shorthand of a reference.
@@ -102,9 +110,7 @@ impl<'repo> Reference<'repo> {
 
     /// Get the full shorthand of a reference.
     pub fn shorthand_bytes(&self) -> &[u8] {
-        unsafe {
-            ::opt_bytes(self, raw::git_reference_shorthand(&*self.raw)).unwrap()
-        }
+        unsafe { crate::opt_bytes(self, raw::git_reference_shorthand(&*self.raw)).unwrap() }
     }
 
     /// Get the OID pointed to by a direct reference.
@@ -112,9 +118,7 @@ impl<'repo> Reference<'repo> {
     /// Only available if the reference is direct (i.e. an object id reference,
     /// not a symbolic one).
     pub fn target(&self) -> Option<Oid> {
-        unsafe {
-            Binding::from_raw_opt(raw::git_reference_target(&*self.raw))
-        }
+        unsafe { Binding::from_raw_opt(raw::git_reference_target(&*self.raw)) }
     }
 
     /// Return the peeled OID target of this reference.
@@ -122,9 +126,7 @@ impl<'repo> Reference<'repo> {
     /// This peeled OID only applies to direct references that point to a hard
     /// Tag object: it is the result of peeling such Tag.
     pub fn target_peel(&self) -> Option<Oid> {
-        unsafe {
-            Binding::from_raw_opt(raw::git_reference_target_peel(&*self.raw))
-        }
+        unsafe { Binding::from_raw_opt(raw::git_reference_target_peel(&*self.raw)) }
     }
 
     /// Get full name to the reference pointed to by a symbolic reference.
@@ -132,14 +134,15 @@ impl<'repo> Reference<'repo> {
     /// May return `None` if the reference is either not symbolic or not a
     /// valid utf-8 string.
     pub fn symbolic_target(&self) -> Option<&str> {
-        self.symbolic_target_bytes().and_then(|s| str::from_utf8(s).ok())
+        self.symbolic_target_bytes()
+            .and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get full name to the reference pointed to by a symbolic reference.
     ///
     /// Only available if the reference is symbolic.
     pub fn symbolic_target_bytes(&self) -> Option<&[u8]> {
-        unsafe { ::opt_bytes(self, raw::git_reference_symbolic_target(&*self.raw)) }
+        unsafe { crate::opt_bytes(self, raw::git_reference_symbolic_target(&*self.raw)) }
     }
 
     /// Resolve a symbolic reference to a direct reference.
@@ -174,7 +177,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a blob.
     pub fn peel_to_blob(&self) -> Result<Blob<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Blob)).cast_or_panic(ObjectType::Blob))
+        Ok(self.peel(ObjectType::Blob)?.cast_or_panic(ObjectType::Blob))
     }
 
     /// Peel a reference to a commit
@@ -182,7 +185,9 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a commit.
     pub fn peel_to_commit(&self) -> Result<Commit<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Commit)).cast_or_panic(ObjectType::Commit))
+        Ok(self
+            .peel(ObjectType::Commit)?
+            .cast_or_panic(ObjectType::Commit))
     }
 
     /// Peel a reference to a tree
@@ -190,7 +195,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a tree.
     pub fn peel_to_tree(&self) -> Result<Tree<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Tree)).cast_or_panic(ObjectType::Tree))
+        Ok(self.peel(ObjectType::Tree)?.cast_or_panic(ObjectType::Tree))
     }
 
     /// Peel a reference to a tag
@@ -198,7 +203,7 @@ impl<'repo> Reference<'repo> {
     /// This method recursively peels the reference until it reaches
     /// a tag.
     pub fn peel_to_tag(&self) -> Result<Tag<'repo>, Error> {
-        Ok(try!(self.peel(ObjectType::Tag)).cast_or_panic(ObjectType::Tag))
+        Ok(self.peel(ObjectType::Tag)?.cast_or_panic(ObjectType::Tag))
     }
 
     /// Rename an existing reference.
@@ -207,14 +212,19 @@ impl<'repo> Reference<'repo> {
     ///
     /// If the force flag is not enabled, and there's already a reference with
     /// the given name, the renaming will fail.
-    pub fn rename(&mut self, new_name: &str, force: bool,
-                  msg: &str) -> Result<Reference<'repo>, Error> {
+    pub fn rename(
+        &mut self,
+        new_name: &str,
+        force: bool,
+        msg: &str,
+    ) -> Result<Reference<'repo>, Error> {
         let mut raw = ptr::null_mut();
-        let new_name = try!(CString::new(new_name));
-        let msg = try!(CString::new(msg));
+        let new_name = CString::new(new_name)?;
+        let msg = CString::new(msg)?;
         unsafe {
-            try_call!(raw::git_reference_rename(&mut raw, self.raw, new_name,
-                                                force, msg));
+            try_call!(raw::git_reference_rename(
+                &mut raw, self.raw, new_name, force, msg
+            ));
             Ok(Binding::from_raw(raw))
         }
     }
@@ -225,17 +235,19 @@ impl<'repo> Reference<'repo> {
     ///
     /// The new reference will be written to disk, overwriting the given
     /// reference.
-    pub fn set_target(&mut self, id: Oid, reflog_msg: &str)
-                      -> Result<Reference<'repo>, Error> {
+    pub fn set_target(&mut self, id: Oid, reflog_msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = ptr::null_mut();
-        let msg = try!(CString::new(reflog_msg));
+        let msg = CString::new(reflog_msg)?;
         unsafe {
-            try_call!(raw::git_reference_set_target(&mut raw, self.raw,
-                                                    id.raw(), msg));
+            try_call!(raw::git_reference_set_target(
+                &mut raw,
+                self.raw,
+                id.raw(),
+                msg
+            ));
             Ok(Binding::from_raw(raw))
         }
     }
-
 }
 
 impl<'repo> PartialOrd for Reference<'repo> {
@@ -261,9 +273,14 @@ impl<'repo> Eq for Reference<'repo> {}
 impl<'repo> Binding for Reference<'repo> {
     type Raw = *mut raw::git_reference;
     unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
-        Reference { raw: raw, _marker: marker::PhantomData }
+        Reference {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_reference { self.raw }
+    fn raw(&self) -> *mut raw::git_reference {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Reference<'repo> {
@@ -287,11 +304,15 @@ impl<'repo> References<'repo> {
 
 impl<'repo> Binding for References<'repo> {
     type Raw = *mut raw::git_reference_iterator;
-    unsafe fn from_raw(raw: *mut raw::git_reference_iterator)
-                       -> References<'repo> {
-        References { raw: raw, _marker: marker::PhantomData }
+    unsafe fn from_raw(raw: *mut raw::git_reference_iterator) -> References<'repo> {
+        References {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_reference_iterator { self.raw }
+    fn raw(&self) -> *mut raw::git_reference_iterator {
+        self.raw
+    }
 }
 
 impl<'repo> Iterator for References<'repo> {
@@ -316,9 +337,8 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
     fn next(&mut self) -> Option<Result<&'references str, Error>> {
         let mut out = ptr::null();
         unsafe {
-            try_call_iter!(raw::git_reference_next_name(&mut out,
-                                                        self.inner.raw));
-            let bytes = ::opt_bytes(self, out).unwrap();
+            try_call_iter!(raw::git_reference_next_name(&mut out, self.inner.raw));
+            let bytes = crate::opt_bytes(self, out).unwrap();
             let s = str::from_utf8(bytes).unwrap();
             Some(Ok(mem::transmute::<&str, &'references str>(s)))
         }
@@ -327,7 +347,7 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
 
 #[cfg(test)]
 mod tests {
-    use {Reference, ObjectType, ReferenceType};
+    use crate::{ObjectType, Reference, ReferenceType};
 
     #[test]
     fn smoke() {
@@ -337,7 +357,7 @@ mod tests {
 
     #[test]
     fn smoke2() {
-        let (_td, repo) = ::test::repo_init();
+        let (_td, repo) = crate::test::repo_init();
         let mut head = repo.head().unwrap();
         assert!(head.is_branch());
         assert!(!head.is_remote());
@@ -352,8 +372,10 @@ mod tests {
         assert_eq!(head.name(), Some("refs/heads/master"));
 
         assert!(head == repo.find_reference("refs/heads/master").unwrap());
-        assert_eq!(repo.refname_to_id("refs/heads/master").unwrap(),
-                   head.target().unwrap());
+        assert_eq!(
+            repo.refname_to_id("refs/heads/master").unwrap(),
+            head.target().unwrap()
+        );
 
         assert!(head.symbolic_target().is_none());
         assert!(head.target_peel().is_none());
@@ -361,9 +383,9 @@ mod tests {
         assert_eq!(head.shorthand(), Some("master"));
         assert!(head.resolve().unwrap() == head);
 
-        let mut tag1 = repo.reference("refs/tags/tag1",
-                                      head.target().unwrap(),
-                                      false, "test").unwrap();
+        let mut tag1 = repo
+            .reference("refs/tags/tag1", head.target().unwrap(), false, "test")
+            .unwrap();
         assert!(tag1.is_tag());
         assert_eq!(tag1.kind().unwrap(), ReferenceType::Direct);
 
@@ -373,9 +395,9 @@ mod tests {
 
         tag1.delete().unwrap();
 
-        let mut sym1 = repo.reference_symbolic("refs/tags/tag1",
-                                               "refs/heads/master", false,
-                                               "test").unwrap();
+        let mut sym1 = repo
+            .reference_symbolic("refs/tags/tag1", "refs/heads/master", false, "test")
+            .unwrap();
         assert_eq!(sym1.kind().unwrap(), ReferenceType::Symbolic);
         sym1.delete().unwrap();
 
@@ -392,6 +414,5 @@ mod tests {
 
         let mut head = head.rename("refs/foo", true, "test").unwrap();
         head.delete().unwrap();
-
     }
 }

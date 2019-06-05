@@ -15,13 +15,9 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use docopt::Docopt;
-use git2::{Repository, Error, Revwalk, Oid};
+use git2::{Error, Oid, Repository, Revwalk};
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -33,50 +29,67 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open("."));
-    let mut revwalk = try!(repo.revwalk());
+    let repo = Repository::open(".")?;
+    let mut revwalk = repo.revwalk()?;
 
-    let base = if args.flag_reverse {git2::Sort::REVERSE} else {git2::Sort::NONE};
-    revwalk.set_sorting(base | if args.flag_topo_order {
-        git2::Sort::TOPOLOGICAL
-    } else if args.flag_date_order {
-        git2::Sort::TIME
+    let base = if args.flag_reverse {
+        git2::Sort::REVERSE
     } else {
         git2::Sort::NONE
-    });
+    };
+    revwalk.set_sorting(
+        base | if args.flag_topo_order {
+            git2::Sort::TOPOLOGICAL
+        } else if args.flag_date_order {
+            git2::Sort::TIME
+        } else {
+            git2::Sort::NONE
+        },
+    );
 
-    let specs = args.flag_not.iter().map(|s| (s, true))
-                    .chain(args.arg_spec.iter().map(|s| (s, false)))
-                    .map(|(spec, hide)| {
-        if spec.starts_with('^') {(&spec[1..], !hide)} else {(&spec[..], hide)}
-    });
+    let specs = args
+        .flag_not
+        .iter()
+        .map(|s| (s, true))
+        .chain(args.arg_spec.iter().map(|s| (s, false)))
+        .map(|(spec, hide)| {
+            if spec.starts_with('^') {
+                (&spec[1..], !hide)
+            } else {
+                (&spec[..], hide)
+            }
+        });
     for (spec, hide) in specs {
         let id = if spec.contains("..") {
-            let revspec = try!(repo.revparse(spec));
+            let revspec = repo.revparse(spec)?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
-                return Err(Error::from_str("merge bases not implemented"))
+                return Err(Error::from_str("merge bases not implemented"));
             }
-            try!(push(&mut revwalk, revspec.from().unwrap().id(), !hide));
+            push(&mut revwalk, revspec.from().unwrap().id(), !hide)?;
             revspec.to().unwrap().id()
         } else {
-            try!(repo.revparse_single(spec)).id()
+            repo.revparse_single(spec)?.id()
         };
-        try!(push(&mut revwalk, id, hide));
+        push(&mut revwalk, id, hide)?;
     }
 
     for id in revwalk {
-        let id = try!(id);
+        let id = id?;
         println!("{}", id);
     }
     Ok(())
 }
 
 fn push(revwalk: &mut Revwalk, id: Oid, hide: bool) -> Result<(), Error> {
-    if hide {revwalk.hide(id)} else {revwalk.push(id)}
+    if hide {
+        revwalk.hide(id)
+    } else {
+        revwalk.push(id)
+    }
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: rev-list [options] [--] <spec>...
 
 Options:
@@ -87,11 +100,11 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
     }
 }
-

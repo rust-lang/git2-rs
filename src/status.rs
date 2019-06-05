@@ -1,12 +1,12 @@
+use libc::{c_char, c_uint, size_t};
 use std::ffi::CString;
-use std::ops::Range;
 use std::marker;
 use std::mem;
+use std::ops::Range;
 use std::str;
-use libc::{c_char, size_t, c_uint};
 
-use {raw, Status, DiffDelta, IntoCString, Repository};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, DiffDelta, IntoCString, Repository, Status};
 
 /// Options that can be provided to `repo.statuses()` to control how the status
 /// information is gathered.
@@ -69,8 +69,7 @@ impl StatusOptions {
     pub fn new() -> StatusOptions {
         unsafe {
             let mut raw = mem::zeroed();
-            let r = raw::git_status_init_options(&mut raw,
-                                raw::GIT_STATUS_OPTIONS_VERSION);
+            let r = raw::git_status_init_options(&mut raw, raw::GIT_STATUS_OPTIONS_VERSION);
             assert_eq!(r, 0);
             StatusOptions {
                 raw: raw,
@@ -98,16 +97,14 @@ impl StatusOptions {
     /// If the `disable_pathspec_match` option is given, then this is a literal
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
-    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T)
-                                    -> &mut StatusOptions {
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut StatusOptions {
         let s = pathspec.into_c_string().unwrap();
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self
     }
 
-    fn flag(&mut self, flag: raw::git_status_opt_t, val: bool)
-            -> &mut StatusOptions {
+    fn flag(&mut self, flag: raw::git_status_opt_t, val: bool) -> &mut StatusOptions {
         if val {
             self.raw.flags |= flag as c_uint;
         } else {
@@ -149,55 +146,47 @@ impl StatusOptions {
     ///
     /// Normally if an entire directory is new then just the top-level directory
     /// is included (with a trailing slash on the entry name).
-    pub fn recurse_untracked_dirs(&mut self, include: bool)
-                                  -> &mut StatusOptions {
+    pub fn recurse_untracked_dirs(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS, include)
     }
 
     /// Indicates that the given paths should be treated as literals paths, note
     /// patterns.
-    pub fn disable_pathspec_match(&mut self, include: bool)
-                                  -> &mut StatusOptions {
+    pub fn disable_pathspec_match(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH, include)
     }
 
     /// Indicates that the contents of ignored directories should be included in
     /// the status.
-    pub fn recurse_ignored_dirs(&mut self, include: bool)
-                                -> &mut StatusOptions {
+    pub fn recurse_ignored_dirs(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_RECURSE_IGNORED_DIRS, include)
     }
 
     /// Indicates that rename detection should be processed between the head.
-    pub fn renames_head_to_index(&mut self, include: bool)
-                                 -> &mut StatusOptions {
+    pub fn renames_head_to_index(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX, include)
     }
 
     /// Indicates that rename detection should be run between the index and the
     /// working directory.
-    pub fn renames_index_to_workdir(&mut self, include: bool)
-                                    -> &mut StatusOptions {
+    pub fn renames_index_to_workdir(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR, include)
     }
 
     /// Override the native case sensitivity for the file system and force the
     /// output to be in case sensitive order.
-    pub fn sort_case_sensitively(&mut self, include: bool)
-                                 -> &mut StatusOptions {
+    pub fn sort_case_sensitively(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_SORT_CASE_SENSITIVELY, include)
     }
 
     /// Override the native case sensitivity for the file system and force the
     /// output to be in case-insensitive order.
-    pub fn sort_case_insensitively(&mut self, include: bool)
-                                   -> &mut StatusOptions {
+    pub fn sort_case_insensitively(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY, include)
     }
 
     /// Indicates that rename detection should include rewritten files.
-    pub fn renames_from_rewrites(&mut self, include: bool)
-                                 -> &mut StatusOptions {
+    pub fn renames_from_rewrites(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_RENAMES_FROM_REWRITES, include)
     }
 
@@ -223,8 +212,7 @@ impl StatusOptions {
 
     // erm...
     #[allow(missing_docs)]
-    pub fn include_unreadable_as_untracked(&mut self, include: bool)
-                                           -> &mut StatusOptions {
+    pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
 
@@ -243,7 +231,7 @@ impl<'repo> Statuses<'repo> {
     /// Gets a status entry from this list at the specified index.
     ///
     /// Returns `None` if the index is out of bounds.
-    pub fn get(&self, index: usize) -> Option<StatusEntry> {
+    pub fn get(&self, index: usize) -> Option<StatusEntry<'_>> {
         unsafe {
             let p = raw::git_status_byindex(self.raw, index as size_t);
             Binding::from_raw_opt(p)
@@ -264,7 +252,7 @@ impl<'repo> Statuses<'repo> {
     }
 
     /// Returns an iterator over the statuses in this list.
-    pub fn iter(&self) -> StatusIter {
+    pub fn iter(&self) -> StatusIter<'_> {
         StatusIter {
             statuses: self,
             range: 0..self.len(),
@@ -275,14 +263,21 @@ impl<'repo> Statuses<'repo> {
 impl<'repo> Binding for Statuses<'repo> {
     type Raw = *mut raw::git_status_list;
     unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
-        Statuses { raw: raw, _marker: marker::PhantomData }
+        Statuses {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_status_list { self.raw }
+    fn raw(&self) -> *mut raw::git_status_list {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Statuses<'repo> {
     fn drop(&mut self) {
-        unsafe { raw::git_status_list_free(self.raw); }
+        unsafe {
+            raw::git_status_list_free(self.raw);
+        }
     }
 }
 
@@ -291,7 +286,9 @@ impl<'a> Iterator for StatusIter<'a> {
     fn next(&mut self) -> Option<StatusEntry<'a>> {
         self.range.next().and_then(|i| self.statuses.get(i))
     }
-    fn size_hint(&self) -> (usize, Option<usize>) { self.range.size_hint() }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 impl<'a> DoubleEndedIterator for StatusIter<'a> {
     fn next_back(&mut self) -> Option<StatusEntry<'a>> {
@@ -305,17 +302,20 @@ impl<'statuses> StatusEntry<'statuses> {
     pub fn path_bytes(&self) -> &[u8] {
         unsafe {
             if (*self.raw).head_to_index.is_null() {
-                ::opt_bytes(self, (*(*self.raw).index_to_workdir).old_file.path)
+                crate::opt_bytes(self, (*(*self.raw).index_to_workdir).old_file.path)
             } else {
-                ::opt_bytes(self, (*(*self.raw).head_to_index).old_file.path)
-            }.unwrap()
+                crate::opt_bytes(self, (*(*self.raw).head_to_index).old_file.path)
+            }
+            .unwrap()
         }
     }
 
     /// Access this entry's path name as a string.
     ///
     /// Returns `None` if the path is not valid utf-8.
-    pub fn path(&self) -> Option<&str> { str::from_utf8(self.path_bytes()).ok() }
+    pub fn path(&self) -> Option<&str> {
+        str::from_utf8(self.path_bytes()).ok()
+    }
 
     /// Access the status flags for this file
     pub fn status(&self) -> Status {
@@ -325,48 +325,48 @@ impl<'statuses> StatusEntry<'statuses> {
     /// Access detailed information about the differences between the file in
     /// HEAD and the file in the index.
     pub fn head_to_index(&self) -> Option<DiffDelta<'statuses>> {
-        unsafe {
-            Binding::from_raw_opt((*self.raw).head_to_index)
-        }
+        unsafe { Binding::from_raw_opt((*self.raw).head_to_index) }
     }
 
     /// Access detailed information about the differences between the file in
     /// the index and the file in the working directory.
     pub fn index_to_workdir(&self) -> Option<DiffDelta<'statuses>> {
-        unsafe {
-            Binding::from_raw_opt((*self.raw).index_to_workdir)
-        }
+        unsafe { Binding::from_raw_opt((*self.raw).index_to_workdir) }
     }
 }
 
 impl<'statuses> Binding for StatusEntry<'statuses> {
     type Raw = *const raw::git_status_entry;
 
-    unsafe fn from_raw(raw: *const raw::git_status_entry)
-                           -> StatusEntry<'statuses> {
-        StatusEntry { raw: raw, _marker: marker::PhantomData }
+    unsafe fn from_raw(raw: *const raw::git_status_entry) -> StatusEntry<'statuses> {
+        StatusEntry {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *const raw::git_status_entry { self.raw }
+    fn raw(&self) -> *const raw::git_status_entry {
+        self.raw
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::path::Path;
-    use std::io::prelude::*;
     use super::StatusOptions;
+    use std::fs::File;
+    use std::io::prelude::*;
+    use std::path::Path;
 
     #[test]
     fn smoke() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         assert_eq!(repo.statuses(None).unwrap().len(), 0);
         File::create(&td.path().join("foo")).unwrap();
         let statuses = repo.statuses(None).unwrap();
         assert_eq!(statuses.iter().count(), 1);
         let status = statuses.iter().next().unwrap();
         assert_eq!(status.path(), Some("foo"));
-        assert!(status.status().contains(::Status::WT_NEW));
-        assert!(!status.status().contains(::Status::INDEX_NEW));
+        assert!(status.status().contains(crate::Status::WT_NEW));
+        assert!(!status.status().contains(crate::Status::INDEX_NEW));
         assert!(status.head_to_index().is_none());
         let diff = status.index_to_workdir().unwrap();
         assert_eq!(diff.old_file().path_bytes().unwrap(), b"foo");
@@ -375,12 +375,11 @@ mod tests {
 
     #[test]
     fn filter() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(File::create(&td.path().join("foo")));
         t!(File::create(&td.path().join("bar")));
         let mut opts = StatusOptions::new();
-        opts.include_untracked(true)
-            .pathspec("foo");
+        opts.include_untracked(true).pathspec("foo");
 
         let statuses = t!(repo.statuses(Some(&mut opts)));
         assert_eq!(statuses.iter().count(), 1);
@@ -390,7 +389,7 @@ mod tests {
 
     #[test]
     fn gitignore() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         t!(t!(File::create(td.path().join(".gitignore"))).write_all(b"foo\n"));
         assert!(!t!(repo.status_should_ignore(Path::new("bar"))));
         assert!(t!(repo.status_should_ignore(Path::new("foo"))));
@@ -398,7 +397,7 @@ mod tests {
 
     #[test]
     fn status_file() {
-        let (td, repo) = ::test::repo_init();
+        let (td, repo) = crate::test::repo_init();
         assert!(repo.status_file(Path::new("foo")).is_err());
         if cfg!(windows) {
             assert!(repo.status_file(Path::new("bar\\foo.txt")).is_err());
@@ -409,10 +408,10 @@ mod tests {
             t!(File::create(td.path().join("bar").join("foo.txt")));
         }
         let status = t!(repo.status_file(Path::new("foo")));
-        assert!(status.contains(::Status::WT_NEW));
+        assert!(status.contains(crate::Status::WT_NEW));
         if cfg!(windows) {
             let status = t!(repo.status_file(Path::new("bar\\foo.txt")));
-            assert!(status.contains(::Status::WT_NEW));
+            assert!(status.contains(crate::Status::WT_NEW));
         }
     }
 }

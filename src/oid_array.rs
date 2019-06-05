@@ -2,11 +2,11 @@
 
 use std::ops::Deref;
 
-use oid::Oid;
-use raw;
-use util::Binding;
-use std::slice;
+use crate::oid::Oid;
+use crate::raw;
+use crate::util::Binding;
 use std::mem;
+use std::slice;
 
 /// An oid array structure used by libgit2
 ///
@@ -23,7 +23,7 @@ impl Deref for OidArray {
     fn deref(&self) -> &[Oid] {
         unsafe {
             debug_assert_eq!(mem::size_of::<Oid>(), mem::size_of_val(&*self.raw.ids));
-            
+
             slice::from_raw_parts(self.raw.ids as *const Oid, self.raw.count as usize)
         }
     }
@@ -34,12 +34,14 @@ impl Binding for OidArray {
     unsafe fn from_raw(raw: raw::git_oidarray) -> OidArray {
         OidArray { raw: raw }
     }
-    fn raw(&self) -> raw::git_oidarray { self.raw }
+    fn raw(&self) -> raw::git_oidarray {
+        self.raw
+    }
 }
 
-impl<'repo> ::std::fmt::Debug for OidArray {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-		f.debug_tuple("OidArray").field(&self.deref()).finish()
+impl<'repo> std::fmt::Debug for OidArray {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.debug_tuple("OidArray").field(&self.deref()).finish()
     }
 }
 

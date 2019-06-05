@@ -14,15 +14,11 @@
 
 #![deny(warnings)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
 use std::io::{self, Write};
 
 use docopt::Docopt;
-use git2::{Repository, ObjectType, Blob, Commit, Signature, Tag, Tree};
+use git2::{Blob, Commit, ObjectType, Repository, Signature, Tag, Tree};
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct Args {
@@ -38,9 +34,9 @@ struct Args {
 
 fn run(args: &Args) -> Result<(), git2::Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
-    let repo = try!(Repository::open(path));
+    let repo = Repository::open(path)?;
 
-    let obj = try!(repo.revparse_single(&args.arg_object));
+    let obj = repo.revparse_single(&args.arg_object)?;
     if args.flag_v && !args.flag_q {
         println!("{} {}\n--", obj.kind().unwrap().str(), obj.id());
     }
@@ -63,9 +59,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
             Some(ObjectType::Tree) => {
                 show_tree(obj.as_tree().unwrap());
             }
-            Some(ObjectType::Any) | None => {
-                println!("unknown {}", obj.id())
-            }
+            Some(ObjectType::Any) | None => println!("unknown {}", obj.id()),
         }
     }
     Ok(())
@@ -100,26 +94,41 @@ fn show_tag(tag: &Tag) {
 
 fn show_tree(tree: &Tree) {
     for entry in tree.iter() {
-        println!("{:06o} {} {}\t{}",
-                 entry.filemode(),
-                 entry.kind().unwrap().str(),
-                 entry.id(),
-                 entry.name().unwrap());
+        println!(
+            "{:06o} {} {}\t{}",
+            entry.filemode(),
+            entry.kind().unwrap().str(),
+            entry.id(),
+            entry.name().unwrap()
+        );
     }
 }
 
 fn show_sig(header: &str, sig: Option<Signature>) {
-    let sig = match sig { Some(s) => s, None => return };
+    let sig = match sig {
+        Some(s) => s,
+        None => return,
+    };
     let offset = sig.when().offset_minutes();
-    let (sign, offset) = if offset < 0 {('-', -offset)} else {('+', offset)};
+    let (sign, offset) = if offset < 0 {
+        ('-', -offset)
+    } else {
+        ('+', offset)
+    };
     let (hours, minutes) = (offset / 60, offset % 60);
-    println!("{} {} {} {}{:02}{:02}",
-             header, sig, sig.when().seconds(), sign, hours, minutes);
-
+    println!(
+        "{} {} {} {}{:02}{:02}",
+        header,
+        sig,
+        sig.when().seconds(),
+        sign,
+        hours,
+        minutes
+    );
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: cat-file (-t | -s | -e | -p) [options] <object>
 
 Options:
@@ -133,8 +142,9 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

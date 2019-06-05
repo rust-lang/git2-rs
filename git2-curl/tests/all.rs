@@ -1,12 +1,5 @@
-extern crate conduit_git_http_backend as git_backend;
-extern crate git2_curl;
-extern crate civet;
-extern crate conduit;
-extern crate curl;
-extern crate git2;
-extern crate tempfile;
-
-use civet::{Server, Config};
+use civet::{Config, Server};
+use conduit_git_http_backend as git_backend;
 use std::fs::File;
 use std::path::Path;
 use tempfile::TempDir;
@@ -34,15 +27,20 @@ fn main() {
         index.add_path(Path::new("foo")).unwrap();
         index.write().unwrap();
         let tree_id = index.write_tree().unwrap();
-        r1.commit(Some("HEAD"), &sig, &sig, "test",
-                  &r1.find_tree(tree_id).unwrap(),
-                  &[]).unwrap();
+        r1.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            "test",
+            &r1.find_tree(tree_id).unwrap(),
+            &[],
+        )
+        .unwrap();
     }
 
     // Clone through the git-http-backend
     let td2 = TempDir::new().unwrap();
-    let r = git2::Repository::clone(&format!("http://localhost:{}", PORT),
-                                    td2.path()).unwrap();
+    let r = git2::Repository::clone(&format!("http://localhost:{}", PORT), td2.path()).unwrap();
     assert!(File::open(&td2.path().join("foo")).is_ok());
     {
         File::create(&td.path().join("bar")).unwrap();
@@ -52,13 +50,21 @@ fn main() {
         let tree_id = index.write_tree().unwrap();
         let parent = r1.head().ok().and_then(|h| h.target()).unwrap();
         let parent = r1.find_commit(parent).unwrap();
-        r1.commit(Some("HEAD"), &sig, &sig, "test",
-                  &r1.find_tree(tree_id).unwrap(),
-                  &[&parent]).unwrap();
+        r1.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            "test",
+            &r1.find_tree(tree_id).unwrap(),
+            &[&parent],
+        )
+        .unwrap();
     }
 
     let mut remote = r.find_remote("origin").unwrap();
-    remote.fetch(&["refs/heads/*:refs/heads/*"], None, None).unwrap();
+    remote
+        .fetch(&["refs/heads/*:refs/heads/*"], None, None)
+        .unwrap();
     let b = r.find_branch("master", git2::BranchType::Local).unwrap();
     let id = b.get().target().unwrap();
     let obj = r.find_object(id, None).unwrap();

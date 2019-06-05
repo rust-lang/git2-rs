@@ -1,8 +1,8 @@
-use {raw, panic, Oid, StashApplyProgress};
-use std::ffi::{CStr};
-use util::{Binding};
-use libc::{c_int, c_char, size_t, c_void};
-use build::{CheckoutBuilder};
+use crate::build::CheckoutBuilder;
+use crate::util::Binding;
+use crate::{panic, raw, Oid, StashApplyProgress};
+use libc::{c_char, c_int, c_void, size_t};
+use std::ffi::CStr;
 use std::mem;
 
 /// Stash application progress notification function.
@@ -20,7 +20,7 @@ pub type StashCb<'a> = dyn FnMut(usize, &str, &Oid) -> bool + 'a;
 pub struct StashApplyOptions<'cb> {
     progress: Option<Box<StashApplyProgressCb<'cb>>>,
     checkout_options: Option<CheckoutBuilder<'cb>>,
-    raw_opts: raw::git_stash_apply_options
+    raw_opts: raw::git_stash_apply_options,
 }
 
 impl<'cb> Default for StashApplyOptions<'cb> {
@@ -37,9 +37,10 @@ impl<'cb> StashApplyOptions<'cb> {
             checkout_options: None,
             raw_opts: unsafe { mem::zeroed() },
         };
-        assert_eq!(unsafe {
-            raw::git_stash_apply_init_options(&mut opts.raw_opts, 1)
-        }, 0);
+        assert_eq!(
+            unsafe { raw::git_stash_apply_init_options(&mut opts.raw_opts, 1) },
+            0
+        );
         opts
     }
 
@@ -60,7 +61,8 @@ impl<'cb> StashApplyOptions<'cb> {
     /// Return `true` to continue processing, or `false` to
     /// abort the stash application.
     pub fn progress_cb<C>(&mut self, callback: C) -> &mut StashApplyOptions<'cb>
-        where C: FnMut(StashApplyProgress) -> bool + 'cb
+    where
+        C: FnMut(StashApplyProgress) -> bool + 'cb,
     {
         self.progress = Some(Box::new(callback) as Box<StashApplyProgressCb<'cb>>);
         self.raw_opts.progress_cb = stash_apply_progress_cb;
@@ -81,27 +83,34 @@ impl<'cb> StashApplyOptions<'cb> {
 
 #[allow(unused)]
 pub struct StashCbData<'a> {
-    pub callback: &'a mut StashCb<'a>
+    pub callback: &'a mut StashCb<'a>,
 }
 
 #[allow(unused)]
-pub extern fn stash_cb(index: size_t,
-                        message: *const c_char,
-                        stash_id: *const raw::git_oid,
-                        payload: *mut c_void)
-                        -> c_int
-{
+pub extern "C" fn stash_cb(
+    index: size_t,
+    message: *const c_char,
+    stash_id: *const raw::git_oid,
+    payload: *mut c_void,
+) -> c_int {
     panic::wrap(|| unsafe {
-        let mut data = &mut *(payload as *mut StashCbData);
+        let mut data = &mut *(payload as *mut StashCbData<'_>);
         let res = {
             let mut callback = &mut data.callback;
-            callback(index,
-                     CStr::from_ptr(message).to_str().unwrap(),
-                     &Binding::from_raw(stash_id))
+            callback(
+                index,
+                CStr::from_ptr(message).to_str().unwrap(),
+                &Binding::from_raw(stash_id),
+            )
         };
 
-        if res { 0 } else { 1 }
-    }).unwrap_or(1)
+        if res {
+            0
+        } else {
+            1
+        }
+    })
+    .unwrap_or(1)
 }
 
 fn convert_progress(progress: raw::git_stash_apply_progress_t) -> StashApplyProgress {
@@ -115,48 +124,59 @@ fn convert_progress(progress: raw::git_stash_apply_progress_t) -> StashApplyProg
         raw::GIT_STASH_APPLY_PROGRESS_CHECKOUT_MODIFIED => StashApplyProgress::CheckoutModified,
         raw::GIT_STASH_APPLY_PROGRESS_DONE => StashApplyProgress::Done,
 
-        _ => StashApplyProgress::None
+        _ => StashApplyProgress::None,
     }
 }
 
 #[allow(unused)]
-extern fn stash_apply_progress_cb(progress: raw::git_stash_apply_progress_t,
-                                  payload: *mut c_void)
-                                  -> c_int
-{
+extern "C" fn stash_apply_progress_cb(
+    progress: raw::git_stash_apply_progress_t,
+    payload: *mut c_void,
+) -> c_int {
     panic::wrap(|| unsafe {
-        let mut options = &mut *(payload as *mut StashApplyOptions);
+        let mut options = &mut *(payload as *mut StashApplyOptions<'_>);
         let res = {
             let mut callback = options.progress.as_mut().unwrap();
             callback(convert_progress(progress))
         };
 
-        if res { 0 } else { -1 }
-    }).unwrap_or(-1)
+        if res {
+            0
+        } else {
+            -1
+        }
+    })
+    .unwrap_or(-1)
 }
 
 #[cfg(test)]
 mod tests {
-    use stash::{StashApplyOptions};
-    use std::io::{Write};
+    use crate::stash::StashApplyOptions;
+    use crate::test::repo_init;
+    use crate::{Repository, StashFlags, Status};
     use std::fs;
+    use std::io::Write;
     use std::path::Path;
-    use test::{repo_init};
-    use {Repository, Status, StashFlags};
 
-    fn make_stash<C>(next: C) where C: FnOnce(&mut Repository) {
+    fn make_stash<C>(next: C)
+    where
+        C: FnOnce(&mut Repository),
+    {
         let (_td, mut repo) = repo_init();
         let signature = repo.signature().unwrap();
 
         let p = Path::new(repo.workdir().unwrap()).join("file_b.txt");
         println!("using path {:?}", p);
-        fs::File::create(&p).unwrap()
-            .write("data".as_bytes()).unwrap();
+        fs::File::create(&p)
+            .unwrap()
+            .write("data".as_bytes())
+            .unwrap();
 
         let rel_p = Path::new("file_b.txt");
         assert!(repo.status_file(&rel_p).unwrap() == Status::WT_NEW);
 
-        repo.stash_save(&signature, "msg1", Some(StashFlags::INCLUDE_UNTRACKED)).unwrap();
+        repo.stash_save(&signature, "msg1", Some(StashFlags::INCLUDE_UNTRACKED))
+            .unwrap();
 
         assert!(repo.status_file(&rel_p).is_err());
 
@@ -166,7 +186,8 @@ mod tests {
             assert!(index == 0);
             assert!(name == "On master: msg1");
             true
-        }).unwrap();
+        })
+        .unwrap();
 
         assert!(count == 1);
         next(&mut repo);
@@ -174,7 +195,11 @@ mod tests {
 
     fn count_stash(repo: &mut Repository) -> usize {
         let mut count = 0;
-        repo.stash_foreach(|_, _, _| { count += 1; true }).unwrap();
+        repo.stash_foreach(|_, _, _| {
+            count += 1;
+            true
+        })
+        .unwrap();
         count
     }
 

@@ -1,10 +1,10 @@
+use libc::{c_char, c_int, size_t};
 use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};
 use std::iter::IntoIterator;
 use std::path::{Path, PathBuf};
-use libc::{c_char, c_int, size_t};
 
-use {raw, Error};
+use crate::{raw, Error};
 
 #[doc(hidden)]
 pub trait IsNull {
@@ -29,7 +29,9 @@ pub trait Binding: Sized {
     fn raw(&self) -> Self::Raw;
 
     unsafe fn from_raw_opt<T>(raw: T) -> Option<Self>
-        where T: Copy + IsNull, Self: Binding<Raw=T>
+    where
+        T: Copy + IsNull,
+        Self: Binding<Raw = T>,
     {
         if raw.is_ptr_null() {
             None
@@ -39,11 +41,17 @@ pub trait Binding: Sized {
     }
 }
 
-pub fn iter2cstrs<T, I>(iter: I) -> Result<(Vec<CString>, Vec<*const c_char>,
-                                            raw::git_strarray), Error>
-    where T: IntoCString, I: IntoIterator<Item=T>
+pub fn iter2cstrs<T, I>(
+    iter: I,
+) -> Result<(Vec<CString>, Vec<*const c_char>, raw::git_strarray), Error>
+where
+    T: IntoCString,
+    I: IntoIterator<Item = T>,
 {
-    let cstrs: Vec<_> = try!(iter.into_iter().map(|i| i.into_c_string()).collect());
+    let cstrs = iter
+        .into_iter()
+        .map(|i| i.into_c_string())
+        .collect::<Result<Vec<CString>, _>>()?;
     let ptrs = cstrs.iter().map(|i| i.as_ptr()).collect::<Vec<_>>();
     let raw = raw::git_strarray {
         strings: ptrs.as_ptr() as *mut _,
@@ -80,18 +88,20 @@ impl<'a, T: IntoCString + Clone> IntoCString for &'a T {
 
 impl<'a> IntoCString for &'a str {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self)))
+        Ok(CString::new(self)?)
     }
 }
 
 impl IntoCString for String {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self.into_bytes())))
+        Ok(CString::new(self.into_bytes())?)
     }
 }
 
 impl IntoCString for CString {
-    fn into_c_string(self) -> Result<CString, Error> { Ok(self) }
+    fn into_c_string(self) -> Result<CString, Error> {
+        Ok(self)
+    }
 }
 
 impl<'a> IntoCString for &'a Path {
@@ -119,36 +129,39 @@ impl IntoCString for OsString {
     fn into_c_string(self) -> Result<CString, Error> {
         use std::os::unix::prelude::*;
         let s: &OsStr = self.as_ref();
-        Ok(try!(CString::new(s.as_bytes())))
+        Ok(CString::new(s.as_bytes())?)
     }
     #[cfg(windows)]
     fn into_c_string(self) -> Result<CString, Error> {
         match self.to_str() {
             Some(s) => s.into_c_string(),
-            None => Err(Error::from_str("only valid unicode paths are accepted \
-                                         on windows")),
+            None => Err(Error::from_str(
+                "only valid unicode paths are accepted \
+                 on windows",
+            )),
         }
     }
 }
 
 impl<'a> IntoCString for &'a [u8] {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self)))
+        Ok(CString::new(self)?)
     }
 }
 
 impl IntoCString for Vec<u8> {
     fn into_c_string(self) -> Result<CString, Error> {
-        Ok(try!(CString::new(self)))
+        Ok(CString::new(self)?)
     }
 }
 
 pub fn into_opt_c_string<S>(opt_s: Option<S>) -> Result<Option<CString>, Error>
-    where S: IntoCString
+where
+    S: IntoCString,
 {
     match opt_s {
         None => Ok(None),
-        Some(s) => Ok(Some(try!(s.into_c_string()))),
+        Some(s) => Ok(Some(s.into_c_string()?)),
     }
 }
 

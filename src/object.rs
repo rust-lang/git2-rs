@@ -2,9 +2,9 @@ use std::marker;
 use std::mem;
 use std::ptr;
 
-use {raw, Oid, ObjectType, Error, Buf, Commit, Tag, Blob, Tree, Repository};
-use {Describe, DescribeOptions};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, Blob, Buf, Commit, Error, ObjectType, Oid, Repository, Tag, Tree};
+use crate::{Describe, DescribeOptions};
 
 /// A structure to represent a git [object][1]
 ///
@@ -17,9 +17,7 @@ pub struct Object<'repo> {
 impl<'repo> Object<'repo> {
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
-        unsafe {
-            Binding::from_raw(raw::git_object_id(&*self.raw))
-        }
+        unsafe { Binding::from_raw(raw::git_object_id(&*self.raw)) }
     }
 
     /// Get the object type of an object.
@@ -44,22 +42,26 @@ impl<'repo> Object<'repo> {
 
     /// Recursively peel an object until a blob is found
     pub fn peel_to_blob(&self) -> Result<Blob<'repo>, Error> {
-        self.peel(ObjectType::Blob).map(|o| o.cast_or_panic(ObjectType::Blob))
+        self.peel(ObjectType::Blob)
+            .map(|o| o.cast_or_panic(ObjectType::Blob))
     }
 
     /// Recursively peel an object until a commit is found
     pub fn peel_to_commit(&self) -> Result<Commit<'repo>, Error> {
-        self.peel(ObjectType::Commit).map(|o| o.cast_or_panic(ObjectType::Commit))
+        self.peel(ObjectType::Commit)
+            .map(|o| o.cast_or_panic(ObjectType::Commit))
     }
 
     /// Recursively peel an object until a tag is found
     pub fn peel_to_tag(&self) -> Result<Tag<'repo>, Error> {
-        self.peel(ObjectType::Tag).map(|o| o.cast_or_panic(ObjectType::Tag))
+        self.peel(ObjectType::Tag)
+            .map(|o| o.cast_or_panic(ObjectType::Tag))
     }
 
     /// Recursively peel an object until a tree is found
     pub fn peel_to_tree(&self) -> Result<Tree<'repo>, Error> {
-        self.peel(ObjectType::Tree).map(|o| o.cast_or_panic(ObjectType::Tree))
+        self.peel(ObjectType::Tree)
+            .map(|o| o.cast_or_panic(ObjectType::Tree))
     }
 
     /// Get a short abbreviated OID string for the object
@@ -135,8 +137,7 @@ impl<'repo> Object<'repo> {
     /// Describes a commit
     ///
     /// Performs a describe operation on this commitish object.
-    pub fn describe(&self, opts: &DescribeOptions)
-                    -> Result<Describe, Error> {
+    pub fn describe(&self, opts: &DescribeOptions) -> Result<Describe<'_>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_describe_commit(&mut ret, self.raw, opts.raw()));
@@ -145,7 +146,7 @@ impl<'repo> Object<'repo> {
     }
 
     fn cast<T>(&self, kind: ObjectType) -> Option<&T> {
-        assert_eq!(mem::size_of::<Object>(), mem::size_of::<T>());
+        assert_eq!(mem::size_of::<Object<'_>>(), mem::size_of::<T>());
         if self.kind() == Some(kind) {
             unsafe { Some(&*(self as *const _ as *const T)) }
         } else {
@@ -190,7 +191,12 @@ impl<'repo> CastOrPanic for Object<'repo> {
                     &buf
                 }
             };
-            panic!("Expected object {} to be {} but it is {}", self.id(), kind.str(), akind)
+            panic!(
+                "Expected object {} to be {} but it is {}",
+                self.id(),
+                kind.str(),
+                akind
+            )
         }
     }
 }
@@ -206,12 +212,15 @@ impl<'repo> Clone for Object<'repo> {
     }
 }
 
-impl<'repo> ::std::fmt::Debug for Object<'repo> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+impl<'repo> std::fmt::Debug for Object<'repo> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Object");
         match self.kind() {
             Some(kind) => ds.field("kind", &kind),
-            None => ds.field("kind", &format!("Unknow ({})", unsafe { raw::git_object_type(&*self.raw) }))
+            None => ds.field(
+                "kind",
+                &format!("Unknow ({})", unsafe { raw::git_object_type(&*self.raw) }),
+            ),
         };
         ds.field("id", &self.id());
         ds.finish()
@@ -222,9 +231,14 @@ impl<'repo> Binding for Object<'repo> {
     type Raw = *mut raw::git_object;
 
     unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
-        Object { raw: raw, _marker: marker::PhantomData, }
+        Object {
+            raw: raw,
+            _marker: marker::PhantomData,
+        }
     }
-    fn raw(&self) -> *mut raw::git_object { self.raw }
+    fn raw(&self) -> *mut raw::git_object {
+        self.raw
+    }
 }
 
 impl<'repo> Drop for Object<'repo> {

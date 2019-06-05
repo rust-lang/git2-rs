@@ -1,13 +1,13 @@
+use libc;
 use std::ffi::CString;
+use std::fmt;
 use std::marker;
 use std::mem;
 use std::ptr;
 use std::str;
-use std::fmt;
-use libc;
 
-use {raw, Error, Time};
-use util::Binding;
+use crate::util::Binding;
+use crate::{raw, Error, Time};
 
 /// A Signature is used to indicate authorship of various actions throughout the
 /// library.
@@ -29,10 +29,10 @@ impl<'a> Signature<'a> {
     ///
     /// See `new` for more information
     pub fn now(name: &str, email: &str) -> Result<Signature<'static>, Error> {
-        ::init();
+        crate::init();
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
-        let email = try!(CString::new(email));
+        let name = CString::new(name)?;
+        let email = CString::new(email)?;
         unsafe {
             try_call!(raw::git_signature_now(&mut ret, name, email));
             Ok(Binding::from_raw(ret))
@@ -45,16 +45,19 @@ impl<'a> Signature<'a> {
     /// the time zone offset in minutes.
     ///
     /// Returns error if either `name` or `email` contain angle brackets.
-    pub fn new(name: &str, email: &str, time: &Time)
-               -> Result<Signature<'static>, Error> {
-        ::init();
+    pub fn new(name: &str, email: &str, time: &Time) -> Result<Signature<'static>, Error> {
+        crate::init();
         let mut ret = ptr::null_mut();
-        let name = try!(CString::new(name));
-        let email = try!(CString::new(email));
+        let name = CString::new(name)?;
+        let email = CString::new(email)?;
         unsafe {
-            try_call!(raw::git_signature_new(&mut ret, name, email,
-                                             time.seconds() as raw::git_time_t,
-                                             time.offset_minutes() as libc::c_int));
+            try_call!(raw::git_signature_new(
+                &mut ret,
+                name,
+                email,
+                time.seconds() as raw::git_time_t,
+                time.offset_minutes() as libc::c_int
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -68,7 +71,7 @@ impl<'a> Signature<'a> {
 
     /// Gets the name on the signature as a byte slice.
     pub fn name_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).name).unwrap() }
+        unsafe { crate::opt_bytes(self, (*self.raw).name).unwrap() }
     }
 
     /// Gets the email on the signature.
@@ -80,7 +83,7 @@ impl<'a> Signature<'a> {
 
     /// Gets the email on the signature as a byte slice.
     pub fn email_bytes(&self) -> &[u8] {
-        unsafe { ::opt_bytes(self, (*self.raw).email).unwrap() }
+        unsafe { crate::opt_bytes(self, (*self.raw).email).unwrap() }
     }
 
     /// Get the `when` of this signature.
@@ -107,7 +110,9 @@ impl<'a> Binding for Signature<'a> {
             owned: true,
         }
     }
-    fn raw(&self) -> *mut raw::git_signature { self.raw }
+    fn raw(&self) -> *mut raw::git_signature {
+        self.raw
+    }
 }
 
 /// Creates a new signature from the give raw pointer, tied to the lifetime
@@ -115,9 +120,7 @@ impl<'a> Binding for Signature<'a> {
 ///
 /// This function is unsafe as there is no guarantee that `raw` is valid for
 /// `'a` nor if it's a valid pointer.
-pub unsafe fn from_raw_const<'b, T>(_lt: &'b T,
-                                    raw: *const raw::git_signature)
-                                    -> Signature<'b> {
+pub unsafe fn from_raw_const<'b, T>(_lt: &'b T, raw: *const raw::git_signature) -> Signature<'b> {
     Signature {
         raw: raw as *mut raw::git_signature,
         _marker: marker::PhantomData,
@@ -145,18 +148,19 @@ impl<'a> Drop for Signature<'a> {
 }
 
 impl<'a> fmt::Display for Signature<'a> {
-
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} <{}>",
-               String::from_utf8_lossy(self.name_bytes()),
-               String::from_utf8_lossy(self.email_bytes()))
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} <{}>",
+            String::from_utf8_lossy(self.name_bytes()),
+            String::from_utf8_lossy(self.email_bytes())
+        )
     }
-
 }
 
 #[cfg(test)]
 mod tests {
-    use {Signature, Time};
+    use crate::{Signature, Time};
 
     #[test]
     fn smoke() {

@@ -66,63 +66,64 @@
 #![doc(html_root_url = "https://docs.rs/git2/0.6")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
+#![warn(rust_2018_idioms)]
 #![cfg_attr(test, deny(warnings))]
 
-extern crate libc;
-extern crate url;
-extern crate libgit2_sys as raw;
-#[macro_use] extern crate bitflags;
-#[macro_use] extern crate log;
-#[cfg(test)] extern crate tempdir;
+use bitflags::bitflags;
+use libgit2_sys as raw;
 
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::str;
 use std::sync::{Once, ONCE_INIT};
 
-pub use blame::{Blame, BlameHunk, BlameIter, BlameOptions};
-pub use blob::{Blob, BlobWriter};
-pub use branch::{Branch, Branches};
-pub use buf::Buf;
-pub use commit::{Commit, Parents};
-pub use config::{Config, ConfigEntry, ConfigEntries};
-pub use cred::{Cred, CredentialHelper};
-pub use describe::{Describe, DescribeFormatOptions, DescribeOptions};
-pub use diff::{Diff, DiffDelta, DiffFile, DiffOptions, Deltas};
-pub use diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
-pub use diff::{DiffLine, DiffHunk, DiffStats, DiffFindOptions};
-pub use error::Error;
-pub use index::{Index, IndexConflict, IndexConflicts, IndexEntry, IndexEntries, IndexMatchedPath};
-pub use merge::{AnnotatedCommit, MergeOptions};
-pub use message::{message_prettify, DEFAULT_COMMENT_CHAR};
-pub use note::{Note, Notes};
-pub use object::Object;
-pub use oid::Oid;
-pub use packbuilder::{PackBuilder, PackBuilderStage};
-pub use pathspec::{Pathspec, PathspecMatchList, PathspecFailedEntries};
-pub use pathspec::{PathspecDiffEntries, PathspecEntries};
-pub use patch::Patch;
-pub use proxy_options::ProxyOptions;
-pub use rebase::{Rebase, RebaseOptions, RebaseOperation, RebaseOperationType};
-pub use reference::{Reference, References, ReferenceNames};
-pub use reflog::{Reflog, ReflogEntry, ReflogIter};
-pub use refspec::Refspec;
-pub use remote::{Remote, RemoteConnection, Refspecs, RemoteHead, FetchOptions, PushOptions};
-pub use remote_callbacks::{RemoteCallbacks, Credentials, TransferProgress};
-pub use remote_callbacks::{TransportMessage, Progress, UpdateTips};
-pub use repo::{Repository, RepositoryInitOptions};
-pub use revspec::Revspec;
-pub use revwalk::Revwalk;
-pub use signature::Signature;
-pub use status::{StatusOptions, Statuses, StatusIter, StatusEntry, StatusShow};
-pub use stash::{StashApplyOptions, StashCb, StashApplyProgressCb};
-pub use submodule::{Submodule, SubmoduleUpdateOptions};
-pub use tag::Tag;
-pub use time::{Time, IndexTime};
-pub use tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
-pub use treebuilder::TreeBuilder;
-pub use odb::{Odb, OdbObject, OdbReader, OdbWriter};
-pub use util::IntoCString;
+pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
+pub use crate::blob::{Blob, BlobWriter};
+pub use crate::branch::{Branch, Branches};
+pub use crate::buf::Buf;
+pub use crate::commit::{Commit, Parents};
+pub use crate::config::{Config, ConfigEntries, ConfigEntry};
+pub use crate::cred::{Cred, CredentialHelper};
+pub use crate::describe::{Describe, DescribeFormatOptions, DescribeOptions};
+pub use crate::diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
+pub use crate::diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
+pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffStats};
+pub use crate::error::Error;
+pub use crate::index::{
+    Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
+};
+pub use crate::merge::{AnnotatedCommit, MergeOptions};
+pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR};
+pub use crate::note::{Note, Notes};
+pub use crate::object::Object;
+pub use crate::odb::{Odb, OdbObject, OdbReader, OdbWriter};
+pub use crate::oid::Oid;
+pub use crate::packbuilder::{PackBuilder, PackBuilderStage};
+pub use crate::patch::Patch;
+pub use crate::pathspec::{Pathspec, PathspecFailedEntries, PathspecMatchList};
+pub use crate::pathspec::{PathspecDiffEntries, PathspecEntries};
+pub use crate::proxy_options::ProxyOptions;
+pub use crate::rebase::{Rebase, RebaseOperation, RebaseOperationType, RebaseOptions};
+pub use crate::reference::{Reference, ReferenceNames, References};
+pub use crate::reflog::{Reflog, ReflogEntry, ReflogIter};
+pub use crate::refspec::Refspec;
+pub use crate::remote::{
+    FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead,
+};
+pub use crate::remote_callbacks::{Credentials, RemoteCallbacks, TransferProgress};
+pub use crate::remote_callbacks::{Progress, TransportMessage, UpdateTips};
+pub use crate::repo::{Repository, RepositoryInitOptions};
+pub use crate::revspec::Revspec;
+pub use crate::revwalk::Revwalk;
+pub use crate::signature::Signature;
+pub use crate::stash::{StashApplyOptions, StashApplyProgressCb, StashCb};
+pub use crate::status::{StatusEntry, StatusIter, StatusOptions, StatusShow, Statuses};
+pub use crate::submodule::{Submodule, SubmoduleUpdateOptions};
+pub use crate::tag::Tag;
+pub use crate::time::{IndexTime, Time};
+pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
+pub use crate::treebuilder::TreeBuilder;
+pub use crate::util::IntoCString;
 
 // Create a convinience method on bitflag struct which checks the given flag
 macro_rules! is_bit_set {
@@ -491,7 +492,10 @@ bitflags! {
 impl IndexAddOption {
     is_bit_set!(is_default, IndexAddOption::DEFAULT);
     is_bit_set!(is_force, IndexAddOption::FORCE);
-    is_bit_set!(is_disable_pathspec_match, IndexAddOption::DISABLE_PATHSPEC_MATCH);
+    is_bit_set!(
+        is_disable_pathspec_match,
+        IndexAddOption::DISABLE_PATHSPEC_MATCH
+    );
     is_bit_set!(is_check_pathspec, IndexAddOption::CHECK_PATHSPEC);
 }
 
@@ -594,15 +598,18 @@ impl MergePreference {
     is_bit_set!(is_fastforward_only, MergePreference::FASTFORWARD_ONLY);
 }
 
-#[cfg(test)] #[macro_use] mod test;
-#[macro_use] mod panic;
+#[cfg(test)]
+#[macro_use]
+mod test;
+#[macro_use]
+mod panic;
 mod call;
 mod util;
 
 pub mod build;
 pub mod cert;
-pub mod string_array;
 pub mod oid_array;
+pub mod string_array;
 pub mod transport;
 
 mod blame;
@@ -623,8 +630,8 @@ mod object;
 mod odb;
 mod oid;
 mod packbuilder;
-mod pathspec;
 mod patch;
+mod pathspec;
 mod proxy_options;
 mod rebase;
 mod reference;
@@ -636,9 +643,9 @@ mod repo;
 mod revspec;
 mod revwalk;
 mod signature;
+mod stash;
 mod status;
 mod submodule;
-mod stash;
 mod tag;
 mod time;
 mod tree;
@@ -654,10 +661,13 @@ fn init() {
     raw::init();
 }
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), feature = "https"))]
+#[cfg(all(
+    unix,
+    not(target_os = "macos"),
+    not(target_os = "ios"),
+    feature = "https"
+))]
 fn openssl_env_init() {
-    extern crate openssl_probe;
-
     // Currently, libgit2 leverages OpenSSL for SSL support when cloning
     // repositories over HTTPS. This means that we're picking up an OpenSSL
     // dependency on non-Windows platforms (where it has its own HTTPS
@@ -772,11 +782,15 @@ fn openssl_env_init() {
     openssl_probe::init_ssl_cert_env_vars();
 }
 
-#[cfg(any(windows, target_os = "macos", target_os = "ios", not(feature = "https")))]
+#[cfg(any(
+    windows,
+    target_os = "macos",
+    target_os = "ios",
+    not(feature = "https")
+))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<'a, T>(_anchor: &'a T,
-                           c: *const libc::c_char) -> Option<&'a [u8]> {
+unsafe fn opt_bytes<'a, T>(_anchor: &'a T, c: *const libc::c_char) -> Option<&'a [u8]> {
     if c.is_null() {
         None
     } else {
@@ -787,7 +801,7 @@ unsafe fn opt_bytes<'a, T>(_anchor: &'a T,
 fn opt_cstr<T: IntoCString>(o: Option<T>) -> Result<Option<CString>, Error> {
     match o {
         Some(s) => s.into_c_string().map(Some),
-        None => Ok(None)
+        None => Ok(None),
     }
 }
 
@@ -831,7 +845,7 @@ impl ObjectType {
 }
 
 impl fmt::Display for ObjectType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.str().fmt(f)
     }
 }
@@ -840,8 +854,8 @@ impl ReferenceType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         match self {
-            &ReferenceType::Direct => "direct",
-            &ReferenceType::Symbolic => "symbolic",
+            ReferenceType::Direct => "direct",
+            ReferenceType::Symbolic => "symbolic",
         }
     }
 
@@ -856,7 +870,7 @@ impl ReferenceType {
 }
 
 impl fmt::Display for ReferenceType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.str().fmt(f)
     }
 }

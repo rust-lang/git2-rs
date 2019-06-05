@@ -15,14 +15,10 @@
 #![deny(warnings)]
 #![allow(trivial_casts)]
 
-extern crate git2;
-extern crate docopt;
-#[macro_use]
-extern crate serde_derive;
-
-use std::path::Path;
 use docopt::Docopt;
 use git2::Repository;
+use serde_derive::Deserialize;
+use std::path::Path;
 
 #[derive(Deserialize)]
 struct Args {
@@ -33,21 +29,26 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = try!(Repository::open(&Path::new(".")));
-    let mut index = try!(repo.index());
+    let repo = Repository::open(&Path::new("."))?;
+    let mut index = repo.index()?;
 
     let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
         let status = repo.status_file(path).unwrap();
 
-        let ret = if status.contains(git2::Status::WT_MODIFIED) ||
-                     status.contains(git2::Status::WT_NEW) {
+        let ret = if status.contains(git2::Status::WT_MODIFIED)
+            || status.contains(git2::Status::WT_NEW)
+        {
             println!("add '{}'", path.display());
             0
         } else {
             1
         };
 
-        if args.flag_dry_run {1} else {ret}
+        if args.flag_dry_run {
+            1
+        } else {
+            ret
+        }
     };
     let cb = if args.flag_verbose || args.flag_update {
         Some(cb as &mut git2::IndexMatchedPath)
@@ -56,17 +57,17 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     };
 
     if args.flag_update {
-        try!(index.update_all(args.arg_spec.iter(), cb));
+        index.update_all(args.arg_spec.iter(), cb)?;
     } else {
-        try!(index.add_all(args.arg_spec.iter(), git2::IndexAddOption::DEFAULT, cb));
+        index.add_all(args.arg_spec.iter(), git2::IndexAddOption::DEFAULT, cb)?;
     }
 
-    try!(index.write());
+    index.write()?;
     Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
+    const USAGE: &str = "
 usage: add [options] [--] [<spec>..]
 
 Options:
@@ -76,8 +77,9 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE).and_then(|d| d.deserialize())
-                                 .unwrap_or_else(|e| e.exit());
+    let args = Docopt::new(USAGE)
+        .and_then(|d| d.deserialize())
+        .unwrap_or_else(|e| e.exit());
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
