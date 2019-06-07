@@ -269,7 +269,7 @@ impl CredentialHelper {
 
         if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
-        } else if cmd.starts_with('/') || cmd.starts_with('\\') || cmd[1..].starts_with(":\\") {
+        } else if cmd.contains("/") || cmd.contains("\\") {
             self.commands.push(cmd.to_string());
         } else {
             self.commands.push(format!("git credential-{}", cmd));
@@ -347,6 +347,7 @@ impl CredentialHelper {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        debug!("executing credential helper {:?}", c);
         let mut p = match c.spawn() {
             Ok(p) => p,
             Err(e) => {
@@ -360,6 +361,7 @@ impl CredentialHelper {
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped());
+                debug!("executing credential helper {:?}", c);
                 match c.spawn() {
                     Ok(p) => p,
                     Err(e) => {
