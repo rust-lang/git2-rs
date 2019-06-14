@@ -144,16 +144,17 @@ fn do_merge<'a>(
     // 2. Do the appopriate merge
     if analysis.0.is_fast_forward() {
         // do a fast forward
+        let refname = format!("refs/heads/{}", remote_branch);
         match repo.find_reference(remote_branch) {
-            Ok(r) => {
-                let head_commit = repo.reference_to_annotated_commit(&r)?;
-                fast_forward(&mut repo.find_reference(remote_branch)?, &head_commit)?;
+            Ok(mut r) => {
+                let ref_commit = repo.reference_to_annotated_commit(&r)?;
+                fast_forward(&mut r, &ref_commit)?;
+                repo.set_head(&refname)?;
             }
             Err(_) => {
                 // The branch doesn't exist so just set the reference to the
                 // commit direcly. Usually this is because you are pulling
                 // into an empty repository.
-                let refname = format!("refs/heads/{}", remote_branch);
                 repo.reference(
                     &refname,
                     fetch_commit.id(),
