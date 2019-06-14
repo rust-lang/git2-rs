@@ -64,27 +64,25 @@ fn do_fetch<'a>(
     println!("Fetching {} for repo", remote.name().unwrap());
     remote.fetch(refs, Some(&mut fo), None)?;
 
-    {
-        // If there are local objects (we got a thin pack), then tell the user
-        // how many objects we saved from having to cross the network.
-        let stats = remote.stats();
-        if stats.local_objects() > 0 {
-            println!(
-                "\rReceived {}/{} objects in {} bytes (used {} local \
-                 objects)",
-                stats.indexed_objects(),
-                stats.total_objects(),
-                stats.received_bytes(),
-                stats.local_objects()
-            );
-        } else {
-            println!(
-                "\rReceived {}/{} objects in {} bytes",
-                stats.indexed_objects(),
-                stats.total_objects(),
-                stats.received_bytes()
-            );
-        }
+    // If there are local objects (we got a thin pack), then tell the user
+    // how many objects we saved from having to cross the network.
+    let stats = remote.stats();
+    if stats.local_objects() > 0 {
+        println!(
+            "\rReceived {}/{} objects in {} bytes (used {} local \
+             objects)",
+            stats.indexed_objects(),
+            stats.total_objects(),
+            stats.received_bytes(),
+            stats.local_objects()
+        );
+    } else {
+        println!(
+            "\rReceived {}/{} objects in {} bytes",
+            stats.indexed_objects(),
+            stats.total_objects(),
+            stats.received_bytes()
+        );
     }
 
     let fetch_head = repo.find_reference("FETCH_HEAD")?;
