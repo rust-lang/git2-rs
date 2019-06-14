@@ -153,7 +153,7 @@ fn do_merge<'a>(
             }
             Err(_) => {
                 // The branch doesn't exist so just set the reference to the
-                // commit direcly. Usually this is because you are pulling
+                // commit directly. Usually this is because you are pulling
                 // into an empty repository.
                 repo.reference(
                     &refname,
