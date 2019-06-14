@@ -58,8 +58,9 @@ fn do_fetch<'a>(
 
     let mut fo = git2::FetchOptions::new();
     fo.remote_callbacks(cb);
-    fo.download_tags(git2::AutotagOption::All); // Always fetch all tags.
-                                                // Perform a download and also update tips
+    // Always fetch all tags.
+    // Perform a download and also update tips
+    fo.download_tags(git2::AutotagOption::All);
     println!("Fetching {} for repo", remote.name().unwrap());
     remote.fetch(refs, Some(&mut fo), None)?;
 
