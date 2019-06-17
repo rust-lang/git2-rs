@@ -59,6 +59,8 @@ fn main() {
     if windows {
         add_c_files(&mut cfg, "libgit2/src/win32".as_ref());
         cfg.define("STRSAFE_NO_DEPRECATE", None);
+        cfg.define("WIN32", None);
+        cfg.define("_WIN32_WINNT", Some("0x0600"));
 
         // libgit2's build system claims that forks like mingw-w64 of MinGW
         // still want this define to use C99 stdio functions automatically.
