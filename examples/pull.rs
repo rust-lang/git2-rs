@@ -104,13 +104,15 @@ fn normal_merge(
     local: &git2::AnnotatedCommit,
     remote: &git2::AnnotatedCommit,
 ) -> Result<(), git2::Error> {
-    let local_tree = repo.find_tree(local.id())?;
-    let remote_tree = repo.find_tree(remote.id())?;
-    let ancestor = repo.find_tree(repo.merge_base(local.id(), remote.id())?)?;
+    let local_tree = repo.find_commit(local.id())?.tree()?;
+    let remote_tree = repo.find_commit(remote.id())?.tree()?;
+    let ancestor = repo.find_commit(repo.merge_base(local.id(), remote.id())?)?.tree()?;
     let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
     if idx.has_conflicts() {
         println!("Merge conficts detected...");
+        repo.checkout_index(Some(&mut idx), None)?;
+        return Ok(());
     }
     let result_tree = repo.find_tree(idx.write_tree_to(repo)?)?;
     // now create the merge commit
