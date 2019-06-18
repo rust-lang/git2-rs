@@ -89,13 +89,20 @@ fn do_fetch<'a>(
     Ok(repo.reference_to_annotated_commit(&fetch_head)?)
 }
 
-fn fast_forward(lb: &mut git2::Reference, rc: &git2::AnnotatedCommit) -> Result<(), git2::Error> {
+fn fast_forward(repo: &Repository, lb: &mut git2::Reference, rc: &git2::AnnotatedCommit) -> Result<(), git2::Error> {
     let name = match lb.name() {
         Some(s) => s.to_string(),
         None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
     };
     let msg = format!("Fast-Forward: Setting {} to id: {}", name, rc.id());
+    println!("{}", msg);
     lb.set_target(rc.id(), &msg)?;
+    repo.set_head(&name)?;
+    repo.checkout_head(Some(git2::build::CheckoutBuilder::default()
+       // For some reason the force is required to make the working directory actually get updated
+       // I suspect we should be adding some logic to handle dirty working directory states
+       // but this is just an example so maybe not.
+       .force()))?;
     Ok(())
 }
 
@@ -106,7 +113,9 @@ fn normal_merge(
 ) -> Result<(), git2::Error> {
     let local_tree = repo.find_commit(local.id())?.tree()?;
     let remote_tree = repo.find_commit(remote.id())?.tree()?;
-    let ancestor = repo.find_commit(repo.merge_base(local.id(), remote.id())?)?.tree()?;
+    let ancestor = repo
+        .find_commit(repo.merge_base(local.id(), remote.id())?)?
+        .tree()?;
     let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
     if idx.has_conflicts() {
@@ -144,13 +153,12 @@ fn do_merge<'a>(
 
     // 2. Do the appopriate merge
     if analysis.0.is_fast_forward() {
+        println!("Doing a fast forward");
         // do a fast forward
         let refname = format!("refs/heads/{}", remote_branch);
-        match repo.find_reference(remote_branch) {
+        match repo.find_reference(&refname) {
             Ok(mut r) => {
-                let ref_commit = repo.reference_to_annotated_commit(&r)?;
-                fast_forward(&mut r, &ref_commit)?;
-                repo.set_head(&refname)?;
+                fast_forward(repo, &mut r, &fetch_commit)?;
             }
             Err(_) => {
                 // The branch doesn't exist so just set the reference to the
@@ -163,6 +171,10 @@ fn do_merge<'a>(
                     &format!("Setting {} to {}", remote_branch, fetch_commit.id()),
                 )?;
                 repo.set_head(&refname)?;
+                repo.checkout_head(Some(git2::build::CheckoutBuilder::default()
+                    .allow_conflicts(true)
+                    .conflict_style_merge(true)
+                    .force()))?;
             }
         };
     } else if analysis.0.is_normal() {
