@@ -2543,6 +2543,7 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
+    use crate::CherrypickOptions;
     use crate::{ObjectType, Oid, Repository, ResetType};
     use std::ffi::OsStr;
     use std::fs;
@@ -2976,7 +2977,9 @@ mod tests {
         // cherry-pick commit3 on top of commit1 in branch b
         repo.reset(commit1.as_object(), ResetType::Hard, None)
             .unwrap();
-        repo.cherrypick(&commit3, None).unwrap();
+        let mut cherrypick_opts = CherrypickOptions::new();
+        repo.cherrypick(&commit3, Some(&mut cherrypick_opts))
+            .unwrap();
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree_d = repo.find_tree(id).unwrap();
         let oid4 = repo

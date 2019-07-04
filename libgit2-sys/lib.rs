@@ -21,6 +21,7 @@ pub const GIT_PROXY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_SUBMODULE_UPDATE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_ODB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
+pub const GIT_CHERRYPICK_OPTIONS_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
