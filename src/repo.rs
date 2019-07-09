@@ -2354,12 +2354,13 @@ impl Repository {
         commit: &Commit<'_>,
         options: Option<&mut CherrypickOptions<'_>>,
     ) -> Result<(), Error> {
+        let raw_opts = options.map(|o| o.raw());
+        let ptr_raw_opts = match raw_opts.as_ref() {
+            Some(v) => v,
+            None => 0 as *const _,
+        };
         unsafe {
-            let raw_opts = match options {
-                Some(opts) => &opts.raw(),
-                None => 0 as *const _,
-            };
-            try_call!(raw::git_cherrypick(self.raw(), commit.raw(), raw_opts));
+            try_call!(raw::git_cherrypick(self.raw(), commit.raw(), ptr_raw_opts));
 
             Ok(())
         }

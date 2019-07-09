@@ -23,6 +23,8 @@ impl<'cb> CherrypickOptions<'cb> {
     }
 
     /// Set the mainline value
+    ///
+    /// For merge commits, the "mainline" is treated as the parent.
     pub fn mainline(&mut self, mainline: u32) -> &mut Self {
         self.mainline = mainline;
         self
