@@ -21,6 +21,7 @@ pub const GIT_PROXY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_SUBMODULE_UPDATE_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_ODB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
+pub const GIT_CHERRYPICK_OPTIONS_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -1565,6 +1566,14 @@ pub struct git_rebase_operation {
     pub kind: git_rebase_operation_t,
     pub id: git_oid,
     pub exec: *const c_char,
+}
+
+#[repr(C)]
+pub struct git_cherrypick_options {
+    pub version: c_uint,
+    pub mainline: c_uint,
+    pub merge_opts: git_merge_options,
+    pub checkout_opts: git_checkout_options,
 }
 
 extern "C" {
@@ -3343,6 +3352,15 @@ extern "C" {
     pub fn git_rebase_abort(rebase: *mut git_rebase) -> c_int;
     pub fn git_rebase_finish(rebase: *mut git_rebase, signature: *const git_signature) -> c_int;
     pub fn git_rebase_free(rebase: *mut git_rebase);
+
+    // cherrypick
+    pub fn git_cherrypick_init_options(opts: *mut git_cherrypick_options, version: c_uint)
+        -> c_int;
+    pub fn git_cherrypick(
+        repo: *mut git_repository,
+        commit: *mut git_commit,
+        options: *const git_cherrypick_options,
+    ) -> c_int;
 }
 
 pub fn init() {
