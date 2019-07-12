@@ -19,7 +19,7 @@ pub struct Commit<'repo> {
 /// An iterator over the parent commits of a commit.
 ///
 /// Aborts iteration when a commit cannot be found
-pub struct Parents<'commit, 'repo: 'commit> {
+pub struct Parents<'commit, 'repo> {
     range: Range<usize>,
     commit: &'commit Commit<'repo>,
 }

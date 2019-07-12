@@ -28,7 +28,7 @@ pub struct References<'repo> {
 }
 
 /// An iterator over the names of references in a repository.
-pub struct ReferenceNames<'repo: 'references, 'references> {
+pub struct ReferenceNames<'repo, 'references> {
     inner: &'references mut References<'repo>,
 }
 

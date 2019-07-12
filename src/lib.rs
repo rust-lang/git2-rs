@@ -75,7 +75,7 @@ use libgit2_sys as raw;
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::str;
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 
 pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use crate::blob::{Blob, BlobWriter};
@@ -654,7 +654,7 @@ mod tree;
 mod treebuilder;
 
 fn init() {
-    static INIT: Once = ONCE_INIT;
+    static INIT: Once = Once::new();
 
     INIT.call_once(|| {
         openssl_env_init();
