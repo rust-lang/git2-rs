@@ -2,6 +2,19 @@ trigger:
   - master
 
 jobs:
+  - job: rustfmt
+    pool:
+      vmImage: ubuntu-16.04
+    steps:
+      - template: ci/azure-install-rust.yml
+      - bash: |
+          set -ex
+          rustup component add rustfmt
+          cargo fmt --all -- --check
+        displayName: "rustfmt check"
+    variables:
+      TOOLCHAIN: stable
+
   - job: MSRV
     pool:
       vmImage: ubuntu-16.04
