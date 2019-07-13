@@ -132,29 +132,24 @@ fn main() {
 
         if windows {
             features.push_str("#define GIT_WINHTTP 1\n");
-            features.push_str("#define GIT_SHA1_WIN32 1\n");
-            cfg.file("libgit2/src/hash/sha1/win32.c");
         } else if target.contains("apple") {
             features.push_str("#define GIT_SECURE_TRANSPORT 1\n");
-            features.push_str("#define GIT_SHA1_COMMON_CRYPTO 1\n");
-            cfg.file("libgit2/src/hash/sha1/common_crypto.c");
         } else {
             features.push_str("#define GIT_OPENSSL 1\n");
-            features.push_str("#define GIT_SHA1_OPENSSL 1\n");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
             }
-            cfg.file("libgit2/src/hash/sha1/openssl.c");
         }
-    } else {
-        features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
-        cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
-        cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
-        cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
-        cfg.file("libgit2/src/hash/sha1/collisiondetect.c");
-        cfg.file("libgit2/src/hash/sha1/sha1dc/sha1.c");
-        cfg.file("libgit2/src/hash/sha1/sha1dc/ubc_check.c");
     }
+
+    // Use the CollisionDetection SHA1 implementation.
+    features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
+    cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
+    cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
+    cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
+    cfg.file("libgit2/src/hash/sha1/collisiondetect.c");
+    cfg.file("libgit2/src/hash/sha1/sha1dc/sha1.c");
+    cfg.file("libgit2/src/hash/sha1/sha1dc/ubc_check.c");
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
