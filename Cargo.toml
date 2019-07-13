@@ -17,7 +17,7 @@ categories = ["api-bindings"]
 edition = "2018"
 
 [badges]
-travis-ci = { repository = "rust-lang/git2-rs" }
+azure-devops = { project = "rust-lang/git2-rs", pipeline = "rust-lang.git2-rs", build="9" }
 
 [dependencies]
 url = "1.0"
