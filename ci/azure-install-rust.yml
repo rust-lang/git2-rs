@@ -1,23 +1,33 @@
 steps:
+  # Rustup is currently installed on Windows and Linux, but not macOS.
+  # It is installed in /usr/local/cargo/bin/ or C:\Program Files\Rust\.cargo\bin\
+  # This steps ensures that rustup is installed, mainly for macOS, or if the
+  # azure image changes in the future.
   - bash: |
-      set -e
-      toolchain=$TOOLCHAIN
-      if [ "$toolchain" = "" ]; then
-        toolchain=stable
+      set -ex
+      if [ -x "`command -v rustup`" ]; then
+        echo `command -v rustup` `rustup -V` already installed
+        rustup self update
+      else
+        if [ "$Agent.OS" = "Windows_NT" ]; then
+          curl -sSf -o rustup-init.exe https://win.rustup.rs
+          rustup-init.exe -y --default-toolchain $TOOLCHAIN
+          echo ##vso[task.prependpath]$USERPROFILE\.cargo\bin
+        else
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $TOOLCHAIN
+          echo "##vso[task.prependpath]$HOME/.cargo/bin"
+        fi
       fi
-      curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $toolchain
-      echo "##vso[task.prependpath]$HOME/.cargo/bin"
-    displayName: Install rust (unix)
-    condition: ne( variables['Agent.OS'], 'Windows_NT' )
+    displayName: Install rustup
 
-  - script: |
-      curl -sSf -o rustup-init.exe https://win.rustup.rs
-      rustup-init.exe -y --default-toolchain stable-%TARGET%
-      echo ##vso[task.prependpath]%USERPROFILE%\.cargo\bin
-    displayName: Install rust (windows)
-    condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  - bash: |
+      set -ex
+      rustup update $TOOLCHAIN
+      rustup default $TOOLCHAIN
+    displayName: Install rust
 
-  - script: |
-        rustc -Vv
-        cargo -V
+  - bash: |
+      set -ex
+      rustc -Vv
+      cargo -V
     displayName: Query rust and cargo versions

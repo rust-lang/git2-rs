@@ -44,10 +44,8 @@ jobs:
       vmImage: macos-10.13
     steps:
       - template: ci/azure-test-all.yml
-    strategy:
-      matrix:
-        x86_64:
-          TARGET: x86_64-apple-darwin
+    variables:
+      TOOLCHAIN: stable
 
   - job: Windows
     pool:
@@ -57,6 +55,6 @@ jobs:
     strategy:
       matrix:
         x86_64-msvc:
-          TARGET: x86_64-pc-windows-msvc
+          TOOLCHAIN: stable-x86_64-pc-windows-msvc
         i686-msvc:
-          TARGET: i686-pc-windows-msvc
+          TOOLCHAIN: stable-i686-pc-windows-msvc
