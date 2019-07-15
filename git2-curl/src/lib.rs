@@ -24,7 +24,7 @@ use std::error;
 use std::io::prelude::*;
 use std::io::{self, Cursor};
 use std::str;
-use std::sync::{Arc, Mutex, Once, ONCE_INIT};
+use std::sync::{Arc, Mutex, Once};
 
 use curl::easy::{Easy, List};
 use git2::transport::SmartSubtransportStream;
@@ -69,7 +69,7 @@ struct CurlSubtransport {
 /// This function may be called concurrently, but only the first `handle` will
 /// be used. All others will be discarded.
 pub unsafe fn register(handle: Easy) {
-    static INIT: Once = ONCE_INIT;
+    static INIT: Once = Once::new();
 
     let handle = Arc::new(Mutex::new(handle));
     let handle2 = handle.clone();

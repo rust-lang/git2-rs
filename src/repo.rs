@@ -747,7 +747,7 @@ impl Repository {
 
     /// Load all submodules for this repository and return them.
     pub fn submodules(&self) -> Result<Vec<Submodule<'_>>, Error> {
-        struct Data<'a, 'b: 'a> {
+        struct Data<'a, 'b> {
             repo: &'b Repository,
             ret: &'a mut Vec<Submodule<'b>>,
         }

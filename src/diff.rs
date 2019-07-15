@@ -109,7 +109,7 @@ pub type BinaryCb<'a> = dyn FnMut(DiffDelta<'_>, DiffBinary<'_>) -> bool + 'a;
 pub type HunkCb<'a> = dyn FnMut(DiffDelta<'_>, DiffHunk<'_>) -> bool + 'a;
 pub type LineCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
-struct ForeachCallbacks<'a, 'b: 'a, 'c, 'd: 'c, 'e, 'f: 'e, 'g, 'h: 'g> {
+struct ForeachCallbacks<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
     file: &'a mut FileCb<'b>,
     binary: Option<&'c mut BinaryCb<'d>>,
     hunk: Option<&'e mut HunkCb<'f>>,
