@@ -31,7 +31,7 @@ fn main() {
     fs::create_dir_all(&include).unwrap();
 
     // Copy over all header files
-    cp_r("libgit2/include".as_ref(), &include);
+    cp_r("libgit2/include", &include);
 
     cfg.include(&include)
         .include("libgit2/src")
@@ -39,25 +39,46 @@ fn main() {
         .warnings(false);
 
     // Include all cross-platform C files
-    add_c_files(&mut cfg, "libgit2/src".as_ref());
-    add_c_files(&mut cfg, "libgit2/src/xdiff".as_ref());
+    add_c_files(&mut cfg, "libgit2/src");
+    add_c_files(&mut cfg, "libgit2/src/xdiff");
 
     // These are activated by features, but they're all unconditionally always
     // compiled apparently and have internal #define's to make sure they're
     // compiled correctly.
-    add_c_files(&mut cfg, "libgit2/src/transports".as_ref());
-    add_c_files(&mut cfg, "libgit2/src/streams".as_ref());
+    add_c_files(&mut cfg, "libgit2/src/transports");
+    add_c_files(&mut cfg, "libgit2/src/streams");
 
     // Always use bundled http-parser for now
     cfg.include("libgit2/deps/http-parser")
         .file("libgit2/deps/http-parser/http_parser.c");
 
-    // Always use bundled regex for now
-    cfg.include("libgit2/deps/regex")
-        .file("libgit2/deps/regex/regex.c");
+    // Use the included PCRE regex backend.
+    //
+    // Ideally these defines would be specific to the pcre files (or placed in
+    // a config.h), but since libgit2 already has a config.h used for other
+    // reasons, just define on the command-line for everything. Perhaps there
+    // is some way with cc to have different instructions per-file?
+    cfg.define("GIT_REGEX_BUILTIN", "1")
+        .include("libgit2/deps/pcre")
+        .define("HAVE_STDINT_H", Some("1"))
+        .define("HAVE_MEMMOVE", Some("1"))
+        .define("NO_RECURSE", Some("1"))
+        .define("NEWLINE", Some("10"))
+        .define("POSIX_MALLOC_THRESHOLD", Some("10"))
+        .define("LINK_SIZE", Some("2"))
+        .define("PARENS_NEST_LIMIT", Some("250"))
+        .define("MATCH_LIMIT", Some("10000000"))
+        .define("MATCH_LIMIT_RECURSION", Some("MATCH_LIMIT"))
+        .define("MAX_NAME_SIZE", Some("32"))
+        .define("MAX_NAME_COUNT", Some("10000"));
+    // "no symbols" warning on pcre_string_utils.c is because it is only used
+    // when when COMPILE_PCRE8 is not defined, which is the default.
+    add_c_files(&mut cfg, "libgit2/deps/pcre");
+
+    cfg.file("libgit2/src/allocators/stdalloc.c");
 
     if windows {
-        add_c_files(&mut cfg, "libgit2/src/win32".as_ref());
+        add_c_files(&mut cfg, "libgit2/src/win32");
         cfg.define("STRSAFE_NO_DEPRECATE", None);
         cfg.define("WIN32", None);
         cfg.define("_WIN32_WINNT", Some("0x0600"));
@@ -69,7 +90,7 @@ fn main() {
             cfg.define("__USE_MINGW_ANSI_STDIO", "1");
         }
     } else {
-        add_c_files(&mut cfg, "libgit2/src/unix".as_ref());
+        add_c_files(&mut cfg, "libgit2/src/unix");
         cfg.flag("-fvisibility=hidden");
     }
     if target.contains("solaris") {
@@ -111,26 +132,24 @@ fn main() {
 
         if windows {
             features.push_str("#define GIT_WINHTTP 1\n");
-            features.push_str("#define GIT_SHA1_WIN32 1\n");
-            cfg.file("libgit2/src/hash/hash_win32.c");
         } else if target.contains("apple") {
             features.push_str("#define GIT_SECURE_TRANSPORT 1\n");
-            features.push_str("#define GIT_SHA1_COMMON_CRYPTO 1\n");
         } else {
             features.push_str("#define GIT_OPENSSL 1\n");
-            features.push_str("#define GIT_SHA1_OPENSSL 1\n");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
             }
         }
-    } else {
-        features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
-        cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
-        cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
-        cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
-        cfg.file("libgit2/src/hash/sha1dc/sha1.c");
-        cfg.file("libgit2/src/hash/sha1dc/ubc_check.c");
     }
+
+    // Use the CollisionDetection SHA1 implementation.
+    features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
+    cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
+    cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
+    cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
+    cfg.file("libgit2/src/hash/sha1/collisiondetect.c");
+    cfg.file("libgit2/src/hash/sha1/sha1dc/sha1.c");
+    cfg.file("libgit2/src/hash/sha1/sha1dc/ubc_check.c");
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
@@ -162,11 +181,11 @@ fn main() {
     }
 }
 
-fn cp_r(from: &Path, to: &Path) {
-    for e in from.read_dir().unwrap() {
+fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
+    for e in from.as_ref().read_dir().unwrap() {
         let e = e.unwrap();
         let from = e.path();
-        let to = to.join(e.file_name());
+        let to = to.as_ref().join(e.file_name());
         if e.file_type().unwrap().is_dir() {
             fs::create_dir_all(&to).unwrap();
             cp_r(&from, &to);
@@ -177,8 +196,8 @@ fn cp_r(from: &Path, to: &Path) {
     }
 }
 
-fn add_c_files(build: &mut cc::Build, path: &Path) {
-    for e in path.read_dir().unwrap() {
+fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
+    for e in path.as_ref().read_dir().unwrap() {
         let e = e.unwrap();
         let path = e.path();
         if e.file_type().unwrap().is_dir() {
