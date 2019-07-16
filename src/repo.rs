@@ -15,7 +15,7 @@ use crate::util::{self, Binding};
 use crate::CherrypickOptions;
 use crate::{
     init, raw, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
-    StashFlags,
+    StashFlags, AttrCheckFlags,
 };
 use crate::{
     AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore, SubmoduleStatus,
@@ -887,6 +887,22 @@ impl Repository {
         unsafe {
             try_call!(raw::git_repository_config(&mut raw, self.raw()));
             Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Get the value of a git attribute for a path as a string.
+    pub fn get_attr(&self, path: &Path, name: &str, flags: AttrCheckFlags) -> Result<Option<&str>, Error> {
+        Ok(self.get_attr_bytes(path, name, flags)?.and_then(|a| str::from_utf8(a).ok()))
+    }
+
+    /// Get the value of a git attribute for a path as a byte slice.
+    pub fn get_attr_bytes(&self, path: &Path, name: &str, flags: AttrCheckFlags) -> Result<Option<&[u8]>, Error> {
+        let mut ret = ptr::null();
+        let path = path.into_c_string()?;
+        let name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_attr_get(&mut ret, self.raw(), flags.bits(), path, name));
+            Ok(crate::opt_bytes(self, ret))
         }
     }
 
