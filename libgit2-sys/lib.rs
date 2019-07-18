@@ -806,6 +806,20 @@ pub struct git_writestream {
     pub free: extern "C" fn(*mut git_writestream),
 }
 
+git_enum! {
+    pub enum git_attr_value_t {
+        GIT_ATTR_VALUE_UNSPECIFIED = 0,
+        GIT_ATTR_VALUE_TRUE,
+        GIT_ATTR_VALUE_FALSE,
+        GIT_ATTR_VALUE_STRING,
+    }
+}
+
+pub const GIT_ATTR_CHECK_FILE_THEN_INDEX: u32 = 0;
+pub const GIT_ATTR_CHECK_INDEX_THEN_FILE: u32 = 1;
+pub const GIT_ATTR_CHECK_INDEX_ONLY: u32 = 2;
+pub const GIT_ATTR_CHECK_NO_SYSTEM: u32 = 1 << 2;
+
 #[repr(C)]
 pub struct git_cred {
     pub credtype: git_credtype_t,
@@ -2546,6 +2560,16 @@ extern "C" {
     ) -> c_int;
     pub fn git_config_snapshot(out: *mut *mut git_config, config: *mut git_config) -> c_int;
     pub fn git_config_entry_free(entry: *mut git_config_entry);
+
+    // attr
+    pub fn git_attr_get(
+        value_out: *mut *const c_char,
+        repo: *mut git_repository,
+        flags: u32,
+        path: *const c_char,
+        name: *const c_char,
+    ) -> c_int;
+    pub fn git_attr_value(value: *const c_char) -> git_attr_value_t;
 
     // cred
     pub fn git_cred_default_new(out: *mut *mut git_cred) -> c_int;

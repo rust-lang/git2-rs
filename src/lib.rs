@@ -1309,6 +1309,26 @@ impl Default for StashFlags {
     }
 }
 
+bitflags! {
+    #[allow(missing_docs)]
+    pub struct AttrCheckFlags: u32 {
+        /// Check the working directory, then the index.
+        const FILE_THEN_INDEX = raw::GIT_ATTR_CHECK_FILE_THEN_INDEX as u32;
+        /// Check the index, then the working directory.
+        const INDEX_THEN_FILE = raw::GIT_ATTR_CHECK_INDEX_THEN_FILE as u32;
+        /// Check the index only.
+        const INDEX_ONLY = raw::GIT_ATTR_CHECK_INDEX_ONLY as u32;
+        /// Do not use the system gitattributes file.
+        const NO_SYSTEM = raw::GIT_ATTR_CHECK_NO_SYSTEM as u32;
+    }
+}
+
+impl Default for AttrCheckFlags {
+    fn default() -> Self {
+        AttrCheckFlags::FILE_THEN_INDEX
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::ObjectType;
