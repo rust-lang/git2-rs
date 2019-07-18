@@ -807,7 +807,7 @@ pub struct git_writestream {
 }
 
 git_enum! {
-    pub enum git_attr_value_t: c_int {
+    pub enum git_attr_value_t {
         GIT_ATTR_VALUE_UNSPECIFIED = 0,
         GIT_ATTR_VALUE_TRUE,
         GIT_ATTR_VALUE_FALSE,
@@ -2562,7 +2562,13 @@ extern "C" {
     pub fn git_config_entry_free(entry: *mut git_config_entry);
 
     // attr
-    pub fn git_attr_get(value_out: *mut *const c_char, repo: *mut git_repository, flags: u32, path: *const c_char, name: *const c_char) -> c_int;
+    pub fn git_attr_get(
+        value_out: *mut *const c_char,
+        repo: *mut git_repository,
+        flags: u32,
+        path: *const c_char,
+        name: *const c_char,
+    ) -> c_int;
     pub fn git_attr_value(value: *const c_char) -> git_attr_value_t;
 
     // cred
