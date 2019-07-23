@@ -138,6 +138,13 @@ impl<'repo> PackBuilder<'repo> {
         Ok(())
     }
 
+    /// Set the number of threads to be used.
+    ///
+    /// Returns the number of threads to be used.
+    pub fn set_threads(&mut self, threads: u32) -> u32 {
+        unsafe { raw::git_packbuilder_set_threads(self.raw, threads) }
+    }
+
     /// Get the total number of objects the packbuilder will write out.
     pub fn object_count(&self) -> usize {
         unsafe { raw::git_packbuilder_object_count(self.raw) }
@@ -382,5 +389,14 @@ mod tests {
             t!(builder.write_buf(&mut Buf::new()));
         }
         assert_eq!(progress_called, false);
+    }
+
+    #[test]
+    fn set_threads() {
+        let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let used = builder.set_threads(4);
+        // Will be 1 if not compiled with threading.
+        assert!(used == 1 || used == 4);
     }
 }
