@@ -23,7 +23,7 @@ jobs:
       - script: cargo build
         displayName: "Build crate"
     variables:
-      TOOLCHAIN: 1.32.0
+      TOOLCHAIN: 1.33.0
 
   - job: Linux
     pool:
