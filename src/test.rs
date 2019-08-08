@@ -2,7 +2,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::ptr;
-use tempdir::TempDir;
+use tempfile::TempDir;
 use url::Url;
 
 use crate::Repository;
@@ -17,7 +17,7 @@ macro_rules! t {
 }
 
 pub fn repo_init() -> (TempDir, Repository) {
-    let td = TempDir::new("test").unwrap();
+    let td = TempDir::new().unwrap();
     let repo = Repository::init(td.path()).unwrap();
     {
         let mut config = repo.config().unwrap();

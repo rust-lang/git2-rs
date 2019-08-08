@@ -645,7 +645,7 @@ mod tests {
     use crate::{CheckoutNotificationType, Repository};
     use std::fs;
     use std::path::Path;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn smoke() {
@@ -655,7 +655,7 @@ mod tests {
 
     #[test]
     fn smoke2() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         Repository::init_bare(&td.path().join("bare")).unwrap();
         let url = if cfg!(unix) {
             format!("file://{}/bare", td.path().display())
@@ -675,8 +675,8 @@ mod tests {
     /// Issue regression test #365
     #[test]
     fn notify_callback() {
-        let td = TempDir::new("test").unwrap();
-        let cd = TempDir::new("external-checkout").unwrap();
+        let td = TempDir::new().unwrap();
+        let cd = TempDir::new().unwrap();
 
         {
             let repo = Repository::init(&td.path()).unwrap();

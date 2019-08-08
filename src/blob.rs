@@ -146,11 +146,11 @@ mod tests {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn buffer() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let id = repo.blob(&[5, 4, 6]).unwrap();
         let blob = repo.find_blob(id).unwrap();
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn path() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let path = td.path().join("foo");
         File::create(&path).unwrap().write_all(&[7, 8, 9]).unwrap();
         let repo = Repository::init(td.path()).unwrap();
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn stream() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let mut ws = repo.blob_writer(Some(Path::new("foo"))).unwrap();
         let wl = ws.write(&[10, 11, 12]).unwrap();

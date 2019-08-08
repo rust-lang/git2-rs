@@ -281,7 +281,7 @@ impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
 mod tests {
     use std::fs;
     use std::path::Path;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use url::Url;
 
     use crate::Repository;
@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let mut s1 = repo
             .submodule("/path/to/nowhere", Path::new("foo"), true)

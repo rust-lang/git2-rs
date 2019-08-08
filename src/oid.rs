@@ -197,7 +197,7 @@ mod tests {
     use super::Error;
     use super::Oid;
     use crate::ObjectType;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn conversions() {
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn hash_file() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let path = td.path().join("hello.txt");
         let mut file = File::create(&path).unwrap();
         file.write_all("Hello".as_bytes()).unwrap();
