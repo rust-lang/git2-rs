@@ -2583,11 +2583,11 @@ mod tests {
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn smoke_init() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let path = td.path();
 
         let repo = Repository::init(path).unwrap();
@@ -2596,7 +2596,7 @@ mod tests {
 
     #[test]
     fn smoke_init_bare() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let path = td.path();
 
         let repo = Repository::init_bare(path).unwrap();
@@ -2606,7 +2606,7 @@ mod tests {
 
     #[test]
     fn smoke_open() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let path = td.path();
         Repository::init(td.path()).unwrap();
         let repo = Repository::open(path).unwrap();
@@ -2622,7 +2622,7 @@ mod tests {
 
     #[test]
     fn smoke_open_bare() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let path = td.path();
         Repository::init_bare(td.path()).unwrap();
 
@@ -2659,13 +2659,13 @@ mod tests {
 
     #[test]
     fn makes_dirs() {
-        let td = TempDir::new("foo").unwrap();
+        let td = TempDir::new().unwrap();
         Repository::init(&td.path().join("a/b/c/d")).unwrap();
     }
 
     #[test]
     fn smoke_discover() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let subdir = td.path().join("subdi");
         fs::create_dir(&subdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
@@ -2678,7 +2678,7 @@ mod tests {
 
     #[test]
     fn smoke_open_ext() {
-        let td = TempDir::new("test").unwrap();
+        let td = TempDir::new().unwrap();
         let subdir = td.path().join("subdir");
         fs::create_dir(&subdir).unwrap();
         Repository::init(td.path()).unwrap();

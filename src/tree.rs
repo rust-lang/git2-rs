@@ -403,7 +403,7 @@ mod tests {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     pub struct TestTreeIter<'a> {
         entries: Vec<TreeEntry<'a>>,
