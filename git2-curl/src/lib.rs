@@ -15,7 +15,7 @@
 //! > **NOTE**: At this time this crate likely does not support a `git push`
 //! >           operation, only clones.
 
-#![doc(html_root_url = "https://docs.rs/git2-curl/0.10")]
+#![doc(html_root_url = "https://docs.rs/git2-curl/0.11")]
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![cfg_attr(test, deny(warnings))]

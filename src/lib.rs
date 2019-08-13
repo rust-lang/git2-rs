@@ -63,7 +63,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![doc(html_root_url = "https://docs.rs/git2/0.9")]
+#![doc(html_root_url = "https://docs.rs/git2/0.10")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
