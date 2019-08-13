@@ -1555,6 +1555,13 @@ pub type git_packbuilder_foreach_cb = extern "C" fn(*const c_void, size_t, *mut 
 
 pub type git_odb_foreach_cb = extern "C" fn(id: *const git_oid, payload: *mut c_void) -> c_int;
 
+pub type git_commit_signing_cb = extern "C" fn(
+    signature: *mut git_buf,
+    signature_field: *mut git_buf,
+    commit_content: *const c_char,
+    payload: *mut c_void,
+) -> c_int;
+
 pub const GIT_REBASE_NO_OPERATION: usize = usize::max_value();
 
 #[repr(C)]
@@ -1565,6 +1572,8 @@ pub struct git_rebase_options {
     pub rewrite_notes_ref: *const c_char,
     pub merge_options: git_merge_options,
     pub checkout_options: git_checkout_options,
+    pub signing_cb: git_commit_signing_cb,
+    pub payload: *mut c_void,
 }
 
 git_enum! {
