@@ -68,6 +68,7 @@
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![cfg_attr(test, deny(warnings))]
+#![allow(invalid_value)] // FIXME(#453)
 
 use bitflags::bitflags;
 use libgit2_sys as raw;
