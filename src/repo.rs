@@ -837,7 +837,7 @@ impl Repository {
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
         let mut ret = 0 as c_uint;
         let path = if cfg!(windows) {
-            // `git_status_file` dose not work with windows path separator
+            // `git_status_file` does not work with windows path separator
             // so we convert \ to /
             std::ffi::CString::new(path.to_string_lossy().replace('\\', "/"))?
         } else {
