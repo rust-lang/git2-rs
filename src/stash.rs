@@ -65,7 +65,7 @@ impl<'cb> StashApplyOptions<'cb> {
         C: FnMut(StashApplyProgress) -> bool + 'cb,
     {
         self.progress = Some(Box::new(callback) as Box<StashApplyProgressCb<'cb>>);
-        self.raw_opts.progress_cb = stash_apply_progress_cb;
+        self.raw_opts.progress_cb = Some(stash_apply_progress_cb);
         self.raw_opts.progress_payload = self as *mut _ as *mut _;
         self
     }
