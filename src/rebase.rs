@@ -86,7 +86,6 @@ impl<'cb> RebaseOptions<'cb> {
         unsafe {
             if let Some(opts) = self.merge_options.as_mut().take() {
                 ptr::copy_nonoverlapping(opts.raw(), &mut self.raw.merge_options, 1);
-                mem::forget(opts);
             }
             if let Some(opts) = self.checkout_options.as_mut() {
                 opts.configure(&mut self.raw.checkout_options);
