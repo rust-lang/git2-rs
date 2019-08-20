@@ -10,6 +10,7 @@ use crate::{raw, Error, Index, MergeOptions, Oid, Signature};
 /// Use to tell the rebase machinery how to operate.
 pub struct RebaseOptions<'cb> {
     raw: raw::git_rebase_options,
+    rewrite_notes_ref: Option<CString>,
     merge_options: Option<MergeOptions>,
     checkout_options: Option<CheckoutBuilder<'cb>>,
 }
@@ -25,6 +26,7 @@ impl<'cb> RebaseOptions<'cb> {
     pub fn new() -> RebaseOptions<'cb> {
         let mut opts = RebaseOptions {
             raw: unsafe { mem::zeroed() },
+            rewrite_notes_ref: None,
             merge_options: None,
             checkout_options: None,
         };
@@ -59,8 +61,7 @@ impl<'cb> RebaseOptions<'cb> {
     /// is set to false.  If `notes.rewriteRef` is also NULL, notes will
     /// not be rewritten.
     pub fn rewrite_notes_ref(&mut self, rewrite_notes_ref: &str) -> &mut RebaseOptions<'cb> {
-        let s = CString::new(rewrite_notes_ref).unwrap().as_ptr();
-        self.raw.rewrite_notes_ref = s;
+        self.rewrite_notes_ref = Some(CString::new(rewrite_notes_ref).unwrap());
         self
     }
 
@@ -90,6 +91,11 @@ impl<'cb> RebaseOptions<'cb> {
             if let Some(opts) = self.checkout_options.as_mut() {
                 opts.configure(&mut self.raw.checkout_options);
             }
+            self.raw.rewrite_notes_ref = self
+                .rewrite_notes_ref
+                .as_ref()
+                .map(|s| s.as_ptr())
+                .unwrap_or(ptr::null());
         }
         &self.raw
     }
