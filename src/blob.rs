@@ -34,7 +34,7 @@ impl<'repo> Blob<'repo> {
         }
     }
 
-    /// Get the size of this blob.
+    /// Get the size in bytes of the contents of this blob.
     pub fn size(&self) -> usize {
         unsafe { raw::git_blob_rawsize(&*self.raw) as usize }
     }
