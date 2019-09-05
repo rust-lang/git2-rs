@@ -1,6 +1,6 @@
 [package]
 name = "libgit2-sys"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
@@ -23,7 +23,7 @@ libz-sys = "1.0.22"
 
 [build-dependencies]
 pkg-config = "0.3.7"
-cc = { version = "1.0.25", features = ['parallel'] }
+cc = { version = "1.0.42", features = ['parallel'] }
 
 [target.'cfg(unix)'.dependencies]
 openssl-sys = { version = "0.9", optional = true }
