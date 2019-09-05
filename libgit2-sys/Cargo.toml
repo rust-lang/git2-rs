@@ -23,7 +23,7 @@ libz-sys = "1.0.22"
 
 [build-dependencies]
 pkg-config = "0.3.7"
-cc = "1.0.25"
+cc = { version = "1.0.25", features = ['parallel'] }
 
 [target.'cfg(unix)'.dependencies]
 openssl-sys = { version = "0.9", optional = true }
