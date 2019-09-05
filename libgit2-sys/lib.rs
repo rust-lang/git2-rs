@@ -2879,11 +2879,25 @@ extern "C" {
         two: *const git_oid,
     ) -> c_int;
 
+    pub fn git_merge_base_many(
+        out: *mut git_oid,
+        repo: *mut git_repository,
+        length: size_t,
+        input_array: *const git_oid,
+    ) -> c_int;
+
     pub fn git_merge_bases(
         out: *mut git_oidarray,
         repo: *mut git_repository,
         one: *const git_oid,
         two: *const git_oid,
+    ) -> c_int;
+
+    pub fn git_merge_bases_many(
+        out: *mut git_oidarray,
+        repo: *mut git_repository,
+        length: size_t,
+        input_array: *const git_oid,
     ) -> c_int;
 
     // pathspec

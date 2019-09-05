@@ -1973,6 +1973,23 @@ impl Repository {
         }
     }
 
+    /// Find a merge base given a list of commits
+    pub fn merge_base_many(&self, oids: &[Oid]) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+
+        unsafe {
+            try_call!(raw::git_merge_base_many(
+                &mut raw,
+                self.raw,
+                oids.len() as size_t,
+                oids.as_ptr() as *const raw::git_oid
+            ));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
     /// Find all merge bases between two commits
     pub fn merge_bases(&self, one: Oid, two: Oid) -> Result<OidArray, Error> {
         let mut arr = raw::git_oidarray {
@@ -1985,6 +2002,23 @@ impl Repository {
                 self.raw,
                 one.raw(),
                 two.raw()
+            ));
+            Ok(Binding::from_raw(arr))
+        }
+    }
+
+    /// Find all merge bases given a list of commits
+    pub fn merge_bases_many(&self, oids: &[Oid]) -> Result<OidArray, Error> {
+        let mut arr = raw::git_oidarray {
+            ids: ptr::null_mut(),
+            count: 0,
+        };
+        unsafe {
+            try_call!(raw::git_merge_bases_many(
+                &mut arr,
+                self.raw,
+                oids.len() as size_t,
+                oids.as_ptr() as *const raw::git_oid
             ));
             Ok(Binding::from_raw(arr))
         }
@@ -2802,6 +2836,98 @@ mod tests {
         assert_eq!(repo.head().unwrap().target().unwrap(), master_oid);
     }
 
+    /// create the following:
+    ///    /---o4
+    ///   /---o3
+    /// o1---o2
+    #[test]
+    fn smoke_merge_base() {
+        let (_td, repo) = graph_repo_init();
+        let sig = repo.signature().unwrap();
+
+        // let oid1 = head
+        let oid1 = repo.head().unwrap().target().unwrap();
+        let commit1 = repo.find_commit(oid1).unwrap();
+        println!("created oid1 {:?}", oid1);
+
+        repo.branch("branch_a", &commit1, true).unwrap();
+        repo.branch("branch_b", &commit1, true).unwrap();
+        repo.branch("branch_c", &commit1, true).unwrap();
+
+        // create commit oid2 on branch_a
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_a");
+        println!("using path {:?}", p);
+        fs::File::create(&p).unwrap();
+        index.add_path(Path::new("file_a")).unwrap();
+        let id_a = index.write_tree().unwrap();
+        let tree_a = repo.find_tree(id_a).unwrap();
+        let oid2 = repo
+            .commit(
+                Some("refs/heads/branch_a"),
+                &sig,
+                &sig,
+                "commit 2",
+                &tree_a,
+                &[&commit1],
+            )
+            .unwrap();
+        repo.find_commit(oid2).unwrap();
+        println!("created oid2 {:?}", oid2);
+
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+
+        // create commit oid3 on branch_b
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_b");
+        fs::File::create(&p).unwrap();
+        index.add_path(Path::new("file_b")).unwrap();
+        let id_b = index.write_tree().unwrap();
+        let tree_b = repo.find_tree(id_b).unwrap();
+        let oid3 = repo
+            .commit(
+                Some("refs/heads/branch_b"),
+                &sig,
+                &sig,
+                "commit 3",
+                &tree_b,
+                &[&commit1],
+            )
+            .unwrap();
+        repo.find_commit(oid3).unwrap();
+        println!("created oid3 {:?}", oid3);
+
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+
+        // create commit oid4 on branch_c
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_c");
+        fs::File::create(&p).unwrap();
+        index.add_path(Path::new("file_c")).unwrap();
+        let id_c = index.write_tree().unwrap();
+        let tree_c = repo.find_tree(id_c).unwrap();
+        let oid4 = repo
+            .commit(
+                Some("refs/heads/branch_c"),
+                &sig,
+                &sig,
+                "commit 3",
+                &tree_c,
+                &[&commit1],
+            )
+            .unwrap();
+        repo.find_commit(oid4).unwrap();
+        println!("created oid4 {:?}", oid4);
+
+        // the merge base of (oid2,oid3) should be oid1
+        let merge_base = repo.merge_base(oid2, oid3).unwrap();
+        assert_eq!(merge_base, oid1);
+
+        // the merge base of (oid2,oid3,oid4) should be oid1
+        let merge_base = repo.merge_base_many(&[oid2, oid3, oid4]).unwrap();
+        assert_eq!(merge_base, oid1);
+    }
+
     /// create an octopus:
     ///   /---o2-o4
     /// o1      X
@@ -2899,6 +3025,24 @@ mod tests {
 
         // merge bases of (oid4,oid5) should be (oid2,oid3)
         let merge_bases = repo.merge_bases(oid4, oid5).unwrap();
+        let mut found_oid2 = false;
+        let mut found_oid3 = false;
+        for mg in merge_bases.iter() {
+            println!("found merge base {:?}", mg);
+            if mg == &oid2 {
+                found_oid2 = true;
+            } else if mg == &oid3 {
+                found_oid3 = true;
+            } else {
+                assert!(false);
+            }
+        }
+        assert!(found_oid2);
+        assert!(found_oid3);
+        assert_eq!(merge_bases.len(), 2);
+
+        // merge bases of (oid4,oid5) should be (oid2,oid3)
+        let merge_bases = repo.merge_bases_many(&[oid4, oid5]).unwrap();
         let mut found_oid2 = false;
         let mut found_oid3 = false;
         for mg in merge_bases.iter() {
