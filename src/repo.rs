@@ -1980,13 +1980,11 @@ impl Repository {
         };
 
         unsafe {
-            let raw_oids = oids.iter().map(|oid| *oid.raw()).collect::<Vec<_>>();
-
             try_call!(raw::git_merge_base_many(
                 &mut raw,
                 self.raw,
                 oids.len() as size_t,
-                raw_oids.as_ptr()
+                oids.as_ptr() as *const raw::git_oid
             ));
             Ok(Binding::from_raw(&raw as *const _))
         }
@@ -2016,13 +2014,11 @@ impl Repository {
             count: 0,
         };
         unsafe {
-            let raw_oids = oids.iter().map(|oid| *oid.raw()).collect::<Vec<_>>();
-
             try_call!(raw::git_merge_bases_many(
                 &mut arr,
                 self.raw,
                 oids.len() as size_t,
-                raw_oids.as_ptr()
+                oids.as_ptr() as *const raw::git_oid
             ));
             Ok(Binding::from_raw(arr))
         }

@@ -11,6 +11,7 @@ use crate::util::{c_cmp_to_ordering, Binding};
 
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
+#[repr(C)]
 pub struct Oid {
     raw: raw::git_oid,
 }
