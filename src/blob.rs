@@ -34,6 +34,11 @@ impl<'repo> Blob<'repo> {
         }
     }
 
+    /// Get the size in bytes of the contents of this blob.
+    pub fn size(&self) -> usize {
+        unsafe { raw::git_blob_rawsize(&*self.raw) as usize }
+    }
+
     /// Casts this Blob to be usable as an `Object`
     pub fn as_object(&self) -> &Object<'repo> {
         unsafe { &*(self as *const _ as *const Object<'repo>) }
@@ -156,6 +161,7 @@ mod tests {
         let blob = repo.find_blob(id).unwrap();
 
         assert_eq!(blob.id(), id);
+        assert_eq!(blob.size(), 3);
         assert_eq!(blob.content(), [5, 4, 6]);
         assert!(blob.is_binary());
 
