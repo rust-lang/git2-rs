@@ -323,5 +323,4 @@ mod tests {
         assert_eq!(hunk.lines_in_hunk(), 0);
         assert!(!hunk.is_boundary())
     }
-
 }

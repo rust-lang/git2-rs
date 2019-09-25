@@ -68,7 +68,7 @@ fn main() {
     let b = r.find_branch("master", git2::BranchType::Local).unwrap();
     let id = b.get().target().unwrap();
     let obj = r.find_object(id, None).unwrap();
-    r.reset(&obj, git2::ResetType::Hard, None).unwrap();;
+    r.reset(&obj, git2::ResetType::Hard, None).unwrap();
 
     assert!(File::open(&td2.path().join("bar")).is_ok());
 }

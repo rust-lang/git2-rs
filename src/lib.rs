@@ -1339,5 +1339,4 @@ mod tests {
         assert_eq!(ObjectType::from_str("blob"), Some(ObjectType::Blob));
         assert!(ObjectType::Blob.is_loose());
     }
-
 }
