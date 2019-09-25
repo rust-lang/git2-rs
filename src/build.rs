@@ -719,5 +719,4 @@ mod tests {
         repo.checkout_index(Some(&mut index), Some(&mut checkout_opts))
             .unwrap();
     }
-
 }
