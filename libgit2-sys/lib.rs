@@ -80,13 +80,25 @@ pub enum git_patch {}
 pub enum git_rebase {}
 pub enum git_reflog {}
 pub enum git_reflog_entry {}
-pub enum git_describe_result {}
 pub enum git_packbuilder {}
 pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
 pub enum git_odb_writepack {}
 pub enum git_worktree {}
+enum s_commit_name {}
+enum s_possible_tag {}
+
+#[repr(C)]
+pub struct git_describe_result {
+    pub dirty: c_int,
+    pub exact_match: c_int,
+    pub fallback_to_id: c_int,
+    pub commit_id: git_oid,
+    pub repo: *mut git_repository,
+    name: *mut s_commit_name,
+    tag: *mut s_possible_tag,
+}
 
 #[repr(C)]
 pub struct git_revspec {
