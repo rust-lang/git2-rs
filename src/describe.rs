@@ -37,6 +37,10 @@ impl<'repo> Describe<'repo> {
         }
         Ok(String::from_utf8(buf.to_vec()).unwrap())
     }
+    /// Returns the dirty state of this describe result.
+    pub fn is_dirty(&self) -> bool {
+        unsafe { (*self.raw).dirty != 0 }
+    }
 }
 
 impl<'repo> Binding for Describe<'repo> {
@@ -188,6 +192,8 @@ mod tests {
         let d = t!(repo.describe(DescribeOptions::new().show_commit_oid_as_fallback(true)));
         let id = head.to_string();
         assert_eq!(t!(d.format(None)), &id[..7]);
+
+        assert_eq!(d.is_dirty(), false);
 
         let obj = t!(repo.find_object(head, None));
         let sig = t!(repo.signature());
