@@ -12,7 +12,7 @@ git2 = "0.10"
 ## Rust version requirements
 
 git2-rs works with stable Rust, and typically works with the most recent prior
-stable release as well. Check [azure-pipelines.yml](azure-pipelines.yml) to see the oldest
+stable release as well. Check the MSRV job of [the CI script](.github/workflows/main.yml) to see the oldest
 version of Rust known to pass tests.
 
 ## Version of libgit2
