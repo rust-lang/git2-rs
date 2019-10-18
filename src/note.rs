@@ -6,7 +6,7 @@ use crate::{raw, signature, Error, Oid, Repository, Signature};
 
 /// A structure representing a [note][note] in git.
 ///
-/// [note]: http://git-scm.com/blog/2010/08/25/notes.html
+/// [note]: http://alblue.bandlem.com/2011/11/git-tip-of-week-git-notes.html
 pub struct Note<'repo> {
     raw: *mut raw::git_note,
 
