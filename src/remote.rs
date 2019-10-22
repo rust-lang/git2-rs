@@ -224,9 +224,9 @@ impl<'repo> Remote<'repo> {
     /// let repo = git2::Repository::discover("rust").unwrap();
     /// fetch_origin_master(repo).unwrap();
     /// ```
-    pub fn fetch(
+    pub fn fetch<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
-        refspecs: &[&str],
+        refspecs: &[Str],
         opts: Option<&mut FetchOptions<'_>>,
         reflog_msg: Option<&str>,
     ) -> Result<(), Error> {
@@ -269,9 +269,9 @@ impl<'repo> Remote<'repo> {
     /// Note that you'll likely want to use `RemoteCallbacks` and set
     /// `push_update_reference` to test whether all the references were pushed
     /// successfully.
-    pub fn push(
+    pub fn push<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
-        refspecs: &[&str],
+        refspecs: &[Str],
         opts: Option<&mut PushOptions<'_>>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
@@ -667,8 +667,8 @@ mod tests {
         }
         assert!(!origin.connected());
 
-        origin.fetch(&[], None, None).unwrap();
-        origin.fetch(&[], None, Some("foo")).unwrap();
+        origin.fetch(&[] as &[&str], None, None).unwrap();
+        origin.fetch(&[] as &[&str], None, Some("foo")).unwrap();
         origin
             .update_tips(None, true, AutotagOption::Unspecified, None)
             .unwrap();
@@ -722,7 +722,7 @@ mod tests {
             });
             origin
                 .fetch(
-                    &[],
+                    &[] as &[&str],
                     Some(FetchOptions::new().remote_callbacks(callbacks)),
                     None,
                 )
