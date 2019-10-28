@@ -137,7 +137,7 @@ impl Cred {
 
     /// Create a credential to specify a username.
     ///
-    /// THis is used with ssh authentication to query for the username if non is
+    /// This is used with ssh authentication to query for the username if none is
     /// specified in the url.
     pub fn username(username: &str) -> Result<Cred, Error> {
         crate::init();
