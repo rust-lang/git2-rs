@@ -1,3 +1,7 @@
 target
 Cargo.lock
 src/main.rs
+
+#editor generated files
+.idea/
+*.iml
