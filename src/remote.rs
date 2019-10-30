@@ -175,9 +175,9 @@ impl<'repo> Remote<'repo> {
     ///
     /// The `specs` argument is a list of refspecs to use for this negotiation
     /// and download. Use an empty array to use the base refspecs.
-    pub fn download(
+    pub fn download<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
-        specs: &[&str],
+        specs: &[Str],
         opts: Option<&mut FetchOptions<'_>>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(specs.iter())?;
@@ -652,7 +652,7 @@ mod tests {
 
         origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
-        origin.download(&[], None).unwrap();
+        origin.download(&[] as &[&str], None).unwrap();
         origin.disconnect();
 
         {

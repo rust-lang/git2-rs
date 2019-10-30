@@ -81,7 +81,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // progress.
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(cb);
-    remote.download(&[], Some(&mut fo))?;
+    remote.download(&[] as &[&str], Some(&mut fo))?;
 
     {
         // If there are local objects (we got a thin pack), then tell the user
