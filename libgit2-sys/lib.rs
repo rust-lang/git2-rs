@@ -2424,6 +2424,16 @@ extern "C" {
     ) -> c_int;
     pub fn git_branch_upstream(out: *mut *mut git_reference, branch: *const git_reference)
         -> c_int;
+    pub fn git_branch_upstream_name(
+        out: *mut git_buf,
+        repo: *mut git_repository,
+        refname: *const c_char,
+    ) -> c_int;
+    pub fn git_branch_upstream_remote(
+        out: *mut git_buf,
+        repo: *mut git_repository,
+        refname: *const c_char,
+    ) -> c_int;
 
     // index
     pub fn git_index_add(index: *mut git_index, entry: *const git_index_entry) -> c_int;
