@@ -2433,6 +2433,31 @@ impl Repository {
             Ok(())
         }
     }
+
+    /// Retrieves the name of the reference supporting the remote tracking branch,
+    /// given the name of a local branch reference.
+    pub fn branch_upstream_name(&self, refname: &str) -> Result<Buf, Error> {
+        let refname = CString::new(refname)?;
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_branch_upstream_name(buf.raw(), self.raw, refname));
+            Ok(buf)
+        }
+    }
+
+    /// Retrieve the name of the upstream remote of a local branch.
+    pub fn branch_upstream_remote(&self, refname: &str) -> Result<Buf, Error> {
+        let refname = CString::new(refname)?;
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_branch_upstream_remote(
+                buf.raw(),
+                self.raw,
+                refname
+            ));
+            Ok(buf)
+        }
+    }
 }
 
 impl Binding for Repository {
