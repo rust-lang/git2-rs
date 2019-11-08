@@ -1089,6 +1089,40 @@ impl Repository {
         }
     }
 
+    /// Create a commit object and return that as a string.
+    ///
+    /// This string is suitable to be passed to the `commit_signed` function,
+    /// the arguments behave the same as in the `commit` function.
+    pub fn commit_create_buffer(
+        &self,
+        author: &Signature<'_>,
+        committer: &Signature<'_>,
+        message: &str,
+        tree: &Tree<'_>,
+        parents: &[&Commit<'_>],
+    ) -> Result<String, Error> {
+        let mut parent_ptrs = parents
+            .iter()
+            .map(|p| p.raw() as *const raw::git_commit)
+            .collect::<Vec<_>>();
+        let message = CString::new(message)?;
+        let buf = Buf::new();
+        unsafe {
+            try_call!(raw::git_commit_create_buffer(
+                buf.raw(),
+                self.raw(),
+                author.raw(),
+                committer.raw(),
+                ptr::null(),
+                message,
+                tree.raw(),
+                parents.len() as size_t,
+                parent_ptrs.as_mut_ptr()
+            ));
+            Ok(str::from_utf8(&buf).unwrap().to_string())
+        }
+    }
+
     /// Create a commit object from the given buffer and signature
     ///
     /// Given the unsigned commit object's contents, its signature and the
