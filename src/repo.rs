@@ -1156,7 +1156,7 @@ impl Repository {
         }
     }
 
-    /// Creates a `AnnotatedCommit` from the given commit id.
+    /// Creates an `AnnotatedCommit` from the given commit id.
     pub fn find_annotated_commit(&self, id: Oid) -> Result<AnnotatedCommit<'_>, Error> {
         unsafe {
             let mut raw = ptr::null_mut();
