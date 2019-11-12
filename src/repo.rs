@@ -1089,9 +1089,10 @@ impl Repository {
         }
     }
 
-    /// Create a commit object and return that as a string.
+    /// Create a commit object and return that as a Buf.
     ///
-    /// This string is suitable to be passed to the `commit_signed` function,
+    /// That can be converted to a string like this `str::from_utf8(&buf).unwrap().to_string()`.
+    /// And that string can be passed to the `commit_signed` function,
     /// the arguments behave the same as in the `commit` function.
     pub fn commit_create_buffer(
         &self,
@@ -1100,7 +1101,7 @@ impl Repository {
         message: &str,
         tree: &Tree<'_>,
         parents: &[&Commit<'_>],
-    ) -> Result<String, Error> {
+    ) -> Result<Buf, Error> {
         let mut parent_ptrs = parents
             .iter()
             .map(|p| p.raw() as *const raw::git_commit)
@@ -1119,7 +1120,7 @@ impl Repository {
                 parents.len() as size_t,
                 parent_ptrs.as_mut_ptr()
             ));
-            Ok(str::from_utf8(&buf).unwrap().to_string())
+            Ok(buf)
         }
     }
 
