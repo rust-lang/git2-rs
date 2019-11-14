@@ -152,7 +152,7 @@ impl<'repo> Odb<'repo> {
 
     /// Checks if the object database has an object.
     pub fn exists(&self, oid: Oid) -> bool {
-        unsafe { raw::git_odb_exists(self.raw, oid.raw()) != -1 }
+        unsafe { raw::git_odb_exists(self.raw, oid.raw()) != 0 }
     }
 
     /// Potentially finds an object that starts with the given prefix.
