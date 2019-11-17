@@ -266,7 +266,7 @@ mod tests {
     }
 
     fn pack_header(len: u8) -> Vec<u8> {
-        [].into_iter()
+        [].iter()
             .chain(b"PACK") // signature
             .chain(&[0, 0, 0, 2]) // version number
             .chain(&[0, 0, 0, len]) // number of objects
