@@ -444,6 +444,17 @@ impl<'a> Binding for DiffDelta<'a> {
     }
 }
 
+impl<'a> std::fmt::Debug for DiffDelta<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.debug_struct("DiffDelta")
+            .field("nfiles", &self.nfiles())
+            .field("status", &self.status())
+            .field("old_file", &self.old_file())
+            .field("new_file", &self.new_file())
+            .finish()
+    }
+}
+
 impl<'a> DiffFile<'a> {
     /// Returns the Oid of this item.
     ///
@@ -484,6 +495,20 @@ impl<'a> Binding for DiffFile<'a> {
     }
     fn raw(&self) -> *const raw::git_diff_file {
         self.raw
+    }
+}
+
+impl<'a> std::fmt::Debug for DiffFile<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut ds = f.debug_struct("DiffFile");
+        ds.field("id", &self.id());
+        if let Some(path_bytes) = &self.path_bytes() {
+            ds.field("path_bytes", path_bytes);
+        }
+        if let Some(path) = &self.path() {
+            ds.field("path", path);
+        }
+        ds.field("size", &self.size()).finish()
     }
 }
 
@@ -863,6 +888,23 @@ impl<'a> Binding for DiffLine<'a> {
     }
 }
 
+impl<'a> std::fmt::Debug for DiffLine<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut ds = f.debug_struct("DiffLine");
+        if let Some(old_lineno) = &self.old_lineno() {
+            ds.field("old_lineno", old_lineno);
+        }
+        if let Some(new_lineno) = &self.new_lineno() {
+            ds.field("new_lineno", new_lineno);
+        }
+        ds.field("num_lines", &self.num_lines())
+            .field("content_offset", &self.content_offset())
+            .field("content", &self.content())
+            .field("origin", &self.origin())
+            .finish()
+    }
+}
+
 impl<'a> DiffHunk<'a> {
     /// Starting line number in old_file
     pub fn old_start(&self) -> u32 {
@@ -905,6 +947,18 @@ impl<'a> Binding for DiffHunk<'a> {
     }
     fn raw(&self) -> *const raw::git_diff_hunk {
         self.raw
+    }
+}
+
+impl<'a> std::fmt::Debug for DiffHunk<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.debug_struct("DiffHunk")
+            .field("old_start", &self.old_start())
+            .field("old_lines", &self.old_lines())
+            .field("new_start", &self.new_start())
+            .field("new_lines", &self.new_lines())
+            .field("header", &self.header())
+            .finish()
     }
 }
 
@@ -953,6 +1007,16 @@ impl Binding for DiffStats {
 impl Drop for DiffStats {
     fn drop(&mut self) {
         unsafe { raw::git_diff_stats_free(self.raw) }
+    }
+}
+
+impl std::fmt::Debug for DiffStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.debug_struct("DiffStats")
+            .field("files_changed", &self.files_changed())
+            .field("insertions", &self.insertions())
+            .field("deletions", &self.deletions())
+            .finish()
     }
 }
 

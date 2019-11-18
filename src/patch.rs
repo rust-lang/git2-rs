@@ -214,3 +214,15 @@ impl Patch {
         Ok(buf)
     }
 }
+
+impl std::fmt::Debug for Patch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut ds = f.debug_struct("Patch");
+        ds.field("delta", &self.delta())
+            .field("num_hunks", &self.num_hunks());
+        if let Ok(line_stats) = &self.line_stats() {
+            ds.field("line_stats", line_stats);
+        }
+        ds.finish()
+    }
+}
