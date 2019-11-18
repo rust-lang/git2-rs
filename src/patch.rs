@@ -100,6 +100,7 @@ impl Patch {
         new_path: Option<&Path>,
         opts: Option<&mut DiffOptions>,
     ) -> Result<Patch, Error> {
+        crate::init();
         let mut ret = ptr::null_mut();
         let old_path = into_opt_c_string(old_path)?;
         let new_path = into_opt_c_string(new_path)?;
