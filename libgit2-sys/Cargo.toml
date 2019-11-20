@@ -1,6 +1,6 @@
 [package]
 name = "libgit2-sys"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
