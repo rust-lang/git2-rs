@@ -48,12 +48,3 @@ jobs:
     - name: Install Rust
       run: rustup update stable && rustup default stable && rustup component add rustfmt
     - run: cargo fmt -- --check
-
-  msrv:
-    name: MSRV
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Install Rust
-      run: rustup update 1.33.0 && rustup default 1.33.0
-    - run: cargo build
