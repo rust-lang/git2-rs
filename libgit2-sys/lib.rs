@@ -3470,6 +3470,14 @@ extern "C" {
         commit: *mut git_commit,
         options: *const git_cherrypick_options,
     ) -> c_int;
+    pub fn git_cherrypick_commit(
+        out: *mut *mut git_index,
+        repo: *mut git_repository,
+        cherrypick_commit: *mut git_commit,
+        our_commit: *mut git_commit,
+        mainline: c_uint,
+        merge_options: *const git_merge_options,
+    ) -> c_int;
 }
 
 pub fn init() {

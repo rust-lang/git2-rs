@@ -2469,6 +2469,29 @@ impl Repository {
         }
     }
 
+    /// Create an index of uncommitted changes, representing the result of
+    /// cherry-picking.
+    pub fn cherrypick_commit(
+        &self,
+        cherrypick_commit: &Commit<'_>,
+        our_commit: &Commit<'_>,
+        mainline: u32,
+        options: Option<&MergeOptions>,
+    ) -> Result<Index, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_cherrypick_commit(
+                &mut ret,
+                self.raw(),
+                cherrypick_commit.raw(),
+                our_commit.raw(),
+                mainline,
+                options.map(|o| o.raw())
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Retrieves the name of the reference supporting the remote tracking branch,
     /// given the name of a local branch reference.
     pub fn branch_upstream_name(&self, refname: &str) -> Result<Buf, Error> {
