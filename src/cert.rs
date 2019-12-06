@@ -76,6 +76,17 @@ impl<'a> CertHostkey<'a> {
             }
         }
     }
+
+    /// Returns the SHA-256 hash of the hostkey, if available.
+    pub fn hash_sha256(&self) -> Option<&[u8; 32]> {
+        unsafe {
+            if (*self.raw).kind as u32 & raw::GIT_CERT_SSH_SHA256 as u32 == 0 {
+                None
+            } else {
+                Some(&(*self.raw).hash_sha256)
+            }
+        }
+    }
 }
 
 impl<'a> CertX509<'a> {

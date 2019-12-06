@@ -181,6 +181,7 @@ mod impls {
                 DiffFormat::Raw => raw::GIT_DIFF_FORMAT_RAW,
                 DiffFormat::NameOnly => raw::GIT_DIFF_FORMAT_NAME_ONLY,
                 DiffFormat::NameStatus => raw::GIT_DIFF_FORMAT_NAME_STATUS,
+                DiffFormat::PatchId => raw::GIT_DIFF_FORMAT_PATCH_ID,
             }
         }
     }

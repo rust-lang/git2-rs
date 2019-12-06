@@ -1187,6 +1187,8 @@ pub enum DiffFormat {
     NameOnly,
     /// like git diff --name-status
     NameStatus,
+    /// git diff as used by git patch-id
+    PatchId,
 }
 
 bitflags! {

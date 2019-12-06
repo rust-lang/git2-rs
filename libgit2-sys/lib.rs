@@ -148,6 +148,7 @@ pub struct git_time {
 
 pub type git_off_t = i64;
 pub type git_time_t = i64;
+pub type git_object_size_t = u64;
 
 git_enum! {
     pub enum git_revparse_mode_t {
@@ -401,6 +402,7 @@ git_enum! {
         GIT_CERT_NONE,
         GIT_CERT_X509,
         GIT_CERT_HOSTKEY_LIBSSH2,
+        GIT_CERT_STRARRAY,
     }
 }
 
@@ -415,6 +417,7 @@ pub struct git_cert_hostkey {
     pub kind: git_cert_ssh_t,
     pub hash_md5: [u8; 16],
     pub hash_sha1: [u8; 20],
+    pub hash_sha256: [u8; 32],
 }
 
 #[repr(C)]
@@ -428,6 +431,7 @@ git_enum! {
     pub enum git_cert_ssh_t {
         GIT_CERT_SSH_MD5 = 1 << 0,
         GIT_CERT_SSH_SHA1 = 1 << 1,
+        GIT_CERT_SSH_SHA256 = 1 << 2,
     }
 }
 
@@ -447,9 +451,10 @@ pub struct git_transfer_progress {
 pub struct git_diff_file {
     pub id: git_oid,
     pub path: *const c_char,
-    pub size: git_off_t,
+    pub size: git_object_size_t,
     pub flags: u32,
     pub mode: u16,
+    pub id_abbrev: u16,
 }
 
 pub type git_repository_create_cb =
@@ -819,6 +824,7 @@ pub const GIT_ATTR_CHECK_FILE_THEN_INDEX: u32 = 0;
 pub const GIT_ATTR_CHECK_INDEX_THEN_FILE: u32 = 1;
 pub const GIT_ATTR_CHECK_INDEX_ONLY: u32 = 2;
 pub const GIT_ATTR_CHECK_NO_SYSTEM: u32 = 1 << 2;
+pub const GIT_ATTR_CHECK_INCLUDE_HEAD: u32 = 1 << 3;
 
 #[repr(C)]
 pub struct git_cred {
@@ -1046,6 +1052,7 @@ git_enum! {
         GIT_DIFF_FORMAT_RAW = 3,
         GIT_DIFF_FORMAT_NAME_ONLY = 4,
         GIT_DIFF_FORMAT_NAME_STATUS = 5,
+        GIT_DIFF_FORMAT_PATCH_ID = 6,
     }
 }
 
@@ -1169,14 +1176,14 @@ git_enum! {
 #[repr(C)]
 pub struct git_merge_options {
     pub version: c_uint,
-    pub flags: git_merge_flag_t,
+    pub flags: u32,
     pub rename_threshold: c_uint,
     pub target_limit: c_uint,
     pub metric: *mut git_diff_similarity_metric,
     pub recursion_limit: c_uint,
     pub default_driver: *const c_char,
     pub file_favor: git_merge_file_favor_t,
-    pub file_flags: git_merge_file_flag_t,
+    pub file_flags: u32,
 }
 
 git_enum! {
@@ -1337,7 +1344,7 @@ pub struct git_odb_backend {
         extern "C" fn(
             *mut *mut git_odb_stream,
             *mut git_odb_backend,
-            git_off_t,
+            git_object_size_t,
             git_object_t,
         ) -> c_int,
     >,
@@ -1573,7 +1580,7 @@ git_enum! {
 #[repr(C)]
 pub struct git_stash_apply_options {
     pub version: c_uint,
-    pub flags: git_stash_apply_flags,
+    pub flags: u32,
     pub checkout_options: git_checkout_options,
     pub progress_cb: Option<git_stash_apply_progress_cb>,
     pub progress_payload: *mut c_void,
@@ -2206,7 +2213,7 @@ extern "C" {
         len: size_t,
     ) -> c_int;
     pub fn git_blob_rawcontent(blob: *const git_blob) -> *const c_void;
-    pub fn git_blob_rawsize(blob: *const git_blob) -> git_off_t;
+    pub fn git_blob_rawsize(blob: *const git_blob) -> git_object_size_t;
     pub fn git_blob_create_frombuffer(
         id: *mut git_oid,
         repo: *mut git_repository,
@@ -3298,7 +3305,7 @@ extern "C" {
     pub fn git_odb_open_wstream(
         out: *mut *mut git_odb_stream,
         db: *mut git_odb,
-        size: git_off_t,
+        size: git_object_size_t,
         obj_type: git_object_t,
     ) -> c_int;
     pub fn git_odb_stream_write(
