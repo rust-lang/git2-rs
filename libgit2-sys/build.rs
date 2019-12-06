@@ -4,6 +4,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
+    let k = "LIBGIT2_SYS_DELEGATE_LINKING";
+
+    println!("cargo:rerun-if-env-changed={}", k);
+
+    if env::var(k).is_ok() {
+        return;
+    }
+
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
 
