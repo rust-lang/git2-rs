@@ -7,6 +7,9 @@ fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
 
+    let link_http_parser = env::var("CARGO_FEATURE_LINK_HTTP_PARSER").is_ok();
+    let link_pcre = env::var("CARGO_FEATURE_LINK_PCRE").is_ok();
+
     if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
         let mut cfg = pkg_config::Config::new();
         if let Ok(lib) = cfg.atleast_version("0.28.0").probe("libgit2") {
@@ -48,32 +51,40 @@ fn main() {
     add_c_files(&mut cfg, "libgit2/src/transports");
     add_c_files(&mut cfg, "libgit2/src/streams");
 
-    // Always use bundled http-parser for now
-    cfg.include("libgit2/deps/http-parser")
-        .file("libgit2/deps/http-parser/http_parser.c");
+    if link_http_parser {
+        println!("cargo:rustc-link-lib=http_parser");
+    } else {
+        cfg.include("libgit2/deps/http-parser")
+            .file("libgit2/deps/http-parser/http_parser.c");
+    }
 
-    // Use the included PCRE regex backend.
-    //
-    // Ideally these defines would be specific to the pcre files (or placed in
-    // a config.h), but since libgit2 already has a config.h used for other
-    // reasons, just define on the command-line for everything. Perhaps there
-    // is some way with cc to have different instructions per-file?
-    cfg.define("GIT_REGEX_BUILTIN", "1")
-        .include("libgit2/deps/pcre")
-        .define("HAVE_STDINT_H", Some("1"))
-        .define("HAVE_MEMMOVE", Some("1"))
-        .define("NO_RECURSE", Some("1"))
-        .define("NEWLINE", Some("10"))
-        .define("POSIX_MALLOC_THRESHOLD", Some("10"))
-        .define("LINK_SIZE", Some("2"))
-        .define("PARENS_NEST_LIMIT", Some("250"))
-        .define("MATCH_LIMIT", Some("10000000"))
-        .define("MATCH_LIMIT_RECURSION", Some("MATCH_LIMIT"))
-        .define("MAX_NAME_SIZE", Some("32"))
-        .define("MAX_NAME_COUNT", Some("10000"));
-    // "no symbols" warning on pcre_string_utils.c is because it is only used
-    // when when COMPILE_PCRE8 is not defined, which is the default.
-    add_c_files(&mut cfg, "libgit2/deps/pcre");
+    if link_pcre {
+        cfg.define("GIT_REGEX_PCRE", "1");
+        println!("cargo:rustc-link-lib=pcre");
+    } else {
+        // Use the included PCRE regex backend.
+        //
+        // Ideally these defines would be specific to the pcre files (or placed in
+        // a config.h), but since libgit2 already has a config.h used for other
+        // reasons, just define on the command-line for everything. Perhaps there
+        // is some way with cc to have different instructions per-file?
+        cfg.define("GIT_REGEX_BUILTIN", "1")
+            .include("libgit2/deps/pcre")
+            .define("HAVE_STDINT_H", Some("1"))
+            .define("HAVE_MEMMOVE", Some("1"))
+            .define("NO_RECURSE", Some("1"))
+            .define("NEWLINE", Some("10"))
+            .define("POSIX_MALLOC_THRESHOLD", Some("10"))
+            .define("LINK_SIZE", Some("2"))
+            .define("PARENS_NEST_LIMIT", Some("250"))
+            .define("MATCH_LIMIT", Some("10000000"))
+            .define("MATCH_LIMIT_RECURSION", Some("MATCH_LIMIT"))
+            .define("MAX_NAME_SIZE", Some("32"))
+            .define("MAX_NAME_COUNT", Some("10000"));
+        // "no symbols" warning on pcre_string_utils.c is because it is only used
+        // when when COMPILE_PCRE8 is not defined, which is the default.
+        add_c_files(&mut cfg, "libgit2/deps/pcre");
+    }
 
     cfg.file("libgit2/src/allocators/stdalloc.c");
 

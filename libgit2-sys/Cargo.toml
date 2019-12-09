@@ -32,3 +32,5 @@ openssl-sys = { version = "0.9", optional = true }
 ssh = ["libssh2-sys"]
 https = ["openssl-sys"]
 ssh_key_from_memory = []
+link_http_parser = []
+link_pcre = []
