@@ -44,7 +44,7 @@ impl MergeOptions {
         opts
     }
 
-    fn flag(&mut self, opt: raw::git_merge_flag_t, val: bool) -> &mut MergeOptions {
+    fn flag(&mut self, opt: u32, val: bool) -> &mut MergeOptions {
         if val {
             self.raw.flags |= opt;
         } else {
@@ -55,25 +55,25 @@ impl MergeOptions {
 
     /// Detect file renames
     pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FIND_RENAMES, find)
+        self.flag(raw::GIT_MERGE_FIND_RENAMES as u32, find)
     }
 
     /// If a conflict occurs, exit immediately instead of attempting to continue
     /// resolving conflicts
     pub fn fail_on_conflict(&mut self, fail: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT, fail)
+        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT as u32, fail)
     }
 
     /// Do not write the REUC extension on the generated index
     pub fn skip_reuc(&mut self, skip: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT, skip)
+        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT as u32, skip)
     }
 
     /// If the commits being merged have multiple merge bases, do not build a
     /// recursive merge base (by merging the multiple merge bases), instead
     /// simply use the first base.
     pub fn no_recursive(&mut self, disable: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_NO_RECURSIVE, disable)
+        self.flag(raw::GIT_MERGE_NO_RECURSIVE as u32, disable)
     }
 
     /// Similarity to consider a file renamed (default 50)
@@ -106,7 +106,7 @@ impl MergeOptions {
         self
     }
 
-    fn file_flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut MergeOptions {
+    fn file_flag(&mut self, opt: u32, val: bool) -> &mut MergeOptions {
         if val {
             self.raw.file_flags |= opt;
         } else {
@@ -117,42 +117,42 @@ impl MergeOptions {
 
     /// Create standard conflicted merge files
     pub fn standard_style(&mut self, standard: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_STYLE_MERGE, standard)
+        self.file_flag(raw::GIT_MERGE_FILE_STYLE_MERGE as u32, standard)
     }
 
     /// Create diff3-style file
     pub fn diff3_style(&mut self, diff3: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_STYLE_DIFF3, diff3)
+        self.file_flag(raw::GIT_MERGE_FILE_STYLE_DIFF3 as u32, diff3)
     }
 
     /// Condense non-alphanumeric regions for simplified diff file
     pub fn simplify_alnum(&mut self, simplify: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM, simplify)
+        self.file_flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM as u32, simplify)
     }
 
     /// Ignore all whitespace
     pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE, ignore)
+        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE as u32, ignore)
     }
 
     /// Ignore changes in amount of whitespace
     pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE, ignore)
+        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE as u32, ignore)
     }
 
     /// Ignore whitespace at end of line
     pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL, ignore)
+        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL as u32, ignore)
     }
 
     /// Use the "patience diff" algorithm
     pub fn patience(&mut self, patience: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE, patience)
+        self.file_flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE as u32, patience)
     }
 
     /// Take extra time to find minimal diff
     pub fn minimal(&mut self, minimal: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL, minimal)
+        self.file_flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL as u32, minimal)
     }
 
     /// Acquire a pointer to the underlying raw options.

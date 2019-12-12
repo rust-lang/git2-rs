@@ -81,7 +81,7 @@ impl<'repo> Odb<'repo> {
             try_call!(raw::git_odb_open_wstream(
                 &mut out,
                 self.raw,
-                size as raw::git_off_t,
+                size as raw::git_object_size_t,
                 obj_type.raw()
             ));
             Ok(OdbWriter::from_raw(out))

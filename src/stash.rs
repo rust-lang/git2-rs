@@ -46,7 +46,7 @@ impl<'cb> StashApplyOptions<'cb> {
 
     /// Set stash application flag to GIT_STASH_APPLY_REINSTATE_INDEX
     pub fn reinstantiate_index(&mut self) -> &mut StashApplyOptions<'cb> {
-        self.raw_opts.flags = raw::GIT_STASH_APPLY_REINSTATE_INDEX;
+        self.raw_opts.flags = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32;
         self
     }
 
