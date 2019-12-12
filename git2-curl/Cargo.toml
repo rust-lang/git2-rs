@@ -1,7 +1,7 @@
 [package]
 
 name = "git2-curl"
-version = "0.11.0"
+version = "0.12.0"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/rust-lang/git2-rs"
