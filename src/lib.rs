@@ -252,6 +252,12 @@ pub enum ErrorClass {
     Rebase,
     /// Filesystem-related error
     Filesystem,
+    /// Invalid patch data
+    Patch,
+    /// Error involving worktrees
+    Worktree,
+    /// Hash library error or SHA-1 collision
+    Sha1,
 }
 
 /// A listing of the possible states that a repository can be in.
