@@ -187,6 +187,10 @@ git_enum! {
         GIT_EMERGECONFLICT = -24,
         GIT_PASSTHROUGH = -30,
         GIT_ITEROVER = -31,
+        GIT_RETRY = -32,
+        GIT_EMISMATCH = -33,
+        GIT_EINDEXDIRTY = -34,
+        GIT_EAPPLYFAIL = -35,
     }
 }
 
@@ -223,6 +227,9 @@ git_enum! {
         GIT_ERROR_DESCRIBE,
         GIT_ERROR_REBASE,
         GIT_ERROR_FILESYSTEM,
+        GIT_ERROR_PATCH,
+        GIT_ERROR_WORKTREE,
+        GIT_ERROR_SHA1,
     }
 }
 

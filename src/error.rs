@@ -153,6 +153,9 @@ impl Error {
             raw::GIT_ERROR_DESCRIBE => super::ErrorClass::Describe,
             raw::GIT_ERROR_REBASE => super::ErrorClass::Rebase,
             raw::GIT_ERROR_FILESYSTEM => super::ErrorClass::Filesystem,
+            raw::GIT_ERROR_PATCH => super::ErrorClass::Patch,
+            raw::GIT_ERROR_WORKTREE => super::ErrorClass::Worktree,
+            raw::GIT_ERROR_SHA1 => super::ErrorClass::Sha1,
             _ => super::ErrorClass::None,
         }
     }
@@ -190,6 +193,10 @@ impl Error {
             GIT_EUNCOMMITTED,
             GIT_PASSTHROUGH,
             GIT_ITEROVER,
+            GIT_RETRY,
+            GIT_EMISMATCH,
+            GIT_EINDEXDIRTY,
+            GIT_EAPPLYFAIL,
         )
     }
 
@@ -233,6 +240,9 @@ impl Error {
             GIT_ERROR_DESCRIBE,
             GIT_ERROR_REBASE,
             GIT_ERROR_FILESYSTEM,
+            GIT_ERROR_PATCH,
+            GIT_ERROR_WORKTREE,
+            GIT_ERROR_SHA1,
         )
     }
 
