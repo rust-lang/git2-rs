@@ -93,6 +93,7 @@ pub use crate::error::Error;
 pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
 };
+pub use crate::indexer::{IndexerProgress, Progress};
 pub use crate::merge::{AnnotatedCommit, MergeOptions};
 pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use crate::note::{Note, Notes};
@@ -111,8 +112,8 @@ pub use crate::refspec::Refspec;
 pub use crate::remote::{
     FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead,
 };
-pub use crate::remote_callbacks::{Credentials, RemoteCallbacks, TransferProgress};
-pub use crate::remote_callbacks::{Progress, TransportMessage, UpdateTips};
+pub use crate::remote_callbacks::{Credentials, RemoteCallbacks};
+pub use crate::remote_callbacks::{TransportMessage, UpdateTips};
 pub use crate::repo::{Repository, RepositoryInitOptions};
 pub use crate::revspec::Revspec;
 pub use crate::revwalk::Revwalk;
@@ -631,6 +632,7 @@ mod describe;
 mod diff;
 mod error;
 mod index;
+mod indexer;
 mod merge;
 mod message;
 mod note;
