@@ -252,11 +252,7 @@ impl Error {
     }
 }
 
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        &self.message
-    }
-}
+impl error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -284,7 +280,7 @@ impl From<NulError> for Error {
 
 impl From<JoinPathsError> for Error {
     fn from(e: JoinPathsError) -> Error {
-        Error::from_str(error::Error::description(&e))
+        Error::from_str(&e.to_string())
     }
 }
 
