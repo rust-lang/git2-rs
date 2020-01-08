@@ -1810,6 +1810,13 @@ extern "C" {
         name: *const c_char,
         url: *const c_char,
     ) -> c_int;
+    pub fn git_remote_create_with_fetchspec(
+        out: *mut *mut git_remote,
+        repo: *mut git_repository,
+        name: *const c_char,
+        url: *const c_char,
+        fetch: *const c_char,
+    ) -> c_int;
     pub fn git_remote_lookup(
         out: *mut *mut git_remote,
         repo: *mut git_repository,

@@ -490,6 +490,26 @@ impl Repository {
         }
     }
 
+    /// Add a remote with the provided fetch refspec to the repository's
+    /// configuration.
+    pub fn remote_with_fetch(
+        &self,
+        name: &str,
+        url: &str,
+        fetch: &str,
+    ) -> Result<Remote<'_>, Error> {
+        let mut ret = ptr::null_mut();
+        let name = CString::new(name)?;
+        let url = CString::new(url)?;
+        let fetch = CString::new(fetch)?;
+        unsafe {
+            try_call!(raw::git_remote_create_with_fetchspec(
+                &mut ret, self.raw, name, url, fetch
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Create an anonymous remote
     ///
     /// Create a remote with the given url and refspec in memory. You can use
