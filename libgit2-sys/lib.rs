@@ -85,7 +85,6 @@ pub enum git_packbuilder {}
 pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
-pub enum git_odb_writepack {}
 pub enum git_worktree {}
 
 #[repr(C)]
@@ -402,7 +401,7 @@ pub type git_transport_message_cb = extern "C" fn(*const c_char, c_int, *mut c_v
 pub type git_cred_acquire_cb =
     extern "C" fn(*mut *mut git_cred, *const c_char, *const c_char, c_uint, *mut c_void) -> c_int;
 pub type git_transfer_progress_cb =
-    extern "C" fn(*const git_transfer_progress, *mut c_void) -> c_int;
+    extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int;
 pub type git_packbuilder_progress =
     extern "C" fn(git_packbuilder_stage_t, c_uint, c_uint, *mut c_void) -> c_int;
 pub type git_push_transfer_progress = extern "C" fn(c_uint, c_uint, size_t, *mut c_void) -> c_int;
@@ -1397,6 +1396,25 @@ pub struct git_odb_backend {
     pub freshen: Option<extern "C" fn(*mut git_odb_backend, *const git_oid) -> c_int>,
 
     pub free: Option<extern "C" fn(*mut git_odb_backend)>,
+}
+
+#[repr(C)]
+pub struct git_odb_writepack {
+    pub backend: *mut git_odb_backend,
+
+    pub append: Option<
+        extern "C" fn(
+            *mut git_odb_writepack,
+            *const c_void,
+            size_t,
+            *mut git_indexer_progress,
+        ) -> c_int,
+    >,
+
+    pub commit:
+        Option<unsafe extern "C" fn(*mut git_odb_writepack, *mut git_indexer_progress) -> c_int>,
+
+    pub free: Option<unsafe extern "C" fn(*mut git_odb_writepack)>,
 }
 
 #[repr(C)]
@@ -3352,6 +3370,13 @@ extern "C" {
         data: *const c_void,
         len: size_t,
         otype: git_object_t,
+    ) -> c_int;
+
+    pub fn git_odb_write_pack(
+        out: *mut *mut git_odb_writepack,
+        odb: *mut git_odb,
+        progress_cb: git_indexer_progress_cb,
+        progress_payload: *mut c_void,
     ) -> c_int;
 
     pub fn git_odb_hash(

@@ -1,5 +1,6 @@
 use std::io;
 use std::marker;
+use std::mem::MaybeUninit;
 use std::ptr;
 use std::slice;
 
@@ -9,7 +10,7 @@ use libc::{c_char, c_int, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
-use crate::{raw, Error, Object, ObjectType, Oid};
+use crate::{raw, Error, IndexerProgress, Object, ObjectType, Oid, Progress};
 
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
@@ -148,6 +149,30 @@ impl<'repo> Odb<'repo> {
             ));
             Ok(Oid::from_raw(&mut out))
         }
+    }
+
+    /// Create stream for writing a pack file to the ODB
+    pub fn packwriter(&self) -> Result<OdbPackwriter<'_>, Error> {
+        let mut out = ptr::null_mut();
+        let progress = MaybeUninit::uninit();
+        let progress_cb = write_pack_progress_cb;
+        let progress_payload = Box::new(OdbPackwriterCb { cb: None });
+        let progress_payload_ptr = Box::into_raw(progress_payload);
+
+        unsafe {
+            try_call!(raw::git_odb_write_pack(
+                &mut out,
+                self.raw,
+                progress_cb,
+                progress_payload_ptr as *mut c_void
+            ));
+        }
+
+        Ok(OdbPackwriter {
+            raw: out,
+            progress,
+            progress_payload_ptr,
+        })
     }
 
     /// Checks if the object database has an object.
@@ -351,6 +376,87 @@ impl<'repo> io::Write for OdbWriter<'repo> {
     }
 }
 
+struct OdbPackwriterCb<'repo> {
+    cb: Option<Box<IndexerProgress<'repo>>>,
+}
+
+/// A stream to write a packfile to the ODB
+pub struct OdbPackwriter<'repo> {
+    raw: *mut raw::git_odb_writepack,
+    progress: MaybeUninit<raw::git_indexer_progress>,
+    progress_payload_ptr: *mut OdbPackwriterCb<'repo>,
+}
+
+impl<'repo> OdbPackwriter<'repo> {
+    /// Finish writing the packfile
+    pub fn commit(&mut self) -> Result<i32, Error> {
+        unsafe {
+            let writepack = &*self.raw;
+            let res = match writepack.commit {
+                Some(commit) => commit(self.raw, self.progress.as_mut_ptr()),
+                None => -1,
+            };
+
+            if res < 0 {
+                Err(Error::last_error(res).unwrap())
+            } else {
+                Ok(res)
+            }
+        }
+    }
+
+    /// The callback through which progress is monitored. Be aware that this is
+    /// called inline, so performance may be affected.
+    pub fn progress<F>(&mut self, cb: F) -> &mut OdbPackwriter<'repo>
+    where
+        F: FnMut(Progress<'_>) -> bool + 'repo,
+    {
+        let progress_payload =
+            unsafe { &mut *(self.progress_payload_ptr as *mut OdbPackwriterCb<'_>) };
+
+        progress_payload.cb = Some(Box::new(cb) as Box<IndexerProgress<'repo>>);
+        self
+    }
+}
+
+impl<'repo> io::Write for OdbPackwriter<'repo> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        unsafe {
+            let ptr = buf.as_ptr() as *mut c_void;
+            let len = buf.len();
+
+            let writepack = &*self.raw;
+            let res = match writepack.append {
+                Some(append) => append(self.raw, ptr, len, self.progress.as_mut_ptr()),
+                None => -1,
+            };
+
+            if res < 0 {
+                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            } else {
+                Ok(buf.len())
+            }
+        }
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl<'repo> Drop for OdbPackwriter<'repo> {
+    fn drop(&mut self) {
+        unsafe {
+            let writepack = &*self.raw;
+            match writepack.free {
+                Some(free) => free(self.raw),
+                None => (),
+            };
+
+            Box::from_raw(self.progress_payload_ptr);
+        }
+    }
+}
+
 pub type ForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
 
 struct ForeachCbData<'a> {
@@ -374,9 +480,31 @@ extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int
     .unwrap_or(1)
 }
 
+extern "C" fn write_pack_progress_cb(
+    stats: *const raw::git_indexer_progress,
+    payload: *mut c_void,
+) -> c_int {
+    let ok = panic::wrap(|| unsafe {
+        let payload = &mut *(payload as *mut OdbPackwriterCb<'_>);
+
+        let callback = match payload.cb {
+            Some(ref mut cb) => cb,
+            None => return true,
+        };
+
+        let progress: Progress<'_> = Binding::from_raw(stats);
+        callback(progress)
+    });
+    if ok == Some(true) {
+        0
+    } else {
+        -1
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{ObjectType, Oid, Repository};
+    use crate::{Buf, ObjectType, Oid, Repository};
     use std::io::prelude::*;
     use tempfile::TempDir;
 
@@ -456,5 +584,45 @@ mod tests {
         let id_prefix = Oid::from_str(id_prefix_str).unwrap();
         let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
         assert_eq!(found_oid, id);
+    }
+
+    #[test]
+    fn packwriter() {
+        let (_td, repo_source) = crate::test::repo_init();
+        let (_td, repo_target) = crate::test::repo_init();
+        let mut builder = t!(repo_source.packbuilder());
+        let mut buf = Buf::new();
+        let (commit_source_id, _tree) = crate::test::commit(&repo_source);
+        t!(builder.insert_object(commit_source_id, None));
+        t!(builder.write_buf(&mut buf));
+        let db = repo_target.odb().unwrap();
+        let mut packwriter = db.packwriter().unwrap();
+        packwriter.write(&buf).unwrap();
+        packwriter.commit().unwrap();
+        let commit_target = repo_target.find_commit(commit_source_id).unwrap();
+        assert_eq!(commit_target.id(), commit_source_id);
+    }
+
+    #[test]
+    fn packwriter_progress() {
+        let mut progress_called = false;
+        {
+            let (_td, repo_source) = crate::test::repo_init();
+            let (_td, repo_target) = crate::test::repo_init();
+            let mut builder = t!(repo_source.packbuilder());
+            let mut buf = Buf::new();
+            let (commit_source_id, _tree) = crate::test::commit(&repo_source);
+            t!(builder.insert_object(commit_source_id, None));
+            t!(builder.write_buf(&mut buf));
+            let db = repo_target.odb().unwrap();
+            let mut packwriter = db.packwriter().unwrap();
+            packwriter.progress(|_| {
+                progress_called = true;
+                true
+            });
+            packwriter.write(&buf).unwrap();
+            packwriter.commit().unwrap();
+        }
+        assert_eq!(progress_called, true);
     }
 }
