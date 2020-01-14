@@ -1,6 +1,5 @@
 use libc::{c_char, c_int, c_uint, c_void};
 use std::ffi::{CStr, CString};
-use std::marker;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -8,7 +7,7 @@ use std::str;
 
 use crate::cert::Cert;
 use crate::util::Binding;
-use crate::{panic, raw, Cred, CredentialType, Error, Oid};
+use crate::{panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, Progress};
 
 /// A structure to contain the callbacks which are invoked when a repository is
 /// being updated or downloaded.
@@ -16,23 +15,12 @@ use crate::{panic, raw, Cred, CredentialType, Error, Oid};
 /// These callbacks are used to manage facilities such as authentication,
 /// transfer progress, etc.
 pub struct RemoteCallbacks<'a> {
-    progress: Option<Box<TransferProgress<'a>>>,
+    progress: Option<Box<IndexerProgress<'a>>>,
     credentials: Option<Box<Credentials<'a>>>,
     sideband_progress: Option<Box<TransportMessage<'a>>>,
     update_tips: Option<Box<UpdateTips<'a>>>,
     certificate_check: Option<Box<CertificateCheck<'a>>>,
     push_update_reference: Option<Box<PushUpdateReference<'a>>>,
-}
-
-/// Struct representing the progress by an in-flight transfer.
-pub struct Progress<'a> {
-    raw: ProgressState,
-    _marker: marker::PhantomData<&'a raw::git_transfer_progress>,
-}
-
-enum ProgressState {
-    Borrowed(*const raw::git_transfer_progress),
-    Owned(raw::git_transfer_progress),
 }
 
 /// Callback used to acquire credentials for when a remote is fetched.
@@ -43,15 +31,6 @@ enum ProgressState {
 /// * `allowed_types` - a bitmask stating which cred types are ok to return.
 pub type Credentials<'a> =
     dyn FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a;
-
-/// Callback to be invoked while a transfer is in progress.
-///
-/// This callback will be periodically called with updates to the progress of
-/// the transfer so far. The return value indicates whether the transfer should
-/// continue. A return value of `false` will cancel the transfer.
-///
-/// * `progress` - the progress being made so far.
-pub type TransferProgress<'a> = dyn FnMut(Progress<'_>) -> bool + 'a;
 
 /// Callback for receiving messages delivered by the transport.
 ///
@@ -110,7 +89,7 @@ impl<'a> RemoteCallbacks<'a> {
     where
         F: FnMut(Progress<'_>) -> bool + 'a,
     {
-        self.progress = Some(Box::new(cb) as Box<TransferProgress<'a>>);
+        self.progress = Some(Box::new(cb) as Box<IndexerProgress<'a>>);
         self
     }
 
@@ -175,7 +154,7 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 0
             );
             if self.progress.is_some() {
-                let f: raw::git_transfer_progress_cb = transfer_progress_cb;
+                let f: raw::git_indexer_progress_cb = transfer_progress_cb;
                 callbacks.transfer_progress = Some(f);
             }
             if self.credentials.is_some() {
@@ -205,63 +184,6 @@ impl<'a> Binding for RemoteCallbacks<'a> {
             }
             callbacks.payload = self as *const _ as *mut _;
             callbacks
-        }
-    }
-}
-
-impl<'a> Progress<'a> {
-    /// Number of objects in the packfile being downloaded
-    pub fn total_objects(&self) -> usize {
-        unsafe { (*self.raw()).total_objects as usize }
-    }
-    /// Received objects that have been hashed
-    pub fn indexed_objects(&self) -> usize {
-        unsafe { (*self.raw()).indexed_objects as usize }
-    }
-    /// Objects which have been downloaded
-    pub fn received_objects(&self) -> usize {
-        unsafe { (*self.raw()).received_objects as usize }
-    }
-    /// Locally-available objects that have been injected in order to fix a thin
-    /// pack.
-    pub fn local_objects(&self) -> usize {
-        unsafe { (*self.raw()).local_objects as usize }
-    }
-    /// Number of deltas in the packfile being downloaded
-    pub fn total_deltas(&self) -> usize {
-        unsafe { (*self.raw()).total_deltas as usize }
-    }
-    /// Received deltas that have been hashed.
-    pub fn indexed_deltas(&self) -> usize {
-        unsafe { (*self.raw()).indexed_deltas as usize }
-    }
-    /// Size of the packfile received up to now
-    pub fn received_bytes(&self) -> usize {
-        unsafe { (*self.raw()).received_bytes as usize }
-    }
-
-    /// Convert this to an owned version of `Progress`.
-    pub fn to_owned(&self) -> Progress<'static> {
-        Progress {
-            raw: ProgressState::Owned(unsafe { *self.raw() }),
-            _marker: marker::PhantomData,
-        }
-    }
-}
-
-impl<'a> Binding for Progress<'a> {
-    type Raw = *const raw::git_transfer_progress;
-    unsafe fn from_raw(raw: *const raw::git_transfer_progress) -> Progress<'a> {
-        Progress {
-            raw: ProgressState::Borrowed(raw),
-            _marker: marker::PhantomData,
-        }
-    }
-
-    fn raw(&self) -> *const raw::git_transfer_progress {
-        match self.raw {
-            ProgressState::Borrowed(raw) => raw,
-            ProgressState::Owned(ref raw) => raw as *const _,
         }
     }
 }
@@ -316,7 +238,7 @@ extern "C" fn credentials_cb(
 }
 
 extern "C" fn transfer_progress_cb(
-    stats: *const raw::git_transfer_progress,
+    stats: *const raw::git_indexer_progress,
     payload: *mut c_void,
 ) -> c_int {
     let ok = panic::wrap(|| unsafe {
