@@ -117,7 +117,7 @@ usage:
     tag [-n <n>] -l [<pattern>]
 
 Options:
-    -n <n>                  specify number of lines from teh annotation to print
+    -n <n>                  specify number of lines from the annotation to print
     -f, --force             replace an existing tag with the given name
     -l, --list              list tags with names matching the pattern given
     -d, --delete <tag>      delete the tag specified
