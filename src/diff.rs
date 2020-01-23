@@ -8,7 +8,7 @@ use std::ptr;
 use std::slice;
 
 use crate::util::{self, Binding};
-use crate::{panic, raw, Buf, Delta, DiffFormat, Error, Oid, Repository};
+use crate::{panic, raw, Buf, Delta, DiffFormat, Error, FileMode, Oid, Repository};
 use crate::{DiffStatsFormat, IntoCString};
 
 /// The diff object that contains all individual file deltas.
@@ -482,7 +482,38 @@ impl<'a> DiffFile<'a> {
         unsafe { (*self.raw).size as u64 }
     }
 
-    // TODO: expose flags/mode
+    /// Returns `true` if file(s) are treated as binary data.
+    pub fn is_binary(&self) -> bool {
+        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_BINARY as u32 != 0 }
+    }
+
+    /// Returns `true` if file(s) are treated as text data.
+    pub fn is_not_binary(&self) -> bool {
+        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_NOT_BINARY as u32 != 0 }
+    }
+
+    /// Returns `true` if `id` value is known correct.
+    pub fn is_valid_id(&self) -> bool {
+        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_VALID_ID as u32 != 0 }
+    }
+
+    /// Returns `true` if file exists at this side of the delta.
+    pub fn exists(&self) -> bool {
+        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_EXISTS as u32 != 0 }
+    }
+
+    /// Returns file mode.
+    pub fn mode(&self) -> FileMode {
+        match unsafe { (*self.raw).mode.into() } {
+            raw::GIT_FILEMODE_UNREADABLE => FileMode::Unreadable,
+            raw::GIT_FILEMODE_TREE => FileMode::Tree,
+            raw::GIT_FILEMODE_BLOB => FileMode::Blob,
+            raw::GIT_FILEMODE_BLOB_EXECUTABLE => FileMode::BlobExecutable,
+            raw::GIT_FILEMODE_LINK => FileMode::Link,
+            raw::GIT_FILEMODE_COMMIT => FileMode::Commit,
+            mode => panic!("unknown mode: {}", mode),
+        }
+    }
 }
 
 impl<'a> Binding for DiffFile<'a> {

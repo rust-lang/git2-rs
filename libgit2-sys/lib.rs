@@ -461,6 +461,15 @@ git_enum! {
     }
 }
 
+git_enum! {
+    pub enum git_diff_flag_t {
+        GIT_DIFF_FLAG_BINARY     = 1 << 0,
+        GIT_DIFF_FLAG_NOT_BINARY = 1 << 1,
+        GIT_DIFF_FLAG_VALID_ID   = 1 << 2,
+        GIT_DIFF_FLAG_EXISTS     = 1 << 3,
+    }
+}
+
 #[repr(C)]
 pub struct git_diff_file {
     pub id: git_oid,

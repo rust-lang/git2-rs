@@ -1004,6 +1004,23 @@ pub enum Delta {
     Conflicted,
 }
 
+/// Valid modes for index and tree entries.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FileMode {
+    /// Unreadable
+    Unreadable,
+    /// Tree
+    Tree,
+    /// Blob
+    Blob,
+    /// Blob executable
+    BlobExecutable,
+    /// Link
+    Link,
+    /// Commit
+    Commit,
+}
+
 bitflags! {
     /// Return codes for submodule status.
     ///
