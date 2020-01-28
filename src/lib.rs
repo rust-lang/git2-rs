@@ -827,7 +827,7 @@ impl ObjectType {
 
     /// Determine if the given git_object_t is a valid loose object type.
     pub fn is_loose(&self) -> bool {
-        unsafe { (call!(raw::git_object_typeisloose(*self)) == 1) }
+        unsafe { call!(raw::git_object_typeisloose(*self)) == 1 }
     }
 
     /// Convert a raw git_object_t to an ObjectType
