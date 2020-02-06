@@ -449,13 +449,28 @@ impl<'cfg> ConfigEntry<'cfg> {
     /// Gets the value of this entry.
     ///
     /// May return `None` if the value is not valid utf-8
+    ///
+    /// # Panics
+    ///
+    /// Panics when no value is defined.
     pub fn value(&self) -> Option<&str> {
         str::from_utf8(self.value_bytes()).ok()
     }
 
     /// Gets the value of this entry as a byte slice.
+    ///
+    /// # Panics
+    ///
+    /// Panics when no value is defined.
     pub fn value_bytes(&self) -> &[u8] {
         unsafe { crate::opt_bytes(self, (*self.raw).value).unwrap() }
+    }
+
+    /// Returns `true` when a value is defined otherwise `false`.
+    ///
+    /// No value defined is a short-hand to represent a Boolean `true`.
+    pub fn has_value(&self) -> bool {
+        unsafe { !(*self.raw).value.is_null() }
     }
 
     /// Gets the configuration level of this entry.
