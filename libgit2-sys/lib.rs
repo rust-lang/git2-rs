@@ -8,7 +8,6 @@ use libc::{c_char, c_int, c_uchar, c_uint, c_void, size_t};
 #[cfg(feature = "ssh")]
 use libssh2_sys as libssh2;
 use std::ffi::CStr;
-use std::ptr;
 
 pub const GIT_OID_RAWSZ: usize = 20;
 pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;
@@ -3552,30 +3551,25 @@ pub fn init() {
     INIT.call_once(|| unsafe {
         openssl_init();
         ssh_init();
-        let r = git_libgit2_init();
-        if r < 0 {
-            let git_error = git_error_last();
-            let mut error_msg: *mut c_char = ptr::null_mut();
-            if !git_error.is_null() {
-                error_msg = (*git_error).message;
-            }
-            if !error_msg.is_null() {
-                assert!(
-                    r >= 0,
-                    "couldn't initialize the libgit2 library: {}, error: {}",
-                    r,
-                    CStr::from_ptr(error_msg).to_string_lossy()
-                );
-            } else {
-                assert!(r >= 0, "couldn't initialize the libgit2 library: {}", r);
-            }
-        } else {
-            assert!(r >= 0, "couldn't initialize the libgit2 library: {}", r);
+        let rc = git_libgit2_init();
+        if rc >= 0 {
+            // Note that we intentionally never schedule `git_libgit2_shutdown`
+            // to get called. There's not really a great time to call that and
+            // #276 has some more info about how automatically doing it can
+            // cause problems.
+            return;
         }
 
-        // Note that we intentionally never schedule `git_libgit2_shutdown` to
-        // get called. There's not really a great time to call that and #276 has
-        // some more info about how automatically doing it can cause problems.
+        let git_error = git_error_last();
+        let error = if !git_error.is_null() {
+            CStr::from_ptr((*git_error).message).to_string_lossy()
+        } else {
+            "unknown error".into()
+        };
+        panic!(
+            "couldn't initialize the libgit2 library: {}, error: {}",
+            rc, error
+        );
     });
 }
 
