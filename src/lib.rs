@@ -57,6 +57,8 @@
 //! };
 //! ```
 //!
+//! To clone using SSH, refer to [RepoBuilder](./build/struct.RepoBuilder.html).
+//!
 //! ## Working with a `Repository`
 //!
 //! All deriviative objects, references, etc are attached to the lifetime of the
