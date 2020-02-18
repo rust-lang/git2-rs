@@ -76,6 +76,26 @@ impl<'a> RemoteCallbacks<'a> {
     }
 
     /// The callback through which to fetch credentials if required.
+    ///
+    /// # Example
+    ///
+    /// Prepare a callback to authenticate using the `$HOME/.ssh/id_rsa` SSH key, and
+    /// extracting the username from the URL (i.e. git@github.com:rust-lang/git2-rs.git):
+    ///
+    /// ```no_run
+    /// use git2::{Cred, RemoteCallbacks};
+    /// use std::env;
+    ///
+    /// let mut callbacks = RemoteCallbacks::new();
+    /// callbacks.credentials(|_url, username_from_url, _allowed_types| {
+    ///   Cred::ssh_key(
+    ///     username_from_url.unwrap(),
+    ///     None,
+    ///     std::path::Path::new(&format!("{}/.ssh/id_rsa", env::var("HOME").unwrap())),
+    ///     None,
+    ///   )
+    /// });
+    /// ```
     pub fn credentials<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
         F: FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a,

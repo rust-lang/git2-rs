@@ -268,6 +268,19 @@ impl Index {
     /// updated in the index. Returning zero will add the item to the index,
     /// greater than zero will skip the item, and less than zero will abort the
     /// scan an return an error to the caller.
+    ///
+    /// # Example
+    ///
+    /// Emulate `git add *`:
+    ///
+    /// ```no_run
+    /// use git2::{Index, IndexAddOption, Repository};
+    ///
+    /// let repo = Repository::open("/path/to/a/repo").expect("failed to open");
+    /// let mut index = repo.index().expect("cannot get the Index file");
+    /// index.add_all(["*"].iter(), IndexAddOption::DEFAULT, None);
+    /// index.write();
+    /// ```
     pub fn add_all<T, I>(
         &mut self,
         pathspecs: I,
