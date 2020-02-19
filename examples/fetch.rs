@@ -107,7 +107,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     }
 
     // Disconnect the underlying connection to prevent from idling.
-    remote.disconnect();
+    remote.disconnect()?;
 
     // Update the references in the remote's namespace to point to the right
     // commits. This may be needed even if there was no packfile to download,

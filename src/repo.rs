@@ -891,10 +891,11 @@ impl Repository {
     }
 
     /// Set the Index file for this repository.
-    pub fn set_index(&self, index: &mut Index) {
+    pub fn set_index(&self, index: &mut Index) -> Result<(), Error> {
         unsafe {
-            raw::git_repository_set_index(self.raw(), index.raw());
+            try_call!(raw::git_repository_set_index(self.raw(), index.raw()));
         }
+        Ok(())
     }
 
     /// Get the configuration file for this repository.

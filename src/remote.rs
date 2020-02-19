@@ -161,8 +161,11 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Disconnect from the remote
-    pub fn disconnect(&mut self) {
-        unsafe { raw::git_remote_disconnect(self.raw) }
+    pub fn disconnect(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_remote_disconnect(self.raw));
+        }
+        Ok(())
     }
 
     /// Download and index the packfile
@@ -577,7 +580,7 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
 
 impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
     fn drop(&mut self) {
-        self.remote.disconnect()
+        drop(self.remote.disconnect());
     }
 }
 
@@ -648,12 +651,12 @@ mod tests {
 
         origin.connect(Direction::Push).unwrap();
         assert!(origin.connected());
-        origin.disconnect();
+        origin.disconnect().unwrap();
 
         origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
         origin.download(&[] as &[&str], None).unwrap();
-        origin.disconnect();
+        origin.disconnect().unwrap();
 
         {
             let mut connection = origin.connect_auth(Direction::Push, None, None).unwrap();

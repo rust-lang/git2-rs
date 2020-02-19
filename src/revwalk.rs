@@ -17,20 +17,32 @@ impl<'repo> Revwalk<'repo> {
     ///
     /// The revwalk is automatically reset when iteration of its commits
     /// completes.
-    pub fn reset(&mut self) {
-        unsafe { raw::git_revwalk_reset(self.raw()) }
+    pub fn reset(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_reset(self.raw()));
+        }
+        Ok(())
     }
 
     /// Set the order in which commits are visited.
-    pub fn set_sorting(&mut self, sort_mode: Sort) {
-        unsafe { raw::git_revwalk_sorting(self.raw(), sort_mode.bits() as c_uint) }
+    pub fn set_sorting(&mut self, sort_mode: Sort) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_sorting(
+                self.raw(),
+                sort_mode.bits() as c_uint
+            ));
+        }
+        Ok(())
     }
 
     /// Simplify the history by first-parent
     ///
     /// No parents other than the first for each commit will be enqueued.
-    pub fn simplify_first_parent(&mut self) {
-        unsafe { raw::git_revwalk_simplify_first_parent(self.raw) }
+    pub fn simplify_first_parent(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_revwalk_simplify_first_parent(self.raw));
+        }
+        Ok(())
     }
 
     /// Mark a commit to start traversal from.
@@ -195,11 +207,11 @@ mod tests {
         assert_eq!(oids.len(), 1);
         assert_eq!(oids[0], target);
 
-        walk.reset();
+        walk.reset().unwrap();
         walk.push_head().unwrap();
         assert_eq!(walk.by_ref().count(), 1);
 
-        walk.reset();
+        walk.reset().unwrap();
         walk.push_head().unwrap();
         walk.hide_head().unwrap();
         assert_eq!(walk.by_ref().count(), 0);

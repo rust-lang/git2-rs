@@ -45,7 +45,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         } else {
             git2::Sort::NONE
         },
-    );
+    )?;
 
     let specs = args
         .flag_not

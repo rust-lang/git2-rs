@@ -1752,13 +1752,13 @@ extern "C" {
         update_gitlink: c_int,
     ) -> c_int;
     pub fn git_repository_index(out: *mut *mut git_index, repo: *mut git_repository) -> c_int;
-    pub fn git_repository_set_index(repo: *mut git_repository, index: *mut git_index);
+    pub fn git_repository_set_index(repo: *mut git_repository, index: *mut git_index) -> c_int;
 
     pub fn git_repository_message(buf: *mut git_buf, repo: *mut git_repository) -> c_int;
 
     pub fn git_repository_message_remove(repo: *mut git_repository) -> c_int;
     pub fn git_repository_config(out: *mut *mut git_config, repo: *mut git_repository) -> c_int;
-    pub fn git_repository_set_config(repo: *mut git_repository, config: *mut git_config);
+    pub fn git_repository_set_config(repo: *mut git_repository, config: *mut git_config) -> c_int;
     pub fn git_repository_config_snapshot(
         out: *mut *mut git_config,
         repo: *mut git_repository,
@@ -1769,10 +1769,10 @@ extern "C" {
         across_fs: c_int,
         ceiling_dirs: *const c_char,
     ) -> c_int;
-    pub fn git_repository_set_odb(repo: *mut git_repository, odb: *mut git_odb);
+    pub fn git_repository_set_odb(repo: *mut git_repository, odb: *mut git_odb) -> c_int;
 
     pub fn git_repository_refdb(out: *mut *mut git_refdb, repo: *mut git_repository) -> c_int;
-    pub fn git_repository_set_refdb(repo: *mut git_repository, refdb: *mut git_refdb);
+    pub fn git_repository_set_refdb(repo: *mut git_repository, refdb: *mut git_refdb) -> c_int;
 
     pub fn git_repository_reinit_filesystem(
         repo: *mut git_repository,
@@ -1826,7 +1826,7 @@ extern "C" {
     pub fn git_object_typeisloose(kind: git_object_t) -> c_int;
 
     // oid
-    pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar);
+    pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar) -> c_int;
     pub fn git_oid_fromstrn(out: *mut git_oid, str: *const c_char, len: size_t) -> c_int;
     pub fn git_oid_tostr(out: *mut c_char, n: size_t, id: *const git_oid) -> *mut c_char;
     pub fn git_oid_cmp(a: *const git_oid, b: *const git_oid) -> c_int;
@@ -1837,7 +1837,7 @@ extern "C" {
     // error
     pub fn git_error_last() -> *const git_error;
     pub fn git_error_clear();
-    pub fn git_error_set_str(error_class: c_int, string: *const c_char);
+    pub fn git_error_set_str(error_class: c_int, string: *const c_char) -> c_int;
 
     // remote
     pub fn git_remote_create(
@@ -1877,7 +1877,7 @@ extern "C" {
         custom_headers: *const git_strarray,
     ) -> c_int;
     pub fn git_remote_connected(remote: *const git_remote) -> c_int;
-    pub fn git_remote_disconnect(remote: *mut git_remote);
+    pub fn git_remote_disconnect(remote: *mut git_remote) -> c_int;
     pub fn git_remote_add_fetch(
         repo: *mut git_repository,
         remote: *const c_char,
@@ -1893,7 +1893,7 @@ extern "C" {
         refspecs: *const git_strarray,
         opts: *const git_fetch_options,
     ) -> c_int;
-    pub fn git_remote_stop(remote: *mut git_remote);
+    pub fn git_remote_stop(remote: *mut git_remote) -> c_int;
     pub fn git_remote_dup(dest: *mut *mut git_remote, source: *mut git_remote) -> c_int;
     pub fn git_remote_get_fetch_refspecs(
         array: *mut git_strarray,
@@ -2336,7 +2336,7 @@ extern "C" {
         repo: *mut git_repository,
         source: *const git_tree,
     ) -> c_int;
-    pub fn git_treebuilder_clear(bld: *mut git_treebuilder);
+    pub fn git_treebuilder_clear(bld: *mut git_treebuilder) -> c_int;
     pub fn git_treebuilder_entrycount(bld: *mut git_treebuilder) -> size_t;
     pub fn git_treebuilder_free(bld: *mut git_treebuilder);
     pub fn git_treebuilder_get(
@@ -2355,7 +2355,7 @@ extern "C" {
         bld: *mut git_treebuilder,
         filter: git_treebuilder_filter_cb,
         payload: *mut c_void,
-    );
+    ) -> c_int;
     pub fn git_treebuilder_write(id: *mut git_oid, bld: *mut git_treebuilder) -> c_int;
 
     // buf
@@ -2926,16 +2926,16 @@ extern "C" {
     pub fn git_revwalk_new(out: *mut *mut git_revwalk, repo: *mut git_repository) -> c_int;
     pub fn git_revwalk_free(walk: *mut git_revwalk);
 
-    pub fn git_revwalk_reset(walk: *mut git_revwalk);
+    pub fn git_revwalk_reset(walk: *mut git_revwalk) -> c_int;
 
-    pub fn git_revwalk_sorting(walk: *mut git_revwalk, sort_mode: c_uint);
+    pub fn git_revwalk_sorting(walk: *mut git_revwalk, sort_mode: c_uint) -> c_int;
 
     pub fn git_revwalk_push_head(walk: *mut git_revwalk) -> c_int;
     pub fn git_revwalk_push(walk: *mut git_revwalk, oid: *const git_oid) -> c_int;
     pub fn git_revwalk_push_ref(walk: *mut git_revwalk, refname: *const c_char) -> c_int;
     pub fn git_revwalk_push_glob(walk: *mut git_revwalk, glob: *const c_char) -> c_int;
     pub fn git_revwalk_push_range(walk: *mut git_revwalk, range: *const c_char) -> c_int;
-    pub fn git_revwalk_simplify_first_parent(walk: *mut git_revwalk);
+    pub fn git_revwalk_simplify_first_parent(walk: *mut git_revwalk) -> c_int;
 
     pub fn git_revwalk_hide_head(walk: *mut git_revwalk) -> c_int;
     pub fn git_revwalk_hide(walk: *mut git_revwalk, oid: *const git_oid) -> c_int;
@@ -3469,7 +3469,7 @@ extern "C" {
 
     // mempack
     pub fn git_mempack_new(out: *mut *mut git_odb_backend) -> c_int;
-    pub fn git_mempack_reset(backend: *mut git_odb_backend);
+    pub fn git_mempack_reset(backend: *mut git_odb_backend) -> c_int;
     pub fn git_mempack_dump(
         pack: *mut git_buf,
         repo: *mut git_repository,

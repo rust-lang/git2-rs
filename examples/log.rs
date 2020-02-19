@@ -61,7 +61,7 @@ fn run(args: &Args) -> Result<(), Error> {
         } else {
             git2::Sort::NONE
         },
-    );
+    )?;
     for commit in &args.arg_commit {
         if commit.starts_with('^') {
             let obj = repo.revparse_single(&commit[1..])?;
