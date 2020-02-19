@@ -219,7 +219,9 @@ mod tests {
 
         builder.filter(|_| true).unwrap();
         assert_eq!(builder.len(), 3);
-        builder.filter(|e| e.kind().unwrap() != ObjectType::Blob).unwrap();
+        builder
+            .filter(|e| e.kind().unwrap() != ObjectType::Blob)
+            .unwrap();
         assert_eq!(builder.len(), 2);
         builder.filter(|_| false).unwrap();
         assert_eq!(builder.len(), 0);
