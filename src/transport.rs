@@ -343,7 +343,7 @@ extern "C" fn stream_write(
 
 unsafe fn set_err(e: &io::Error) {
     let s = CString::new(e.to_string()).unwrap();
-    raw::git_error_set_str(raw::GIT_ERROR_NET as c_int, s.as_ptr())
+    raw::git_error_set_str(raw::GIT_ERROR_NET as c_int, s.as_ptr());
 }
 
 // callback used by smart transports to free a `SmartSubtransportStream`

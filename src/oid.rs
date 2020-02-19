@@ -49,7 +49,9 @@ impl Oid {
         if bytes.len() != raw::GIT_OID_RAWSZ {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
-            unsafe { raw::git_oid_fromraw(&mut raw, bytes.as_ptr()) }
+            unsafe {
+                try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
+            }
             Ok(Oid { raw: raw })
         }
     }

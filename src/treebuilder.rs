@@ -14,8 +14,11 @@ pub struct TreeBuilder<'repo> {
 
 impl<'repo> TreeBuilder<'repo> {
     /// Clear all the entries in the builder
-    pub fn clear(&mut self) {
-        unsafe { raw::git_treebuilder_clear(self.raw) }
+    pub fn clear(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_treebuilder_clear(self.raw));
+        }
+        Ok(())
     }
 
     /// Get the number of entries
@@ -86,16 +89,21 @@ impl<'repo> TreeBuilder<'repo> {
     ///
     /// Values for which the filter returns `true` will be kept.  Note
     /// that this behavior is different from the libgit2 C interface.
-    pub fn filter<F>(&mut self, mut filter: F)
+    pub fn filter<F>(&mut self, mut filter: F) -> Result<(), Error>
     where
         F: FnMut(&TreeEntry<'_>) -> bool,
     {
         let mut cb: &mut FilterCb<'_> = &mut filter;
         let ptr = &mut cb as *mut _;
         unsafe {
-            raw::git_treebuilder_filter(self.raw, filter_cb, ptr as *mut _);
+            try_call!(raw::git_treebuilder_filter(
+                self.raw,
+                filter_cb,
+                ptr as *mut _
+            ));
             panic::check();
         }
+        Ok(())
     }
 
     /// Write the contents of the TreeBuilder as a Tree object and
@@ -171,7 +179,7 @@ mod tests {
         builder.remove("a").unwrap();
         assert_eq!(builder.len(), 1);
         assert_eq!(builder.get("b").unwrap().unwrap().id(), blob);
-        builder.clear();
+        builder.clear().unwrap();
         assert_eq!(builder.len(), 0);
     }
 
@@ -209,11 +217,11 @@ mod tests {
         builder.insert("dir", tree, 0o040000).unwrap();
         builder.insert("dir2", tree, 0o040000).unwrap();
 
-        builder.filter(|_| true);
+        builder.filter(|_| true).unwrap();
         assert_eq!(builder.len(), 3);
-        builder.filter(|e| e.kind().unwrap() != ObjectType::Blob);
+        builder.filter(|e| e.kind().unwrap() != ObjectType::Blob).unwrap();
         assert_eq!(builder.len(), 2);
-        builder.filter(|_| false);
+        builder.filter(|_| false).unwrap();
         assert_eq!(builder.len(), 0);
     }
 }
