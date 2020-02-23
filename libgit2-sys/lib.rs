@@ -2828,6 +2828,13 @@ extern "C" {
         repo: *mut git_repository,
         reference: *const git_reference,
     ) -> c_int;
+    pub fn git_annotated_commit_from_fetchhead(
+        out: *mut *mut git_annotated_commit,
+        repo: *mut git_repository,
+        branch_name: *const c_char,
+        remote_url: *const c_char,
+        oid: *const git_oid,
+    ) -> c_int;
     pub fn git_annotated_commit_free(commit: *mut git_annotated_commit);
     pub fn git_merge_init_options(opts: *mut git_merge_options, version: c_uint) -> c_int;
     pub fn git_merge(
