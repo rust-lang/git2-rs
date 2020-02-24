@@ -33,6 +33,11 @@ impl<'repo> Branch<'repo> {
         &self.inner
     }
 
+    /// Gain mutable access to the reference that is this branch
+    pub fn get_mut(&mut self) -> &mut Reference<'repo> {
+        &mut self.inner
+    }
+
     /// Take ownership of the underlying reference.
     pub fn into_reference(self) -> Reference<'repo> {
         self.inner
