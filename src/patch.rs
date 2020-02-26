@@ -1,4 +1,5 @@
 use libc::{c_int, c_void};
+use std::marker::PhantomData;
 use std::path::Path;
 use std::ptr;
 
@@ -9,33 +10,37 @@ use crate::{raw, Blob, Buf, Diff, DiffDelta, DiffHunk, DiffLine, DiffOptions, Er
 /// A structure representing the text changes in a single diff delta.
 ///
 /// This is an opaque structure.
-pub struct Patch {
+pub struct Patch<'buffers> {
     raw: *mut raw::git_patch,
+    buffers: PhantomData<&'buffers ()>,
 }
 
-unsafe impl Send for Patch {}
+unsafe impl<'buffers> Send for Patch<'buffers> {}
 
-impl Binding for Patch {
+impl<'buffers> Binding for Patch<'buffers> {
     type Raw = *mut raw::git_patch;
-    unsafe fn from_raw(raw: Self::Raw) -> Patch {
-        Patch { raw: raw }
+    unsafe fn from_raw(raw: Self::Raw) -> Self {
+        Patch {
+            raw: raw,
+            buffers: PhantomData,
+        }
     }
     fn raw(&self) -> Self::Raw {
         self.raw
     }
 }
 
-impl Drop for Patch {
+impl<'buffers> Drop for Patch<'buffers> {
     fn drop(&mut self) {
         unsafe { raw::git_patch_free(self.raw) }
     }
 }
 
-impl Patch {
+impl<'buffers> Patch<'buffers> {
     /// Return a Patch for one file in a Diff.
     ///
     /// Returns Ok(None) for an unchanged or binary file.
-    pub fn from_diff(diff: &Diff<'_>, idx: usize) -> Result<Option<Patch>, Error> {
+    pub fn from_diff(diff: &Diff<'buffers>, idx: usize) -> Result<Option<Self>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_patch_from_diff(&mut ret, diff.raw(), idx));
@@ -45,12 +50,12 @@ impl Patch {
 
     /// Generate a Patch by diffing two blobs.
     pub fn from_blobs(
-        old_blob: &Blob<'_>,
+        old_blob: &Blob<'buffers>,
         old_path: Option<&Path>,
-        new_blob: &Blob<'_>,
+        new_blob: &Blob<'buffers>,
         new_path: Option<&Path>,
         opts: Option<&mut DiffOptions>,
-    ) -> Result<Patch, Error> {
+    ) -> Result<Self, Error> {
         let mut ret = ptr::null_mut();
         let old_path = into_opt_c_string(old_path)?;
         let new_path = into_opt_c_string(new_path)?;
@@ -69,12 +74,12 @@ impl Patch {
 
     /// Generate a Patch by diffing a blob and a buffer.
     pub fn from_blob_and_buffer(
-        old_blob: &Blob<'_>,
+        old_blob: &Blob<'buffers>,
         old_path: Option<&Path>,
-        new_buffer: &[u8],
+        new_buffer: &'buffers [u8],
         new_path: Option<&Path>,
         opts: Option<&mut DiffOptions>,
-    ) -> Result<Patch, Error> {
+    ) -> Result<Self, Error> {
         let mut ret = ptr::null_mut();
         let old_path = into_opt_c_string(old_path)?;
         let new_path = into_opt_c_string(new_path)?;
@@ -94,12 +99,12 @@ impl Patch {
 
     /// Generate a Patch by diffing two buffers.
     pub fn from_buffers(
-        old_buffer: &[u8],
+        old_buffer: &'buffers [u8],
         old_path: Option<&Path>,
-        new_buffer: &[u8],
+        new_buffer: &'buffers [u8],
         new_path: Option<&Path>,
         opts: Option<&mut DiffOptions>,
-    ) -> Result<Patch, Error> {
+    ) -> Result<Self, Error> {
         crate::init();
         let mut ret = ptr::null_mut();
         let old_path = into_opt_c_string(old_path)?;
@@ -120,7 +125,7 @@ impl Patch {
     }
 
     /// Get the DiffDelta associated with the Patch.
-    pub fn delta(&self) -> DiffDelta<'_> {
+    pub fn delta(&self) -> DiffDelta<'buffers> {
         unsafe { Binding::from_raw(raw::git_patch_get_delta(self.raw) as *mut _) }
     }
 
@@ -146,7 +151,7 @@ impl Patch {
     }
 
     /// Get a DiffHunk and its total line count from the Patch.
-    pub fn hunk(&self, hunk_idx: usize) -> Result<(DiffHunk<'_>, usize), Error> {
+    pub fn hunk(&self, hunk_idx: usize) -> Result<(DiffHunk<'buffers>, usize), Error> {
         let mut ret = ptr::null();
         let mut lines = 0;
         unsafe {
@@ -167,7 +172,7 @@ impl Patch {
         &self,
         hunk_idx: usize,
         line_of_hunk: usize,
-    ) -> Result<DiffLine<'_>, Error> {
+    ) -> Result<DiffLine<'buffers>, Error> {
         let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_patch_get_line_in_hunk(
@@ -216,7 +221,7 @@ impl Patch {
     }
 }
 
-impl std::fmt::Debug for Patch {
+impl<'buffers> std::fmt::Debug for Patch<'buffers> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Patch");
         ds.field("delta", &self.delta())
