@@ -1442,6 +1442,29 @@ impl Repository {
         }
     }
 
+    /// Creates a git_annotated_commit from FETCH_HEAD.
+    pub fn annotated_commit_from_fetchhead(
+        &self,
+        branch_name: &str,
+        remote_url: &str,
+        id: &Oid,
+    ) -> Result<AnnotatedCommit<'_>, Error> {
+        let branch_name = CString::new(branch_name)?;
+        let remote_url = CString::new(remote_url)?;
+
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_annotated_commit_from_fetchhead(
+                &mut ret,
+                self.raw(),
+                branch_name,
+                remote_url,
+                id.raw()
+            ));
+            Ok(AnnotatedCommit::from_raw(ret))
+        }
+    }
+
     /// Create a new action signature with default user and now timestamp.
     ///
     /// This looks up the user.name and user.email from the configuration and
