@@ -123,6 +123,10 @@ fn main() {
     if ssh {
         if let Some(path) = env::var_os("DEP_SSH2_INCLUDE") {
             cfg.include(path);
+        } else if let Ok(lib) = pkg_config::find_library("libssh2") {
+            for path in &lib.include_paths {
+                cfg.include(path);
+            }
         }
         features.push_str("#define GIT_SSH 1\n");
         features.push_str("#define GIT_SSH_MEMORY_CREDENTIALS 1\n");
@@ -138,6 +142,10 @@ fn main() {
             features.push_str("#define GIT_OPENSSL 1\n");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
+            } else if let Ok(lib) = pkg_config::find_library("openssl") {
+                for path in &lib.include_paths {
+                    cfg.include(path);
+                }
             }
         }
     }
@@ -153,6 +161,10 @@ fn main() {
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
+    } else if let Ok(lib) = pkg_config::find_library("zlib") {
+        for path in &lib.include_paths {
+            cfg.include(path);
+        }
     }
 
     if target.contains("apple") {
