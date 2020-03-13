@@ -778,9 +778,10 @@ impl Repository {
                 repo: self,
                 ret: &mut ret,
             };
+            let cb: raw::git_submodule_cb = Some(append);
             try_call!(raw::git_submodule_foreach(
                 self.raw,
-                append,
+                cb,
                 &mut data as *mut _ as *mut c_void
             ));
         }
@@ -2426,9 +2427,10 @@ impl Repository {
             let mut data = StashCbData {
                 callback: &mut callback,
             };
+            let cb: raw::git_stash_cb = Some(stash_cb);
             try_call!(raw::git_stash_foreach(
                 self.raw(),
-                stash_cb,
+                cb,
                 &mut data as *mut _ as *mut _
             ));
             Ok(())

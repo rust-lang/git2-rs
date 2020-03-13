@@ -174,24 +174,19 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                 0
             );
             if self.progress.is_some() {
-                let f: raw::git_indexer_progress_cb = transfer_progress_cb;
-                callbacks.transfer_progress = Some(f);
+                callbacks.transfer_progress = Some(transfer_progress_cb);
             }
             if self.credentials.is_some() {
-                let f: raw::git_cred_acquire_cb = credentials_cb;
-                callbacks.credentials = Some(f);
+                callbacks.credentials = Some(credentials_cb);
             }
             if self.sideband_progress.is_some() {
-                let f: raw::git_transport_message_cb = sideband_progress_cb;
-                callbacks.sideband_progress = Some(f);
+                callbacks.sideband_progress = Some(sideband_progress_cb);
             }
             if self.certificate_check.is_some() {
-                let f: raw::git_transport_certificate_check_cb = certificate_check_cb;
-                callbacks.certificate_check = Some(f);
+                callbacks.certificate_check = Some(certificate_check_cb);
             }
             if self.push_update_reference.is_some() {
-                let f: extern "C" fn(_, _, _) -> c_int = push_update_reference_cb;
-                callbacks.push_update_reference = Some(f);
+                callbacks.push_update_reference = Some(push_update_reference_cb);
             }
             if self.update_tips.is_some() {
                 let f: extern "C" fn(

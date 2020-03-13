@@ -124,7 +124,11 @@ impl<'repo> Drop for BlobWriter<'repo> {
     fn drop(&mut self) {
         // We need cleanup in case the stream has not been committed
         if self.need_cleanup {
-            unsafe { ((*self.raw).free)(self.raw) }
+            unsafe {
+                if let Some(f) = (*self.raw).free {
+                    f(self.raw)
+                }
+            }
         }
     }
 }
@@ -132,11 +136,15 @@ impl<'repo> Drop for BlobWriter<'repo> {
 impl<'repo> io::Write for BlobWriter<'repo> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {
-            let res = ((*self.raw).write)(self.raw, buf.as_ptr() as *const _, buf.len());
-            if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            if let Some(f) = (*self.raw).write {
+                let res = f(self.raw, buf.as_ptr() as *const _, buf.len());
+                if res < 0 {
+                    Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+                } else {
+                    Ok(buf.len())
+                }
             } else {
-                Ok(buf.len())
+                Err(io::Error::new(io::ErrorKind::Other, "no write callback"))
             }
         }
     }

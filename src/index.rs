@@ -295,7 +295,7 @@ impl Index {
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
-            .map(|_| index_matched_path_cb as raw::git_index_matched_path_cb);
+            .map(|_| index_matched_path_cb as extern "C" fn(_, _, _) -> _);
         unsafe {
             try_call!(raw::git_index_add_all(
                 self.raw,
@@ -473,7 +473,7 @@ impl Index {
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
-            .map(|_| index_matched_path_cb as raw::git_index_matched_path_cb);
+            .map(|_| index_matched_path_cb as extern "C" fn(_, _, _) -> _);
         unsafe {
             try_call!(raw::git_index_remove_all(
                 self.raw,
@@ -511,7 +511,7 @@ impl Index {
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
-            .map(|_| index_matched_path_cb as raw::git_index_matched_path_cb);
+            .map(|_| index_matched_path_cb as extern "C" fn(_, _, _) -> _);
         unsafe {
             try_call!(raw::git_index_update_all(
                 self.raw,

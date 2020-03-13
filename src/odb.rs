@@ -98,9 +98,10 @@ impl<'repo> Odb<'repo> {
             let mut data = ForeachCbData {
                 callback: &mut callback,
             };
+            let cb: raw::git_odb_foreach_cb = Some(foreach_cb);
             try_call!(raw::git_odb_foreach(
                 self.raw(),
-                foreach_cb,
+                cb,
                 &mut data as *mut _ as *mut _
             ));
             Ok(())
@@ -155,7 +156,7 @@ impl<'repo> Odb<'repo> {
     pub fn packwriter(&self) -> Result<OdbPackwriter<'_>, Error> {
         let mut out = ptr::null_mut();
         let progress = MaybeUninit::uninit();
-        let progress_cb = write_pack_progress_cb;
+        let progress_cb: raw::git_indexer_progress_cb = Some(write_pack_progress_cb);
         let progress_payload = Box::new(OdbPackwriterCb { cb: None });
         let progress_payload_ptr = Box::into_raw(progress_payload);
 

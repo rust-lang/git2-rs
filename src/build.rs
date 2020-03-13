@@ -589,13 +589,11 @@ impl<'cb> CheckoutBuilder<'cb> {
             opts.their_label = c.as_ptr();
         }
         if self.progress.is_some() {
-            let f: raw::git_checkout_progress_cb = progress_cb;
-            opts.progress_cb = Some(f);
+            opts.progress_cb = Some(progress_cb);
             opts.progress_payload = self as *mut _ as *mut _;
         }
         if self.notify.is_some() {
-            let f: raw::git_checkout_notify_cb = notify_cb;
-            opts.notify_cb = Some(f);
+            opts.notify_cb = Some(notify_cb);
             opts.notify_payload = self as *mut _ as *mut _;
             opts.notify_flags = self.notify_flags.bits() as c_uint;
         }

@@ -89,10 +89,11 @@ impl<'repo> PackBuilder<'repo> {
     {
         let mut cb = &mut cb as &mut ForEachCb<'_>;
         let ptr = &mut cb as *mut _;
+        let foreach: raw::git_packbuilder_foreach_cb = Some(foreach_c);
         unsafe {
             try_call!(raw::git_packbuilder_foreach(
                 self.raw,
-                foreach_c,
+                foreach,
                 ptr as *mut _
             ));
         }
@@ -112,7 +113,7 @@ impl<'repo> PackBuilder<'repo> {
     {
         let mut progress = Box::new(Box::new(progress) as Box<ProgressCb<'_>>);
         let ptr = &mut *progress as *mut _;
-        let progress_c = Some(progress_c as raw::git_packbuilder_progress);
+        let progress_c: raw::git_packbuilder_progress = Some(progress_c);
         unsafe {
             try_call!(raw::git_packbuilder_set_callbacks(
                 self.raw,

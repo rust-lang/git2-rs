@@ -113,11 +113,8 @@ where
     });
     let prefix = CString::new(prefix)?;
     let datap = (&mut *data) as *mut TransportData as *mut c_void;
-    try_call!(raw::git_transport_register(
-        prefix,
-        transport_factory,
-        datap
-    ));
+    let factory: raw::git_transport_cb = Some(transport_factory);
+    try_call!(raw::git_transport_register(prefix, factory, datap));
     mem::forget(data);
     Ok(())
 }
@@ -141,9 +138,9 @@ impl Transport {
 
         let mut raw = Box::new(RawSmartSubtransport {
             raw: raw::git_smart_subtransport {
-                action: subtransport_action,
-                close: subtransport_close,
-                free: subtransport_free,
+                action: Some(subtransport_action),
+                close: Some(subtransport_close),
+                free: Some(subtransport_free),
             },
             obj: Box::new(subtransport),
         });
@@ -257,9 +254,9 @@ extern "C" fn subtransport_action(
         *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
             raw: raw::git_smart_subtransport_stream {
                 subtransport: raw_transport,
-                read: stream_read,
-                write: stream_write,
-                free: stream_free,
+                read: Some(stream_read),
+                write: Some(stream_write),
+                free: Some(stream_free),
             },
             obj: obj,
         }));

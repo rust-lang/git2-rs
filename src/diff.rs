@@ -164,13 +164,9 @@ impl<'repo> Diff<'repo> {
     {
         let mut cb: &mut PrintCb<'_> = &mut cb;
         let ptr = &mut cb as *mut _;
+        let print: raw::git_diff_line_cb = Some(print_cb);
         unsafe {
-            try_call!(raw::git_diff_print(
-                self.raw,
-                format,
-                print_cb,
-                ptr as *mut _
-            ));
+            try_call!(raw::git_diff_print(self.raw, format, print, ptr as *mut _));
             Ok(())
         }
     }
@@ -194,24 +190,25 @@ impl<'repo> Diff<'repo> {
         };
         let ptr = &mut cbs as *mut _;
         unsafe {
-            let binary_cb_c = if cbs.binary.is_some() {
-                Some(binary_cb_c as raw::git_diff_binary_cb)
+            let binary_cb_c: raw::git_diff_binary_cb = if cbs.binary.is_some() {
+                Some(binary_cb_c)
             } else {
                 None
             };
-            let hunk_cb_c = if cbs.hunk.is_some() {
-                Some(hunk_cb_c as raw::git_diff_hunk_cb)
+            let hunk_cb_c: raw::git_diff_hunk_cb = if cbs.hunk.is_some() {
+                Some(hunk_cb_c)
             } else {
                 None
             };
-            let line_cb_c = if cbs.line.is_some() {
-                Some(line_cb_c as raw::git_diff_line_cb)
+            let line_cb_c: raw::git_diff_line_cb = if cbs.line.is_some() {
+                Some(line_cb_c)
             } else {
                 None
             };
+            let file_cb: raw::git_diff_file_cb = Some(file_cb_c);
             try_call!(raw::git_diff_foreach(
                 self.raw,
-                file_cb_c,
+                file_cb,
                 binary_cb_c,
                 hunk_cb_c,
                 line_cb_c,

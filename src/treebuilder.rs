@@ -95,12 +95,9 @@ impl<'repo> TreeBuilder<'repo> {
     {
         let mut cb: &mut FilterCb<'_> = &mut filter;
         let ptr = &mut cb as *mut _;
+        let cb: raw::git_treebuilder_filter_cb = Some(filter_cb);
         unsafe {
-            try_call!(raw::git_treebuilder_filter(
-                self.raw,
-                filter_cb,
-                ptr as *mut _
-            ));
+            try_call!(raw::git_treebuilder_filter(self.raw, cb, ptr as *mut _));
             panic::check();
         }
         Ok(())

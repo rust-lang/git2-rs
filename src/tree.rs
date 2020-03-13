@@ -132,7 +132,7 @@ impl<'repo> Tree<'repo> {
             raw::git_tree_walk(
                 self.raw(),
                 mode.into(),
-                treewalk_cb::<T>,
+                Some(treewalk_cb::<T>),
                 &mut data as *mut _ as *mut c_void,
             );
             Ok(())

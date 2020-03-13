@@ -206,7 +206,8 @@ impl<'buffers> Patch<'buffers> {
     pub fn print(&mut self, mut line_cb: &mut LineCb<'_>) -> Result<(), Error> {
         let ptr = &mut line_cb as *mut _ as *mut c_void;
         unsafe {
-            try_call!(raw::git_patch_print(self.raw, print_cb, ptr));
+            let cb: raw::git_diff_line_cb = Some(print_cb);
+            try_call!(raw::git_patch_print(self.raw, cb, ptr));
             Ok(())
         }
     }

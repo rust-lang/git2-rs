@@ -265,9 +265,9 @@ pub struct git_clone_options {
     pub bare: c_int,
     pub local: git_clone_local_t,
     pub checkout_branch: *const c_char,
-    pub repository_cb: Option<git_repository_create_cb>,
+    pub repository_cb: git_repository_create_cb,
     pub repository_cb_payload: *mut c_void,
-    pub remote_cb: Option<git_remote_create_cb>,
+    pub remote_cb: git_remote_create_cb,
     pub remote_cb_payload: *mut c_void,
 }
 
@@ -289,9 +289,9 @@ pub struct git_checkout_options {
     pub file_mode: c_uint,
     pub file_open_flags: c_int,
     pub notify_flags: c_uint,
-    pub notify_cb: Option<git_checkout_notify_cb>,
+    pub notify_cb: git_checkout_notify_cb,
     pub notify_payload: *mut c_void,
-    pub progress_cb: Option<git_checkout_progress_cb>,
+    pub progress_cb: git_checkout_progress_cb,
     pub progress_payload: *mut c_void,
     pub paths: git_strarray,
     pub baseline: *mut git_tree,
@@ -300,21 +300,25 @@ pub struct git_checkout_options {
     pub ancestor_label: *const c_char,
     pub our_label: *const c_char,
     pub their_label: *const c_char,
-    pub perfdata_cb: Option<git_checkout_perfdata_cb>,
+    pub perfdata_cb: git_checkout_perfdata_cb,
     pub perfdata_payload: *mut c_void,
 }
 
-pub type git_checkout_notify_cb = extern "C" fn(
-    git_checkout_notify_t,
-    *const c_char,
-    *const git_diff_file,
-    *const git_diff_file,
-    *const git_diff_file,
-    *mut c_void,
-) -> c_int;
-pub type git_checkout_progress_cb = extern "C" fn(*const c_char, size_t, size_t, *mut c_void);
+pub type git_checkout_notify_cb = Option<
+    extern "C" fn(
+        git_checkout_notify_t,
+        *const c_char,
+        *const git_diff_file,
+        *const git_diff_file,
+        *const git_diff_file,
+        *mut c_void,
+    ) -> c_int,
+>;
+pub type git_checkout_progress_cb =
+    Option<extern "C" fn(*const c_char, size_t, size_t, *mut c_void)>;
 
-pub type git_checkout_perfdata_cb = extern "C" fn(*const git_checkout_perfdata, *mut c_void);
+pub type git_checkout_perfdata_cb =
+    Option<extern "C" fn(*const git_checkout_perfdata, *mut c_void)>;
 
 #[repr(C)]
 pub struct git_checkout_perfdata {
@@ -335,7 +339,8 @@ pub struct git_indexer_progress {
     pub received_bytes: size_t,
 }
 
-pub type git_indexer_progress_cb = extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int;
+pub type git_indexer_progress_cb =
+    Option<extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int>;
 
 #[deprecated(
     since = "0.10.0",
@@ -346,20 +351,20 @@ pub type git_transfer_progress = git_indexer_progress;
 #[repr(C)]
 pub struct git_remote_callbacks {
     pub version: c_uint,
-    pub sideband_progress: Option<git_transport_message_cb>,
+    pub sideband_progress: git_transport_message_cb,
     pub completion: Option<extern "C" fn(git_remote_completion_type, *mut c_void) -> c_int>,
-    pub credentials: Option<git_cred_acquire_cb>,
-    pub certificate_check: Option<git_transport_certificate_check_cb>,
-    pub transfer_progress: Option<git_indexer_progress_cb>,
+    pub credentials: git_cred_acquire_cb,
+    pub certificate_check: git_transport_certificate_check_cb,
+    pub transfer_progress: git_indexer_progress_cb,
     pub update_tips:
         Option<extern "C" fn(*const c_char, *const git_oid, *const git_oid, *mut c_void) -> c_int>,
-    pub pack_progress: Option<git_packbuilder_progress>,
-    pub push_transfer_progress: Option<git_push_transfer_progress>,
-    pub push_update_reference: Option<git_push_update_reference_cb>,
-    pub push_negotiation: Option<git_push_negotiation>,
-    pub transport: Option<git_transport_cb>,
+    pub pack_progress: git_packbuilder_progress,
+    pub push_transfer_progress: git_push_transfer_progress,
+    pub push_update_reference: git_push_update_reference_cb,
+    pub push_negotiation: git_push_negotiation,
+    pub transport: git_transport_cb,
     pub payload: *mut c_void,
-    pub resolve_url: Option<git_url_resolve_cb>,
+    pub resolve_url: git_url_resolve_cb,
 }
 
 #[repr(C)]
@@ -398,23 +403,26 @@ git_enum! {
     }
 }
 
-pub type git_transport_message_cb = extern "C" fn(*const c_char, c_int, *mut c_void) -> c_int;
-pub type git_cred_acquire_cb =
-    extern "C" fn(*mut *mut git_cred, *const c_char, *const c_char, c_uint, *mut c_void) -> c_int;
+pub type git_transport_message_cb =
+    Option<extern "C" fn(*const c_char, c_int, *mut c_void) -> c_int>;
+pub type git_cred_acquire_cb = Option<
+    extern "C" fn(*mut *mut git_cred, *const c_char, *const c_char, c_uint, *mut c_void) -> c_int,
+>;
 pub type git_transfer_progress_cb =
-    extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int;
+    Option<extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int>;
 pub type git_packbuilder_progress =
-    extern "C" fn(git_packbuilder_stage_t, c_uint, c_uint, *mut c_void) -> c_int;
-pub type git_push_transfer_progress = extern "C" fn(c_uint, c_uint, size_t, *mut c_void) -> c_int;
+    Option<extern "C" fn(git_packbuilder_stage_t, c_uint, c_uint, *mut c_void) -> c_int>;
+pub type git_push_transfer_progress =
+    Option<extern "C" fn(c_uint, c_uint, size_t, *mut c_void) -> c_int>;
 pub type git_transport_certificate_check_cb =
-    extern "C" fn(*mut git_cert, c_int, *const c_char, *mut c_void) -> c_int;
+    Option<extern "C" fn(*mut git_cert, c_int, *const c_char, *mut c_void) -> c_int>;
 pub type git_push_negotiation =
-    extern "C" fn(*mut *const git_push_update, size_t, *mut c_void) -> c_int;
+    Option<extern "C" fn(*mut *const git_push_update, size_t, *mut c_void) -> c_int>;
 
 pub type git_push_update_reference_cb =
-    extern "C" fn(*const c_char, *const c_char, *mut c_void) -> c_int;
+    Option<extern "C" fn(*const c_char, *const c_char, *mut c_void) -> c_int>;
 pub type git_url_resolve_cb =
-    extern "C" fn(*mut git_buf, *const c_char, c_int, *mut c_void) -> c_int;
+    Option<extern "C" fn(*mut git_buf, *const c_char, c_int, *mut c_void) -> c_int>;
 
 #[repr(C)]
 pub struct git_push_update {
@@ -482,14 +490,16 @@ pub struct git_diff_file {
 }
 
 pub type git_repository_create_cb =
-    extern "C" fn(*mut *mut git_repository, *const c_char, c_int, *mut c_void) -> c_int;
-pub type git_remote_create_cb = extern "C" fn(
-    *mut *mut git_remote,
-    *mut git_repository,
-    *const c_char,
-    *const c_char,
-    *mut c_void,
-) -> c_int;
+    Option<extern "C" fn(*mut *mut git_repository, *const c_char, c_int, *mut c_void) -> c_int>;
+pub type git_remote_create_cb = Option<
+    extern "C" fn(
+        *mut *mut git_remote,
+        *mut git_repository,
+        *const c_char,
+        *const c_char,
+        *mut c_void,
+    ) -> c_int,
+>;
 
 git_enum! {
     pub enum git_checkout_notify_t {
@@ -673,10 +683,11 @@ git_enum! {
 }
 
 pub type git_treewalk_cb =
-    extern "C" fn(*const c_char, *const git_tree_entry, *mut c_void) -> c_int;
-pub type git_treebuilder_filter_cb = extern "C" fn(*const git_tree_entry, *mut c_void) -> c_int;
+    Option<extern "C" fn(*const c_char, *const git_tree_entry, *mut c_void) -> c_int>;
+pub type git_treebuilder_filter_cb =
+    Option<extern "C" fn(*const git_tree_entry, *mut c_void) -> c_int>;
 
-pub type git_revwalk_hide_cb = extern "C" fn(*const git_oid, *mut c_void) -> c_int;
+pub type git_revwalk_hide_cb = Option<extern "C" fn(*const git_oid, *mut c_void) -> c_int>;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -729,7 +740,7 @@ pub struct git_blame_hunk {
 }
 
 pub type git_index_matched_path_cb =
-    extern "C" fn(*const c_char, *const c_char, *mut c_void) -> c_int;
+    Option<extern "C" fn(*const c_char, *const c_char, *mut c_void) -> c_int>;
 
 git_enum! {
     pub enum git_index_entry_extended_flag_t {
@@ -781,7 +792,7 @@ pub struct git_config_entry {
     pub value: *const c_char,
     pub include_depth: c_uint,
     pub level: git_config_level_t,
-    pub free: extern "C" fn(*mut git_config_entry),
+    pub free: Option<extern "C" fn(*mut git_config_entry)>,
     pub payload: *mut c_void,
 }
 
@@ -818,7 +829,8 @@ git_enum! {
     }
 }
 
-pub type git_submodule_cb = extern "C" fn(*mut git_submodule, *const c_char, *mut c_void) -> c_int;
+pub type git_submodule_cb =
+    Option<extern "C" fn(*mut git_submodule, *const c_char, *mut c_void) -> c_int>;
 
 #[repr(C)]
 pub struct git_submodule_update_options {
@@ -830,9 +842,9 @@ pub struct git_submodule_update_options {
 
 #[repr(C)]
 pub struct git_writestream {
-    pub write: extern "C" fn(*mut git_writestream, *const c_char, size_t) -> c_int,
-    pub close: extern "C" fn(*mut git_writestream) -> c_int,
-    pub free: extern "C" fn(*mut git_writestream),
+    pub write: Option<extern "C" fn(*mut git_writestream, *const c_char, size_t) -> c_int>,
+    pub close: Option<extern "C" fn(*mut git_writestream) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_writestream)>,
 }
 
 git_enum! {
@@ -853,7 +865,7 @@ pub const GIT_ATTR_CHECK_INCLUDE_HEAD: u32 = 1 << 3;
 #[repr(C)]
 pub struct git_cred {
     pub credtype: git_credtype_t,
-    pub free: extern "C" fn(*mut git_cred),
+    pub free: Option<extern "C" fn(*mut git_cred)>,
 }
 
 git_enum! {
@@ -868,25 +880,29 @@ git_enum! {
     }
 }
 
-pub type git_cred_ssh_interactive_callback = extern "C" fn(
-    name: *const c_char,
-    name_len: c_int,
-    instruction: *const c_char,
-    instruction_len: c_int,
-    num_prompts: c_int,
-    prompts: *const LIBSSH2_USERAUTH_KBDINT_PROMPT,
-    responses: *mut LIBSSH2_USERAUTH_KBDINT_RESPONSE,
-    abstrakt: *mut *mut c_void,
-);
+pub type git_cred_ssh_interactive_callback = Option<
+    extern "C" fn(
+        name: *const c_char,
+        name_len: c_int,
+        instruction: *const c_char,
+        instruction_len: c_int,
+        num_prompts: c_int,
+        prompts: *const LIBSSH2_USERAUTH_KBDINT_PROMPT,
+        responses: *mut LIBSSH2_USERAUTH_KBDINT_RESPONSE,
+        abstrakt: *mut *mut c_void,
+    ),
+>;
 
-pub type git_cred_sign_callback = extern "C" fn(
-    session: *mut LIBSSH2_SESSION,
-    sig: *mut *mut c_uchar,
-    sig_len: *mut size_t,
-    data: *const c_uchar,
-    data_len: size_t,
-    abstrakt: *mut *mut c_void,
-);
+pub type git_cred_sign_callback = Option<
+    extern "C" fn(
+        session: *mut LIBSSH2_SESSION,
+        sig: *mut *mut c_uchar,
+        sig_len: *mut size_t,
+        data: *const c_uchar,
+        data_len: size_t,
+        abstrakt: *mut *mut c_void,
+    ),
+>;
 
 pub enum LIBSSH2_SESSION {}
 pub enum LIBSSH2_USERAUTH_KBDINT_PROMPT {}
@@ -902,7 +918,7 @@ pub struct git_push_options {
 }
 
 pub type git_tag_foreach_cb =
-    extern "C" fn(name: *const c_char, oid: *mut git_oid, payload: *mut c_void) -> c_int;
+    Option<extern "C" fn(name: *const c_char, oid: *mut git_oid, payload: *mut c_void) -> c_int>;
 
 git_enum! {
     pub enum git_index_add_option_t {
@@ -1005,17 +1021,19 @@ git_enum! {
     }
 }
 
-pub type git_diff_file_cb = extern "C" fn(*const git_diff_delta, f32, *mut c_void) -> c_int;
+pub type git_diff_file_cb = Option<extern "C" fn(*const git_diff_delta, f32, *mut c_void) -> c_int>;
 pub type git_diff_hunk_cb =
-    extern "C" fn(*const git_diff_delta, *const git_diff_hunk, *mut c_void) -> c_int;
-pub type git_diff_line_cb = extern "C" fn(
-    *const git_diff_delta,
-    *const git_diff_hunk,
-    *const git_diff_line,
-    *mut c_void,
-) -> c_int;
+    Option<extern "C" fn(*const git_diff_delta, *const git_diff_hunk, *mut c_void) -> c_int>;
+pub type git_diff_line_cb = Option<
+    extern "C" fn(
+        *const git_diff_delta,
+        *const git_diff_hunk,
+        *const git_diff_line,
+        *mut c_void,
+    ) -> c_int,
+>;
 pub type git_diff_binary_cb =
-    extern "C" fn(*const git_diff_delta, *const git_diff_binary, *mut c_void) -> c_int;
+    Option<extern "C" fn(*const git_diff_delta, *const git_diff_binary, *mut c_void) -> c_int>;
 
 #[repr(C)]
 pub struct git_diff_hunk {
@@ -1058,8 +1076,8 @@ pub struct git_diff_options {
     pub flags: u32,
     pub ignore_submodules: git_submodule_ignore_t,
     pub pathspec: git_strarray,
-    pub notify_cb: Option<git_diff_notify_cb>,
-    pub progress_cb: Option<git_diff_progress_cb>,
+    pub notify_cb: git_diff_notify_cb,
+    pub progress_cb: git_diff_progress_cb,
     pub payload: *mut c_void,
     pub context_lines: u32,
     pub interhunk_lines: u32,
@@ -1090,11 +1108,12 @@ git_enum! {
     }
 }
 
-pub type git_diff_notify_cb =
-    extern "C" fn(*const git_diff, *const git_diff_delta, *const c_char, *mut c_void) -> c_int;
+pub type git_diff_notify_cb = Option<
+    extern "C" fn(*const git_diff, *const git_diff_delta, *const c_char, *mut c_void) -> c_int,
+>;
 
 pub type git_diff_progress_cb =
-    extern "C" fn(*const git_diff, *const c_char, *const c_char, *mut c_void) -> c_int;
+    Option<extern "C" fn(*const git_diff, *const c_char, *const c_char, *mut c_void) -> c_int>;
 
 pub type git_diff_option_t = i32;
 pub const GIT_DIFF_NORMAL: git_diff_option_t = 0;
@@ -1141,17 +1160,21 @@ pub struct git_diff_find_options {
 
 #[repr(C)]
 pub struct git_diff_similarity_metric {
-    pub file_signature:
+    pub file_signature: Option<
         extern "C" fn(*mut *mut c_void, *const git_diff_file, *const c_char, *mut c_void) -> c_int,
-    pub buffer_signature: extern "C" fn(
-        *mut *mut c_void,
-        *const git_diff_file,
-        *const c_char,
-        size_t,
-        *mut c_void,
-    ) -> c_int,
-    pub free_signature: extern "C" fn(*mut c_void, *mut c_void),
-    pub similarity: extern "C" fn(*mut c_int, *mut c_void, *mut c_void, *mut c_void) -> c_int,
+    >,
+    pub buffer_signature: Option<
+        extern "C" fn(
+            *mut *mut c_void,
+            *const git_diff_file,
+            *const c_char,
+            size_t,
+            *mut c_void,
+        ) -> c_int,
+    >,
+    pub free_signature: Option<extern "C" fn(*mut c_void, *mut c_void)>,
+    pub similarity:
+        Option<extern "C" fn(*mut c_int, *mut c_void, *mut c_void, *mut c_void) -> c_int>,
     pub payload: *mut c_void,
 }
 
@@ -1260,11 +1283,13 @@ git_enum! {
     }
 }
 
-pub type git_transport_cb = extern "C" fn(
-    out: *mut *mut git_transport,
-    owner: *mut git_remote,
-    param: *mut c_void,
-) -> c_int;
+pub type git_transport_cb = Option<
+    extern "C" fn(
+        out: *mut *mut git_transport,
+        owner: *mut git_remote,
+        param: *mut c_void,
+    ) -> c_int,
+>;
 
 #[repr(C)]
 pub struct git_transport {
@@ -1501,8 +1526,8 @@ pub struct git_proxy_options {
     pub version: c_uint,
     pub kind: git_proxy_t,
     pub url: *const c_char,
-    pub credentials: Option<git_cred_acquire_cb>,
-    pub certificate_check: Option<git_transport_certificate_check_cb>,
+    pub credentials: git_cred_acquire_cb,
+    pub certificate_check: git_transport_certificate_check_cb,
     pub payload: *mut c_void,
 }
 
@@ -1526,34 +1551,40 @@ git_enum! {
 #[repr(C)]
 pub struct git_smart_subtransport_stream {
     pub subtransport: *mut git_smart_subtransport,
-    pub read: extern "C" fn(
-        *mut git_smart_subtransport_stream,
-        *mut c_char,
-        size_t,
-        *mut size_t,
-    ) -> c_int,
-    pub write: extern "C" fn(*mut git_smart_subtransport_stream, *const c_char, size_t) -> c_int,
-    pub free: extern "C" fn(*mut git_smart_subtransport_stream),
+    pub read: Option<
+        extern "C" fn(
+            *mut git_smart_subtransport_stream,
+            *mut c_char,
+            size_t,
+            *mut size_t,
+        ) -> c_int,
+    >,
+    pub write:
+        Option<extern "C" fn(*mut git_smart_subtransport_stream, *const c_char, size_t) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_smart_subtransport_stream)>,
 }
 
 #[repr(C)]
 pub struct git_smart_subtransport {
-    pub action: extern "C" fn(
-        *mut *mut git_smart_subtransport_stream,
-        *mut git_smart_subtransport,
-        *const c_char,
-        git_smart_service_t,
-    ) -> c_int,
-    pub close: extern "C" fn(*mut git_smart_subtransport) -> c_int,
-    pub free: extern "C" fn(*mut git_smart_subtransport),
+    pub action: Option<
+        extern "C" fn(
+            *mut *mut git_smart_subtransport_stream,
+            *mut git_smart_subtransport,
+            *const c_char,
+            git_smart_service_t,
+        ) -> c_int,
+    >,
+    pub close: Option<extern "C" fn(*mut git_smart_subtransport) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_smart_subtransport)>,
 }
 
-pub type git_smart_subtransport_cb =
-    extern "C" fn(*mut *mut git_smart_subtransport, *mut git_transport, *mut c_void) -> c_int;
+pub type git_smart_subtransport_cb = Option<
+    extern "C" fn(*mut *mut git_smart_subtransport, *mut git_transport, *mut c_void) -> c_int,
+>;
 
 #[repr(C)]
 pub struct git_smart_subtransport_definition {
-    pub callback: Option<git_smart_subtransport_cb>,
+    pub callback: git_smart_subtransport_cb,
     pub rpc: c_uint,
     pub param: *mut c_void,
 }
@@ -1625,30 +1656,36 @@ pub struct git_stash_apply_options {
     pub version: c_uint,
     pub flags: u32,
     pub checkout_options: git_checkout_options,
-    pub progress_cb: Option<git_stash_apply_progress_cb>,
+    pub progress_cb: git_stash_apply_progress_cb,
     pub progress_payload: *mut c_void,
 }
 
 pub type git_stash_apply_progress_cb =
-    extern "C" fn(progress: git_stash_apply_progress_t, payload: *mut c_void) -> c_int;
+    Option<extern "C" fn(progress: git_stash_apply_progress_t, payload: *mut c_void) -> c_int>;
 
-pub type git_stash_cb = extern "C" fn(
-    index: size_t,
-    message: *const c_char,
-    stash_id: *const git_oid,
-    payload: *mut c_void,
-) -> c_int;
+pub type git_stash_cb = Option<
+    extern "C" fn(
+        index: size_t,
+        message: *const c_char,
+        stash_id: *const git_oid,
+        payload: *mut c_void,
+    ) -> c_int,
+>;
 
-pub type git_packbuilder_foreach_cb = extern "C" fn(*const c_void, size_t, *mut c_void) -> c_int;
+pub type git_packbuilder_foreach_cb =
+    Option<extern "C" fn(*const c_void, size_t, *mut c_void) -> c_int>;
 
-pub type git_odb_foreach_cb = extern "C" fn(id: *const git_oid, payload: *mut c_void) -> c_int;
+pub type git_odb_foreach_cb =
+    Option<extern "C" fn(id: *const git_oid, payload: *mut c_void) -> c_int>;
 
-pub type git_commit_signing_cb = extern "C" fn(
-    signature: *mut git_buf,
-    signature_field: *mut git_buf,
-    commit_content: *const c_char,
-    payload: *mut c_void,
-) -> c_int;
+pub type git_commit_signing_cb = Option<
+    extern "C" fn(
+        signature: *mut git_buf,
+        signature_field: *mut git_buf,
+        commit_content: *const c_char,
+        payload: *mut c_void,
+    ) -> c_int,
+>;
 
 pub const GIT_REBASE_NO_OPERATION: usize = usize::max_value();
 
@@ -1660,7 +1697,7 @@ pub struct git_rebase_options {
     pub rewrite_notes_ref: *const c_char,
     pub merge_options: git_merge_options,
     pub checkout_options: git_checkout_options,
-    pub signing_cb: Option<git_commit_signing_cb>,
+    pub signing_cb: git_commit_signing_cb,
     pub payload: *mut c_void,
 }
 
@@ -2509,7 +2546,7 @@ extern "C" {
         index: *mut git_index,
         pathspec: *const git_strarray,
         flags: c_uint,
-        callback: Option<git_index_matched_path_cb>,
+        callback: git_index_matched_path_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_index_add_bypath(index: *mut git_index, path: *const c_char) -> c_int;
@@ -2566,7 +2603,7 @@ extern "C" {
     pub fn git_index_remove_all(
         index: *mut git_index,
         pathspec: *const git_strarray,
-        callback: Option<git_index_matched_path_cb>,
+        callback: git_index_matched_path_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_index_remove_bypath(index: *mut git_index, path: *const c_char) -> c_int;
@@ -2578,7 +2615,7 @@ extern "C" {
     pub fn git_index_update_all(
         index: *mut git_index,
         pathspec: *const git_strarray,
-        callback: Option<git_index_matched_path_cb>,
+        callback: git_index_matched_path_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_index_write(index: *mut git_index) -> c_int;
@@ -3081,9 +3118,9 @@ extern "C" {
     pub fn git_diff_foreach(
         diff: *mut git_diff,
         file_cb: git_diff_file_cb,
-        binary_cb: Option<git_diff_binary_cb>,
-        hunk_cb: Option<git_diff_hunk_cb>,
-        line_cb: Option<git_diff_line_cb>,
+        binary_cb: git_diff_binary_cb,
+        hunk_cb: git_diff_hunk_cb,
+        line_cb: git_diff_line_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_diff_free(diff: *mut git_diff);
@@ -3325,7 +3362,7 @@ extern "C" {
         pb: *mut git_packbuilder,
         path: *const c_char,
         mode: c_uint,
-        progress_cb: Option<git_indexer_progress_cb>,
+        progress_cb: git_indexer_progress_cb,
         progress_cb_payload: *mut c_void,
     ) -> c_int;
     pub fn git_packbuilder_hash(pb: *mut git_packbuilder) -> *const git_oid;
@@ -3338,7 +3375,7 @@ extern "C" {
     pub fn git_packbuilder_written(pb: *mut git_packbuilder) -> size_t;
     pub fn git_packbuilder_set_callbacks(
         pb: *mut git_packbuilder,
-        progress_cb: Option<git_packbuilder_progress>,
+        progress_cb: git_packbuilder_progress,
         progress_cb_payload: *mut c_void,
     ) -> c_int;
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
