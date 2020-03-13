@@ -494,11 +494,11 @@ pub type git_remote_create_cb = extern "C" fn(
 git_enum! {
     pub enum git_checkout_notify_t {
         GIT_CHECKOUT_NOTIFY_NONE = 0,
-        GIT_CHECKOUT_NOTIFY_CONFLICT = (1 << 0),
-        GIT_CHECKOUT_NOTIFY_DIRTY = (1 << 1),
-        GIT_CHECKOUT_NOTIFY_UPDATED = (1 << 2),
-        GIT_CHECKOUT_NOTIFY_UNTRACKED = (1 << 3),
-        GIT_CHECKOUT_NOTIFY_IGNORED = (1 << 4),
+        GIT_CHECKOUT_NOTIFY_CONFLICT = 1 << 0,
+        GIT_CHECKOUT_NOTIFY_DIRTY = 1 << 1,
+        GIT_CHECKOUT_NOTIFY_UPDATED = 1 << 2,
+        GIT_CHECKOUT_NOTIFY_UNTRACKED = 1 << 3,
+        GIT_CHECKOUT_NOTIFY_IGNORED = 1 << 4,
 
         GIT_CHECKOUT_NOTIFY_ALL = 0x0FFFF,
     }
@@ -508,43 +508,43 @@ git_enum! {
     pub enum git_status_t {
         GIT_STATUS_CURRENT = 0,
 
-        GIT_STATUS_INDEX_NEW = (1 << 0),
-        GIT_STATUS_INDEX_MODIFIED = (1 << 1),
-        GIT_STATUS_INDEX_DELETED = (1 << 2),
-        GIT_STATUS_INDEX_RENAMED = (1 << 3),
-        GIT_STATUS_INDEX_TYPECHANGE = (1 << 4),
+        GIT_STATUS_INDEX_NEW = 1 << 0,
+        GIT_STATUS_INDEX_MODIFIED = 1 << 1,
+        GIT_STATUS_INDEX_DELETED = 1 << 2,
+        GIT_STATUS_INDEX_RENAMED = 1 << 3,
+        GIT_STATUS_INDEX_TYPECHANGE = 1 << 4,
 
-        GIT_STATUS_WT_NEW = (1 << 7),
-        GIT_STATUS_WT_MODIFIED = (1 << 8),
-        GIT_STATUS_WT_DELETED = (1 << 9),
-        GIT_STATUS_WT_TYPECHANGE = (1 << 10),
-        GIT_STATUS_WT_RENAMED = (1 << 11),
-        GIT_STATUS_WT_UNREADABLE = (1 << 12),
+        GIT_STATUS_WT_NEW = 1 << 7,
+        GIT_STATUS_WT_MODIFIED = 1 << 8,
+        GIT_STATUS_WT_DELETED = 1 << 9,
+        GIT_STATUS_WT_TYPECHANGE = 1 << 10,
+        GIT_STATUS_WT_RENAMED = 1 << 11,
+        GIT_STATUS_WT_UNREADABLE = 1 << 12,
 
-        GIT_STATUS_IGNORED = (1 << 14),
-        GIT_STATUS_CONFLICTED = (1 << 15),
+        GIT_STATUS_IGNORED = 1 << 14,
+        GIT_STATUS_CONFLICTED = 1 << 15,
     }
 }
 
 git_enum! {
     pub enum git_status_opt_t {
-        GIT_STATUS_OPT_INCLUDE_UNTRACKED                = (1 << 0),
-        GIT_STATUS_OPT_INCLUDE_IGNORED                  = (1 << 1),
-        GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = (1 << 2),
-        GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = (1 << 3),
-        GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = (1 << 4),
-        GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = (1 << 5),
-        GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = (1 << 6),
-        GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = (1 << 7),
-        GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = (1 << 8),
-        GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = (1 << 9),
-        GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = (1 << 10),
+        GIT_STATUS_OPT_INCLUDE_UNTRACKED                = 1 << 0,
+        GIT_STATUS_OPT_INCLUDE_IGNORED                  = 1 << 1,
+        GIT_STATUS_OPT_INCLUDE_UNMODIFIED               = 1 << 2,
+        GIT_STATUS_OPT_EXCLUDE_SUBMODULES               = 1 << 3,
+        GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS           = 1 << 4,
+        GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH           = 1 << 5,
+        GIT_STATUS_OPT_RECURSE_IGNORED_DIRS             = 1 << 6,
+        GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX            = 1 << 7,
+        GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR         = 1 << 8,
+        GIT_STATUS_OPT_SORT_CASE_SENSITIVELY            = 1 << 9,
+        GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY          = 1 << 10,
 
-        GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = (1 << 11),
-        GIT_STATUS_OPT_NO_REFRESH                       = (1 << 12),
-        GIT_STATUS_OPT_UPDATE_INDEX                     = (1 << 13),
-        GIT_STATUS_OPT_INCLUDE_UNREADABLE               = (1 << 14),
-        GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = (1 << 15),
+        GIT_STATUS_OPT_RENAMES_FROM_REWRITES            = 1 << 11,
+        GIT_STATUS_OPT_NO_REFRESH                       = 1 << 12,
+        GIT_STATUS_OPT_UPDATE_INDEX                     = 1 << 13,
+        GIT_STATUS_OPT_INCLUDE_UNREADABLE               = 1 << 14,
+        GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED  = 1 << 15,
     }
 }
 
@@ -601,26 +601,26 @@ pub struct git_status_entry {
 git_enum! {
     pub enum git_checkout_strategy_t {
         GIT_CHECKOUT_NONE = 0,
-        GIT_CHECKOUT_SAFE = (1 << 0),
-        GIT_CHECKOUT_FORCE = (1 << 1),
-        GIT_CHECKOUT_RECREATE_MISSING = (1 << 2),
-        GIT_CHECKOUT_ALLOW_CONFLICTS = (1 << 4),
-        GIT_CHECKOUT_REMOVE_UNTRACKED = (1 << 5),
-        GIT_CHECKOUT_REMOVE_IGNORED = (1 << 6),
-        GIT_CHECKOUT_UPDATE_ONLY = (1 << 7),
-        GIT_CHECKOUT_DONT_UPDATE_INDEX = (1 << 8),
-        GIT_CHECKOUT_NO_REFRESH = (1 << 9),
-        GIT_CHECKOUT_SKIP_UNMERGED = (1 << 10),
-        GIT_CHECKOUT_USE_OURS = (1 << 11),
-        GIT_CHECKOUT_USE_THEIRS = (1 << 12),
-        GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH = (1 << 13),
-        GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES = (1 << 18),
-        GIT_CHECKOUT_DONT_OVERWRITE_IGNORED = (1 << 19),
-        GIT_CHECKOUT_CONFLICT_STYLE_MERGE = (1 << 20),
-        GIT_CHECKOUT_CONFLICT_STYLE_DIFF3 = (1 << 21),
+        GIT_CHECKOUT_SAFE = 1 << 0,
+        GIT_CHECKOUT_FORCE = 1 << 1,
+        GIT_CHECKOUT_RECREATE_MISSING = 1 << 2,
+        GIT_CHECKOUT_ALLOW_CONFLICTS = 1 << 4,
+        GIT_CHECKOUT_REMOVE_UNTRACKED = 1 << 5,
+        GIT_CHECKOUT_REMOVE_IGNORED = 1 << 6,
+        GIT_CHECKOUT_UPDATE_ONLY = 1 << 7,
+        GIT_CHECKOUT_DONT_UPDATE_INDEX = 1 << 8,
+        GIT_CHECKOUT_NO_REFRESH = 1 << 9,
+        GIT_CHECKOUT_SKIP_UNMERGED = 1 << 10,
+        GIT_CHECKOUT_USE_OURS = 1 << 11,
+        GIT_CHECKOUT_USE_THEIRS = 1 << 12,
+        GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH = 1 << 13,
+        GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES = 1 << 18,
+        GIT_CHECKOUT_DONT_OVERWRITE_IGNORED = 1 << 19,
+        GIT_CHECKOUT_CONFLICT_STYLE_MERGE = 1 << 20,
+        GIT_CHECKOUT_CONFLICT_STYLE_DIFF3 = 1 << 21,
 
-        GIT_CHECKOUT_UPDATE_SUBMODULES = (1 << 16),
-        GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED = (1 << 17),
+        GIT_CHECKOUT_UPDATE_SUBMODULES = 1 << 16,
+        GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED = 1 << 17,
     }
 }
 
@@ -915,11 +915,11 @@ git_enum! {
 
 git_enum! {
     pub enum git_repository_open_flag_t {
-        GIT_REPOSITORY_OPEN_NO_SEARCH = (1 << 0),
-        GIT_REPOSITORY_OPEN_CROSS_FS = (1 << 1),
-        GIT_REPOSITORY_OPEN_BARE = (1 << 2),
-        GIT_REPOSITORY_OPEN_NO_DOTGIT = (1 << 3),
-        GIT_REPOSITORY_OPEN_FROM_ENV = (1 << 4),
+        GIT_REPOSITORY_OPEN_NO_SEARCH = 1 << 0,
+        GIT_REPOSITORY_OPEN_CROSS_FS = 1 << 1,
+        GIT_REPOSITORY_OPEN_BARE = 1 << 2,
+        GIT_REPOSITORY_OPEN_NO_DOTGIT = 1 << 3,
+        GIT_REPOSITORY_OPEN_FROM_ENV = 1 << 4,
     }
 }
 
@@ -939,12 +939,12 @@ pub const GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
 
 git_enum! {
     pub enum git_repository_init_flag_t {
-        GIT_REPOSITORY_INIT_BARE              = (1 << 0),
-        GIT_REPOSITORY_INIT_NO_REINIT         = (1 << 1),
-        GIT_REPOSITORY_INIT_NO_DOTGIT_DIR     = (1 << 2),
-        GIT_REPOSITORY_INIT_MKDIR             = (1 << 3),
-        GIT_REPOSITORY_INIT_MKPATH            = (1 << 4),
-        GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = (1 << 5),
+        GIT_REPOSITORY_INIT_BARE              = 1 << 0,
+        GIT_REPOSITORY_INIT_NO_REINIT         = 1 << 1,
+        GIT_REPOSITORY_INIT_NO_DOTGIT_DIR     = 1 << 2,
+        GIT_REPOSITORY_INIT_MKDIR             = 1 << 3,
+        GIT_REPOSITORY_INIT_MKPATH            = 1 << 4,
+        GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = 1 << 5,
     }
 }
 
@@ -959,9 +959,9 @@ git_enum! {
 git_enum! {
     pub enum git_sort_t {
         GIT_SORT_NONE        = 0,
-        GIT_SORT_TOPOLOGICAL = (1 << 0),
-        GIT_SORT_TIME        = (1 << 1),
-        GIT_SORT_REVERSE     = (1 << 2),
+        GIT_SORT_TOPOLOGICAL = 1 << 0,
+        GIT_SORT_TIME        = 1 << 1,
+        GIT_SORT_REVERSE     = 1 << 2,
     }
 }
 
@@ -1231,32 +1231,32 @@ git_enum! {
 git_enum! {
     pub enum git_merge_file_flag_t {
         GIT_MERGE_FILE_DEFAULT = 0,
-        GIT_MERGE_FILE_STYLE_MERGE = (1 << 0),
-        GIT_MERGE_FILE_STYLE_DIFF3 = (1 << 1),
-        GIT_MERGE_FILE_SIMPLIFY_ALNUM = (1 << 2),
-        GIT_MERGE_FILE_IGNORE_WHITESPACE = (1 << 3),
-        GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE = (1 << 4),
-        GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL = (1 << 5),
-        GIT_MERGE_FILE_DIFF_PATIENCE = (1 << 6),
-        GIT_MERGE_FILE_DIFF_MINIMAL = (1 << 7),
+        GIT_MERGE_FILE_STYLE_MERGE = 1 << 0,
+        GIT_MERGE_FILE_STYLE_DIFF3 = 1 << 1,
+        GIT_MERGE_FILE_SIMPLIFY_ALNUM = 1 << 2,
+        GIT_MERGE_FILE_IGNORE_WHITESPACE = 1 << 3,
+        GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE = 1 << 4,
+        GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL = 1 << 5,
+        GIT_MERGE_FILE_DIFF_PATIENCE = 1 << 6,
+        GIT_MERGE_FILE_DIFF_MINIMAL = 1 << 7,
     }
 }
 
 git_enum! {
     pub enum git_merge_analysis_t {
         GIT_MERGE_ANALYSIS_NONE = 0,
-        GIT_MERGE_ANALYSIS_NORMAL = (1 << 0),
-        GIT_MERGE_ANALYSIS_UP_TO_DATE = (1 << 1),
-        GIT_MERGE_ANALYSIS_FASTFORWARD = (1 << 2),
-        GIT_MERGE_ANALYSIS_UNBORN = (1 << 3),
+        GIT_MERGE_ANALYSIS_NORMAL = 1 << 0,
+        GIT_MERGE_ANALYSIS_UP_TO_DATE = 1 << 1,
+        GIT_MERGE_ANALYSIS_FASTFORWARD = 1 << 2,
+        GIT_MERGE_ANALYSIS_UNBORN = 1 << 3,
     }
 }
 
 git_enum! {
     pub enum git_merge_preference_t {
         GIT_MERGE_PREFERENCE_NONE = 0,
-        GIT_MERGE_PREFERENCE_NO_FASTFORWARD = (1 << 0),
-        GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY = (1 << 1),
+        GIT_MERGE_PREFERENCE_NO_FASTFORWARD = 1 << 0,
+        GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY = 1 << 1,
     }
 }
 
