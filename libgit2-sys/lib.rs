@@ -230,6 +230,7 @@ git_enum! {
         GIT_ERROR_PATCH,
         GIT_ERROR_WORKTREE,
         GIT_ERROR_SHA1,
+        GIT_ERROR_HTTP,
     }
 }
 
