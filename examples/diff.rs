@@ -14,48 +14,113 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Diff, DiffOptions, Error, Object, ObjectType, Repository};
 use git2::{DiffFindOptions, DiffFormat};
-use serde_derive::Deserialize;
 use std::str;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 #[allow(non_snake_case)]
 struct Args {
+    #[structopt(name = "from_oid")]
     arg_from_oid: Option<String>,
+    #[structopt(name = "to_oid")]
     arg_to_oid: Option<String>,
+    #[structopt(name = "patch", short, long)]
+    /// show output in patch format
     flag_patch: bool,
+    #[structopt(name = "cached", long)]
+    /// use staged changes as diff
     flag_cached: bool,
+    #[structopt(name = "nocached", long)]
+    /// do not use staged changes
     flag_nocached: bool,
+    #[structopt(name = "name-only", long)]
+    /// show only names of changed files
     flag_name_only: bool,
+    #[structopt(name = "name-status", long)]
+    /// show only names and status changes
     flag_name_status: bool,
+    #[structopt(name = "raw", long)]
+    /// generate the raw format
     flag_raw: bool,
+    #[structopt(name = "format", long)]
+    /// specify format for stat summary
     flag_format: Option<String>,
+    #[structopt(name = "color", long)]
+    /// use color output
     flag_color: bool,
+    #[structopt(name = "no-color", long)]
+    /// never use color output
     flag_no_color: bool,
+    #[structopt(short = "R")]
+    /// swap two inputs
     flag_R: bool,
+    #[structopt(name = "text", short = "a", long)]
+    /// treat all files as text
     flag_text: bool,
+    #[structopt(name = "ignore-space-at-eol", long)]
+    /// ignore changes in whitespace at EOL
     flag_ignore_space_at_eol: bool,
+    #[structopt(name = "ignore-space-change", short = "b", long)]
+    /// ignore changes in amount of whitespace
     flag_ignore_space_change: bool,
+    #[structopt(name = "ignore-all-space", short = "w", long)]
+    /// ignore whitespace when comparing lines
     flag_ignore_all_space: bool,
+    #[structopt(name = "ignored", long)]
+    /// show untracked files
     flag_ignored: bool,
+    #[structopt(name = "untracked", long)]
+    /// generate diff using the patience algorithm
     flag_untracked: bool,
+    #[structopt(name = "patience", long)]
+    /// show ignored files as well
     flag_patience: bool,
+    #[structopt(name = "minimal", long)]
+    /// spend extra time to find smallest diff
     flag_minimal: bool,
+    #[structopt(name = "stat", long)]
+    /// generate a diffstat
     flag_stat: bool,
+    #[structopt(name = "numstat", long)]
+    /// similar to --stat, but more machine friendly
     flag_numstat: bool,
+    #[structopt(name = "shortstat", long)]
+    /// only output last line of --stat
     flag_shortstat: bool,
+    #[structopt(name = "summary", long)]
+    /// output condensed summary of header info
     flag_summary: bool,
+    #[structopt(name = "find-renames", short = "M", long)]
+    /// set threshold for findind renames (default 50)
     flag_find_renames: Option<u16>,
+    #[structopt(name = "find-copies", short = "C", long)]
+    /// set threshold for finding copies (default 50)
     flag_find_copies: Option<u16>,
+    #[structopt(name = "find-copies-harder", long)]
+    /// inspect unmodified files for sources of copies
     flag_find_copies_harder: bool,
+    #[structopt(name = "break_rewrites", short = "B", long)]
+    /// break complete rewrite changes into pairs
     flag_break_rewrites: bool,
+    #[structopt(name = "unified", short = "U", long)]
+    /// lints of context to show
     flag_unified: Option<u32>,
+    #[structopt(name = "inter-hunk-context", long)]
+    /// maximum lines of change between hunks
     flag_inter_hunk_context: Option<u32>,
+    #[structopt(name = "abbrev", long)]
+    /// length to abbreviate commits to
     flag_abbrev: Option<u16>,
+    #[structopt(name = "src-prefix", long)]
+    /// show given source prefix instead of 'a/'
     flag_src_prefix: Option<String>,
+    #[structopt(name = "dst-prefix", long)]
+    /// show given destinction prefix instead of 'b/'
     flag_dst_prefix: Option<String>,
+    #[structopt(name = "path", long = "git-dir")]
+    /// path to git repository to use
     flag_git_dir: Option<String>,
 }
 
@@ -262,48 +327,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: diff [options] [<from-oid> [<to-oid>]]
-
-Options:
-    -p, --patch                 show output in patch format
-    --cached                    use staged changes as diff
-    --nocached                  do not use staged changes
-    --name-only                 show only names of changed files
-    --name-status               show only names and status changes
-    --raw                       generate the raw format
-    --format=<format>           specify format for stat summary
-    --color                     use color output
-    --no-color                  never use color output
-    -R                          swap two inputs
-    -a, --text                  treat all files as text
-    --ignore-space-at-eol       ignore changes in whitespace at EOL
-    -b, --ignore-space-change   ignore changes in amount of whitespace
-    -w, --ignore-all-space      ignore whitespace when comparing lines
-    --ignored                   show ignored files as well
-    --untracked                 show untracked files
-    --patience                  generate diff using the patience algorithm
-    --minimal                   spend extra time to find smallest diff
-    --stat                      generate a diffstat
-    --numstat                   similar to --stat, but more machine friendly
-    --shortstat                 only output last line of --stat
-    --summary                   output condensed summary of header info
-    -M, --find-renames <n>      set threshold for findind renames (default 50)
-    -C, --find-copies <n>       set threshold for finding copies (default 50)
-    --find-copies-harder        inspect unmodified files for sources of copies
-    -B, --break-rewrites        break complete rewrite changes into pairs
-    -U, --unified <n>           lints of context to show
-    --inter-hunk-context <n>    maximum lines of change between hunks
-    --abbrev <n>                length to abbreviate commits to
-    --src-prefix <s>            show given source prefix instead of 'a/'
-    --dst-prefix <s>            show given destinction prefix instead of 'b/'
-    --git-dir <path>            path to git repository to use
-    -h, --help                  show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

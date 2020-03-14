@@ -15,16 +15,22 @@
 #![deny(warnings)]
 #![allow(trivial_casts)]
 
-use docopt::Docopt;
 use git2::Repository;
-use serde_derive::Deserialize;
 use std::path::Path;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
+    #[structopt(name = "spec")]
     arg_spec: Vec<String>,
+    #[structopt(name = "dry_run", short = "n", long)]
+    /// dry run
     flag_dry_run: bool,
+    #[structopt(name = "verbose", short, long)]
+    /// be verbose
     flag_verbose: bool,
+    #[structopt(name = "update", short, long)]
+    /// update tracked files
     flag_update: bool,
 }
 
@@ -67,19 +73,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: add [options] [--] [<spec>..]
-
-Options:
-    -n, --dry-run       dry run
-    -v, --verbose       be verbose
-    -u, --update        update tracked files
-    -h, --help          show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

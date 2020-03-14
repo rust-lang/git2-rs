@@ -14,32 +14,65 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Commit, DiffOptions, ObjectType, Repository, Signature, Time};
 use git2::{DiffFormat, Error, Pathspec};
-use serde_derive::Deserialize;
 use std::str;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
-    arg_commit: Vec<String>,
-    arg_spec: Vec<String>,
+    #[structopt(name = "topo-order", long)]
+    /// sort commits in topological order
     flag_topo_order: bool,
+    #[structopt(name = "date-order", long)]
+    /// sort commits in date order
     flag_date_order: bool,
+    #[structopt(name = "reverse", long)]
+    /// sort commits in reverse
     flag_reverse: bool,
+    #[structopt(name = "author", long)]
+    /// author to sort by
     flag_author: Option<String>,
+    #[structopt(name = "committer", long)]
+    /// committer to sort by
     flag_committer: Option<String>,
+    #[structopt(name = "pat", long = "grep")]
+    /// pattern to filter commit messages by
     flag_grep: Option<String>,
+    #[structopt(name = "dir", long = "git-dir")]
+    /// alternative git directory to use
     flag_git_dir: Option<String>,
+    #[structopt(name = "skip", long)]
+    /// number of commits to skip
     flag_skip: Option<usize>,
+    #[structopt(name = "max-count", short = "n", long)]
+    /// maximum number of commits to show
     flag_max_count: Option<usize>,
+    #[structopt(name = "merges", long)]
+    /// only show merge commits
     flag_merges: bool,
+    #[structopt(name = "no-merges", long)]
+    /// don't show merge commits
     flag_no_merges: bool,
+    #[structopt(name = "no-min-parents", long)]
+    /// don't require a minimum number of parents
     flag_no_min_parents: bool,
+    #[structopt(name = "no-max-parents", long)]
+    /// don't require a maximum number of parents
     flag_no_max_parents: bool,
+    #[structopt(name = "max-parents")]
+    /// specify a maximum number of parents for a commit
     flag_max_parents: Option<usize>,
+    #[structopt(name = "min-parents")]
+    /// specify a minimum number of parents for a commit
     flag_min_parents: Option<usize>,
+    #[structopt(name = "patch", long, short)]
+    /// show commit diff
     flag_patch: bool,
+    #[structopt(name = "commit")]
+    arg_commit: Vec<String>,
+    #[structopt(name = "spec", last = true)]
+    arg_spec: Vec<String>,
 }
 
 fn run(args: &Args) -> Result<(), Error> {
@@ -269,32 +302,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: log [options] [<commit>..] [--] [<spec>..]
-
-Options:
-    --topo-order            sort commits in topological order
-    --date-order            sort commits in date order
-    --reverse               sort commits in reverse
-    --author <user>         author to sort by
-    --committer <user>      committer to sort by
-    --grep <pat>            pattern to filter commit messages by
-    --git-dir <dir>         alternative git directory to use
-    --skip <n>              number of commits to skip
-    -n, --max-count <n>     maximum number of commits to show
-    --merges                only show merge commits
-    --no-merges             don't show merge commits
-    --no-min-parents        don't require a minimum number of parents
-    --no-max-parents        don't require a maximum number of parents
-    --max-parents <n>       specify a maximum number of parents for a commit
-    --min-parents <n>       specify a minimum number of parents for a commit
-    -p, --patch             show commit diff
-    -h, --help              show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

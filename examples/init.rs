@@ -14,19 +14,31 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
-use serde_derive::Deserialize;
 use std::path::{Path, PathBuf};
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
+    #[structopt(name = "directory")]
     arg_directory: String,
+    #[structopt(name = "quiet", short, long)]
+    /// don't print information to stdout
     flag_quiet: bool,
+    #[structopt(name = "bare", long)]
+    /// initialize a new bare repository
     flag_bare: bool,
+    #[structopt(name = "dir", long = "template")]
+    /// use <dir> as an initialization template
     flag_template: Option<String>,
+    #[structopt(name = "separate-git-dir", long)]
+    /// use <dir> as the .git directory
     flag_separate_git_dir: Option<String>,
+    #[structopt(name = "initial-commit", long)]
+    /// create an initial empty commit
     flag_initial_commit: bool,
+    #[structopt(name = "perms", long = "shared")]
+    /// permissions to create the repository with
     flag_shared: Option<String>,
 }
 
@@ -125,21 +137,7 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: init [options] <directory>
-
-Options:
-    -q, --quiet                 don't print information to stdout
-    --bare                      initialize a new bare repository
-    --template <dir>            use <dir> as an initialization template
-    --separate-git-dir <dir>    use <dir> as the .git directory
-    --initial-commit            create an initial empty commit
-    --shared <perms>            permissions to create the repository with
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

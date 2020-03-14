@@ -12,19 +12,28 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-use docopt::Docopt;
+#![deny(warnings)]
+
 use git2::{BlameOptions, Repository};
-use serde_derive::Deserialize;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 #[allow(non_snake_case)]
 struct Args {
+    #[structopt(name = "path")]
     arg_path: String,
+    #[structopt(name = "spec")]
     arg_spec: Option<String>,
+    #[structopt(short = "M")]
+    /// find line moves within and across files
     flag_M: bool,
+    #[structopt(short = "C")]
+    /// find line copies within and across files
     flag_C: bool,
+    #[structopt(short = "F")]
+    /// follow only the first parent commits
     flag_F: bool,
 }
 
@@ -87,18 +96,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: blame [options] [<spec>] <path>
-
-Options:
-    -M                  find line moves within and across files
-    -C                  find line copies within and across files
-    -F                  follow only the first parent commits
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

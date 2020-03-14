@@ -14,13 +14,15 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::Repository;
-use serde_derive::Deserialize;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
+    #[structopt(name = "spec")]
     arg_spec: String,
+    #[structopt(name = "dir", long = "git-dir")]
+    /// directory of the git repository to check
     flag_git_dir: Option<String>,
 }
 
@@ -50,16 +52,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: rev-parse [options] <spec>
-
-Options:
-    --git-dir <dir>     directory of the git repository to check
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
