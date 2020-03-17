@@ -14,17 +14,18 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{FetchOptions, Progress, RemoteCallbacks};
-use serde_derive::Deserialize;
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
+    #[structopt(name = "url")]
     arg_url: String,
+    #[structopt(name = "path")]
     arg_path: String,
 }
 
@@ -117,16 +118,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: add [options] <url> <path>
-
-Options:
-    -h, --help          show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

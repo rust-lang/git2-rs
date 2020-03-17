@@ -14,20 +14,29 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Commit, Error, Repository, Tag};
-use serde_derive::Deserialize;
 use std::str;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
     arg_tagname: Option<String>,
     arg_object: Option<String>,
     arg_pattern: Option<String>,
+    #[structopt(name = "n", short)]
+    /// specify number of lines from the annotation to print
     flag_n: Option<u32>,
+    #[structopt(name = "force", short, long)]
+    /// replace an existing tag with the given name
     flag_force: bool,
+    #[structopt(name = "list", short, long)]
+    /// list tags with names matching the pattern given
     flag_list: bool,
+    #[structopt(name = "tag", short, long = "delete")]
+    /// delete the tag specified
     flag_delete: Option<String>,
+    #[structopt(name = "msg", short, long = "message")]
+    /// message for a new tag
     flag_message: Option<String>,
 }
 
@@ -110,24 +119,7 @@ fn print_list_lines(message: Option<&str>, args: &Args) {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage:
-    tag [-a] [-f] [-m <msg>] <tagname> [<object>]
-    tag -d <tag>
-    tag [-n <n>] -l [<pattern>]
-
-Options:
-    -n <n>                  specify number of lines from the annotation to print
-    -f, --force             replace an existing tag with the given name
-    -l, --list              list tags with names matching the pattern given
-    -d, --delete <tag>      delete the tag specified
-    -m, --message <msg>     message for a new tag
-    -h, --help              show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

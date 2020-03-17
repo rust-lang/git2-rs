@@ -14,12 +14,12 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Direction, Repository};
-use serde_derive::Deserialize;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
+    #[structopt(name = "remote")]
     arg_remote: String,
 }
 
@@ -43,16 +43,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: ls-remote [option] <remote>
-
-Options:
-    -h, --help          show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

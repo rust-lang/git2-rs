@@ -15,17 +15,25 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Error, Oid, Repository, Revwalk};
-use serde_derive::Deserialize;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
-    arg_spec: Vec<String>,
+    #[structopt(name = "topo-order", long)]
+    /// sort commits in topological order
     flag_topo_order: bool,
+    #[structopt(name = "date-order", long)]
+    /// sort commits in date order
     flag_date_order: bool,
+    #[structopt(name = "reverse", long)]
+    /// sort commits in reverse
     flag_reverse: bool,
+    #[structopt(name = "not")]
+    /// don't show <spec>
     flag_not: Vec<String>,
+    #[structopt(name = "spec", last = true)]
+    arg_spec: Vec<String>,
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
@@ -89,20 +97,7 @@ fn push(revwalk: &mut Revwalk, id: Oid, hide: bool) -> Result<(), Error> {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: rev-list [options] [--] <spec>...
-
-Options:
-    --topo-order        sort commits in topological order
-    --date-order        sort commits in date order
-    --reverse           sort commits in reverse
-    --not <spec>        don't show <spec>
-    -h, --help          show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

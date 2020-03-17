@@ -14,24 +14,46 @@
 
 #![deny(warnings)]
 
-use docopt::Docopt;
 use git2::{Error, ErrorCode, Repository, StatusOptions, SubmoduleIgnore};
-use serde_derive::Deserialize;
 use std::str;
 use std::time::Duration;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
     arg_spec: Vec<String>,
+    #[structopt(name = "long", long)]
+    /// show longer statuses (default)
+    _flag_long: bool,
+    /// show short statuses
+    #[structopt(name = "short", long)]
     flag_short: bool,
+    #[structopt(name = "porcelain", long)]
+    /// ??
     flag_porcelain: bool,
+    #[structopt(name = "branch", short, long)]
+    /// show branch information
     flag_branch: bool,
+    #[structopt(name = "z", short)]
+    /// ??
     flag_z: bool,
+    #[structopt(name = "ignored", long)]
+    /// show ignored files as well
     flag_ignored: bool,
+    #[structopt(name = "opt-modules", long = "untracked-files")]
+    /// setting for showing untracked files [no|normal|all]
     flag_untracked_files: Option<String>,
+    #[structopt(name = "opt-files", long = "ignore-submodules")]
+    /// setting for ignoring submodules [all]
     flag_ignore_submodules: Option<String>,
+    #[structopt(name = "dir", long = "git-dir")]
+    /// git directory to analyze
     flag_git_dir: Option<String>,
+    #[structopt(name = "repeat", long)]
+    /// repeatedly show status, sleeping inbetween
     flag_repeat: bool,
+    #[structopt(name = "list-submodules", long)]
+    /// show submodules
     flag_list_submodules: bool,
 }
 
@@ -411,27 +433,7 @@ impl Args {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: status [options] [--] [<spec>..]
-
-Options:
-    -s, --short                 show short statuses
-    --long                      show longer statuses (default)
-    --porcelain                 ??
-    -b, --branch                show branch information
-    -z                          ??
-    --ignored                   show ignored files as well
-    --untracked-files <opt>     setting for showing untracked files [no|normal|all]
-    --ignore-submodules <opt>   setting for ignoring submodules [all]
-    --git-dir <dir>             git directory to analyze
-    --repeat                    repeatedly show status, sleeping inbetween
-    --list-submodules           show submodules
-    -h, --help                  show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

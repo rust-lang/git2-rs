@@ -16,19 +16,32 @@
 
 use std::io::{self, Write};
 
-use docopt::Docopt;
 use git2::{Blob, Commit, ObjectType, Repository, Signature, Tag, Tree};
-use serde_derive::Deserialize;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
+    #[structopt(name = "object")]
     arg_object: String,
+    #[structopt(short = "t")]
+    /// show the object type
     flag_t: bool,
+    #[structopt(short = "s")]
+    /// show the object size
     flag_s: bool,
+    #[structopt(short = "e")]
+    /// suppress all output
     flag_e: bool,
+    #[structopt(short = "p")]
+    /// pretty print the contents of the object
     flag_p: bool,
+    #[structopt(name = "quiet", short, long)]
+    /// suppress output
     flag_q: bool,
+    #[structopt(name = "verbose", short, long)]
     flag_v: bool,
+    #[structopt(name = "dir", long = "git-dir")]
+    /// use the specified directory as the base directory
     flag_git_dir: Option<String>,
 }
 
@@ -128,23 +141,7 @@ fn show_sig(header: &str, sig: Option<Signature>) {
 }
 
 fn main() {
-    const USAGE: &str = "
-usage: cat-file (-t | -s | -e | -p) [options] <object>
-
-Options:
-    -t                  show the object type
-    -s                  show the object size
-    -e                  suppress all output
-    -p                  pretty print the contents of the object
-    -q                  suppress output
-    -v                  use verbose output
-    --git-dir <dir>     use the specified directory as the base directory
-    -h, --help          show this message
-";
-
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
