@@ -261,6 +261,8 @@ pub enum ErrorClass {
     Worktree,
     /// Hash library error or SHA-1 collision
     Sha1,
+    /// HTTP error
+    Http,
 }
 
 /// A listing of the possible states that a repository can be in.

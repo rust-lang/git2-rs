@@ -156,6 +156,7 @@ impl Error {
             raw::GIT_ERROR_PATCH => super::ErrorClass::Patch,
             raw::GIT_ERROR_WORKTREE => super::ErrorClass::Worktree,
             raw::GIT_ERROR_SHA1 => super::ErrorClass::Sha1,
+            raw::GIT_ERROR_HTTP => super::ErrorClass::Http,
             _ => super::ErrorClass::None,
         }
     }
@@ -243,6 +244,7 @@ impl Error {
             GIT_ERROR_PATCH,
             GIT_ERROR_WORKTREE,
             GIT_ERROR_SHA1,
+            GIT_ERROR_HTTP,
         )
     }
 
