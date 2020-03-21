@@ -89,7 +89,11 @@ fn do_fetch<'a>(
     Ok(repo.reference_to_annotated_commit(&fetch_head)?)
 }
 
-fn fast_forward(repo: &Repository, lb: &mut git2::Reference, rc: &git2::AnnotatedCommit) -> Result<(), git2::Error> {
+fn fast_forward(
+    repo: &Repository,
+    lb: &mut git2::Reference,
+    rc: &git2::AnnotatedCommit,
+) -> Result<(), git2::Error> {
     let name = match lb.name() {
         Some(s) => s.to_string(),
         None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
@@ -98,11 +102,13 @@ fn fast_forward(repo: &Repository, lb: &mut git2::Reference, rc: &git2::Annotate
     println!("{}", msg);
     lb.set_target(rc.id(), &msg)?;
     repo.set_head(&name)?;
-    repo.checkout_head(Some(git2::build::CheckoutBuilder::default()
-       // For some reason the force is required to make the working directory actually get updated
-       // I suspect we should be adding some logic to handle dirty working directory states
-       // but this is just an example so maybe not.
-       .force()))?;
+    repo.checkout_head(Some(
+        git2::build::CheckoutBuilder::default()
+            // For some reason the force is required to make the working directory actually get updated
+            // I suspect we should be adding some logic to handle dirty working directory states
+            // but this is just an example so maybe not.
+            .force(),
+    ))?;
     Ok(())
 }
 
@@ -171,10 +177,12 @@ fn do_merge<'a>(
                     &format!("Setting {} to {}", remote_branch, fetch_commit.id()),
                 )?;
                 repo.set_head(&refname)?;
-                repo.checkout_head(Some(git2::build::CheckoutBuilder::default()
-                    .allow_conflicts(true)
-                    .conflict_style_merge(true)
-                    .force()))?;
+                repo.checkout_head(Some(
+                    git2::build::CheckoutBuilder::default()
+                        .allow_conflicts(true)
+                        .conflict_style_merge(true)
+                        .force(),
+                ))?;
             }
         };
     } else if analysis.0.is_normal() {
