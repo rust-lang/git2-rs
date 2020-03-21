@@ -12,17 +12,12 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-extern crate docopt;
-extern crate git2;
-#[macro_use]
-extern crate serde_derive;
-
-use docopt::Docopt;
 use git2::Repository;
 use std::io::{self, Write};
 use std::str;
+use structopt::StructOpt;
 
-#[derive(Deserialize)]
+#[derive(StructOpt)]
 struct Args {
     arg_remote: Option<String>,
     arg_branch: Option<String>,
@@ -212,9 +207,7 @@ Options:
     -h, --help          show this message
 ";
 
-    let args = Docopt::new(USAGE)
-        .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+    let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
