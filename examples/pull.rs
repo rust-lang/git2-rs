@@ -200,13 +200,6 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    const USAGE: &'static str = "
-usage: pull [options] [<remote>] [<branch>]
-
-Options:
-    -h, --help          show this message
-";
-
     let args = Args::from_args();
     match run(&args) {
         Ok(()) => {}
