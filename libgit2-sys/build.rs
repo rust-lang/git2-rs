@@ -93,7 +93,7 @@ fn main() {
         add_c_files(&mut cfg, "libgit2/src/unix");
         cfg.flag("-fvisibility=hidden");
     }
-    if target.contains("solaris") {
+    if target.contains("solaris") || target.contains("illumos") {
         cfg.define("_POSIX_C_SOURCE", "200112L");
         cfg.define("__EXTENSIONS__", None);
     }
