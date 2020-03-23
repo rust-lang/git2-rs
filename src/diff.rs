@@ -696,7 +696,7 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_CHANGE, ignore)
     }
 
-    /// Ignore whitespace at tend of line
+    /// Ignore whitespace at the end of line
     pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_EOL, ignore)
     }
