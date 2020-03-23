@@ -47,6 +47,13 @@ If the `ssh` feature is enabled (and it is by default) then this library depends
 on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
 [`openssl` crate's instructions](https://github.com/sfackler/rust-openssl#macos).
 
+## Linking to system libraries
+
+The underlying libgit2 library vendors two of its dependencies: pcre and
+http_parser`. By default, the libgit2-sys crate builds those two dependencies
+along with libgit2. If youd like to link them in instead, enable the
+`link_pcre` and / or `link_http_parser` features for the libgit2-sys crate.
+
 # License
 
 This project is licensed under either of
