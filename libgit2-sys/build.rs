@@ -7,14 +7,12 @@ fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
 
-    if env::var("LIBGIT2_SYS_USE_PKG_CONFIG").is_ok() {
-        let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.atleast_version("0.28.0").probe("libgit2") {
-            for include in &lib.include_paths {
-                println!("cargo:root={}", include.display());
-            }
-            return;
+    let mut cfg = pkg_config::Config::new();
+    if let Ok(lib) = cfg.atleast_version("1.0.0").probe("libgit2") {
+        for include in &lib.include_paths {
+            println!("cargo:root={}", include.display());
         }
+        return;
     }
 
     if !Path::new("libgit2/.git").exists() {
