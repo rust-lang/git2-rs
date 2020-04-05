@@ -20,12 +20,12 @@ use crate::{
 use crate::{
     AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore, SubmoduleStatus,
 };
+use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
 use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
-use crate::{Rebase, RebaseOptions};
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -2560,6 +2560,25 @@ impl Repository {
                 refname
             ));
             Ok(buf)
+        }
+    }
+
+    /// Apply a Diff to the given repo, making changes directly in the working directory, the index, or both.
+    pub fn apply(
+        &self,
+        diff: &Diff<'_>,
+        location: ApplyLocation,
+        options: Option<&mut ApplyOptions<'_>>,
+    ) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_apply(
+                self.raw,
+                diff.raw(),
+                location.raw(),
+                options.map(|s| s.raw()).unwrap_or(ptr::null())
+            ));
+
+            Ok(())
         }
     }
 }
