@@ -79,6 +79,7 @@ use std::fmt;
 use std::str;
 use std::sync::Once;
 
+pub use crate::apply::{ApplyLocation, ApplyOptions};
 pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use crate::blob::{Blob, BlobWriter};
 pub use crate::branch::{Branch, Branches};
@@ -624,6 +625,7 @@ pub mod oid_array;
 pub mod string_array;
 pub mod transport;
 
+mod apply;
 mod blame;
 mod blob;
 mod branch;
