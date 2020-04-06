@@ -752,7 +752,7 @@ impl Repository {
     /// to the peeled commit.
     pub fn set_head_detached_from_annotated(
         &self,
-        commitish: AnnotatedCommit<'_>
+        commitish: AnnotatedCommit<'_>,
     ) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_repository_set_head_detached_from_annotated(
