@@ -742,6 +742,27 @@ impl Repository {
         Ok(())
     }
 
+    /// Make the repository HEAD directly point to the commit.
+    ///
+    /// If the provided committish cannot be found in the repository, the HEAD
+    /// is unaltered and an error is returned.
+    /// If the provided commitish cannot be peeled into a commit, the HEAD is
+    /// unaltered and an error is returned.
+    /// Otherwise, the HEAD will eventually be detached and will directly point
+    /// to the peeled commit.
+    pub fn set_head_detached_from_annotated(
+        &self,
+        commitish: AnnotatedCommit<'_>,
+    ) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_head_detached_from_annotated(
+                self.raw,
+                commitish.raw()
+            ));
+        }
+        Ok(())
+    }
+
     /// Create an iterator for the repo's references
     pub fn references(&self) -> Result<References<'_>, Error> {
         let mut ret = ptr::null_mut();
@@ -1043,6 +1064,34 @@ impl Repository {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_create(
+                &mut raw,
+                self.raw(),
+                branch_name,
+                target.raw(),
+                force
+            ));
+            Ok(Branch::wrap(Binding::from_raw(raw)))
+        }
+    }
+
+    /// Create a new branch pointing at a target commit
+    ///
+    /// This behaves like `Repository::branch()` but takes
+    /// an annotated commit, which lets you specify which
+    /// extended sha syntax string was specified by a user,
+    /// allowing for more exact reflog messages.
+    ///
+    /// See the documentation for `Repository::branch()`
+    pub fn branch_from_annotated_commit(
+        &self,
+        branch_name: &str,
+        target: &AnnotatedCommit<'_>,
+        force: bool,
+    ) -> Result<Branch<'_>, Error> {
+        let branch_name = CString::new(branch_name)?;
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_branch_create_from_annotated(
                 &mut raw,
                 self.raw(),
                 branch_name,
