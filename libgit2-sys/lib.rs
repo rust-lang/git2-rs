@@ -1806,6 +1806,10 @@ extern "C" {
         repo: *mut git_repository,
         commitish: *const git_oid,
     ) -> c_int;
+    pub fn git_repository_set_head_detached_from_annotated(
+        repo: *mut git_repository,
+        commitish: *const git_annotated_commit,
+    ) -> c_int;
     pub fn git_repository_set_bare(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_worktree(repo: *const git_repository) -> c_int;
     pub fn git_repository_is_bare(repo: *const git_repository) -> c_int;
@@ -2528,6 +2532,13 @@ extern "C" {
         target: *const git_commit,
         force: c_int,
     ) -> c_int;
+    pub fn git_branch_create_from_annotated(
+        ref_out: *mut *mut git_reference,
+        repository: *mut git_repository,
+        branch_name: *const c_char,
+        commit: *const git_annotated_commit,
+        force: c_int,
+    ) -> c_int;
     pub fn git_branch_delete(branch: *mut git_reference) -> c_int;
     pub fn git_branch_is_head(branch: *const git_reference) -> c_int;
     pub fn git_branch_iterator_free(iter: *mut git_branch_iterator);
@@ -2891,6 +2902,7 @@ extern "C" {
 
     // merge
     pub fn git_annotated_commit_id(commit: *const git_annotated_commit) -> *const git_oid;
+    pub fn git_annotated_commit_ref(commit: *const git_annotated_commit) -> *const c_char;
     pub fn git_annotated_commit_from_ref(
         out: *mut *mut git_annotated_commit,
         repo: *mut git_repository,

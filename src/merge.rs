@@ -1,6 +1,7 @@
 use libc::c_uint;
 use std::marker;
 use std::mem;
+use std::str;
 
 use crate::call::Convert;
 use crate::util::Binding;
@@ -25,6 +26,18 @@ impl<'repo> AnnotatedCommit<'repo> {
     /// Gets the commit ID that the given git_annotated_commit refers to
     pub fn id(&self) -> Oid {
         unsafe { Binding::from_raw(raw::git_annotated_commit_id(self.raw)) }
+    }
+
+    /// Get the refname that the given git_annotated_commit refers to
+    ///
+    /// Returns None if it is not valid utf8
+    pub fn refname(&self) -> Option<&str> {
+        str::from_utf8(self.refname_bytes()).ok()
+    }
+
+    /// Get the refname that the given git_annotated_commit refers to.
+    pub fn refname_bytes(&self) -> &[u8] {
+        unsafe { crate::opt_bytes(self, raw::git_annotated_commit_ref(&*self.raw)).unwrap() }
     }
 }
 
