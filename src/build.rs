@@ -503,7 +503,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// If no paths are specified, then all files are checked out. Otherwise
     /// only these specified paths are checked out.
     pub fn path<T: IntoCString>(&mut self, path: T) -> &mut CheckoutBuilder<'cb> {
-        let path = path.into_c_string().unwrap();
+        let path = util::cstring_to_repo_path(path).unwrap();
         self.path_ptrs.push(path.as_ptr());
         self.paths.push(path);
         self

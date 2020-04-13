@@ -14,7 +14,7 @@ use crate::diff::{
 use crate::oid_array::OidArray;
 use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
-use crate::util::{self, Binding};
+use crate::util::{self, path_to_repo_path, Binding};
 use crate::CherrypickOptions;
 use crate::{
     init, raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState,
@@ -676,7 +676,7 @@ impl Repository {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, mut arr) = crate::util::iter2cstrs(paths)?;
+        let (_a, _b, mut arr) = crate::util::iter2cstrs_paths(paths)?;
         let target = target.map(|t| t.raw());
         unsafe {
             try_call!(raw::git_reset_default(self.raw, target, &mut arr));
@@ -881,13 +881,7 @@ impl Repository {
     /// through looking for the path that you are interested in.
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
         let mut ret = 0 as c_uint;
-        let path = if cfg!(windows) {
-            // `git_status_file` does not work with windows path separator
-            // so we convert \ to /
-            std::ffi::CString::new(path.to_string_lossy().replace('\\', "/"))?
-        } else {
-            path.into_c_string()?
-        };
+        let path = path_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_status_file(&mut ret, self.raw, path));
         }
@@ -2603,13 +2597,7 @@ impl Repository {
 
     /// Test if the ignore rules apply to a given path.
     pub fn is_path_ignored<P: AsRef<Path>>(&self, path: P) -> Result<bool, Error> {
-        let path = if cfg!(windows) {
-            // `git_ignore_path_is_ignored` dose not work with windows path separator
-            // so we convert \ to /
-            std::ffi::CString::new(path.as_ref().to_string_lossy().replace('\\', "/"))?
-        } else {
-            path.as_ref().into_c_string()?
-        };
+        let path = path_to_repo_path(path.as_ref())?;
         let mut ignored: c_int = 0;
         unsafe {
             try_call!(raw::git_ignore_path_is_ignored(
@@ -3358,18 +3346,18 @@ mod tests {
     fn smoke_is_path_ignored() {
         let (_td, repo) = graph_repo_init();
 
-        assert!(!repo.is_path_ignored(Path::new("/foo")).unwrap());
+        assert!(!repo.is_path_ignored(Path::new("foo")).unwrap());
 
         let _ = repo.add_ignore_rule("/foo");
-        assert!(repo.is_path_ignored(Path::new("/foo")).unwrap());
+        assert!(repo.is_path_ignored(Path::new("foo")).unwrap());
         if cfg!(windows) {
-            assert!(repo.is_path_ignored(Path::new("\\foo\\thing")).unwrap());
+            assert!(repo.is_path_ignored(Path::new("foo\\thing")).unwrap());
         }
 
         let _ = repo.clear_ignore_rules();
-        assert!(!repo.is_path_ignored(Path::new("/foo")).unwrap());
+        assert!(!repo.is_path_ignored(Path::new("foo")).unwrap());
         if cfg!(windows) {
-            assert!(!repo.is_path_ignored(Path::new("\\foo\\thing")).unwrap());
+            assert!(!repo.is_path_ignored(Path::new("foo\\thing")).unwrap());
         }
     }
 

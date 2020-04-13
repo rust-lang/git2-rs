@@ -291,7 +291,7 @@ impl Index {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, raw_strarray) = crate::util::iter2cstrs(pathspecs)?;
+        let (_a, _b, raw_strarray) = crate::util::iter2cstrs_paths(pathspecs)?;
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
@@ -469,7 +469,7 @@ impl Index {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, raw_strarray) = crate::util::iter2cstrs(pathspecs)?;
+        let (_a, _b, raw_strarray) = crate::util::iter2cstrs_paths(pathspecs)?;
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
@@ -507,7 +507,7 @@ impl Index {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, raw_strarray) = crate::util::iter2cstrs(pathspecs)?;
+        let (_a, _b, raw_strarray) = crate::util::iter2cstrs_paths(pathspecs)?;
         let ptr = cb.as_mut();
         let callback = ptr
             .as_ref()
