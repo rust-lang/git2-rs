@@ -109,8 +109,8 @@ pub type BinaryCb<'a> = dyn FnMut(DiffDelta<'_>, DiffBinary<'_>) -> bool + 'a;
 pub type HunkCb<'a> = dyn FnMut(DiffDelta<'_>, DiffHunk<'_>) -> bool + 'a;
 pub type LineCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
-struct ForeachCallbacks<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
-    file: &'a mut FileCb<'b>,
+struct DiffCallbacks<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
+    file: Option<&'a mut FileCb<'b>>,
     binary: Option<&'c mut BinaryCb<'d>>,
     hunk: Option<&'e mut HunkCb<'f>>,
     line: Option<&'g mut LineCb<'h>>,
@@ -182,8 +182,8 @@ impl<'repo> Diff<'repo> {
         hunk_cb: Option<&mut HunkCb<'_>>,
         line_cb: Option<&mut LineCb<'_>>,
     ) -> Result<(), Error> {
-        let mut cbs = ForeachCallbacks {
-            file: file_cb,
+        let mut cbs = DiffCallbacks {
+            file: Some(file_cb),
             binary: binary_cb,
             hunk: hunk_cb,
             line: line_cb,
@@ -276,8 +276,11 @@ extern "C" fn file_cb_c(
         let delta = Binding::from_raw(delta as *mut _);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
-            ((*cbs).file)(delta, progress)
+            let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
+            match (*cbs).file {
+                Some(ref mut cb) => cb(delta, progress),
+                None => false,
+            }
         });
         if r == Some(true) {
             0
@@ -297,7 +300,7 @@ extern "C" fn binary_cb_c(
         let binary = Binding::from_raw(binary);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
+            let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).binary {
                 Some(ref mut cb) => cb(delta, binary),
                 None => false,
@@ -321,7 +324,7 @@ extern "C" fn hunk_cb_c(
         let hunk = Binding::from_raw(hunk);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
+            let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).hunk {
                 Some(ref mut cb) => cb(delta, hunk),
                 None => false,
@@ -347,7 +350,7 @@ extern "C" fn line_cb_c(
         let line = Binding::from_raw(line);
 
         let r = panic::wrap(|| {
-            let cbs = data as *mut ForeachCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
+            let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).line {
                 Some(ref mut cb) => cb(delta, hunk, line),
                 None => false,
