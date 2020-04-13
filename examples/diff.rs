@@ -14,8 +14,8 @@
 
 #![deny(warnings)]
 
-use git2::{Diff, DiffOptions, Error, Object, ObjectType, Repository};
-use git2::{DiffFindOptions, DiffFormat};
+use git2::{Blob, Diff, DiffOptions, Error, Object, ObjectType, Oid, Repository};
+use git2::{DiffDelta, DiffFindOptions, DiffFormat, DiffHunk, DiffLine};
 use std::str;
 use structopt::StructOpt;
 
@@ -26,6 +26,9 @@ struct Args {
     arg_from_oid: Option<String>,
     #[structopt(name = "to_oid")]
     arg_to_oid: Option<String>,
+    #[structopt(name = "blobs", long)]
+    /// treat from_oid and to_oid as blob ids
+    flag_blobs: bool,
     #[structopt(name = "patch", short, long)]
     /// show output in patch format
     flag_patch: bool,
@@ -137,6 +140,38 @@ enum Cache {
     None,
 }
 
+fn line_color(line: &DiffLine) -> Option<&'static str> {
+    match line.origin() {
+        '+' => Some(GREEN),
+        '-' => Some(RED),
+        '>' => Some(GREEN),
+        '<' => Some(RED),
+        'F' => Some(BOLD),
+        'H' => Some(CYAN),
+        _ => None,
+    }
+}
+
+fn print_diff_line(
+    _delta: DiffDelta,
+    _hunk: Option<DiffHunk>,
+    line: DiffLine,
+    args: &Args,
+) -> bool {
+    if args.color() {
+        print!("{}", RESET);
+        if let Some(color) = line_color(&line) {
+            print!("{}", color);
+        }
+    }
+    match line.origin() {
+        '+' | '-' | ' ' => print!("{}", line.origin()),
+        _ => {}
+    }
+    print!("{}", str::from_utf8(line.content()).unwrap());
+    true
+}
+
 fn run(args: &Args) -> Result<(), Error> {
     let path = args.flag_git_dir.as_ref().map(|s| &s[..]).unwrap_or(".");
     let repo = Repository::open(path)?;
@@ -169,6 +204,26 @@ fn run(args: &Args) -> Result<(), Error> {
     }
     if let Some("diff-index") = args.flag_format.as_ref().map(|s| &s[..]) {
         opts.id_abbrev(40);
+    }
+
+    if args.flag_blobs {
+        let b1 = resolve_blob(&repo, args.arg_from_oid.as_ref())?;
+        let b2 = resolve_blob(&repo, args.arg_to_oid.as_ref())?;
+        repo.diff_blobs(
+            b1.as_ref(),
+            None,
+            b2.as_ref(),
+            None,
+            Some(&mut opts),
+            None,
+            None,
+            None,
+            Some(&mut |d, h, l| print_diff_line(d, h, l, args)),
+        )?;
+        if args.color() {
+            print!("{}", RESET);
+        }
+        return Ok(());
     }
 
     // Prepare the diff to inspect
@@ -220,37 +275,7 @@ fn run(args: &Args) -> Result<(), Error> {
         print_stats(&diff, args)?;
     }
     if args.flag_patch || !stats {
-        if args.color() {
-            print!("{}", RESET);
-        }
-        let mut last_color = None;
-        diff.print(args.diff_format(), |_delta, _hunk, line| {
-            if args.color() {
-                let next = match line.origin() {
-                    '+' => Some(GREEN),
-                    '-' => Some(RED),
-                    '>' => Some(GREEN),
-                    '<' => Some(RED),
-                    'F' => Some(BOLD),
-                    'H' => Some(CYAN),
-                    _ => None,
-                };
-                if args.color() && next != last_color {
-                    if last_color == Some(BOLD) || next == Some(BOLD) {
-                        print!("{}", RESET);
-                    }
-                    print!("{}", next.unwrap_or(RESET));
-                    last_color = next;
-                }
-            }
-
-            match line.origin() {
-                '+' | '-' | ' ' => print!("{}", line.origin()),
-                _ => {}
-            }
-            print!("{}", str::from_utf8(line.content()).unwrap());
-            true
-        })?;
+        diff.print(args.diff_format(), |d, h, l| print_diff_line(d, h, l, args))?;
         if args.color() {
             print!("{}", RESET);
         }
@@ -290,6 +315,14 @@ fn tree_to_treeish<'a>(
     let obj = repo.revparse_single(arg)?;
     let tree = obj.peel(ObjectType::Tree)?;
     Ok(Some(tree))
+}
+
+fn resolve_blob<'a>(repo: &'a Repository, arg: Option<&String>) -> Result<Option<Blob<'a>>, Error> {
+    let arg = match arg {
+        Some(s) => Oid::from_str(s)?,
+        None => return Ok(None),
+    };
+    repo.find_blob(arg).map(|b| Some(b))
 }
 
 impl Args {
