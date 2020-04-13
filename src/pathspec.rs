@@ -45,7 +45,7 @@ impl Pathspec {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
-        let (_a, _b, arr) = crate::util::iter2cstrs(specs)?;
+        let (_a, _b, arr) = crate::util::iter2cstrs_paths(specs)?;
         unsafe {
             let mut ret = ptr::null_mut();
             try_call!(raw::git_pathspec_new(&mut ret, &arr));

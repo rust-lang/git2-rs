@@ -91,6 +91,7 @@ impl Oid {
     pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
         crate::init();
 
+        // Normal file path OK (does not need Windows conversion).
         let rpath = path.as_ref().into_c_string()?;
 
         let mut out = raw::git_oid {

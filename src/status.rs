@@ -5,7 +5,7 @@ use std::mem;
 use std::ops::Range;
 use std::str;
 
-use crate::util::Binding;
+use crate::util::{self, Binding};
 use crate::{raw, DiffDelta, IntoCString, Repository, Status};
 
 /// Options that can be provided to `repo.statuses()` to control how the status
@@ -98,7 +98,7 @@ impl StatusOptions {
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
     pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut StatusOptions {
-        let s = pathspec.into_c_string().unwrap();
+        let s = util::cstring_to_repo_path(pathspec).unwrap();
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self

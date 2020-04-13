@@ -132,12 +132,12 @@ pub use crate::util::IntoCString;
 
 // Create a convinience method on bitflag struct which checks the given flag
 macro_rules! is_bit_set {
-    ($name:ident, $flag:expr) => (
+    ($name:ident, $flag:expr) => {
         #[allow(missing_docs)]
         pub fn $name(&self) -> bool {
             self.intersects($flag)
         }
-    )
+    };
 }
 
 /// An enumeration of possible errors that can happen when working with a git
