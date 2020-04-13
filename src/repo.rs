@@ -8,6 +8,9 @@ use std::ptr;
 use std::str;
 
 use crate::build::{CheckoutBuilder, RepoBuilder};
+use crate::diff::{
+    binary_cb_c, file_cb_c, hunk_cb_c, line_cb_c, BinaryCb, DiffCallbacks, FileCb, HunkCb, LineCb,
+};
 use crate::oid_array::OidArray;
 use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
@@ -2246,6 +2249,78 @@ impl Repository {
         unsafe {
             try_call!(raw::git_describe_workdir(&mut ret, self.raw, opts.raw()));
             Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Directly run a diff on two blobs.
+    ///
+    /// Compared to a file, a blob lacks some contextual information. As such, the
+    /// `DiffFile` given to the callback will have some fake data; i.e. mode will be
+    /// 0 and path will be `None`.
+    ///
+    /// `None` is allowed for either `old_blob` or `new_blob` and will be treated
+    /// as an empty blob, with the oid set to zero in the `DiffFile`. Passing `None`
+    /// for both blobs is a noop; no callbacks will be made at all.
+    ///
+    /// We do run a binary content check on the blob content and if either blob looks
+    /// like binary data, the `DiffFile` binary attribute will be set to 1 and no call to
+    /// the `hunk_cb` nor `line_cb` will be made (unless you set the `force_text`
+    /// option).
+    pub fn diff_blobs(
+        &self,
+        old_blob: Option<&Blob<'_>>,
+        old_as_path: Option<&str>,
+        new_blob: Option<&Blob<'_>>,
+        new_as_path: Option<&str>,
+        opts: Option<&mut DiffOptions>,
+        file_cb: Option<&mut FileCb<'_>>,
+        binary_cb: Option<&mut BinaryCb<'_>>,
+        hunk_cb: Option<&mut HunkCb<'_>>,
+        line_cb: Option<&mut LineCb<'_>>,
+    ) -> Result<(), Error> {
+        let old_as_path = crate::opt_cstr(old_as_path)?;
+        let new_as_path = crate::opt_cstr(new_as_path)?;
+        let mut cbs = DiffCallbacks {
+            file: file_cb,
+            binary: binary_cb,
+            hunk: hunk_cb,
+            line: line_cb,
+        };
+        let ptr = &mut cbs as *mut _;
+        unsafe {
+            let file_cb_c: raw::git_diff_file_cb = if cbs.file.is_some() {
+                Some(file_cb_c)
+            } else {
+                None
+            };
+            let binary_cb_c: raw::git_diff_binary_cb = if cbs.binary.is_some() {
+                Some(binary_cb_c)
+            } else {
+                None
+            };
+            let hunk_cb_c: raw::git_diff_hunk_cb = if cbs.hunk.is_some() {
+                Some(hunk_cb_c)
+            } else {
+                None
+            };
+            let line_cb_c: raw::git_diff_line_cb = if cbs.line.is_some() {
+                Some(line_cb_c)
+            } else {
+                None
+            };
+            try_call!(raw::git_diff_blobs(
+                old_blob.map(|s| s.raw()),
+                old_as_path,
+                new_blob.map(|s| s.raw()),
+                new_as_path,
+                opts.map(|s| s.raw()),
+                file_cb_c,
+                binary_cb_c,
+                hunk_cb_c,
+                line_cb_c,
+                ptr as *mut _
+            ));
+            Ok(())
         }
     }
 

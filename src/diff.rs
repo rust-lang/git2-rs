@@ -109,11 +109,11 @@ pub type BinaryCb<'a> = dyn FnMut(DiffDelta<'_>, DiffBinary<'_>) -> bool + 'a;
 pub type HunkCb<'a> = dyn FnMut(DiffDelta<'_>, DiffHunk<'_>) -> bool + 'a;
 pub type LineCb<'a> = dyn FnMut(DiffDelta<'_>, Option<DiffHunk<'_>>, DiffLine<'_>) -> bool + 'a;
 
-struct DiffCallbacks<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
-    file: Option<&'a mut FileCb<'b>>,
-    binary: Option<&'c mut BinaryCb<'d>>,
-    hunk: Option<&'e mut HunkCb<'f>>,
-    line: Option<&'g mut LineCb<'h>>,
+pub struct DiffCallbacks<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
+    pub file: Option<&'a mut FileCb<'b>>,
+    pub binary: Option<&'c mut BinaryCb<'d>>,
+    pub hunk: Option<&'e mut HunkCb<'f>>,
+    pub line: Option<&'g mut LineCb<'h>>,
 }
 
 impl<'repo> Diff<'repo> {
@@ -267,7 +267,7 @@ pub extern "C" fn print_cb(
     }
 }
 
-extern "C" fn file_cb_c(
+pub extern "C" fn file_cb_c(
     delta: *const raw::git_diff_delta,
     progress: f32,
     data: *mut c_void,
@@ -290,7 +290,7 @@ extern "C" fn file_cb_c(
     }
 }
 
-extern "C" fn binary_cb_c(
+pub extern "C" fn binary_cb_c(
     delta: *const raw::git_diff_delta,
     binary: *const raw::git_diff_binary,
     data: *mut c_void,
@@ -314,7 +314,7 @@ extern "C" fn binary_cb_c(
     }
 }
 
-extern "C" fn hunk_cb_c(
+pub extern "C" fn hunk_cb_c(
     delta: *const raw::git_diff_delta,
     hunk: *const raw::git_diff_hunk,
     data: *mut c_void,
@@ -338,7 +338,7 @@ extern "C" fn hunk_cb_c(
     }
 }
 
-extern "C" fn line_cb_c(
+pub extern "C" fn line_cb_c(
     delta: *const raw::git_diff_delta,
     hunk: *const raw::git_diff_hunk,
     line: *const raw::git_diff_line,
