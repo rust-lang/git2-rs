@@ -9,7 +9,7 @@ use std::slice;
 
 use crate::util::{self, Binding};
 use crate::{panic, raw, Buf, Delta, DiffFormat, Error, FileMode, Oid, Repository};
-use crate::{DiffStatsFormat, IntoCString};
+use crate::{DiffFlags, DiffStatsFormat, IntoCString};
 
 /// The diff object that contains all individual file deltas.
 ///
@@ -384,6 +384,37 @@ impl<'repo> Drop for Diff<'repo> {
 }
 
 impl<'a> DiffDelta<'a> {
+    /// Returns the flags on the delta.
+    ///
+    /// For more information, see `DiffFlags`'s documentation.
+    pub fn flags(&self) -> DiffFlags {
+        let flags = unsafe { (*self.raw).flags };
+        let mut result = DiffFlags::empty();
+
+        #[cfg(windows)]
+        fn as_u32(flag: i32) -> u32 {
+            flag as u32
+        }
+        #[cfg(not(windows))]
+        fn as_u32(flag: u32) -> u32 {
+            flag
+        }
+
+        if (flags & as_u32(raw::GIT_DIFF_FLAG_BINARY)) != 0 {
+            result |= DiffFlags::BINARY;
+        }
+        if (flags & as_u32(raw::GIT_DIFF_FLAG_NOT_BINARY)) != 0 {
+            result |= DiffFlags::NOT_BINARY;
+        }
+        if (flags & as_u32(raw::GIT_DIFF_FLAG_VALID_ID)) != 0 {
+            result |= DiffFlags::VALID_ID;
+        }
+        if (flags & as_u32(raw::GIT_DIFF_FLAG_EXISTS)) != 0 {
+            result |= DiffFlags::EXISTS;
+        }
+        result
+    }
+
     // TODO: expose when diffs are more exposed
     // pub fn similarity(&self) -> u16 {
     //     unsafe { (*self.raw).similarity }
