@@ -1362,6 +1362,27 @@ impl Default for AttrCheckFlags {
     }
 }
 
+bitflags! {
+    #[allow(missing_docs)]
+    pub struct DiffFlags: u32 {
+        /// File(s) treated as binary data.
+        const BINARY = raw::GIT_DIFF_FLAG_BINARY as u32;
+        /// File(s) treated as text data.
+        const NOT_BINARY = raw::GIT_DIFF_FLAG_NOT_BINARY as u32;
+        /// `id` value is known correct.
+        const VALID_ID = raw::GIT_DIFF_FLAG_VALID_ID as u32;
+        /// File exists at this side of the delta.
+        const EXISTS = raw::GIT_DIFF_FLAG_EXISTS as u32;
+    }
+}
+
+impl DiffFlags {
+    is_bit_set!(is_binary, DiffFlags::BINARY);
+    is_bit_set!(is_not_binary, DiffFlags::NOT_BINARY);
+    is_bit_set!(has_valid_id, DiffFlags::VALID_ID);
+    is_bit_set!(exists, DiffFlags::EXISTS);
+}
+
 #[cfg(test)]
 mod tests {
     use super::ObjectType;
