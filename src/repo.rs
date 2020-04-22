@@ -2597,7 +2597,7 @@ impl Repository {
 
     /// Test if the ignore rules apply to a given path.
     pub fn is_path_ignored<P: AsRef<Path>>(&self, path: P) -> Result<bool, Error> {
-        let path = path_to_repo_path(path.as_ref())?;
+        let path = util::cstring_to_repo_path(path.as_ref())?;
         let mut ignored: c_int = 0;
         unsafe {
             try_call!(raw::git_ignore_path_is_ignored(
