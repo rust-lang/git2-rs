@@ -9,6 +9,8 @@ use libc::{c_char, c_int, c_uchar, c_uint, c_void, size_t};
 use libssh2_sys as libssh2;
 use std::ffi::CStr;
 
+pub const LIBGIT2_VERSION: &str = "1.0.0";
+
 pub const GIT_OID_RAWSZ: usize = 20;
 pub const GIT_OID_HEXSZ: usize = GIT_OID_RAWSZ * 2;
 pub const GIT_CLONE_OPTIONS_VERSION: c_uint = 1;
@@ -1198,6 +1200,23 @@ pub const GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE: u32 = 1 << 13;
 pub const GIT_DIFF_FIND_EXACT_MATCH_ONLY: u32 = 1 << 14;
 pub const GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY: u32 = 1 << 15;
 pub const GIT_DIFF_FIND_REMOVE_UNMODIFIED: u32 = 1 << 16;
+
+#[repr(C)]
+pub struct git_diff_format_email_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub patch_no: usize,
+    pub total_patches: usize,
+    pub id: *const git_oid,
+    pub summary: *const c_char,
+    pub body: *const c_char,
+    pub author: *const git_signature
+}
+
+pub const GIT_DIFF_FORMAT_EMAIL_OPTIONS_VERSION: c_uint = 1;
+
+pub const GIT_DIFF_FORMAT_EMAIL_NONE: u32 = 0;
+pub const GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER: u32 = 1 << 0;
 
 #[repr(C)]
 pub struct git_diff_binary {
@@ -3243,6 +3262,16 @@ extern "C" {
         repo: *mut git_repository,
         commit: *const git_oid,
         ancestor: *const git_oid,
+    ) -> c_int;
+
+    pub fn git_diff_format_email(
+        out: *mut git_buf,
+        diff: *mut git_diff,
+        opts: *const git_diff_format_email_options
+    ) -> c_int;
+    pub fn git_diff_format_email_options_init(
+        opts: *mut git_diff_format_email_options,
+        version: c_uint
     ) -> c_int;
 
     // patch

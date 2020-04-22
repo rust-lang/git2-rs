@@ -53,6 +53,11 @@ pub struct DiffFindOptions {
     raw: raw::git_diff_find_options,
 }
 
+/// Control behavior of formatting emails
+pub struct DiffFormatEmailOptions {
+    raw: raw::git_diff_format_email_options
+}
+
 /// An iterator over the diffs in a delta
 pub struct Deltas<'diff> {
     range: Range<usize>,
@@ -241,7 +246,38 @@ impl<'repo> Diff<'repo> {
         Ok(())
     }
 
-    // TODO: num_deltas_of_type, format_email, find_similar
+    pub fn format_email(
+        &mut self,
+        patch_no: usize,
+        total_patches: usize,
+        commit: &crate::Commit<'repo>,
+        opts: Option<&mut DiffFormatEmailOptions>,
+    ) -> Result<Buf, Error> {
+        assert!(patch_no > 0);
+        assert!(patch_no <= total_patches);
+        let mut default = DiffFormatEmailOptions::default();
+        let mut raw_opts = opts.map_or(
+            &mut default.raw,
+            |opts| &mut opts.raw
+        );
+        let summary = commit.summary_bytes().unwrap();
+        let mut message = commit.message_bytes();
+        assert!(message.starts_with(summary));
+        message = &message[summary.len()..];
+        raw_opts.patch_no = patch_no;
+        raw_opts.total_patches = total_patches;
+        raw_opts.id = commit.id().raw();
+        raw_opts.summary = summary.as_ptr() as *const _;
+        raw_opts.body = message.as_ptr() as *const _;
+        raw_opts.author = commit.author().raw();
+        let buf = Buf::new();
+        unsafe {
+            try_call!(raw::git_diff_format_email(buf.raw(), self.raw, &*raw_opts));
+        }
+        Ok(buf)
+    }
+
+    // TODO: num_deltas_of_type, find_similar
 }
 
 pub extern "C" fn print_cb(
@@ -1337,9 +1373,44 @@ impl DiffFindOptions {
     // TODO: expose git_diff_similarity_metric
 }
 
+impl Default for DiffFormatEmailOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DiffFormatEmailOptions {
+    /// Creates a new set of email options,
+    /// initialized to the default values
+    pub fn new() -> Self {
+        let mut opts = DiffFormatEmailOptions {
+            raw: unsafe { mem::zeroed() },
+        };
+        assert_eq!(
+            unsafe { raw::git_diff_format_email_options_init(&mut opts.raw, 1) },
+            0
+        );
+        opts
+    }
+
+    fn flag(&mut self, opt: u32, val: bool) -> &mut Self {
+        if val {
+            self.raw.flags |= opt;
+        } else {
+            self.raw.flags &= !opt;
+        }
+        self
+    }
+
+    /// Exclude `[PATCH]` from the subject header
+    pub fn exclude_subject_patch_header(&mut self, should_exclude: bool) -> &mut Self {
+        self.flag(raw::GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER, should_exclude)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::DiffOptions;
+    use crate::{DiffOptions, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -1458,5 +1529,115 @@ mod tests {
         assert_eq!(bin_content, Some(deflated_fib));
         assert_eq!(new_lines, 1);
         assert_eq!(line_content, Some("bar\n".to_string()));
+    }
+
+    #[test]
+    fn format_email_simple() {
+        use crate::raw;
+        let (_td, repo) = crate::test::repo_init();
+        const COMMIT_MESSAGE: &str = "Modify some content";
+        const EXPECTED_EMAIL_START: &str =
+            concat!("From f1234fb0588b6ed670779a34ba5c51ef962f285f Mon Sep 17 00:00:00 2001\n",
+        "From: Techcable <dummy@dummy.org>\n",
+        "Date: Tue, 11 Jan 1972 17:46:40 +0000\n",
+        "Subject: [PATCH] Modify some content\n",
+        "\n",
+        "---\n",
+        " file1.txt | 8 +++++---\n",
+        " 1 file changed, 5 insertions(+), 3 deletions(-)\n",
+        "\n",
+        "diff --git a/file1.txt b/file1.txt\n",
+        "index 94aaae8..af8f41d 100644\n",
+        "--- a/file1.txt\n",
+        "+++ b/file1.txt\n",
+        "@@ -1,15 +1,17 @@\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        "+_file1.txt_\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        "+\n",
+        "+\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        " file1.txt\n",
+        "-file1.txt\n",
+        "-file1.txt\n",
+        "-file1.txt\n",
+        "+_file1.txt_\n",
+        "+_file1.txt_\n",
+        " file1.txt\n",
+        "--\n");
+        const ORIGINAL_FILE: &str = concat!("file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n");
+        const UPDATED_FILE: &str = concat!("file1.txt\n",
+        "file1.txt\n",
+        "_file1.txt_\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "\n",
+        "\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "file1.txt\n",
+        "_file1.txt_\n",
+        "_file1.txt_\n",
+        "file1.txt\n");
+        const FILE_MODE: i32 = 0o100644;
+        let original_file = repo.blob(ORIGINAL_FILE.as_bytes()).unwrap();
+        let updated_file = repo.blob(UPDATED_FILE.as_bytes()).unwrap();
+        let expected_email = format!("{}libgit2 {}\n\n", EXPECTED_EMAIL_START, raw::LIBGIT2_VERSION);
+        let mut original_tree = repo.treebuilder(None).unwrap();
+        original_tree.insert("file1.txt", original_file, FILE_MODE).unwrap();
+        let original_tree = original_tree.write().unwrap();
+        let mut updated_tree = repo.treebuilder(None).unwrap();
+        updated_tree.insert("file1.txt", updated_file, FILE_MODE).unwrap();
+        let updated_tree = updated_tree.write().unwrap();
+        let time = Time::new(64_000_000, 0);
+        let author = Signature::new(
+            "Techcable",
+            "dummy@dummy.org",
+            &time
+        ).unwrap();
+        let updated_commit = repo.commit(
+            None,
+            &author,
+            &author,
+            COMMIT_MESSAGE,
+            &repo.find_tree(updated_tree).unwrap(),
+            &[] // NOTE: Have no parents to ensure stable hash
+        ).unwrap();
+        let updated_commit = repo.find_commit(updated_commit).unwrap();
+        let mut diff = repo.diff_tree_to_tree(
+            Some(&repo.find_tree(original_tree).unwrap()),
+            Some(&repo.find_tree(updated_tree).unwrap()),
+            None
+        ).unwrap();
+        assert_eq!(
+            diff.format_email(1, 1, &updated_commit, None)
+                .unwrap().as_str().unwrap(),
+            &expected_email
+        );
     }
 }
