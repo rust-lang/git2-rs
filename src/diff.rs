@@ -391,11 +391,11 @@ impl<'a> DiffDelta<'a> {
         let flags = unsafe { (*self.raw).flags };
         let mut result = DiffFlags::empty();
 
-        #[cfg(windows)]
+        #[cfg(target_env = "msvc")]
         fn as_u32(flag: i32) -> u32 {
             flag as u32
         }
-        #[cfg(not(windows))]
+        #[cfg(not(target_env = "msvc"))]
         fn as_u32(flag: u32) -> u32 {
             flag
         }
