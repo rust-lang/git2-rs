@@ -46,6 +46,7 @@ impl Config {
     pub fn open(path: &Path) -> Result<Config, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
+        // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_config_open_ondisk(&mut raw, path));
@@ -122,6 +123,7 @@ impl Config {
     /// file instances in order (instances with a higher priority level will be
     /// accessed first).
     pub fn add_file(&mut self, path: &Path, level: ConfigLevel, force: bool) -> Result<(), Error> {
+        // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_config_add_file_ondisk(

@@ -5,7 +5,7 @@ use std::ops::Range;
 use std::path::Path;
 use std::ptr;
 
-use crate::util::Binding;
+use crate::util::{path_to_repo_path, Binding};
 use crate::{raw, Diff, DiffDelta, Error, Index, IntoCString, PathspecFlags, Repository, Tree};
 
 /// Structure representing a compiled pathspec used for matching against various
@@ -45,6 +45,7 @@ impl Pathspec {
         T: IntoCString,
         I: IntoIterator<Item = T>,
     {
+        crate::init();
         let (_a, _b, arr) = crate::util::iter2cstrs_paths(specs)?;
         unsafe {
             let mut ret = ptr::null_mut();
@@ -158,7 +159,7 @@ impl Pathspec {
     /// explicitly pass flags to control case sensitivity or else this will fall
     /// back on being case sensitive.
     pub fn matches_path(&self, path: &Path, flags: PathspecFlags) -> bool {
-        let path = path.into_c_string().unwrap();
+        let path = path_to_repo_path(path).unwrap();
         unsafe { raw::git_pathspec_matches_path(&*self.raw, flags.bits(), path.as_ptr()) == 1 }
     }
 }

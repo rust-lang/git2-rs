@@ -267,6 +267,7 @@ impl<'cb> RepoBuilder<'cb> {
         }
 
         let url = CString::new(url)?;
+        // Normal file path OK (does not need Windows conversion).
         let into = into.into_c_string()?;
         let mut raw = ptr::null_mut();
         unsafe {
@@ -511,6 +512,7 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Set the directory to check out to
     pub fn target_dir(&mut self, dst: &Path) -> &mut CheckoutBuilder<'cb> {
+        // Normal file path OK (does not need Windows conversion).
         self.target_dir = Some(dst.into_c_string().unwrap());
         self
     }
