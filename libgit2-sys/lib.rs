@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.9")]
+#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.12")]
 #![allow(non_camel_case_types, unused_extern_crates)]
 
 // This is required to link libz when libssh2-sys is not included.
