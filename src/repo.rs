@@ -64,6 +64,7 @@ impl Repository {
     /// The path can point to either a normal or bare repository.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         init();
+        // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
@@ -77,6 +78,7 @@ impl Repository {
     /// The path can point to only a bare repository.
     pub fn open_bare<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         init();
+        // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
@@ -142,6 +144,7 @@ impl Repository {
         I: IntoIterator<Item = O>,
     {
         init();
+        // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
         let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
@@ -165,6 +168,7 @@ impl Repository {
         // TODO: this diverges significantly from the libgit2 API
         init();
         let buf = Buf::new();
+        // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         unsafe {
             try_call!(raw::git_repository_discover(
@@ -201,6 +205,7 @@ impl Repository {
         opts: &RepositoryInitOptions,
     ) -> Result<Repository, Error> {
         init();
+        // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
@@ -393,6 +398,7 @@ impl Repository {
     /// and set config "core.worktree" (if workdir is not the parent of the .git
     /// directory).
     pub fn set_workdir(&self, path: &Path, update_gitlink: bool) -> Result<(), Error> {
+        // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         unsafe {
             try_call!(raw::git_repository_set_workdir(
@@ -856,7 +862,7 @@ impl Repository {
     /// directory containing the file, would it be added or not?
     pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
         let mut ret = 0 as c_int;
-        let path = path.into_c_string()?;
+        let path = util::cstring_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_status_should_ignore(&mut ret, self.raw, path));
         }
@@ -950,7 +956,7 @@ impl Repository {
         flags: AttrCheckFlags,
     ) -> Result<Option<&[u8]>, Error> {
         let mut ret = ptr::null();
-        let path = path.into_c_string()?;
+        let path = util::cstring_to_repo_path(path)?;
         let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_attr_get(
@@ -991,6 +997,7 @@ impl Repository {
     /// The Oid returned can in turn be passed to `find_blob` to get a handle to
     /// the blob.
     pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
+        // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -1545,7 +1552,7 @@ impl Repository {
         use_gitlink: bool,
     ) -> Result<Submodule<'_>, Error> {
         let url = CString::new(url)?;
-        let path = path.into_c_string()?;
+        let path = path_to_repo_path(path)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_submodule_add_setup(
@@ -2069,7 +2076,7 @@ impl Repository {
         path: &Path,
         opts: Option<&mut BlameOptions>,
     ) -> Result<Blame<'_>, Error> {
-        let path = path.into_c_string()?;
+        let path = path_to_repo_path(path)?;
         let mut raw = ptr::null_mut();
 
         unsafe {
@@ -2800,12 +2807,13 @@ impl RepositoryInitOptions {
         self
     }
 
-    /// The path do the working directory.
+    /// The path to the working directory.
     ///
     /// If this is a relative path it will be evaulated relative to the repo
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
     pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
+        // Normal file path OK (does not need Windows conversion).
         self.workdir_path = Some(path.into_c_string().unwrap());
         self
     }
@@ -2823,6 +2831,7 @@ impl RepositoryInitOptions {
     /// If this is not configured, then the default locations will be searched
     /// instead.
     pub fn template_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {
+        // Normal file path OK (does not need Windows conversion).
         self.template_path = Some(path.into_c_string().unwrap());
         self
     }

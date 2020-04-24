@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString, OsString};
+use std::ffi::{CStr, CString};
 use std::marker;
 use std::ops::Range;
 use std::path::Path;
@@ -7,7 +7,7 @@ use std::slice;
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 
-use crate::util::{self, Binding};
+use crate::util::{self, path_to_repo_path, Binding};
 use crate::IntoCString;
 use crate::{panic, raw, Error, IndexAddOption, IndexTime, Oid, Repository, Tree};
 
@@ -94,6 +94,7 @@ impl Index {
     pub fn open(index_path: &Path) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
+        // Normal file path OK (does not need Windows conversion).
         let index_path = index_path.into_c_string()?;
         unsafe {
             try_call!(raw::git_index_open(&mut raw, index_path));
@@ -220,15 +221,7 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn add_path(&mut self, path: &Path) -> Result<(), Error> {
-        // Git apparently expects '/' to be separators for paths
-        let mut posix_path = OsString::new();
-        for (i, comp) in path.components().enumerate() {
-            if i != 0 {
-                posix_path.push("/");
-            }
-            posix_path.push(comp.as_os_str());
-        }
-        let posix_path = posix_path.into_c_string()?;
+        let posix_path = path_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_index_add_bypath(self.raw, posix_path));
             Ok(())
@@ -364,7 +357,7 @@ impl Index {
 
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
-        let path = path.into_c_string().unwrap();
+        let path = path_to_repo_path(path).unwrap();
         unsafe {
             let ptr = call!(raw::git_index_get_bypath(self.raw, path, stage as c_int));
             if ptr.is_null() {
@@ -419,7 +412,7 @@ impl Index {
 
     /// Remove an entry from the index
     pub fn remove(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = path.into_c_string()?;
+        let path = path_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_index_remove(self.raw, path, stage as c_int));
         }
@@ -435,7 +428,7 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn remove_path(&mut self, path: &Path) -> Result<(), Error> {
-        let path = path.into_c_string()?;
+        let path = path_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_index_remove_bypath(self.raw, path));
         }
@@ -444,7 +437,7 @@ impl Index {
 
     /// Remove all entries from the index under a given directory.
     pub fn remove_dir(&mut self, path: &Path, stage: i32) -> Result<(), Error> {
-        let path = path.into_c_string()?;
+        let path = path_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_index_remove_directory(
                 self.raw,

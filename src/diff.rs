@@ -828,7 +828,7 @@ impl DiffOptions {
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
     pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut DiffOptions {
-        let s = pathspec.into_c_string().unwrap();
+        let s = util::cstring_to_repo_path(pathspec).unwrap();
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self
