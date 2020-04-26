@@ -22,7 +22,9 @@ fn main() {
     });
     cfg.skip_field(|struct_, f| {
         // this field is marked as const which ctest complains about
-        struct_ == "git_rebase_operation" && f == "id"
+        (struct_ == "git_rebase_operation" && f == "id") ||
+        // the real name of this field is ref but that is a reserved keyword
+        (struct_ == "git_worktree_add_options" && f == "reference")
     });
     cfg.skip_signededness(|s| {
         match s {
