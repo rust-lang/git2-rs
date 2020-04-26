@@ -131,6 +131,7 @@ pub use crate::time::{IndexTime, Time};
 pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use crate::treebuilder::TreeBuilder;
 pub use crate::util::IntoCString;
+pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions};
 
 // Create a convinience method on bitflag struct which checks the given flag
 macro_rules! is_bit_set {
@@ -686,6 +687,7 @@ mod tagforeach;
 mod time;
 mod tree;
 mod treebuilder;
+mod worktree;
 
 fn init() {
     static INIT: Once = Once::new();
