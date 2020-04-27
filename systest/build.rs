@@ -43,5 +43,6 @@ fn main() {
     cfg.skip_roundtrip(|t| t == "git_clone_options" || t == "git_submodule_update_options");
 
     cfg.skip_type(|t| t == "__enum_ty");
+    cfg.skip_type(|t| t == "git_transfer_progress");
     cfg.generate("../libgit2-sys/lib.rs", "all.rs");
 }
