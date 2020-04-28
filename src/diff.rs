@@ -1533,7 +1533,6 @@ mod tests {
 
     #[test]
     fn format_email_simple() {
-        use crate::raw;
         let (_td, repo) = crate::test::repo_init();
         const COMMIT_MESSAGE: &str = "Modify some content";
         const EXPECTED_EMAIL_START: &str =
@@ -1607,7 +1606,6 @@ mod tests {
         const FILE_MODE: i32 = 0o100644;
         let original_file = repo.blob(ORIGINAL_FILE.as_bytes()).unwrap();
         let updated_file = repo.blob(UPDATED_FILE.as_bytes()).unwrap();
-        let expected_email = format!("{}libgit2 {}\n\n", EXPECTED_EMAIL_START, raw::LIBGIT2_VERSION);
         let mut original_tree = repo.treebuilder(None).unwrap();
         original_tree.insert("file1.txt", original_file, FILE_MODE).unwrap();
         let original_tree = original_tree.write().unwrap();
@@ -1634,10 +1632,15 @@ mod tests {
             Some(&repo.find_tree(updated_tree).unwrap()),
             None
         ).unwrap();
-        assert_eq!(
-            diff.format_email(1, 1, &updated_commit, None)
-                .unwrap().as_str().unwrap(),
-            &expected_email
-        );
+        let actual_email = diff.format_email(1, 1, &updated_commit, None)
+                .unwrap();
+        let actual_email = actual_email.as_str().unwrap();
+        assert!(actual_email.starts_with(EXPECTED_EMAIL_START), "Unexpected email:\n{}", actual_email);
+        let mut remaining_lines = actual_email[EXPECTED_EMAIL_START.len()..].lines();
+        let version_line = remaining_lines.next();
+        assert!(version_line.unwrap().starts_with("libgit2"), "Invalid version line: {:?}", version_line);
+        while let Some(line) = remaining_lines.next() {
+            assert_eq!(line.trim(), "")
+        }
     }
 }
