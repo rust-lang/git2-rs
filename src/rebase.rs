@@ -112,6 +112,18 @@ impl<'repo> Rebase<'repo> {
         unsafe { raw::git_rebase_operation_entrycount(self.raw) }
     }
 
+    /// Gets the original `HEAD` ref name for merge rebases.
+    pub fn orig_head_name(&self) -> Option<&str> {
+        let name_bytes =
+            unsafe { crate::opt_bytes(self, raw::git_rebase_orig_head_name(self.raw)) };
+        name_bytes.and_then(|s| str::from_utf8(s).ok())
+    }
+
+    /// Gets the original HEAD id for merge rebases.
+    pub fn orig_head_id(&self) -> Option<Oid> {
+        unsafe { Oid::from_raw_opt(raw::git_rebase_orig_head_id(self.raw)) }
+    }
+
     ///  Gets the rebase operation specified by the given index.
     pub fn nth(&mut self, n: usize) -> Option<RebaseOperation<'_>> {
         unsafe {
@@ -344,13 +356,15 @@ mod tests {
             .commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&c1])
             .unwrap();
 
-        let branch = repo.find_annotated_commit(c2).unwrap();
+        let head = repo.find_reference("refs/heads/master").unwrap();
+        let branch = repo.reference_to_annotated_commit(&head).unwrap();
         let upstream = repo.find_annotated_commit(tip.id()).unwrap();
-        let mut opts: RebaseOptions<'_> = Default::default();
-        opts.inmemory(true);
         let mut rebase = repo
-            .rebase(Some(&branch), Some(&upstream), None, Some(&mut opts))
+            .rebase(Some(&branch), Some(&upstream), None, None)
             .unwrap();
+
+        assert_eq!(Some("refs/heads/master"), rebase.orig_head_name());
+        assert_eq!(Some(c2), rebase.orig_head_id());
 
         assert_eq!(rebase.len(), 2);
         {

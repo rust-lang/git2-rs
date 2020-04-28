@@ -3596,6 +3596,8 @@ extern "C" {
         rebase: *mut git_rebase,
         idx: size_t,
     ) -> *mut git_rebase_operation;
+    pub fn git_rebase_orig_head_id(rebase: *mut git_rebase) -> *const git_oid;
+    pub fn git_rebase_orig_head_name(rebase: *mut git_rebase) -> *const c_char;
     pub fn git_rebase_next(
         operation: *mut *mut git_rebase_operation,
         rebase: *mut git_rebase,
