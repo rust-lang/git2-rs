@@ -246,6 +246,9 @@ impl<'repo> Diff<'repo> {
         Ok(())
     }
 
+    /// Create an e-mail ready patch from a diff.
+    ///
+    /// Matches the format created by `git format-patch`
     pub fn format_email(
         &mut self,
         patch_no: usize,
