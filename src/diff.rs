@@ -255,7 +255,11 @@ impl Diff<'static> {
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
         unsafe {
             // NOTE: Doesn't depend on repo, so lifetime can be 'static
-            try_call!(raw::git_diff_from_buffer(&mut diff, buffer.as_ptr(), buffer.len()));
+            try_call!(raw::git_diff_from_buffer(
+                &mut diff,
+                buffer.as_ptr() as *const c_char,
+                buffer.len()
+            ));
             Ok(Diff::from_raw(diff))
         }
     }
