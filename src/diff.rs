@@ -1406,10 +1406,9 @@ impl DiffFormatEmailOptions {
     pub fn exclude_subject_patch_header(&mut self, should_exclude: bool) -> &mut Self {
         self.flag(
             raw::GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER,
-            should_exclude
-
-
- }
+            should_exclude,
+        )
+    }
 }
 
 #[cfg(test)]
