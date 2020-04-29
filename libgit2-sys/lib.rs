@@ -3153,6 +3153,11 @@ extern "C" {
         line_cb: git_diff_line_cb,
         payload: *mut c_void,
     ) -> c_int;
+    pub fn git_diff_from_buffer(
+        diff: *mut *mut git_diff,
+        content: *const c_char,
+        content_len: size_t,
+    ) -> c_int;
     pub fn git_diff_find_similar(
         diff: *mut git_diff,
         options: *const git_diff_find_options,
