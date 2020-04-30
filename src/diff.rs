@@ -243,6 +243,27 @@ impl<'repo> Diff<'repo> {
 
     // TODO: num_deltas_of_type, format_email, find_similar
 }
+impl Diff<'static> {
+    /// Read the contents of a git patch file into a `git_diff` object.
+    ///
+    /// The diff object produced is similar to the one that would be
+    /// produced if you actually produced it computationally by comparing
+    /// two trees, however there may be subtle differences. For example,
+    /// a patch file likely contains abbreviated object IDs, so the
+    /// object IDs parsed by this function will also be abreviated.
+    pub fn from_buffer(buffer: &[u8]) -> Result<Diff<'static>, Error> {
+        let mut diff: *mut raw::git_diff = std::ptr::null_mut();
+        unsafe {
+            // NOTE: Doesn't depend on repo, so lifetime can be 'static
+            try_call!(raw::git_diff_from_buffer(
+                &mut diff,
+                buffer.as_ptr() as *const c_char,
+                buffer.len()
+            ));
+            Ok(Diff::from_raw(diff))
+        }
+    }
+}
 
 pub extern "C" fn print_cb(
     delta: *const raw::git_diff_delta,
