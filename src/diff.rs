@@ -1538,7 +1538,8 @@ mod tests {
     fn format_email_simple() {
         let (_td, repo) = crate::test::repo_init();
         const COMMIT_MESSAGE: &str = "Modify some content";
-        const EXPECTED_EMAIL_START: &str = concat!("From f1234fb0588b6ed670779a34ba5c51ef962f285f Mon Sep 17 00:00:00 2001\n",
+        const EXPECTED_EMAIL_START: &str = concat!(
+            "From f1234fb0588b6ed670779a34ba5c51ef962f285f Mon Sep 17 00:00:00 2001\n",
             "From: Techcable <dummy@dummy.org>\n",
             "Date: Tue, 11 Jan 1972 17:46:40 +0000\n",
             "Subject: [PATCH] Modify some content\n",
@@ -1572,8 +1573,9 @@ mod tests {
             "+_file1.txt_\n",
             "+_file1.txt_\n",
             " file1.txt\n",
-            "--\n");
-        const ORIGINAL_FILE: &str = concat!("file1.txt\n",
+            "--\n"
+        );
+        const ORIGINAL_FILE: &str = concat!(
             "file1.txt\n",
             "file1.txt\n",
             "file1.txt\n",
@@ -1587,8 +1589,11 @@ mod tests {
             "file1.txt\n",
             "file1.txt\n",
             "file1.txt\n",
-            "file1.txt\n");
-        const UPDATED_FILE: &str = concat!("file1.txt\n",
+            "file1.txt\n",
+            "file1.txt\n"
+        );
+        const UPDATED_FILE: &str = concat!(
+            "file1.txt\n",
             "file1.txt\n",
             "_file1.txt_\n",
             "file1.txt\n",
@@ -1604,7 +1609,8 @@ mod tests {
             "file1.txt\n",
             "_file1.txt_\n",
             "_file1.txt_\n",
-            "file1.txt\n");
+            "file1.txt\n"
+        );
         const FILE_MODE: i32 = 0o100644;
         let original_file = repo.blob(ORIGINAL_FILE.as_bytes()).unwrap();
         let updated_file = repo.blob(UPDATED_FILE.as_bytes()).unwrap();
@@ -1627,7 +1633,7 @@ mod tests {
                 &author,
                 COMMIT_MESSAGE,
                 &repo.find_tree(updated_tree).unwrap(),
-                &[] // NOTE: Have no parents to ensure stable hash
+                &[], // NOTE: Have no parents to ensure stable hash
             )
             .unwrap();
         let updated_commit = repo.find_commit(updated_commit).unwrap();
@@ -1635,16 +1641,23 @@ mod tests {
             .diff_tree_to_tree(
                 Some(&repo.find_tree(original_tree).unwrap()),
                 Some(&repo.find_tree(updated_tree).unwrap()),
-                None
+                None,
             )
             .unwrap();
-        let actual_email = diff.format_email(1, 1, &updated_commit, None)
-                .unwrap();
+        let actual_email = diff.format_email(1, 1, &updated_commit, None).unwrap();
         let actual_email = actual_email.as_str().unwrap();
-        assert!(actual_email.starts_with(EXPECTED_EMAIL_START), "Unexpected email:\n{}", actual_email);
+        assert!(
+            actual_email.starts_with(EXPECTED_EMAIL_START),
+            "Unexpected email:\n{}",
+            actual_email
+        );
         let mut remaining_lines = actual_email[EXPECTED_EMAIL_START.len()..].lines();
         let version_line = remaining_lines.next();
-        assert!(version_line.unwrap().starts_with("libgit2"), "Invalid version line: {:?}", version_line);
+        assert!(
+            version_line.unwrap().starts_with("libgit2"),
+            "Invalid version line: {:?}",
+            version_line
+        );
         while let Some(line) = remaining_lines.next() {
             assert_eq!(line.trim(), "")
         }
