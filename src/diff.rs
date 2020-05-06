@@ -958,7 +958,7 @@ impl<'a> DiffLine<'a> {
     }
 
     /// Content of this line as bytes.
-    pub fn content(&self) -> &[u8] {
+    pub fn content(&self) -> &'a [u8] {
         unsafe {
             slice::from_raw_parts(
                 (*self.raw).content as *const u8,
@@ -1046,7 +1046,7 @@ impl<'a> DiffHunk<'a> {
     }
 
     /// Header text
-    pub fn header(&self) -> &[u8] {
+    pub fn header(&self) -> &'a [u8] {
         unsafe {
             slice::from_raw_parts(
                 (*self.raw).header.as_ptr() as *const u8,
