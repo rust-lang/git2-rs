@@ -31,6 +31,7 @@ structopt = "0.3"
 time = "0.1.39"
 tempfile = "3.1.0"
 thread-id = "3.3.0" # remove when we work with minimal-versions without it
+paste = "0.1.12"
 
 [features]
 unstable = []

@@ -264,9 +264,7 @@ mod tests {
     use crate::WorktreeLockStatus;
     use tempfile::TempDir;
 
-    #[test]
-    fn smoke_add_no_ref() {
-        let (_td, repo) = crate::test::repo_init();
+    repo_test!(smoke_add_no_ref, Typical, Bare {
         let wtdir = TempDir::new().unwrap();
         let wt_path = wtdir.path().join("tree-no-ref-dir");
         let opts = WorktreeAddOptions::new(None);
@@ -279,11 +277,9 @@ mod tests {
         );
         let status = wt.is_locked().unwrap();
         assert_eq!(status, WorktreeLockStatus::Unlocked);
-    }
+    });
 
-    #[test]
-    fn smoke_add_locked() {
-        let (_td, repo) = crate::test::repo_init();
+    repo_test!(smoke_add_locked, Typical, Bare {
         let wtdir = TempDir::new().unwrap();
         let wt_path = wtdir.path().join("locked-tree");
         let mut opts = WorktreeAddOptions::new(None);
@@ -304,11 +300,9 @@ mod tests {
             wt.is_locked().unwrap(),
             WorktreeLockStatus::Locked(Some("my reason".to_string()))
         );
-    }
+    });
 
-    #[test]
-    fn smoke_add_from_branch() {
-        let (_td, repo) = crate::test::repo_init();
+    repo_test!(smoke_add_from_branch, Typical, Bare {
         let (wt_top, branch) = crate::test::worktrees_env_init(&repo);
         let wt_path = wt_top.path().join("test");
         let opts = WorktreeAddOptions::new(Some(branch.into_reference()));
@@ -321,5 +315,5 @@ mod tests {
         );
         let status = wt.is_locked().unwrap();
         assert_eq!(status, WorktreeLockStatus::Unlocked);
-    }
+    });
 }
