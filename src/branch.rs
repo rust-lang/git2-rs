@@ -153,8 +153,7 @@ impl<'repo> Drop for Branches<'repo> {
 mod tests {
     use crate::BranchType;
 
-    #[test]
-    fn smoke() {
+    repo_test!(smoke, Typical, TypicalWorktree, BareWorktree {
         let (_td, repo) = crate::test::repo_init();
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
@@ -174,5 +173,5 @@ mod tests {
         b1.set_upstream(None).unwrap();
 
         b1.delete().unwrap();
-    }
+    });
 }

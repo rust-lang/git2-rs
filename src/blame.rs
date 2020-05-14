@@ -290,9 +290,7 @@ mod tests {
     use std::fs::{self, File};
     use std::path::Path;
 
-    #[test]
-    fn smoke() {
-        let (_td, repo) = crate::test::repo_init();
+    repo_test!(smoke, Typical, TypicalWorktree, BareWorktree {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().parent().unwrap();
@@ -322,5 +320,5 @@ mod tests {
         assert_eq!(hunk.path(), Some(Path::new("foo/bar")));
         assert_eq!(hunk.lines_in_hunk(), 0);
         assert!(!hunk.is_boundary())
-    }
+    });
 }

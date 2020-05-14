@@ -17,7 +17,21 @@ macro_rules! t {
     };
 }
 
-pub fn repo_init() -> (TempDir, Repository) {
+// `repo_test! will
+macro_rules! repo_test {
+    ($test_name:ident, $($repo_type:ident),+ $test_body:block) => {
+        paste::item! {
+            $(#[test]
+            fn [<$test_name _ $repo_type:snake>]() {
+                #[allow(unused_variables)]
+                let (td, repo) = $crate::test::repo_init2($crate::test::RepoType::$repo_type);
+                $test_body
+            })+
+        }
+    }
+}
+
+pub fn repo_init_typical() -> (TempDir, Repository) {
     let td = TempDir::new().unwrap();
     let mut opts = RepositoryInitOptions::new();
     opts.initial_head("main");
@@ -35,6 +49,31 @@ pub fn repo_init() -> (TempDir, Repository) {
             .unwrap();
     }
     (td, repo)
+}
+
+pub fn repo_init_bare() -> (TempDir, Repository) {
+    panic!("unimplemented")
+}
+
+pub fn repo_init_bare_worktree() -> (TempDir, Repository) {
+    panic!("unimplemented")
+}
+
+pub fn repo_init_typical_worktree() -> (TempDir, Repository) {
+    panic!("unimplemented")
+}
+
+pub fn repo_init() -> (TempDir, Repository) {
+    repo_init_typical()
+}
+
+pub fn repo_init2(repo_type: RepoType) -> (TempDir, Repository) {
+    match repo_type {
+        RepoType::Typical => repo_init_typical(),
+        RepoType::Bare => repo_init_bare(),
+        RepoType::BareWorktree => repo_init_bare_worktree(),
+        RepoType::TypicalWorktree => repo_init_typical_worktree(),
+    }
 }
 
 pub fn commit(repo: &Repository) -> (Oid, Oid) {
@@ -62,6 +101,14 @@ pub fn worktrees_env_init(repo: &Repository) -> (TempDir, Branch<'_>) {
     let branch = repo.branch("wt-branch", &commit, true).unwrap();
     let wtdir = TempDir::new().unwrap();
     (wtdir, branch)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum RepoType {
+    Typical,
+    TypicalWorktree,
+    Bare,
+    BareWorktree,
 }
 
 #[cfg(windows)]
