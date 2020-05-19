@@ -2511,11 +2511,22 @@ impl Repository {
         message: &str,
         flags: Option<StashFlags>,
     ) -> Result<Oid, Error> {
+        self.stash_save2(stasher, Some(message), flags)
+    }
+
+    /// Save the local modifications to a new stash.
+    /// unlike `stash_save` it allows to pass a null `message`
+    pub fn stash_save2(
+        &mut self,
+        stasher: &Signature<'_>,
+        message: Option<&str>,
+        flags: Option<StashFlags>,
+    ) -> Result<Oid, Error> {
         unsafe {
             let mut raw_oid = raw::git_oid {
                 id: [0; raw::GIT_OID_RAWSZ],
             };
-            let message = CString::new(message)?;
+            let message = crate::opt_cstr(message)?;
             let flags = flags.unwrap_or_else(StashFlags::empty);
             try_call!(raw::git_stash_save(
                 &mut raw_oid,

@@ -232,4 +232,30 @@ mod tests {
             assert!(count_stash(repo) == 1)
         })
     }
+
+    #[test]
+    fn test_stash_save2_msg_none() {
+        let (_td, mut repo) = repo_init();
+        let signature = repo.signature().unwrap();
+
+        let p = Path::new(repo.workdir().unwrap()).join("file_b.txt");
+
+        fs::File::create(&p)
+            .unwrap()
+            .write("data".as_bytes())
+            .unwrap();
+
+        repo.stash_save2(&signature, None, Some(StashFlags::INCLUDE_UNTRACKED))
+            .unwrap();
+
+        let mut stash_name = String::new();
+        repo.stash_foreach(|index, name, _oid| {
+            assert_eq!(index, 0);
+            stash_name = name.to_string();
+            true
+        })
+        .unwrap();
+
+        assert!(stash_name.starts_with("WIP on master:"));
+    }
 }
