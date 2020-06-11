@@ -2668,6 +2668,16 @@ impl Repository {
         }
     }
 
+    /// Find the remote name of a remote-tracking branch
+    pub fn branch_remote_name(&self, refname: &str) -> Result<Buf, Error> {
+        let refname = CString::new(refname)?;
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_branch_remote_name(buf.raw(), self.raw, refname));
+            Ok(buf)
+        }
+    }
+
     /// Retrieves the name of the reference supporting the remote tracking branch,
     /// given the name of a local branch reference.
     pub fn branch_upstream_name(&self, refname: &str) -> Result<Buf, Error> {

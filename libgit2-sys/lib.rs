@@ -2577,6 +2577,11 @@ extern "C" {
         force: c_int,
     ) -> c_int;
     pub fn git_branch_name(out: *mut *const c_char, branch: *const git_reference) -> c_int;
+    pub fn git_branch_remote_name(
+        out: *mut git_buf,
+        repo: *mut git_repository,
+        refname: *const c_char,
+    ) -> c_int;
     pub fn git_branch_next(
         out: *mut *mut git_reference,
         out_type: *mut git_branch_t,
