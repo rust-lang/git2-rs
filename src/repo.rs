@@ -16,6 +16,7 @@ use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::CherrypickOptions;
+use crate::RevertOptions;
 use crate::{
     init, raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState,
     Revspec, StashFlags,
@@ -2721,6 +2722,46 @@ impl Repository {
             Ok(())
         }
     }
+
+    /// Reverts the given commit, producing changes in the index and working directory.
+    pub fn revert(
+        &self,
+        commit: &Commit<'_>,
+        options: Option<&mut RevertOptions<'_>>,
+    ) -> Result<(), Error> {
+        let raw_opts = options.map(|o| o.raw());
+        let ptr_raw_opts = match raw_opts.as_ref() {
+            Some(v) => v,
+            None => 0 as *const _,
+        };
+        unsafe {
+            try_call!(raw::git_revert(self.raw(), commit.raw(), ptr_raw_opts));
+            Ok(())
+        }
+    }
+
+    /// Reverts the given commit against the given "our" commit,
+    /// producing an index that reflects the result of the revert.
+    pub fn revert_commit(
+        &self,
+        revert_commit: &Commit<'_>,
+        our_commit: &Commit<'_>,
+        mainline: u32,
+        options: Option<&MergeOptions>,
+    ) -> Result<Index, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_revert_commit(
+                &mut ret,
+                self.raw(),
+                revert_commit.raw(),
+                our_commit.raw(),
+                mainline,
+                options.map(|o| o.raw())
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
 }
 
 impl Binding for Repository {
@@ -3459,5 +3500,36 @@ mod tests {
         assert_eq!(commit4.parent(0).unwrap().id(), commit1.id());
         assert!(!p1.exists());
         assert!(p2.exists());
+    }
+
+    #[test]
+    fn smoke_revert() {
+        let (_td, repo) = crate::test::repo_init();
+        let foo_file = Path::new(repo.workdir().unwrap()).join("foo");
+        assert!(!foo_file.exists());
+
+        let (oid1, _id) = crate::test::commit(&repo);
+        let commit1 = repo.find_commit(oid1).unwrap();
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+        assert!(foo_file.exists());
+
+        repo.revert(&commit1, None).unwrap();
+        let id = repo.index().unwrap().write_tree().unwrap();
+        let tree2 = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "commit 1", &tree2, &[&commit1])
+            .unwrap();
+        // reverting once removes `foo` file
+        assert!(!foo_file.exists());
+
+        let oid2 = repo.head().unwrap().target().unwrap();
+        let commit2 = repo.find_commit(oid2).unwrap();
+        repo.revert(&commit2, None).unwrap();
+        let id = repo.index().unwrap().write_tree().unwrap();
+        let tree3 = repo.find_tree(id).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "commit 2", &tree3, &[&commit2])
+            .unwrap();
+        // reverting twice restores `foo` file
+        assert!(foo_file.exists());
     }
 }
