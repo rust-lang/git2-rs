@@ -118,6 +118,7 @@ pub use crate::remote::{
 pub use crate::remote_callbacks::{Credentials, RemoteCallbacks};
 pub use crate::remote_callbacks::{TransportMessage, UpdateTips};
 pub use crate::repo::{Repository, RepositoryInitOptions};
+pub use crate::revert::RevertOptions;
 pub use crate::revspec::Revspec;
 pub use crate::revwalk::Revwalk;
 pub use crate::signature::Signature;
@@ -656,6 +657,7 @@ mod refspec;
 mod remote;
 mod remote_callbacks;
 mod repo;
+mod revert;
 mod revspec;
 mod revwalk;
 mod signature;

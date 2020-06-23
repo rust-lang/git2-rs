@@ -24,6 +24,7 @@ pub const GIT_ODB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_CHERRYPICK_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_APPLY_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_REVERT_OPTIONS_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -1745,6 +1746,8 @@ pub struct git_cherrypick_options {
     pub merge_opts: git_merge_options,
     pub checkout_opts: git_checkout_options,
 }
+
+pub type git_revert_options = git_cherrypick_options;
 
 pub type git_apply_delta_cb =
     Option<extern "C" fn(delta: *const git_diff_delta, payload: *mut c_void) -> c_int>;
@@ -3683,6 +3686,22 @@ extern "C" {
         diff: *mut git_diff,
         location: git_apply_location_t,
         options: *const git_apply_options,
+    ) -> c_int;
+
+    // revert
+    pub fn git_revert_options_init(opts: *mut git_revert_options, version: c_uint) -> c_int;
+    pub fn git_revert_commit(
+        out: *mut *mut git_index,
+        repo: *mut git_repository,
+        revert_commit: *mut git_commit,
+        our_commit: *mut git_commit,
+        mainline: c_uint,
+        merge_options: *const git_merge_options,
+    ) -> c_int;
+    pub fn git_revert(
+        repo: *mut git_repository,
+        commit: *mut git_commit,
+        given_opts: *const git_revert_options,
     ) -> c_int;
 }
 
