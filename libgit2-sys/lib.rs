@@ -2049,6 +2049,7 @@ extern "C" {
         remote: *mut git_remote,
         callbacks: *const git_remote_callbacks,
     ) -> c_int;
+    pub fn git_remote_default_branch(out: *mut git_buf, remote: *mut git_remote) -> c_int;
 
     // refspec
     pub fn git_refspec_direction(spec: *const git_refspec) -> git_direction;

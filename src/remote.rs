@@ -9,7 +9,7 @@ use std::str;
 
 use crate::string_array::StringArray;
 use crate::util::Binding;
-use crate::{raw, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
+use crate::{raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
 use crate::{AutotagOption, Progress, RemoteCallbacks, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -110,6 +110,20 @@ impl<'repo> Remote<'repo> {
     /// Get the remote's pushurl as a byte array.
     pub fn pushurl_bytes(&self) -> Option<&[u8]> {
         unsafe { crate::opt_bytes(self, raw::git_remote_pushurl(&*self.raw)) }
+    }
+
+    /// Get the remote's default branch.
+    ///
+    /// The remote (or more exactly its transport) must have connected to the
+    /// remote repository. This default branch is available as soon as the
+    /// connection to the remote is initiated and it remains available after
+    /// disconnecting.
+    pub fn default_branch(&self) -> Result<Buf, Error> {
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_remote_default_branch(buf.raw(), self.raw));
+            Ok(buf)
+        }
     }
 
     /// Open a connection to a remote.
@@ -575,6 +589,14 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
     /// the remote is initiated and it remains available after disconnecting.
     pub fn list(&self) -> Result<&[RemoteHead<'_>], Error> {
         self.remote.list()
+    }
+
+    /// Get the remote's default branch.
+    ///
+    /// This default branch is available as soon as the connection to the remote
+    /// is initiated and it remains available after disconnecting.
+    pub fn default_branch(&self) -> Result<Buf, Error> {
+        self.remote.default_branch()
     }
 }
 
