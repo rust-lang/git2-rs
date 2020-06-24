@@ -249,7 +249,10 @@ extern "C" fn subtransport_action(
         let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
         let obj = match transport.obj.action(url, action) {
             Ok(s) => s,
-            Err(e) => return e.raw_code() as c_int,
+            Err(e) => {
+                set_err(&e);
+                return e.raw_code() as c_int;
+            }
         };
         *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
             raw: raw::git_smart_subtransport_stream {
@@ -309,7 +312,7 @@ extern "C" fn stream_read(
     match ret {
         Some(Ok(_)) => 0,
         Some(Err(e)) => unsafe {
-            set_err(&e);
+            set_err_io(&e);
             -2
         },
         None => -1,
@@ -331,16 +334,21 @@ extern "C" fn stream_write(
     match ret {
         Some(Ok(())) => 0,
         Some(Err(e)) => unsafe {
-            set_err(&e);
+            set_err_io(&e);
             -2
         },
         None => -1,
     }
 }
 
-unsafe fn set_err(e: &io::Error) {
+unsafe fn set_err_io(e: &io::Error) {
     let s = CString::new(e.to_string()).unwrap();
     raw::git_error_set_str(raw::GIT_ERROR_NET as c_int, s.as_ptr());
+}
+
+unsafe fn set_err(e: &Error) {
+    let s = CString::new(e.message()).unwrap();
+    raw::git_error_set_str(e.raw_class() as c_int, s.as_ptr());
 }
 
 // callback used by smart transports to free a `SmartSubtransportStream`
@@ -349,4 +357,55 @@ extern "C" fn stream_free(stream: *mut raw::git_smart_subtransport_stream) {
     let _ = panic::wrap(|| unsafe {
         mem::transmute::<_, Box<RawSmartSubtransportStream>>(stream);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ErrorClass, ErrorCode};
+    use std::sync::Once;
+
+    struct DummyTransport;
+
+    impl SmartSubtransport for DummyTransport {
+        fn action(
+            &self,
+            _url: &str,
+            _service: Service,
+        ) -> Result<Box<dyn SmartSubtransportStream>, Error> {
+            Err(Error::from_str("bleh"))
+        }
+
+        fn close(&self) -> Result<(), Error> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn transport_error_propagates() {
+        static INIT: Once = Once::new();
+
+        unsafe {
+            INIT.call_once(|| {
+                register("dummy", move |remote| {
+                    Transport::smart(&remote, true, DummyTransport)
+                })
+                .unwrap();
+            })
+        }
+
+        let (_td, repo) = crate::test::repo_init();
+        t!(repo.remote("origin", "dummy://ball"));
+
+        let mut origin = t!(repo.find_remote("origin"));
+
+        match origin.fetch(&["master"], None, None) {
+            Ok(()) => unreachable!(),
+            Err(e) => {
+                assert_eq!(e.message(), "bleh");
+                assert_eq!(e.code(), ErrorCode::GenericError);
+                assert_eq!(e.class(), ErrorClass::None);
+            }
+        }
+    }
 }
