@@ -143,6 +143,12 @@ macro_rules! is_bit_set {
 
 /// An enumeration of possible errors that can happen when working with a git
 /// repository.
+// Note: We omit a few native error codes, as they are unlikely to be propagated
+// to the library user. Currently:
+//
+// * GIT_EPASSTHROUGH
+// * GIT_ITEROVER
+// * GIT_RETRY
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub enum ErrorCode {
     /// Generic error
@@ -187,8 +193,16 @@ pub enum ErrorCode {
     Invalid,
     /// Uncommitted changes in index prevented operation
     Uncommitted,
-    /// Operation was not valid for a directory,
+    /// Operation was not valid for a directory
     Directory,
+    /// A merge conflict exists and cannot continue
+    MergeConflict,
+    /// Hashsum mismatch in object
+    HashsumMismatch,
+    /// Unsaved changes in the index would be overwritten
+    IndexDirty,
+    /// Patch application failed
+    ApplyFail,
 }
 
 /// An enumeration of possible categories of things that can have
