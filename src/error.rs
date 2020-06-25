@@ -115,6 +115,38 @@ impl Error {
         }
     }
 
+    /// Modify the error code associated with this error.
+    ///
+    /// This is mainly intended to be used by implementors of custom transports
+    /// or database backends, and should be used with care.
+    pub fn set_code(mut self, code: ErrorCode) -> Self {
+        self.code = match code {
+            ErrorCode::GenericError => raw::GIT_ERROR,
+            ErrorCode::NotFound => raw::GIT_ENOTFOUND,
+            ErrorCode::Exists => raw::GIT_EEXISTS,
+            ErrorCode::Ambiguous => raw::GIT_EAMBIGUOUS,
+            ErrorCode::BufSize => raw::GIT_EBUFS,
+            ErrorCode::User => raw::GIT_EUSER,
+            ErrorCode::BareRepo => raw::GIT_EBAREREPO,
+            ErrorCode::UnbornBranch => raw::GIT_EUNBORNBRANCH,
+            ErrorCode::Unmerged => raw::GIT_EUNMERGED,
+            ErrorCode::NotFastForward => raw::GIT_ENONFASTFORWARD,
+            ErrorCode::InvalidSpec => raw::GIT_EINVALIDSPEC,
+            ErrorCode::Conflict => raw::GIT_ECONFLICT,
+            ErrorCode::Locked => raw::GIT_ELOCKED,
+            ErrorCode::Modified => raw::GIT_EMODIFIED,
+            ErrorCode::Auth => raw::GIT_EAUTH,
+            ErrorCode::Certificate => raw::GIT_ECERTIFICATE,
+            ErrorCode::Applied => raw::GIT_EAPPLIED,
+            ErrorCode::Peel => raw::GIT_EPEEL,
+            ErrorCode::Eof => raw::GIT_EEOF,
+            ErrorCode::Invalid => raw::GIT_EINVALID,
+            ErrorCode::Uncommitted => raw::GIT_EUNCOMMITTED,
+            ErrorCode::Directory => raw::GIT_EDIRECTORY,
+        };
+        self
+    }
+
     /// Return the error class associated with this error.
     ///
     /// Error classes are in general mostly just informative. For example the
@@ -159,6 +191,51 @@ impl Error {
             raw::GIT_ERROR_HTTP => super::ErrorClass::Http,
             _ => super::ErrorClass::None,
         }
+    }
+
+    /// Modify the error class associated with this error.
+    ///
+    /// This is mainly intended to be used by implementors of custom transports
+    /// or database backends, and should be used with care.
+    pub fn set_class(mut self, class: ErrorClass) -> Self {
+        self.klass = match class {
+            ErrorClass::None => raw::GIT_ERROR_NONE,
+            ErrorClass::NoMemory => raw::GIT_ERROR_NOMEMORY,
+            ErrorClass::Os => raw::GIT_ERROR_OS,
+            ErrorClass::Invalid => raw::GIT_ERROR_INVALID,
+            ErrorClass::Reference => raw::GIT_ERROR_REFERENCE,
+            ErrorClass::Zlib => raw::GIT_ERROR_ZLIB,
+            ErrorClass::Repository => raw::GIT_ERROR_REPOSITORY,
+            ErrorClass::Config => raw::GIT_ERROR_CONFIG,
+            ErrorClass::Regex => raw::GIT_ERROR_REGEX,
+            ErrorClass::Odb => raw::GIT_ERROR_ODB,
+            ErrorClass::Index => raw::GIT_ERROR_INDEX,
+            ErrorClass::Object => raw::GIT_ERROR_OBJECT,
+            ErrorClass::Net => raw::GIT_ERROR_NET,
+            ErrorClass::Tag => raw::GIT_ERROR_TAG,
+            ErrorClass::Tree => raw::GIT_ERROR_TREE,
+            ErrorClass::Indexer => raw::GIT_ERROR_INDEXER,
+            ErrorClass::Ssl => raw::GIT_ERROR_SSL,
+            ErrorClass::Submodule => raw::GIT_ERROR_SUBMODULE,
+            ErrorClass::Thread => raw::GIT_ERROR_THREAD,
+            ErrorClass::Stash => raw::GIT_ERROR_STASH,
+            ErrorClass::Checkout => raw::GIT_ERROR_CHECKOUT,
+            ErrorClass::FetchHead => raw::GIT_ERROR_FETCHHEAD,
+            ErrorClass::Merge => raw::GIT_ERROR_MERGE,
+            ErrorClass::Ssh => raw::GIT_ERROR_SSH,
+            ErrorClass::Filter => raw::GIT_ERROR_FILTER,
+            ErrorClass::Revert => raw::GIT_ERROR_REVERT,
+            ErrorClass::Callback => raw::GIT_ERROR_CALLBACK,
+            ErrorClass::CherryPick => raw::GIT_ERROR_CHERRYPICK,
+            ErrorClass::Describe => raw::GIT_ERROR_DESCRIBE,
+            ErrorClass::Rebase => raw::GIT_ERROR_REBASE,
+            ErrorClass::Filesystem => raw::GIT_ERROR_FILESYSTEM,
+            ErrorClass::Patch => raw::GIT_ERROR_PATCH,
+            ErrorClass::Worktree => raw::GIT_ERROR_WORKTREE,
+            ErrorClass::Sha1 => raw::GIT_ERROR_SHA1,
+            ErrorClass::Http => raw::GIT_ERROR_HTTP,
+        } as c_int;
+        self
     }
 
     /// Return the raw error code associated with this error.
