@@ -111,6 +111,10 @@ impl Error {
             raw::GIT_EINVALID => super::ErrorCode::Invalid,
             raw::GIT_EUNCOMMITTED => super::ErrorCode::Uncommitted,
             raw::GIT_EDIRECTORY => super::ErrorCode::Directory,
+            raw::GIT_EMERGECONFLICT => super::ErrorCode::MergeConflict,
+            raw::GIT_EMISMATCH => super::ErrorCode::HashsumMismatch,
+            raw::GIT_EINDEXDIRTY => super::ErrorCode::IndexDirty,
+            raw::GIT_EAPPLYFAIL => super::ErrorCode::ApplyFail,
             _ => super::ErrorCode::GenericError,
         }
     }
