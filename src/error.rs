@@ -159,6 +159,10 @@ impl Error {
             ErrorCode::Invalid => raw::GIT_EINVALID,
             ErrorCode::Uncommitted => raw::GIT_EUNCOMMITTED,
             ErrorCode::Directory => raw::GIT_EDIRECTORY,
+            ErrorCode::MergeConflict => raw::GIT_EMERGECONFLICT,
+            ErrorCode::HashsumMismatch => raw::GIT_EMISMATCH,
+            ErrorCode::IndexDirty => raw::GIT_EINDEXDIRTY,
+            ErrorCode::ApplyFail => raw::GIT_EAPPLYFAIL,
         };
     }
 
