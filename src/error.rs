@@ -16,6 +16,18 @@ pub struct Error {
 }
 
 impl Error {
+    /// Creates a new error.
+    ///
+    /// This is mainly intended for implementors of custom transports or
+    /// database backends, where it is desirable to propagate an [`Error`]
+    /// through `libgit2`.
+    pub fn new<S: AsRef<str>>(code: ErrorCode, class: ErrorClass, message: S) -> Self {
+        let mut err = Error::from_str(message.as_ref());
+        err.set_code(code);
+        err.set_class(class);
+        err
+    }
+
     /// Returns the last error that happened with the code specified by `code`.
     ///
     /// The `code` argument typically comes from the return value of a function
@@ -119,7 +131,7 @@ impl Error {
     ///
     /// This is mainly intended to be used by implementors of custom transports
     /// or database backends, and should be used with care.
-    pub fn set_code(mut self, code: ErrorCode) -> Self {
+    pub fn set_code(&mut self, code: ErrorCode) {
         self.code = match code {
             ErrorCode::GenericError => raw::GIT_ERROR,
             ErrorCode::NotFound => raw::GIT_ENOTFOUND,
@@ -144,7 +156,6 @@ impl Error {
             ErrorCode::Uncommitted => raw::GIT_EUNCOMMITTED,
             ErrorCode::Directory => raw::GIT_EDIRECTORY,
         };
-        self
     }
 
     /// Return the error class associated with this error.
@@ -197,7 +208,7 @@ impl Error {
     ///
     /// This is mainly intended to be used by implementors of custom transports
     /// or database backends, and should be used with care.
-    pub fn set_class(mut self, class: ErrorClass) -> Self {
+    pub fn set_class(&mut self, class: ErrorClass) {
         self.klass = match class {
             ErrorClass::None => raw::GIT_ERROR_NONE,
             ErrorClass::NoMemory => raw::GIT_ERROR_NOMEMORY,
@@ -235,7 +246,6 @@ impl Error {
             ErrorClass::Sha1 => raw::GIT_ERROR_SHA1,
             ErrorClass::Http => raw::GIT_ERROR_HTTP,
         } as c_int;
-        self
     }
 
     /// Return the raw error code associated with this error.
