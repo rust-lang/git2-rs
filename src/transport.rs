@@ -367,13 +367,18 @@ mod tests {
 
     struct DummyTransport;
 
+    // in lieu of lazy_static
+    fn dummy_error() -> Error {
+        Error::new(ErrorCode::Ambiguous, ErrorClass::Net, "bleh")
+    }
+
     impl SmartSubtransport for DummyTransport {
         fn action(
             &self,
             _url: &str,
             _service: Service,
         ) -> Result<Box<dyn SmartSubtransportStream>, Error> {
-            Err(Error::from_str("bleh"))
+            Err(dummy_error())
         }
 
         fn close(&self) -> Result<(), Error> {
@@ -401,11 +406,7 @@ mod tests {
 
         match origin.fetch(&["master"], None, None) {
             Ok(()) => unreachable!(),
-            Err(e) => {
-                assert_eq!(e.message(), "bleh");
-                assert_eq!(e.code(), ErrorCode::GenericError);
-                assert_eq!(e.class(), ErrorClass::None);
-            }
+            Err(e) => assert_eq!(e, dummy_error()),
         }
     }
 }
