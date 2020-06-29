@@ -2790,6 +2790,12 @@ extern "C" {
     ) -> c_int;
     pub fn git_config_snapshot(out: *mut *mut git_config, config: *mut git_config) -> c_int;
     pub fn git_config_entry_free(entry: *mut git_config_entry);
+    pub fn git_config_multivar_iterator_new(
+        out: *mut *mut git_config_iterator,
+        cfg: *const git_config,
+        name: *const c_char,
+        regexp: *const c_char,
+    ) -> c_int;
 
     // attr
     pub fn git_attr_get(
