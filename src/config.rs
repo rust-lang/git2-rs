@@ -298,7 +298,9 @@ impl Config {
         let name = CString::new(name)?;
         let regexp = regexp.map(CString::new).transpose()?;
         unsafe {
-            try_call!(raw::git_config_multivar_iterator_new(&mut ret, &*self.raw, name, regexp));
+            try_call!(raw::git_config_multivar_iterator_new(
+                &mut ret, &*self.raw, name, regexp
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
