@@ -289,6 +289,22 @@ impl Config {
         }
     }
 
+    /// Iterate over the values of a multivar
+    ///
+    /// If `regexp` is `Some`, then the iterator will only iterate over all
+    /// values which match the pattern.
+    pub fn multivar(&self, name: &str, regexp: Option<&str>) -> Result<ConfigEntries<'_>, Error> {
+        let mut ret = ptr::null_mut();
+        let name = CString::new(name)?;
+        let regexp = regexp.map(CString::new).transpose()?;
+        unsafe {
+            try_call!(raw::git_config_multivar_iterator_new(
+                &mut ret, &*self.raw, name, regexp
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Open the global/XDG configuration file according to git's rules
     ///
     /// Git allows you to store your global configuration at `$HOME/.config` or
@@ -602,19 +618,43 @@ mod tests {
         let mut cfg = Config::open(&path).unwrap();
         cfg.set_multivar("foo.bar", "^$", "baz").unwrap();
         cfg.set_multivar("foo.bar", "^$", "qux").unwrap();
+        cfg.set_multivar("foo.bar", "^$", "quux").unwrap();
+        cfg.set_multivar("foo.baz", "^$", "oki").unwrap();
 
-        let mut values: Vec<String> = cfg
-            .entries(None)
+        // `entries` filters by name
+        let mut entries: Vec<String> = cfg
+            .entries(Some("foo.bar"))
             .unwrap()
             .into_iter()
             .map(|entry| entry.unwrap().value().unwrap().into())
             .collect();
-        values.sort();
-        assert_eq!(values, ["baz", "qux"]);
+        entries.sort();
+        assert_eq!(entries, ["baz", "quux", "qux"]);
+
+        // which is the same as `multivar` without a regex
+        let mut multivals: Vec<String> = cfg
+            .multivar("foo.bar", None)
+            .unwrap()
+            .into_iter()
+            .map(|entry| entry.unwrap().value().unwrap().into())
+            .collect();
+        multivals.sort();
+        assert_eq!(multivals, entries);
+
+        // yet _with_ a regex, `multivar` filters by value
+        let mut quxish: Vec<String> = cfg
+            .multivar("foo.bar", Some("qu.*x"))
+            .unwrap()
+            .into_iter()
+            .map(|entry| entry.unwrap().value().unwrap().into())
+            .collect();
+        quxish.sort();
+        assert_eq!(quxish, ["quux", "qux"]);
 
         cfg.remove_multivar("foo.bar", ".*").unwrap();
 
-        assert_eq!(cfg.entries(None).unwrap().count(), 0);
+        assert_eq!(cfg.entries(Some("foo.bar")).unwrap().count(), 0);
+        assert_eq!(cfg.multivar("foo.bar", None).unwrap().count(), 0);
     }
 
     #[test]
