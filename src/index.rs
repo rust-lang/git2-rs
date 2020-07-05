@@ -66,6 +66,21 @@ pub struct IndexEntry {
     pub id: Oid,
     pub flags: u16,
     pub flags_extended: u16,
+
+    /// The path of this index entry as a byte vector. Regardless of the
+    /// current platform, the directory separator is an ASCII forward slash
+    /// (`0x2F`). There are no terminating or internal NUL characters, and no
+    /// trailing slashes. Most of the time, paths will be valid utf-8 — but
+    /// not always. For more information on the path storage format, see
+    /// [these git docs][git-index-docs]. Note that libgit2 will take care of
+    /// handling the prefix compression mentioned there.
+    ///
+    /// [git-index-docs]: https://github.com/git/git/blob/a08a83db2bf27f015bec9a435f6d73e223c21c5e/Documentation/technical/index-format.txt#L107-L124
+    ///
+    /// You can turn this value into a `std::ffi::CString` with
+    /// `CString::new(&entry.path[..]).unwrap()`. To turn a reference into a
+    /// `&std::path::Path`, see the `bytes2path()` function in the private,
+    /// internal `util` module in this crate’s source code.
     pub path: Vec<u8>,
 }
 
