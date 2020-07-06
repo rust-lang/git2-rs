@@ -3,7 +3,7 @@ use std::marker;
 use std::str;
 
 use crate::util::Binding;
-use crate::{raw, Direction};
+use crate::{raw, Buf, Direction, Error};
 
 /// A structure to represent a git [refspec][1].
 ///
@@ -76,6 +76,34 @@ impl<'remote> Refspec<'remote> {
     /// Get the refspec's string as a byte array
     pub fn bytes(&self) -> &[u8] {
         unsafe { crate::opt_bytes(self, raw::git_refspec_string(self.raw)).unwrap() }
+    }
+
+    /// Transform a reference to its target following the refspec's rules
+    pub fn transform(&self, name: &str) -> Result<Buf, Error> {
+        let name = CString::new(name).unwrap();
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_refspec_transform(
+                buf.raw(),
+                self.raw,
+                name.as_ptr()
+            ));
+            Ok(buf)
+        }
+    }
+
+    /// Transform a target reference to its source reference following the refspec's rules
+    pub fn rtransform(&self, name: &str) -> Result<Buf, Error> {
+        let name = CString::new(name).unwrap();
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_refspec_rtransform(
+                buf.raw(),
+                self.raw,
+                name.as_ptr()
+            ));
+            Ok(buf)
+        }
     }
 }
 

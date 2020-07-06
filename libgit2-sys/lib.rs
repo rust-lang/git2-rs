@@ -2059,6 +2059,16 @@ extern "C" {
     pub fn git_refspec_src_matches(spec: *const git_refspec, refname: *const c_char) -> c_int;
     pub fn git_refspec_force(spec: *const git_refspec) -> c_int;
     pub fn git_refspec_string(spec: *const git_refspec) -> *const c_char;
+    pub fn git_refspec_transform(
+        out: *mut git_buf,
+        spec: *const git_refspec,
+        name: *const c_char,
+    ) -> c_int;
+    pub fn git_refspec_rtransform(
+        out: *mut git_buf,
+        spec: *const git_refspec,
+        name: *const c_char,
+    ) -> c_int;
 
     // strarray
     pub fn git_strarray_free(array: *mut git_strarray);
