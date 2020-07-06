@@ -591,10 +591,9 @@ extern "C" fn index_matched_path_cb(
     payload: *mut c_void,
 ) -> c_int {
     unsafe {
-        let path = CStr::from_ptr(path).to_bytes();
-        let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
-
         panic::wrap(|| {
+            let path = crate::opt_bytes(&payload, path).unwrap();
+            let matched_pathspec = crate::opt_bytes(&payload, matched_pathspec).unwrap();
             let payload = payload as *mut &mut IndexMatchedPath<'_>;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         })
@@ -854,5 +853,16 @@ mod tests {
             flags_extended: 0,
             path: Vec::new(),
         }
+    }
+
+    #[test]
+    #[should_panic] // TODO(#585) - type signature needs to change to not panic
+    fn no_segfault() {
+        let pathspecs: &[&str] = &[];
+        drop(Repository::open(".").unwrap().index().unwrap().add_all(
+            pathspecs,
+            Default::default(),
+            Some(&mut |_path, _matched_pathspec| 0),
+        ));
     }
 }
