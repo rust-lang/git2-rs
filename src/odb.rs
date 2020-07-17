@@ -10,7 +10,7 @@ use libc::{c_char, c_int, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
-use crate::{raw, Error, IndexerProgress, Object, ObjectType, Oid, Progress};
+use crate::{raw, Error, IndexerProgress, Mempack, Object, ObjectType, Oid, Progress};
 
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
@@ -216,6 +216,47 @@ impl<'repo> Odb<'repo> {
             let path = CString::new(path)?;
             try_call!(raw::git_odb_add_disk_alternate(self.raw, path));
             Ok(())
+        }
+    }
+
+    /// Create a new mempack backend, and add it to this odb with the given
+    /// priority. Higher values give the backend higher precedence. The default
+    /// loose and pack backends have priorities 1 and 2 respectively (hard-coded
+    /// in libgit2). A reference to the new mempack backend is returned on
+    /// success. The lifetime of the backend must be contained within the
+    /// lifetime of this odb, since deletion of the odb will also result in
+    /// deletion of the mempack backend.
+    ///
+    /// Here is an example that fails to compile because it tries to hold the
+    /// mempack reference beyond the odb's lifetime:
+    ///
+    /// ```compile_fail
+    /// use git2::Odb;
+    /// let mempack = {
+    ///     let odb = Odb::new().unwrap();
+    ///     odb.add_new_mempack_backend(1000).unwrap()
+    /// };
+    /// ```
+    pub fn add_new_mempack_backend<'odb>(
+        &'odb self,
+        priority: i32,
+    ) -> Result<Mempack<'odb>, Error> {
+        unsafe {
+            let mut mempack = ptr::null_mut();
+            // The mempack backend object in libgit2 is only ever freed by an
+            // odb that has the backend in its list. So to avoid potentially
+            // leaking the mempack backend, this API ensures that the backend
+            // is added to the odb before returning it. The lifetime of the
+            // mempack is also bound to the lifetime of the odb, so that users
+            // can't end up with a dangling reference to a mempack object that
+            // was actually freed when the odb was destroyed.
+            try_call!(raw::git_mempack_new(&mut mempack));
+            try_call!(raw::git_odb_add_backend(
+                self.raw,
+                mempack,
+                priority as c_int
+            ));
+            Ok(Mempack::from_raw(mempack))
         }
     }
 }
@@ -625,5 +666,46 @@ mod tests {
             packwriter.commit().unwrap();
         }
         assert_eq!(progress_called, true);
+    }
+
+    #[test]
+    fn write_with_mempack() {
+        use crate::{Buf, ResetType};
+        use std::io::Write;
+        use std::path::Path;
+
+        // Create a repo, add a mempack backend
+        let (_td, repo) = crate::test::repo_init();
+        let odb = repo.odb().unwrap();
+        let mempack = odb.add_new_mempack_backend(1000).unwrap();
+
+        // Sanity check that foo doesn't exist initially
+        let foo_file = Path::new(repo.workdir().unwrap()).join("foo");
+        assert!(!foo_file.exists());
+
+        // Make a commit that adds foo. This writes new stuff into the mempack
+        // backend.
+        let (oid1, _id) = crate::test::commit(&repo);
+        let commit1 = repo.find_commit(oid1).unwrap();
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+        assert!(foo_file.exists());
+
+        // Dump the mempack modifications into a buf, and reset it. This "erases"
+        // commit-related objects from the repository. Ensure the commit appears
+        // to have become invalid, by checking for failure in `reset --hard`.
+        let mut buf = Buf::new();
+        mempack.dump(&repo, &mut buf).unwrap();
+        mempack.reset().unwrap();
+        assert!(repo
+            .reset(commit1.as_object(), ResetType::Hard, None)
+            .is_err());
+
+        // Write the buf into a packfile in the repo. This brings back the
+        // missing objects, and we verify everything is good again.
+        let mut packwriter = odb.packwriter().unwrap();
+        packwriter.write(&buf).unwrap();
+        packwriter.commit().unwrap();
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+        assert!(foo_file.exists());
     }
 }

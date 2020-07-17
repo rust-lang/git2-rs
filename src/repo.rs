@@ -1054,6 +1054,14 @@ impl Repository {
         }
     }
 
+    /// Override the object database for this repository
+    pub fn set_odb(&self, odb: &Odb<'_>) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_odb(self.raw(), odb.raw()));
+        }
+        Ok(())
+    }
+
     /// Create a new branch pointing at a target commit
     ///
     /// A new direct reference will be created pointing to this target commit.
