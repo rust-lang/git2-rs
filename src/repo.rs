@@ -14,6 +14,7 @@ use crate::diff::{
 use crate::oid_array::OidArray;
 use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
+use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::CherrypickOptions;
 use crate::RevertOptions;
@@ -1729,6 +1730,27 @@ impl Repository {
             }
             Ok(Binding::from_raw(arr))
         }
+    }
+
+    /// iterate over all tags.
+    /// callback `cb` is called for each tag.
+    /// it is called with the tag id and name if it was valid to utf8
+    pub fn tag_foreach<T>(&self, cb: T) -> Result<(), Error>
+    where
+        T: FnMut(Oid, Option<&str>) -> bool,
+    {
+        let mut data = TagForeachData {
+            cb: Box::new(cb) as TagForeachCB<'_>,
+        };
+
+        unsafe {
+            raw::git_tag_foreach(
+                self.raw,
+                Some(tag_foreach_cb),
+                (&mut data) as *mut _ as *mut _,
+            );
+        }
+        Ok(())
     }
 
     /// Updates files in the index and the working tree to match the content of

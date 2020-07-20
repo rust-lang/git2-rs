@@ -679,6 +679,7 @@ mod stash;
 mod status;
 mod submodule;
 mod tag;
+mod tagforeach;
 mod time;
 mod tree;
 mod treebuilder;
