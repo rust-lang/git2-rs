@@ -1732,12 +1732,11 @@ impl Repository {
         }
     }
 
-    /// iterate over all tags.
-    /// callback `cb` is called for each tag.
-    /// it is called with the tag id and name if it was valid to utf8
+    /// iterate over all tags calling `cb` on each.
+    /// the callback is provided the tag id and name
     pub fn tag_foreach<T>(&self, cb: T) -> Result<(), Error>
     where
-        T: FnMut(Oid, Option<&str>) -> bool,
+        T: FnMut(Oid, &[u8]) -> bool,
     {
         let mut data = TagForeachData {
             cb: Box::new(cb) as TagForeachCB<'_>,

@@ -7,7 +7,7 @@ use raw::git_oid;
 use std::ffi::{c_void, CStr};
 
 /// boxed callback type
-pub(crate) type TagForeachCB<'a> = Box<dyn FnMut(Oid, Option<&str>) -> bool + 'a>;
+pub(crate) type TagForeachCB<'a> = Box<dyn FnMut(Oid, &[u8]) -> bool + 'a>;
 
 /// helper type to be able to pass callback to payload
 pub(crate) struct TagForeachData<'a> {
@@ -26,7 +26,7 @@ pub(crate) extern "C" fn tag_foreach_cb(
         let id: Oid = Binding::from_raw(oid as *const _);
 
         let name = CStr::from_ptr(name);
-        let name = name.to_str().ok();
+        let name = name.to_bytes();
 
         let payload = &mut *(payload as *mut TagForeachData<'_>);
         let cb = &mut payload.cb;
@@ -58,7 +58,7 @@ mod tests {
 
         let mut tags = Vec::new();
         repo.tag_foreach(|id, name| {
-            tags.push((id, name.unwrap().to_string()));
+            tags.push((id, String::from_utf8(name.into()).unwrap()));
             true
         })
         .unwrap();
