@@ -97,6 +97,7 @@ pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
 };
 pub use crate::indexer::{IndexerProgress, Progress};
+pub use crate::mempack::Mempack;
 pub use crate::merge::{AnnotatedCommit, MergeOptions};
 pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use crate::note::{Note, Notes};
@@ -654,6 +655,7 @@ mod diff;
 mod error;
 mod index;
 mod indexer;
+mod mempack;
 mod merge;
 mod message;
 mod note;
