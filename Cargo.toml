@@ -1,6 +1,6 @@
 [package]
 name = "git2"
-version = "0.13.7"
+version = "0.13.8"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
@@ -20,7 +20,7 @@ url = "2.0"
 bitflags = "1.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.12.8" }
+libgit2-sys = { path = "libgit2-sys", version = "0.12.9" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.0", optional = true }
