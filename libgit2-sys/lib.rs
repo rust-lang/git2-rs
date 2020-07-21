@@ -2619,6 +2619,8 @@ extern "C" {
     ) -> c_int;
 
     // index
+    pub fn git_index_version(index: *mut git_index) -> c_uint;
+    pub fn git_index_set_version(index: *mut git_index, version: c_uint) -> c_int;
     pub fn git_index_add(index: *mut git_index, entry: *const git_index_entry) -> c_int;
     pub fn git_index_add_all(
         index: *mut git_index,
