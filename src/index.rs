@@ -117,6 +117,27 @@ impl Index {
         }
     }
 
+    /// Get index on-disk version.
+    ///
+    /// Valid return values are 2, 3, or 4.  If 3 is returned, an index
+    /// with version 2 may be written instead, if the extension data in
+    /// version 3 is not necessary.
+    pub fn version(&self) -> u32 {
+        unsafe { raw::git_index_version(self.raw) }
+    }
+
+    /// Set index on-disk version.
+    ///
+    /// Valid values are 2, 3, or 4.  If 2 is given, git_index_write may
+    /// write an index with version 3 instead, if necessary to accurately
+    /// represent the index.
+    pub fn set_version(&mut self, version: u32) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_index_set_version(self.raw, version));
+        }
+        Ok(())
+    }
+
     /// Add or update an index entry from an in-memory struct
     ///
     /// If a previous index entry exists that has the same path and stage as the
