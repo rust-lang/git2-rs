@@ -298,7 +298,7 @@ mod tests {
         |repo: &Repository| {
             let mut index = repo.index().unwrap();
 
-            let root = repo.path().parent().unwrap();
+            let root = repo.workdir().unwrap();
             fs::create_dir(&root.join("foo")).unwrap();
             File::create(&root.join("foo/bar")).unwrap();
             index.add_path(Path::new("foo/bar")).unwrap();
