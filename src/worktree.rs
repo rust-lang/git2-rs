@@ -126,19 +126,21 @@ impl Worktree {
     }
 
     /// Prunes the worktree
-    pub fn prune(&self, opts: WorktreePruneOptions) -> Result<(), Error> {
+    pub fn prune(&self, opts: Option<&WorktreePruneOptions>) -> Result<(), Error> {
         // When successful the worktree should be removed however the backing structure
         // of the git_worktree should still be valid.
         unsafe {
-            try_call!(raw::git_worktree_prune(self.raw, &mut opts.raw()));
+            let mut opts = opts.map(|o| o.raw());
+            try_call!(raw::git_worktree_prune(self.raw, opts.as_mut()));
         }
         Ok(())
     }
 
     /// Checks if the worktree is prunable
-    pub fn is_prunable(&self, opts: WorktreePruneOptions) -> bool {
+    pub fn is_prunable(&self, opts: Option<&WorktreePruneOptions>) -> bool {
         unsafe {
-            if call!(raw::git_worktree_is_prunable(self.raw, &mut opts.raw())) <= 0 {
+            let mut opts = opts.map(|o| o.raw());
+            if call!(raw::git_worktree_is_prunable(self.raw, opts.as_mut())) <= 0 {
                 false
             } else {
                 true

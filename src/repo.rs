@@ -2844,19 +2844,20 @@ impl Repository {
         &self,
         name: &str,
         path: &Path,
-        opts: &WorktreeAddOptions<'_>,
+        opts: Option<&WorktreeAddOptions<'_>>,
     ) -> Result<Worktree, Error> {
         let mut raw = ptr::null_mut();
         let raw_name = CString::new(name)?;
         let raw_path = path.into_c_string()?;
 
         unsafe {
+            let opts = opts.map(|o| o.raw());
             try_call!(raw::git_worktree_add(
                 &mut raw,
                 self.raw,
                 raw_name,
                 raw_path,
-                &opts.raw()
+                opts.as_ref()
             ));
             Ok(Binding::from_raw(raw))
         }
