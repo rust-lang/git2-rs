@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::ptr;
@@ -31,7 +32,41 @@ macro_rules! repo_test {
     }
 }
 
-pub fn repo_init_typical() -> (TempDir, Repository) {
+pub struct TempDirs {
+    main: TempDir,
+    _rest: Vec<TempDir>,
+}
+
+impl Deref for TempDirs {
+    type Target = TempDir;
+
+    fn deref(&self) -> &Self::Target {
+        &self.main
+    }
+}
+
+pub fn repo_init_typical() -> (TempDirs, Repository) {
+    let (td, repo) = repo_init();
+    let tds = TempDirs {
+        main: td,
+        _rest: vec![],
+    };
+    (tds, repo)
+}
+
+pub fn repo_init_bare() -> (TempDirs, Repository) {
+    panic!("unimplemented")
+}
+
+pub fn repo_init_bare_worktree() -> (TempDirs, Repository) {
+    panic!("unimplemented")
+}
+
+pub fn repo_init_typical_worktree() -> (TempDirs, Repository) {
+    panic!("unimplemented")
+}
+
+pub fn repo_init() -> (TempDir, Repository) {
     let td = TempDir::new().unwrap();
     let mut opts = RepositoryInitOptions::new();
     opts.initial_head("main");
@@ -51,23 +86,7 @@ pub fn repo_init_typical() -> (TempDir, Repository) {
     (td, repo)
 }
 
-pub fn repo_init_bare() -> (TempDir, Repository) {
-    panic!("unimplemented")
-}
-
-pub fn repo_init_bare_worktree() -> (TempDir, Repository) {
-    panic!("unimplemented")
-}
-
-pub fn repo_init_typical_worktree() -> (TempDir, Repository) {
-    panic!("unimplemented")
-}
-
-pub fn repo_init() -> (TempDir, Repository) {
-    repo_init_typical()
-}
-
-pub fn repo_init2(repo_type: RepoType) -> (TempDir, Repository) {
+pub fn repo_init2(repo_type: RepoType) -> (TempDirs, Repository) {
     match repo_type {
         RepoType::Typical => repo_init_typical(),
         RepoType::Bare => repo_init_bare(),
