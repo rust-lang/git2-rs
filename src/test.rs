@@ -55,15 +55,79 @@ pub fn repo_init_typical() -> (TempDirs, Repository) {
 }
 
 pub fn repo_init_bare() -> (TempDirs, Repository) {
-    panic!("unimplemented")
+    let td = TempDir::new().unwrap();
+    let repo = Repository::init_bare(td.path()).unwrap();
+    {
+        let mut config = repo.config().unwrap();
+        config.set_str("user.name", "name").unwrap();
+        config.set_str("user.email", "email").unwrap();
+        let mut index = repo.index().unwrap();
+        let id = index.write_tree().unwrap();
+
+        let tree = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
+            .unwrap();
+    }
+    let tds = TempDirs {
+        main: td,
+        _rest: vec![],
+    };
+    (tds, repo)
 }
 
 pub fn repo_init_bare_worktree() -> (TempDirs, Repository) {
-    panic!("unimplemented")
+    let td = TempDir::new().unwrap();
+    let repo = Repository::init_bare(td.path()).unwrap();
+    {
+        let mut config = repo.config().unwrap();
+        config.set_str("user.name", "name").unwrap();
+        config.set_str("user.email", "email").unwrap();
+        let mut index = repo.index().unwrap();
+        let id = index.write_tree().unwrap();
+
+        let tree = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
+            .unwrap();
+    }
+    let worktree_td = TempDir::new().unwrap();
+    std::fs::remove_dir(worktree_td.path()).unwrap(); // worktree will fail if the directory exists
+    let worktree = repo.worktree("worktree", worktree_td.path(), None).unwrap();
+    let worktree_repo = worktree.to_repository().unwrap();
+
+    let tds = TempDirs {
+        main: worktree_td,
+        _rest: vec![td],
+    };
+    (tds, worktree_repo)
 }
 
 pub fn repo_init_typical_worktree() -> (TempDirs, Repository) {
-    panic!("unimplemented")
+    let td = TempDir::new().unwrap();
+    let repo = Repository::init(td.path()).unwrap();
+    {
+        let mut config = repo.config().unwrap();
+        config.set_str("user.name", "name").unwrap();
+        config.set_str("user.email", "email").unwrap();
+        let mut index = repo.index().unwrap();
+        let id = index.write_tree().unwrap();
+
+        let tree = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
+            .unwrap();
+    }
+    let worktree_td = TempDir::new().unwrap();
+    std::fs::remove_dir(worktree_td.path()).unwrap(); // worktree will fail if the directory exists
+    let worktree = repo.worktree("worktree", worktree_td.path(), None).unwrap();
+    let worktree_repo = worktree.to_repository().unwrap();
+
+    let tds = TempDirs {
+        main: worktree_td,
+        _rest: vec![td],
+    };
+    (tds, worktree_repo)
 }
 
 pub fn repo_init() -> (TempDir, Repository) {
