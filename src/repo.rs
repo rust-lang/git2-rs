@@ -2809,7 +2809,7 @@ impl Repository {
     /// Lists all the worktrees for the repository
     pub fn worktrees(&self) -> Result<StringArray, Error> {
         let mut arr = raw::git_strarray {
-            strings: 0 as *mut *mut c_char,
+            strings: ptr::null_mut(),
             count: 0,
         };
         unsafe {
