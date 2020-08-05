@@ -270,7 +270,7 @@ mod tests {
         let wt_path = wtdir.path().join("tree-no-ref-dir");
         let opts = WorktreeAddOptions::new(None);
 
-        let wt = repo.worktree_add("tree-no-ref", &wt_path, &opts).unwrap();
+        let wt = repo.worktree("tree-no-ref", &wt_path, &opts).unwrap();
         assert_eq!(wt.name(), Some("tree-no-ref"));
         assert_eq!(
             wt.path().canonicalize().unwrap(),
@@ -286,7 +286,7 @@ mod tests {
         let mut opts = WorktreeAddOptions::new(None);
         opts.lock(true);
 
-        let wt = repo.worktree_add("locked-tree", &wt_path, &opts).unwrap();
+        let wt = repo.worktree("locked-tree", &wt_path, &opts).unwrap();
         // shouldn't be able to lock a worktree that was created locked
         assert!(wt.lock(Some("my reason")).is_err());
         assert_eq!(wt.name(), Some("locked-tree"));
@@ -311,7 +311,7 @@ mod tests {
             let wt_path = wt_top.path().join("test");
             let opts = WorktreeAddOptions::new(Some(branch.into_reference()));
 
-            let wt = repo.worktree_add("test-worktree", &wt_path, &opts).unwrap();
+            let wt = repo.worktree("test-worktree", &wt_path, &opts).unwrap();
             assert_eq!(wt.name(), Some("test-worktree"));
             assert_eq!(
                 wt.path().canonicalize().unwrap(),

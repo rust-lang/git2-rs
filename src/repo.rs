@@ -2808,7 +2808,7 @@ impl Repository {
     /// Opens a worktree by name for the given repository
     ///
     /// This can open any worktree that the worktrees method returns.
-    pub fn worktree_lookup(&self, name: &str) -> Result<Worktree, Error> {
+    pub fn find_worktree(&self, name: &str) -> Result<Worktree, Error> {
         let mut raw = ptr::null_mut();
         let raw_name = CString::new(name)?;
         unsafe {
@@ -2831,7 +2831,7 @@ impl Repository {
     }
 
     /// Creates a new worktree for the repository
-    pub fn worktree_add(
+    pub fn worktree(
         &self,
         name: &str,
         path: &Path,
