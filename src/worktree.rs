@@ -4,6 +4,7 @@ use crate::repo::Repository;
 use crate::util::{self, Binding};
 use crate::{call, raw, Error};
 use std::mem;
+use std::os::raw::c_int;
 use std::path::Path;
 use std::ptr;
 use std::str;
@@ -22,7 +23,7 @@ unsafe impl Send for Worktree {}
 
 /// Options which can be used to configure how a repository is initialized
 pub struct WorktreeAddOptions<'a> {
-    lock: i32,
+    lock: bool,
     reference: Option<Reference<'a>>,
 }
 
@@ -155,19 +156,22 @@ impl<'a> WorktreeAddOptions<'a> {
     /// Creates a default set of add options.
     ///
     /// By default this will not lock the worktree
-    pub fn new(reference: Option<Reference<'a>>) -> WorktreeAddOptions<'a> {
+    pub fn new() -> WorktreeAddOptions<'a> {
         WorktreeAddOptions {
-            lock: 0,
-            reference: reference,
+            lock: false,
+            reference: None,
         }
     }
 
     /// If enabled, this will cause the newly added worktree to be locked
     pub fn lock(&mut self, enabled: bool) -> &mut WorktreeAddOptions<'a> {
-        self.lock = match enabled {
-            true => 1,
-            false => 0,
-        };
+        self.lock = enabled;
+        self
+    }
+
+    /// reference to use for the new worktree HEAD
+    pub fn reference(&mut self, reference: Option<Reference<'a>>) -> &mut WorktreeAddOptions<'a> {
+        self.reference = reference;
         self
     }
 
@@ -182,12 +186,8 @@ impl<'a> WorktreeAddOptions<'a> {
             0
         );
 
-        opts.lock = self.lock;
-        opts.reference = if let Some(ref gref) = self.reference {
-            gref.raw()
-        } else {
-            ptr::null_mut()
-        };
+        opts.lock = self.lock as c_int;
+        opts.reference = crate::call::convert(&self.reference.as_ref().map(|o| o.raw()));
 
         opts
     }
@@ -277,9 +277,9 @@ mod tests {
     repo_test!(smoke_add_no_ref, (Typical, Bare), |repo: &Repository| {
         let wtdir = TempDir::new().unwrap();
         let wt_path = wtdir.path().join("tree-no-ref-dir");
-        let opts = WorktreeAddOptions::new(None);
+        let opts = WorktreeAddOptions::new();
 
-        let wt = repo.worktree("tree-no-ref", &wt_path, &opts).unwrap();
+        let wt = repo.worktree("tree-no-ref", &wt_path, Some(&opts)).unwrap();
         assert_eq!(wt.name(), Some("tree-no-ref"));
         assert_eq!(
             wt.path().canonicalize().unwrap(),
@@ -292,10 +292,10 @@ mod tests {
     repo_test!(smoke_add_locked, (Typical, Bare), |repo: &Repository| {
         let wtdir = TempDir::new().unwrap();
         let wt_path = wtdir.path().join("locked-tree");
-        let mut opts = WorktreeAddOptions::new(None);
+        let mut opts = WorktreeAddOptions::new();
         opts.lock(true);
 
-        let wt = repo.worktree("locked-tree", &wt_path, &opts).unwrap();
+        let wt = repo.worktree("locked-tree", &wt_path, Some(&opts)).unwrap();
         // shouldn't be able to lock a worktree that was created locked
         assert!(wt.lock(Some("my reason")).is_err());
         assert_eq!(wt.name(), Some("locked-tree"));
@@ -318,9 +318,12 @@ mod tests {
         |repo: &Repository| {
             let (wt_top, branch) = crate::test::worktrees_env_init(&repo);
             let wt_path = wt_top.path().join("test");
-            let opts = WorktreeAddOptions::new(Some(branch.into_reference()));
+            let mut opts = WorktreeAddOptions::new();
+            opts.reference(Some(branch.into_reference()));
 
-            let wt = repo.worktree("test-worktree", &wt_path, &opts).unwrap();
+            let wt = repo
+                .worktree("test-worktree", &wt_path, Some(&opts))
+                .unwrap();
             assert_eq!(wt.name(), Some("test-worktree"));
             assert_eq!(
                 wt.path().canonicalize().unwrap(),
