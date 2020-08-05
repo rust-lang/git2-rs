@@ -163,6 +163,19 @@ impl Repository {
         }
     }
 
+    /// Attempt to open an already-existing repository from a worktree.
+    pub fn open_from_worktree(worktree: &Worktree) -> Result<Repository, Error> {
+        crate::init();
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_open_from_worktree(
+                &mut ret,
+                worktree.raw()
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Attempt to open an already-existing repository at or above `path`
     ///
     /// This starts at `path` and looks up the filesystem hierarchy
@@ -2822,12 +2835,8 @@ impl Repository {
     /// If a repository is not the main tree but a worktree, this
     /// function will look up the worktree inside the parent
     /// repository and create a new `git_worktree` structure.
-    pub fn worktree_open_from_repository(&self) -> Result<Worktree, Error> {
-        let mut raw = ptr::null_mut();
-        unsafe {
-            try_call!(raw::git_worktree_open_from_repository(&mut raw, self.raw));
-            Ok(Binding::from_raw(raw))
-        }
+    pub fn to_worktree(&self) -> Result<Worktree, Error> {
+        Worktree::open_from_repository(self)
     }
 
     /// Creates a new worktree for the repository

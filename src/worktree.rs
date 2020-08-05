@@ -41,6 +41,19 @@ pub enum WorktreeLockStatus {
 }
 
 impl Worktree {
+    /// Open a worktree of a the repository
+    ///
+    /// If a repository is not the main tree but a worktree, this
+    /// function will look up the worktree inside the parent
+    /// repository and create a new `git_worktree` structure.
+    pub fn open_from_repository(repo: &Repository) -> Result<Worktree, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_worktree_open_from_repository(&mut raw, repo.raw()));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Retrieves the name of the worktree
     ///
     /// This is the name that can be passed to repo::Repository::worktree_lookup
@@ -133,12 +146,8 @@ impl Worktree {
     }
 
     /// Opens the repository from the worktree
-    pub fn open_repository(&self) -> Result<Repository, Error> {
-        let mut ret = ptr::null_mut();
-        unsafe {
-            try_call!(raw::git_repository_open_from_worktree(&mut ret, self.raw));
-            Ok(Binding::from_raw(ret))
-        }
+    pub fn to_repository(&self) -> Result<Repository, Error> {
+        Repository::open_from_worktree(self)
     }
 }
 
