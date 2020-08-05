@@ -1830,7 +1830,7 @@ pub struct git_worktree_add_options {
     pub reference: *mut git_reference,
 }
 
-pub const GIT_WORKTREE_ADD_OPTIONS_VERSION: u32 = 1;
+pub const GIT_WORKTREE_ADD_OPTIONS_VERSION: c_uint = 1;
 
 git_enum! {
     pub enum git_worktree_prune_t {
@@ -1849,7 +1849,7 @@ pub struct git_worktree_prune_options {
     pub flags: u32,
 }
 
-pub const GIT_WORKTREE_PRUNE_OPTIONS_VERSION: u32 = 1;
+pub const GIT_WORKTREE_PRUNE_OPTIONS_VERSION: c_uint = 1;
 
 extern "C" {
     // threads
