@@ -19,8 +19,8 @@ use crate::util::{self, path_to_repo_path, Binding};
 use crate::CherrypickOptions;
 use crate::RevertOptions;
 use crate::{
-    init, raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState,
-    Revspec, StashFlags,
+    raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
+    StashFlags,
 };
 use crate::{
     AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore, SubmoduleStatus,
@@ -65,7 +65,7 @@ impl Repository {
     ///
     /// The path can point to either a normal or bare repository.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
-        init();
+        crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
@@ -79,7 +79,7 @@ impl Repository {
     ///
     /// The path can point to only a bare repository.
     pub fn open_bare<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
-        init();
+        crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
@@ -95,7 +95,7 @@ impl Repository {
     /// With `$GIT_DIR` unset, this will search for a repository starting in
     /// the current directory.
     pub fn open_from_env() -> Result<Repository, Error> {
-        init();
+        crate::init();
         let mut ret = ptr::null_mut();
         let flags = raw::GIT_REPOSITORY_OPEN_FROM_ENV;
         unsafe {
@@ -145,7 +145,7 @@ impl Repository {
         O: AsRef<OsStr>,
         I: IntoIterator<Item = O>,
     {
-        init();
+        crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
@@ -168,7 +168,7 @@ impl Repository {
     /// until it finds a repository.
     pub fn discover<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         // TODO: this diverges significantly from the libgit2 API
-        init();
+        crate::init();
         let buf = Buf::new();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
@@ -206,7 +206,7 @@ impl Repository {
         path: P,
         opts: &RepositoryInitOptions,
     ) -> Result<Repository, Error> {
-        init();
+        crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
         let mut ret = ptr::null_mut();
@@ -238,7 +238,7 @@ impl Repository {
 
     /// Attempt to wrap an object database as a repository.
     pub fn from_odb(odb: Odb<'_>) -> Result<Repository, Error> {
-        init();
+        crate::init();
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_wrap_odb(&mut ret, odb.raw()));
