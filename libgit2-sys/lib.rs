@@ -3759,10 +3759,7 @@ extern "C" {
         given_opts: *const git_revert_options,
     ) -> c_int;
 
-    pub fn git_libgit2_opts(
-        option: c_int,
-        ...,
-    ) -> c_int;
+    pub fn git_libgit2_opts(option: c_int, ...) -> c_int;
 }
 
 pub fn init() {
