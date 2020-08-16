@@ -638,6 +638,7 @@ mod util;
 pub mod build;
 pub mod cert;
 pub mod oid_array;
+pub mod opts;
 pub mod string_array;
 pub mod transport;
 
