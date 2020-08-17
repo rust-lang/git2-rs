@@ -33,6 +33,23 @@ impl<'repo> Submodule<'repo> {
         unsafe { crate::opt_bytes(self, raw::git_submodule_branch(self.raw)) }
     }
 
+    ///
+    pub fn clone(
+        &mut self,
+        repo: Option<&mut &mut Repository>,
+        opts: &mut SubmoduleUpdateOptions<'_>,
+    ) -> Result<(), Error> {
+        unsafe {
+            let mut raw_repo = repo.map(|o| o.raw());
+            try_call!(raw::git_submodule_clone(
+                raw_repo.as_mut().map_or(ptr::null_mut(), |o| o),
+                self.raw().as_mut(),
+                &opts.raw() as *const _
+            ));
+        }
+        Ok(())
+    }
+
     /// Get the submodule's url.
     ///
     /// Returns `None` if the url is not valid utf-8 or if the URL isn't present
