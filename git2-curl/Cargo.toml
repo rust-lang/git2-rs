@@ -24,6 +24,10 @@ conduit = "0.8"
 conduit-git-http-backend = "0.8"
 tempfile = "3.0"
 
+[features]
+vendored-openssl = ["git2/vendored"]
+default = []
+
 [[test]]
 name = "all"
 harness = false
