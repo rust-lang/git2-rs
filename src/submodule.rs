@@ -41,11 +41,12 @@ impl<'repo> Submodule<'repo> {
         opts: Option<&mut SubmoduleUpdateOptions<'_>>,
     ) -> Result<Repository, Error> {
         unsafe {
+            let raw_opts = opts.map(|o| o.raw());
             let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_clone(
                 &mut raw_repo,
                 self.raw,
-                opts.map(|o| o.raw()).unwrap_or(ptr::null())
+                raw_opts.as_ref()
             ));
             Ok(Binding::from_raw(raw_repo))
         }
@@ -385,13 +386,19 @@ mod tests {
         // Same as `add_a_submodule()`
         let (_td, repo1) = crate::test::repo_init();
         let (_td, repo2) = crate::test::repo_init();
+        let (_td, parent) = crate::test::repo_init();
 
-        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
-        let mut s = repo2
-            .submodule(&url.to_string(), Path::new("bar"), true)
+        let url1 = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let url3 = Url::from_file_path(&repo2.workdir().unwrap()).unwrap();
+        let mut s1 = parent
+            .submodule(&url1.to_string(), Path::new("bar"), true)
+            .unwrap();
+        let mut s2 = parent
+            .submodule(&url3.to_string(), Path::new("bar2"), true)
             .unwrap();
         // -----------------------------------
 
-        t!(s.clone(Some(&mut SubmoduleUpdateOptions::default())));
+        t!(s1.clone(Some(&mut SubmoduleUpdateOptions::default())));
+        t!(s2.clone(None));
     }
 }
