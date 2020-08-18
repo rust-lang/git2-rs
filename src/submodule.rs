@@ -36,13 +36,16 @@ impl<'repo> Submodule<'repo> {
     /// Perform the clone step for a newly created submodule.
     ///
     /// This performs the necessary `git_clone` to setup a newly-created submodule.
-    pub fn clone(&mut self, opts: &mut SubmoduleUpdateOptions<'_>) -> Result<Repository, Error> {
+    pub fn clone(
+        &mut self,
+        opts: Option<&mut SubmoduleUpdateOptions<'_>>,
+    ) -> Result<Repository, Error> {
         unsafe {
             let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_clone(
                 &mut raw_repo,
-                self.raw().as_mut(),
-                &opts.raw() as *const _
+                self.raw,
+                opts.map(|o| o.raw()).unwrap_or(ptr::null())
             ));
             Ok(Binding::from_raw(raw_repo))
         }
@@ -387,6 +390,8 @@ mod tests {
         let mut s = repo2
             .submodule(&url.to_string(), Path::new("bar"), true)
             .unwrap();
-        t!(s.clone(&mut SubmoduleUpdateOptions::default()));
+        // -----------------------------------
+
+        t!(s.clone(Some(&mut SubmoduleUpdateOptions::default())));
     }
 }
