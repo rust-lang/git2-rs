@@ -36,18 +36,17 @@ impl<'repo> Submodule<'repo> {
     ///
     pub fn clone(
         &mut self,
-        repo: Option<&mut &mut Repository>,
         opts: &mut SubmoduleUpdateOptions<'_>,
-    ) -> Result<(), Error> {
+    ) -> Result<Repository, Error> {
         unsafe {
-            let mut raw_repo = repo.map(|o| o.raw());
+            let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_clone(
-                raw_repo.as_mut().map_or(ptr::null_mut(), |o| o),
+                &mut raw_repo,
                 self.raw().as_mut(),
                 &opts.raw() as *const _
             ));
+            Ok(Binding::from_raw(raw_repo))
         }
-        Ok(())
     }
 
     /// Get the submodule's url.
