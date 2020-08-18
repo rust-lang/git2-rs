@@ -1,6 +1,6 @@
 [package]
 name = "libgit2-sys"
-version = "0.12.9+1.0.1"
+version = "0.12.10+1.0.1"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
@@ -18,8 +18,8 @@ path = "lib.rs"
 
 [dependencies]
 libc = "0.2"
-libssh2-sys = { version = "0.2.11", optional = true }
-libz-sys = "1.0.22"
+libssh2-sys = { version = "0.2.19", optional = true }
+libz-sys = { version = "1.1.0", default-features = false, features = ["libc"] }
 
 [build-dependencies]
 pkg-config = "0.3.7"
@@ -32,3 +32,9 @@ openssl-sys = { version = "0.9", optional = true }
 ssh = ["libssh2-sys"]
 https = ["openssl-sys"]
 ssh_key_from_memory = []
+# Cargo does not support requiring features on an optional dependency without
+# requiring the dependency. Rather than introduce additional complexity, we
+# just require libssh2 when using zlib-ng-compat. This will require building
+# libssh2, but it will not add code to the final binary without the "ssh"
+# feature enabled.
+zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys/zlib-ng-compat"]

@@ -20,7 +20,7 @@ url = "2.0"
 bitflags = "1.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.12.9" }
+libgit2-sys = { path = "libgit2-sys", version = "0.12.10" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.0", optional = true }
@@ -39,6 +39,7 @@ ssh = ["libgit2-sys/ssh"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe"]
 vendored-openssl = ["openssl-sys/vendored"]
 ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
+zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 
 [workspace]
 members = ["systest", "git2-curl"]

@@ -13,7 +13,7 @@ Intended to be used with the git2 crate.
 edition = "2018"
 
 [dependencies]
-curl = "0.4"
+curl = "0.4.33"
 url = "2.0"
 log = "0.4"
 git2 = { path = "..", version = "0.13", default-features = false }
@@ -23,6 +23,9 @@ civet = "0.11"
 conduit = "0.8"
 conduit-git-http-backend = "0.8"
 tempfile = "3.0"
+
+[features]
+zlib-ng-compat = ["git2/zlib-ng-compat", "curl/zlib-ng-compat"]
 
 [[test]]
 name = "all"
