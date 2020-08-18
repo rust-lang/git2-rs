@@ -41,7 +41,7 @@ impl<'repo> Submodule<'repo> {
             let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_clone(
                 &mut raw_repo,
-                self.raw().as_mut(),
+                self.raw,
                 &opts.raw() as *const _
             ));
             Ok(Binding::from_raw(raw_repo))
