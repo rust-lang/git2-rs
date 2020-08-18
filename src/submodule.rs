@@ -33,11 +33,10 @@ impl<'repo> Submodule<'repo> {
         unsafe { crate::opt_bytes(self, raw::git_submodule_branch(self.raw)) }
     }
 
+    /// Perform the clone step for a newly created submodule.
     ///
-    pub fn clone(
-        &mut self,
-        opts: &mut SubmoduleUpdateOptions<'_>,
-    ) -> Result<Repository, Error> {
+    /// This performs the necessary `git_clone` to setup a newly-created submodule.
+    pub fn clone(&mut self, opts: &mut SubmoduleUpdateOptions<'_>) -> Result<Repository, Error> {
         unsafe {
             let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_clone(
@@ -375,5 +374,19 @@ mod tests {
 
             t!(submodule.update(init, opts));
         }
+    }
+
+    #[test]
+    fn clone_submodule() {
+        // -----------------------------------
+        // Same as `add_a_submodule()`
+        let (_td, repo1) = crate::test::repo_init();
+        let (_td, repo2) = crate::test::repo_init();
+
+        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let mut s = repo2
+            .submodule(&url.to_string(), Path::new("bar"), true)
+            .unwrap();
+        t!(s.clone(&mut SubmoduleUpdateOptions::default()));
     }
 }
