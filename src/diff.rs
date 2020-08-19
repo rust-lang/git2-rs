@@ -266,7 +266,8 @@ impl<'repo> Diff<'repo> {
         message = &message[summary.len()..];
         raw_opts.patch_no = patch_no;
         raw_opts.total_patches = total_patches;
-        raw_opts.id = commit.id().raw();
+        let id = commit.id();
+        raw_opts.id = id.raw();
         raw_opts.summary = summary.as_ptr() as *const _;
         raw_opts.body = message.as_ptr() as *const _;
         raw_opts.author = commit.author().raw();
