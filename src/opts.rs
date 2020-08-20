@@ -4,7 +4,8 @@ use crate::raw;
 
 /// Controls whether or not libgit2 will verify that objects loaded have the
 /// expected hash. Enabled by default, but disabling this can significantly
-/// improve performance at the cost of correctness.
+/// improve performance, at the cost of relying on repository integrity
+/// without checking it.
 pub fn strict_hash_verification(enabled: bool) {
     let error = unsafe {
         raw::git_libgit2_opts(
