@@ -2324,6 +2324,11 @@ extern "C" {
     ) -> c_int;
     pub fn git_submodule_add_to_index(submodule: *mut git_submodule, write_index: c_int) -> c_int;
     pub fn git_submodule_branch(submodule: *mut git_submodule) -> *const c_char;
+    pub fn git_submodule_clone(
+        repo: *mut *mut git_repository,
+        submodule: *mut git_submodule,
+        opts: *const git_submodule_update_options,
+    ) -> c_int;
     pub fn git_submodule_foreach(
         repo: *mut git_repository,
         callback: git_submodule_cb,

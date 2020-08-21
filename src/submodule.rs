@@ -33,6 +33,25 @@ impl<'repo> Submodule<'repo> {
         unsafe { crate::opt_bytes(self, raw::git_submodule_branch(self.raw)) }
     }
 
+    /// Perform the clone step for a newly created submodule.
+    ///
+    /// This performs the necessary `git_clone` to setup a newly-created submodule.
+    pub fn clone(
+        &mut self,
+        opts: Option<&mut SubmoduleUpdateOptions<'_>>,
+    ) -> Result<Repository, Error> {
+        unsafe {
+            let raw_opts = opts.map(|o| o.raw());
+            let mut raw_repo = ptr::null_mut();
+            try_call!(raw::git_submodule_clone(
+                &mut raw_repo,
+                self.raw,
+                raw_opts.as_ref()
+            ));
+            Ok(Binding::from_raw(raw_repo))
+        }
+    }
+
     /// Get the submodule's url.
     ///
     /// Returns `None` if the url is not valid utf-8 or if the URL isn't present
@@ -359,5 +378,27 @@ mod tests {
 
             t!(submodule.update(init, opts));
         }
+    }
+
+    #[test]
+    fn clone_submodule() {
+        // -----------------------------------
+        // Same as `add_a_submodule()`
+        let (_td, repo1) = crate::test::repo_init();
+        let (_td, repo2) = crate::test::repo_init();
+        let (_td, parent) = crate::test::repo_init();
+
+        let url1 = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let url3 = Url::from_file_path(&repo2.workdir().unwrap()).unwrap();
+        let mut s1 = parent
+            .submodule(&url1.to_string(), Path::new("bar"), true)
+            .unwrap();
+        let mut s2 = parent
+            .submodule(&url3.to_string(), Path::new("bar2"), true)
+            .unwrap();
+        // -----------------------------------
+
+        t!(s1.clone(Some(&mut SubmoduleUpdateOptions::default())));
+        t!(s2.clone(None));
     }
 }
