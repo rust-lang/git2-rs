@@ -93,12 +93,6 @@ mod impls {
         }
     }
 
-    impl Convert<*mut libc::c_char> for CString {
-        fn convert(&self) -> *mut libc::c_char {
-            self.as_ptr() as *mut libc::c_char
-        }
-    }
-
     impl<T, U: Convert<*const T>> Convert<*const T> for Option<U> {
         fn convert(&self) -> *const T {
             self.as_ref().map(|s| s.convert()).unwrap_or(ptr::null())
