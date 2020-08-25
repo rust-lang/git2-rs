@@ -21,7 +21,7 @@ pub struct Worktree {
 // even shared among threads in a mutex
 unsafe impl Send for Worktree {}
 
-/// Options which can be used to configure how a repository is initialized
+/// Options which can be used to configure how a worktree is initialized
 pub struct WorktreeAddOptions<'a> {
     lock: bool,
     reference: Option<Reference<'a>>,
@@ -57,7 +57,7 @@ impl Worktree {
 
     /// Retrieves the name of the worktree
     ///
-    /// This is the name that can be passed to repo::Repository::worktree_lookup
+    /// This is the name that can be passed to repo::Repository::find_worktree
     /// to reopen the worktree. This is also the name that would appear in the
     /// list returned by repo::Repository::worktrees
     pub fn name(&self) -> Option<&str> {
