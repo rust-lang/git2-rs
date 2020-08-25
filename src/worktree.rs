@@ -113,9 +113,7 @@ impl Worktree {
             match try_call!(raw::git_worktree_is_locked(buf.raw(), self.raw)) {
                 0 => Ok(WorktreeLockStatus::Unlocked),
                 _ => {
-                    println!("Buf: {}", buf.as_str().unwrap());
                     let v = buf.to_vec();
-                    println!("Length of v: {}", v.len());
                     Ok(WorktreeLockStatus::Locked(match v.len() {
                         0 => None,
                         _ => String::from_utf8(v).ok(),
