@@ -135,14 +135,11 @@ impl Worktree {
     }
 
     /// Checks if the worktree is prunable
-    pub fn is_prunable(&self, opts: Option<&WorktreePruneOptions>) -> bool {
+    pub fn is_prunable(&self, opts: Option<&WorktreePruneOptions>) -> Result<bool, Error> {
         unsafe {
             let mut opts = opts.map(|o| o.raw());
-            if call!(raw::git_worktree_is_prunable(self.raw, opts.as_mut())) <= 0 {
-                false
-            } else {
-                true
-            }
+            let rv = try_call!(raw::git_worktree_is_prunable(self.raw, opts.as_mut()));
+            Ok(rv != 0)
         }
     }
 
