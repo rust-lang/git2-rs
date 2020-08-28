@@ -1403,6 +1403,40 @@ impl DiffFlags {
     is_bit_set!(exists, DiffFlags::EXISTS);
 }
 
+bitflags! {
+    /// Options for [`Reference::normalize_name`].
+    pub struct ReferenceFormat: u32 {
+        /// No particular normalization.
+        const NORMAL = raw::GIT_REFERENCE_FORMAT_NORMAL as u32;
+        /// Constrol whether one-level refname are accepted (i.e., refnames that
+        /// do not contain multiple `/`-separated components). Those are
+        /// expected to be written only using uppercase letters and underscore
+        /// (e.g. `HEAD`, `FETCH_HEAD`).
+        const ALLOW_ONELEVEL = raw::GIT_REFERENCE_FORMAT_ALLOW_ONELEVEL as u32;
+        /// Interpret the provided name as a reference pattern for a refspec (as
+        /// used with remote repositories). If this option is enabled, the name
+        /// is allowed to contain a single `*` in place of a full pathname
+        /// components (e.g., `foo/*/bar` but not `foo/bar*`).
+        const REFSPEC_PATTERN = raw::GIT_REFERENCE_FORMAT_REFSPEC_PATTERN as u32;
+        /// Interpret the name as part of a refspec in shorthand form so the
+        /// `ALLOW_ONELEVEL` naming rules aren't enforced and `master` becomes a
+        /// valid name.
+        const REFSPEC_SHORTHAND = raw::GIT_REFERENCE_FORMAT_REFSPEC_SHORTHAND as u32;
+    }
+}
+
+impl ReferenceFormat {
+    is_bit_set!(is_allow_onelevel, ReferenceFormat::ALLOW_ONELEVEL);
+    is_bit_set!(is_refspec_pattern, ReferenceFormat::REFSPEC_PATTERN);
+    is_bit_set!(is_refspec_shorthand, ReferenceFormat::REFSPEC_SHORTHAND);
+}
+
+impl Default for ReferenceFormat {
+    fn default() -> Self {
+        ReferenceFormat::NORMAL
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::ObjectType;

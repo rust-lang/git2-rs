@@ -25,6 +25,7 @@ pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_CHERRYPICK_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_APPLY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REVERT_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_REFNAME_MAX: usize = 1024;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -1814,6 +1815,15 @@ git_enum! {
     }
 }
 
+git_enum! {
+    pub enum git_reference_format_t {
+        GIT_REFERENCE_FORMAT_NORMAL = 0,
+        GIT_REFERENCE_FORMAT_ALLOW_ONELEVEL = 1 << 0,
+        GIT_REFERENCE_FORMAT_REFSPEC_PATTERN = 1 << 1,
+        GIT_REFERENCE_FORMAT_REFSPEC_SHORTHAND = 1 << 2,
+    }
+}
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -2278,6 +2288,12 @@ extern "C" {
     ) -> c_int;
     pub fn git_reference_has_log(repo: *mut git_repository, name: *const c_char) -> c_int;
     pub fn git_reference_ensure_log(repo: *mut git_repository, name: *const c_char) -> c_int;
+    pub fn git_reference_normalize_name(
+        buffer_out: *mut c_char,
+        buffer_size: size_t,
+        name: *const c_char,
+        flags: git_reference_format_t,
+    ) -> c_int;
 
     // stash
     pub fn git_stash_save(
