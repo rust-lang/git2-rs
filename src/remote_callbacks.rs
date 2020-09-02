@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_void};
+use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
@@ -15,6 +15,7 @@ use crate::{panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, Progr
 /// These callbacks are used to manage facilities such as authentication,
 /// transfer progress, etc.
 pub struct RemoteCallbacks<'a> {
+    push_progress: Option<Box<PushTransferProgress<'a>>>,
     progress: Option<Box<IndexerProgress<'a>>>,
     credentials: Option<Box<Credentials<'a>>>,
     sideband_progress: Option<Box<TransportMessage<'a>>>,
@@ -56,6 +57,14 @@ pub type CertificateCheck<'a> = dyn FnMut(&Cert<'_>, &str) -> bool + 'a;
 /// was rejected by the remote server with a reason why.
 pub type PushUpdateReference<'a> = dyn FnMut(&str, Option<&str>) -> Result<(), Error> + 'a;
 
+/// Callback for push transfer progress
+///
+/// Parameters:
+///     * current
+///     * total
+///     * bytes
+pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
+
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {
         Self::new()
@@ -72,6 +81,7 @@ impl<'a> RemoteCallbacks<'a> {
             update_tips: None,
             certificate_check: None,
             push_update_reference: None,
+            push_progress: None,
         }
     }
 
@@ -158,6 +168,15 @@ impl<'a> RemoteCallbacks<'a> {
         self.push_update_reference = Some(Box::new(cb) as Box<PushUpdateReference<'a>>);
         self
     }
+
+    /// The callback through which progress of push transfer is monitored
+    pub fn push_transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    where
+        F: FnMut(usize, usize, usize) + 'a,
+    {
+        self.push_progress = Some(Box::new(cb) as Box<PushTransferProgress<'a>>);
+        self
+    }
 }
 
 impl<'a> Binding for RemoteCallbacks<'a> {
@@ -187,6 +206,9 @@ impl<'a> Binding for RemoteCallbacks<'a> {
             }
             if self.push_update_reference.is_some() {
                 callbacks.push_update_reference = Some(push_update_reference_cb);
+            }
+            if self.push_progress.is_some() {
+                callbacks.push_transfer_progress = Some(push_transfer_progress_cb);
             }
             if self.update_tips.is_some() {
                 let f: extern "C" fn(
@@ -357,6 +379,26 @@ extern "C" fn push_update_reference_cb(
             Ok(()) => 0,
             Err(e) => e.raw_code(),
         }
+    })
+    .unwrap_or(-1)
+}
+
+extern "C" fn push_transfer_progress_cb(
+    progress: c_uint,
+    total: c_uint,
+    bytes: size_t,
+    data: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
+        let callback = match payload.push_progress {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+
+        callback(progress as usize, total as usize, bytes as usize);
+
+        0
     })
     .unwrap_or(-1)
 }
