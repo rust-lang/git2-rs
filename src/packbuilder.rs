@@ -6,6 +6,7 @@ use std::slice;
 use crate::util::Binding;
 use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
 
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
 /// Stages that are reported by the `PackBuilder` progress callback.
 pub enum PackBuilderStage {
     /// Adding objects to the pack
