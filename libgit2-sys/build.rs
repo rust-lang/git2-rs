@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -199,8 +200,12 @@ fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
 }
 
 fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
-    for e in path.as_ref().read_dir().unwrap() {
-        let e = e.unwrap();
+    // sort the C files to ensure a deterministic build for reproducible builds
+    let dir = path.as_ref().read_dir().unwrap();
+    let mut paths = dir.collect::<io::Result<Vec<_>>>().unwrap();
+    paths.sort_by_key(|e| e.path());
+
+    for e in paths {
         let path = e.path();
         if e.file_type().unwrap().is_dir() {
             // skip dirs for now
