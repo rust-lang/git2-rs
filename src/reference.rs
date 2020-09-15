@@ -135,7 +135,7 @@ impl<'repo> Reference<'repo> {
     /// [`ErrorCode::InvalidSpec`]: enum.ErrorCode#variant.InvalidSpec
     pub fn normalize_name(refname: &str, flags: ReferenceFormat) -> Result<String, Error> {
         crate::init();
-        let mut dst = [0u8; raw::GIT_REFNAME_MAX + 1];
+        let mut dst = [0u8; raw::GIT_REFNAME_MAX];
         let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_reference_normalize_name(
