@@ -25,7 +25,6 @@ pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_CHERRYPICK_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_APPLY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REVERT_OPTIONS_VERSION: c_uint = 1;
-pub const GIT_REFNAME_MAX: usize = 1024;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {

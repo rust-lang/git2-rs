@@ -12,6 +12,10 @@ use crate::{
     Tag, Tree,
 };
 
+// Not in the public header files (yet?), but a hard limit used by libgit2
+// internally
+const GIT_REFNAME_MAX: usize = 1024;
+
 struct Refdb<'repo>(&'repo Repository);
 
 /// A structure to represent a git [reference][1].
@@ -135,7 +139,7 @@ impl<'repo> Reference<'repo> {
     /// [`ErrorCode::InvalidSpec`]: enum.ErrorCode#variant.InvalidSpec
     pub fn normalize_name(refname: &str, flags: ReferenceFormat) -> Result<String, Error> {
         crate::init();
-        let mut dst = [0u8; raw::GIT_REFNAME_MAX];
+        let mut dst = [0u8; GIT_REFNAME_MAX];
         let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_reference_normalize_name(
