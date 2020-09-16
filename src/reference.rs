@@ -8,8 +8,13 @@ use std::str;
 use crate::object::CastOrPanic;
 use crate::util::{c_cmp_to_ordering, Binding};
 use crate::{
-    raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceType, Repository, Tag, Tree,
+    raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceFormat, ReferenceType, Repository,
+    Tag, Tree,
 };
+
+// Not in the public header files (yet?), but a hard limit used by libgit2
+// internally
+const GIT_REFNAME_MAX: usize = 1024;
 
 struct Refdb<'repo>(&'repo Repository);
 
@@ -34,10 +39,118 @@ pub struct ReferenceNames<'repo, 'references> {
 
 impl<'repo> Reference<'repo> {
     /// Ensure the reference name is well-formed.
+    ///
+    /// Validation is performed as if [`ReferenceFormat::ALLOW_ONELEVEL`]
+    /// was given to [`Reference::normalize_name`]. No normalization is
+    /// performed, however.
+    ///
+    /// ```rust
+    /// use git2::Reference;
+    ///
+    /// assert!(Reference::is_valid_name("HEAD"));
+    /// assert!(Reference::is_valid_name("refs/heads/master"));
+    ///
+    /// // But:
+    /// assert!(!Reference::is_valid_name("master"));
+    /// assert!(!Reference::is_valid_name("refs/heads/*"));
+    /// assert!(!Reference::is_valid_name("foo//bar"));
+    /// ```
+    ///
+    /// [`ReferenceFormat::ALLOW_ONELEVEL`]:
+    ///     struct.ReferenceFormat#associatedconstant.ALLOW_ONELEVEL
+    /// [`Reference::normalize_name`]: struct.Reference#method.normalize_name
     pub fn is_valid_name(refname: &str) -> bool {
         crate::init();
         let refname = CString::new(refname).unwrap();
         unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
+    }
+
+    /// Normalize reference name and check validity.
+    ///
+    /// This will normalize the reference name by collapsing runs of adjacent
+    /// slashes between name components into a single slash. It also validates
+    /// the name according to the following rules:
+    ///
+    /// 1. If [`ReferenceFormat::ALLOW_ONELEVEL`] is given, the name may
+    ///    contain only capital letters and underscores, and must begin and end
+    ///    with a letter. (e.g. "HEAD", "ORIG_HEAD").
+    /// 2. The flag [`ReferenceFormat::REFSPEC_SHORTHAND`] has an effect
+    ///    only when combined with [`ReferenceFormat::ALLOW_ONELEVEL`]. If
+    ///    it is given, "shorthand" branch names (i.e. those not prefixed by
+    ///    `refs/`, but consisting of a single word without `/` separators)
+    ///    become valid. For example, "master" would be accepted.
+    /// 3. If [`ReferenceFormat::REFSPEC_PATTERN`] is given, the name may
+    ///    contain a single `*` in place of a full pathname component (e.g.
+    ///    `foo/*/bar`, `foo/bar*`).
+    /// 4. Names prefixed with "refs/" can be almost anything. You must avoid
+    ///    the characters '~', '^', ':', '\\', '?', '[', and '*', and the
+    ///    sequences ".." and "@{" which have special meaning to revparse.
+    ///
+    /// If the reference passes validation, it is returned in normalized form,
+    /// otherwise an [`Error`] with [`ErrorCode::InvalidSpec`] is returned.
+    ///
+    /// ```rust
+    /// use git2::{Reference, ReferenceFormat};
+    ///
+    /// assert_eq!(
+    ///     Reference::normalize_name(
+    ///         "foo//bar",
+    ///         ReferenceFormat::NORMAL
+    ///     )
+    ///     .unwrap(),
+    ///     "foo/bar".to_owned()
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Reference::normalize_name(
+    ///         "HEAD",
+    ///         ReferenceFormat::ALLOW_ONELEVEL
+    ///     )
+    ///     .unwrap(),
+    ///     "HEAD".to_owned()
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Reference::normalize_name(
+    ///         "refs/heads/*",
+    ///         ReferenceFormat::REFSPEC_PATTERN
+    ///     )
+    ///     .unwrap(),
+    ///     "refs/heads/*".to_owned()
+    /// );
+    ///
+    /// assert_eq!(
+    ///     Reference::normalize_name(
+    ///         "master",
+    ///         ReferenceFormat::ALLOW_ONELEVEL | ReferenceFormat::REFSPEC_SHORTHAND
+    ///     )
+    ///     .unwrap(),
+    ///     "master".to_owned()
+    /// );
+    /// ```
+    ///
+    /// [`ReferenceFormat::ALLOW_ONELEVEL`]:
+    ///     struct.ReferenceFormat#associatedconstant.ALLOW_ONELEVEL
+    /// [`ReferenceFormat::REFSPEC_SHORTHAND`]:
+    ///     struct.ReferenceFormat#associatedconstant.REFSPEC_SHORTHAND
+    /// [`ReferenceFormat::REFSPEC_PATTERN`]:
+    ///     struct.ReferenceFormat#associatedconstant.REFSPEC_PATTERN
+    /// [`Error`]: struct.Error
+    /// [`ErrorCode::InvalidSpec`]: enum.ErrorCode#variant.InvalidSpec
+    pub fn normalize_name(refname: &str, flags: ReferenceFormat) -> Result<String, Error> {
+        crate::init();
+        let mut dst = [0u8; GIT_REFNAME_MAX];
+        let refname = CString::new(refname)?;
+        unsafe {
+            try_call!(raw::git_reference_normalize_name(
+                dst.as_mut_ptr() as *mut libc::c_char,
+                dst.len() as libc::size_t,
+                refname,
+                flags.bits()
+            ));
+            let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
+            Ok(str::from_utf8(s).unwrap().to_owned())
+        }
     }
 
     /// Get access to the underlying raw pointer.
