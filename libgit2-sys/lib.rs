@@ -2292,7 +2292,7 @@ extern "C" {
         buffer_out: *mut c_char,
         buffer_size: size_t,
         name: *const c_char,
-        flags: git_reference_format_t,
+        flags: u32,
     ) -> c_int;
 
     // stash
