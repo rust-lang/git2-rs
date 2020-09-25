@@ -19,6 +19,7 @@ use git2::{FetchOptions, Progress, RemoteCallbacks};
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -92,6 +93,11 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     if args.transport == Some("rustls".to_string()) {
         unsafe {
             git2_rustls::register();
+        }
+    } else if args.transport == Some("ureq".to_string()) {
+        let agent = Arc::new(ureq::agent());
+        unsafe {
+            git2_ureq::register(agent);
         }
     } else if args.transport == Some("curl".to_string()) {
         let mut handle = curl::easy::Easy::new();
