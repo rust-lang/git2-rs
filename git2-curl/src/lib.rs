@@ -121,7 +121,6 @@ impl SmartSubtransport for CurlTransport {
     }
 
     fn close(&self) -> Result<(), Error> {
-        debug!("close");
         Ok(()) // ...
     }
 }
@@ -135,10 +134,6 @@ impl CurlSubtransport {
         if self.sent_request {
             return Err(self.err("already sent HTTP request"));
         }
-        println!(
-            "execute. data: {}",
-            std::str::from_utf8(data).expect("bad utf8")
-        );
         let agent = format!("git/1.0 (git2-curl {})", env!("CARGO_PKG_VERSION"));
 
         // Parse our input URL to figure out the host
@@ -150,7 +145,7 @@ impl CurlSubtransport {
         };
 
         // Prep the request
-        debug!("request to {} {}", self.method, url);
+        debug!("request to {}", url);
         let mut h = self.handle.lock().unwrap();
         h.url(&url)?;
         h.useragent(&agent)?;
@@ -276,7 +271,6 @@ impl CurlSubtransport {
 
 impl Read for CurlSubtransport {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        debug!("read {}", buf.len());
         if self.reader.is_none() {
             self.execute(&[])?;
         }
@@ -286,7 +280,6 @@ impl Read for CurlSubtransport {
 
 impl Write for CurlSubtransport {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        debug!("write {}", data.len());
         if self.reader.is_none() {
             self.execute(data)?;
         }
