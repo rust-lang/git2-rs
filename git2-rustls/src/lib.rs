@@ -50,22 +50,27 @@ pub unsafe fn register() {
     static INIT: Once = Once::new();
 
     INIT.call_once(move || {
-        git2::transport::register("http", move |remote| factory(remote)).unwrap();
-        git2::transport::register("https", move |remote| factory(remote)).unwrap();
+        let mut config = rustls::ClientConfig::new();
+        config
+            .root_store
+            .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+        let config = Arc::new(config);
+        let config2 = config.clone();
+        git2::transport::register("http", move |remote| factory(remote, config.clone())).unwrap();
+        git2::transport::register("https", move |remote| factory(remote, config2.clone())).unwrap();
     });
 }
 
-fn factory(remote: &git2::Remote<'_>) -> Result<Transport, Error> {
-    let mut config = rustls::ClientConfig::new();
-    config
-        .root_store
-        .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+fn factory(
+    remote: &git2::Remote<'_>,
+    rustls_config: Arc<rustls::ClientConfig>,
+) -> Result<Transport, Error> {
     Transport::smart(
         remote,
         true,
         RustlsTransport {
             base_url: Arc::new(Mutex::new(String::new())),
-            rustls_config: Arc::new(config),
+            rustls_config,
         },
     )
 }
