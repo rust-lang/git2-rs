@@ -16,11 +16,8 @@ edition = "2018"
 [dependencies]
 url = "2.0"
 log = "0.4"
-git2 = { path = "..", version = "0.13", default-features = false }
+git2 = { path = ".." }
 rustls = "0.18.1"
 webpki-roots = "0.20.0"
 webpki = "0.21.3"
-
-[dev-dependencies]
-structopt = "0.3"
-env_logger = "0.7.1"
+chunked_transfer = "1.2.0"

@@ -3,20 +3,18 @@
 //! > **NOTE**: At this time this crate likely does not support a `git push`
 //! >           operation, only clones.
 
-use rustls;
 use std::error;
-use std::io::{self, Read, Write};
+use std::io::{self, ErrorKind::ConnectionAborted, ErrorKind::InvalidInput, Read, Write};
 use std::net;
 use std::str;
 use std::sync::{Arc, Mutex, Once};
 
+use chunked_transfer::Decoder as ChunkDecoder;
 use git2::transport::SmartSubtransportStream;
 use git2::transport::{Service, SmartSubtransport, Transport};
 use git2::Error;
 use log::{debug, info};
 use url::Url;
-use webpki;
-use webpki_roots;
 
 struct RustlsTransport {
     /// The URL of the remote server, e.g. "https://github.com/user/repo"
@@ -24,6 +22,7 @@ struct RustlsTransport {
     /// This is an empty string until the first action is performed.
     /// If there is an HTTP redirect, this will be updated with the new URL.
     base_url: Arc<Mutex<String>>,
+    rustls_config: Arc<rustls::ClientConfig>,
 }
 
 struct RustlsSubtransport {
@@ -32,10 +31,13 @@ struct RustlsSubtransport {
     base_url: Arc<Mutex<String>>,
     method: &'static str,
     sent_request: bool,
-    stream: Option<rustls::StreamOwned<rustls::ClientSession, net::TcpStream>>,
+    rustls_config: Arc<rustls::ClientConfig>,
+    stream: Option<Box<dyn Read + Send + Sync>>,
 }
 
 /// Register the rustls backend for HTTP requests made by libgit2.
+///
+/// # Safety
 ///
 /// This function is unsafe largely for the same reasons as
 /// `git2::transport::register`:
@@ -54,11 +56,16 @@ pub unsafe fn register() {
 }
 
 fn factory(remote: &git2::Remote<'_>) -> Result<Transport, Error> {
+    let mut config = rustls::ClientConfig::new();
+    config
+        .root_store
+        .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
     Transport::smart(
         remote,
         true,
         RustlsTransport {
             base_url: Arc::new(Mutex::new(String::new())),
+            rustls_config: Arc::new(config),
         },
     )
 }
@@ -83,57 +90,44 @@ impl SmartSubtransport for RustlsTransport {
         };
         info!("action {} {}", service, path);
         Ok(Box::new(RustlsSubtransport {
-            service: service,
+            service,
             url_path: path,
             base_url: self.base_url.clone(),
-            method: method,
+            method,
             sent_request: false,
+            rustls_config: self.rustls_config.clone(),
             stream: None,
         }))
     }
 
     fn close(&self) -> Result<(), Error> {
-        Ok(()) // ...
+        Ok(()) // do nothing
     }
 }
 
 fn read_line<R: Read>(reader: &mut R) -> io::Result<String> {
-    let line = read_line2(reader).expect("wtf");
-    debug!("received line: {}", line);
-    Ok(line)
-}
-
-fn read_line2<R: Read>(reader: &mut R) -> io::Result<String> {
     let mut buf = Vec::new();
 
     loop {
         let mut one_byte = [0_u8];
-        let amt = reader.read(&mut one_byte[..])?;
-
-        if amt == 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::ConnectionAborted,
-                "unexpected EOF",
-            ));
+        match reader.read(&mut one_byte[..])? {
+            0 => return Err(io::Error::new(ConnectionAborted, "unexpected EOF")),
+            _ if one_byte[0] == b'\n' => break,
+            _ => buf.push(one_byte[0]),
         }
+    }
 
-        if one_byte[0] == b'\n' {
-            if matches!(buf.last(), Some(b'\r')) {
-                buf.pop(); // remove the '\r'
-                return String::from_utf8(buf).map_err(|_| {
-                    io::Error::new(io::ErrorKind::InvalidInput, "header is not in ASCII")
-                });
-            } else {
-                /*debug!("input thus far {}", String::from_utf8(buf.clone()).unwrap());
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "unexpected newline",
-                ));
-                */
+    if matches!(buf.last(), Some(b'\r')) {
+        buf.pop(); // remove the '\r'
+        match String::from_utf8(buf) {
+            Ok(line) => {
+                debug!("read header: {}", &line);
+                Ok(line)
             }
+            Err(_) => Err(io::Error::new(InvalidInput, "header is not in ASCII")),
         }
-
-        buf.push(one_byte[0]);
+    } else {
+        Err(io::Error::new(InvalidInput, "unexpected newline"))
     }
 }
 
@@ -147,79 +141,64 @@ impl RustlsSubtransport {
             return Err(self.err("already sent HTTP request"));
         }
 
-        // Parse our input URL to figure out the host
         let url = format!("{}{}", self.base_url.lock().unwrap(), self.url_path);
         let parsed = Url::parse(&url).map_err(|_| self.err("invalid url, failed to parse"))?;
         let host = parsed
             .host_str()
-            .ok_or(self.err("invalid url, did not have a host"))?;
-        let default_port = match parsed.scheme() {
-            "http" => Ok(80),
-            "https" => Ok(443),
-            _ => Err(self.err("unknown scheme")),
-        }?;
-        let port = parsed.port().unwrap_or(default_port);
+            .ok_or_else(|| self.err("invalid url, did not have a host"))?;
 
         // Prep the request
         debug!("request to {}", url);
-        let mut config = rustls::ClientConfig::new();
-        config
-            .root_store
-            .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-        let name_ref = webpki::DNSNameRef::try_from_ascii_str(host).unwrap();
-        let client_session = rustls::ClientSession::new(&Arc::new(config), name_ref);
+        let name_ref =
+            webpki::DNSNameRef::try_from_ascii_str(host).map_err(|_| self.err("invalid host"))?;
+        let client_session = rustls::ClientSession::new(&self.rustls_config, name_ref);
 
-        let addr = format!("{}:{}", host, port);
-        // TODO(jsha): Use connect_timeout (requires doing ToSocketAddr explicitly)
-        let sock = net::TcpStream::connect(&addr)?;
+        let addrs = parsed.socket_addrs(|| None).unwrap();
+        let sock = net::TcpStream::connect(&*addrs)?;
         let mut stream = rustls::StreamOwned::new(client_session, sock);
 
+        // Note: User-Agent must start with "git/" in order to trigger GitHub's
+        // smart transport when used with https://github.com/example/example URLs
+        // (as opposed to https://github.com/example/example.git).
         let agent = format!("git/1.0 (git2-rustls {})", env!("CARGO_PKG_VERSION"));
         let path = parsed.path();
         if let Some(query) = parsed.query() {
-            write!(stream, "{} {}?{} HTTP/1.1\r\n", self.method, path, query)?;
+            write!(stream, "{} {}?{} HTTP/1.0\r\n", self.method, path, query)?;
         } else {
-            write!(stream, "{} {} HTTP/1.1\r\n", self.method, path)?;
+            write!(stream, "{} {} HTTP/1.0\r\n", self.method, path)?;
         }
         write!(stream, "Host: {}\r\n", host)?;
         write!(stream, "User-Agent: {}\r\n", agent)?;
-        //write!(stream, "Expect:\r\n")?; // TODO(jsha): This was in git2-curl. Figure out if it's needed.
         if data.len() > 0 {
-            write!(
-                stream,
-                "Accept: application/x-git-{}-result\r\n",
-                self.service
-            )?;
-            write!(
-                stream,
-                "Content-Type: application/x-git-{}-request\r\n",
-                self.service
-            )?;
-            stream.write(data)?;
+            assert_eq!(self.method, "POST", "wrong method for write");
+            let pre = "application/x-git-";
+            write!(stream, "Accept: {}{}-result\r\n", pre, self.service)?;
+            write!(stream, "Content-Type: {}{}-request\r\n", pre, self.service)?;
+            write!(stream, "Content-Length: {}\r\n", data.len())?;
+            write!(stream, "\r\n")?; // Done with headers
+            stream.write_all(data)?;
         } else {
             write!(stream, "Accept: */*\r\n")?;
+            write!(stream, "\r\n")?; // Done with headers
         }
-        write!(stream, "\r\n")?; // Done with headers
 
         let status_line = read_line(&mut stream)?;
         let mut headers = vec![];
         loop {
-            headers.push(read_line(&mut stream)?);
-            if headers.last() == Some(&"".to_string()) {
-                headers.pop();
+            let line = read_line(&mut stream)?;
+            if line.len() == 0 {
                 break;
+            } else {
+                headers.push(line);
             }
         }
 
-        let status_code = status_line
-            .splitn(3, ' ')
-            .nth(1)
-            .ok_or(self.err("bad status line"))?;
-        if status_code != "200" {
-            return Err(self.err(format!("HTTP status {}", status_code)));
+        let status_code = status_line.splitn(3, ' ').nth(1);
+        if status_code != Some("200") {
+            return Err(self.err(format!("HTTP status {}", status_code.unwrap_or("999"))));
         }
 
-        // If there was a redirect, update the `RustlsTransport` with the new base.
+        // If there was a redirect, update with the new base.
         let location = headers.iter().find_map(|h| h.strip_prefix("Location: "));
         if let Some(location) = location {
             let new_base = if location.ends_with(self.url_path) {
@@ -233,49 +212,40 @@ impl RustlsSubtransport {
             *self.base_url.lock().unwrap() = new_base.to_string();
         }
 
-        self.stream = Some(stream);
+        let transfer_encoding = headers
+            .iter()
+            .find_map(|h| h.strip_prefix("Transfer-Encoding: "));
+        if let Some(transfer_encoding) = transfer_encoding {
+            if transfer_encoding == "chunked" {
+                self.stream = Some(Box::new(ChunkDecoder::new(stream)));
+            } else {
+                self.stream = Some(Box::new(stream));
+            }
+        } else {
+            self.stream = Some(Box::new(stream));
+        }
+
         Ok(())
     }
 }
 
 impl Read for RustlsSubtransport {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        debug!("read {}", buf.len());
-        if !self.stream.is_some() {
+        if self.stream.is_none() {
             self.execute(&[])?;
         }
-        match self.stream.as_mut().unwrap().read(buf) {
-            Ok(size) => Ok(size),
-            Err(ref e) if is_close_notify(e) => Ok(0),
-            Err(e) => {
-                debug!("returning error from read");
-                Err(e)
-            }
-        }
+        let stream = self.stream.as_mut().expect("stream was none after execute");
+        stream.read(buf)
     }
-}
-
-fn is_close_notify(e: &io::Error) -> bool {
-    if e.kind() != io::ErrorKind::ConnectionAborted {
-        return false;
-    }
-
-    if let Some(msg) = e.get_ref() {
-        return msg.to_string().contains("CloseNotify");
-    }
-
-    false
 }
 
 impl Write for RustlsSubtransport {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        debug!("write {}", data.len());
-
-        if self.stream.is_none() {
-            self.execute(data)?;
-        } else {
-            panic!("attempted to write on an already-open stream?");
-        }
+        assert!(
+            self.stream.is_none(),
+            "attempted to write on an already-open stream?"
+        );
+        self.execute(data)?;
         Ok(data.len())
     }
     fn flush(&mut self) -> io::Result<()> {

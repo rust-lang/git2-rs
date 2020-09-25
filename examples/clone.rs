@@ -27,6 +27,8 @@ struct Args {
     arg_url: String,
     #[structopt(name = "path")]
     arg_path: String,
+    #[structopt(name = "transport")]
+    transport: Option<String>,
 }
 
 struct State {
@@ -81,7 +83,24 @@ fn print(state: &mut State) {
     io::stdout().flush().unwrap();
 }
 
+fn debug(_: curl::easy::InfoType, buf: &[u8]) {
+    log::debug!("{}", String::from_utf8_lossy(buf));
+}
+
 fn run(args: &Args) -> Result<(), git2::Error> {
+    env_logger::init();
+    if args.transport == Some("rustls".to_string()) {
+        unsafe {
+            git2_rustls::register();
+        }
+    } else if args.transport == Some("curl".to_string()) {
+        let mut handle = curl::easy::Easy::new();
+        handle.debug_function(debug).expect("debug func failed");
+        handle.verbose(true).expect("verbose failed");
+        unsafe {
+            git2_curl::register(handle);
+        }
+    }
     let state = RefCell::new(State {
         progress: None,
         total: 0,
