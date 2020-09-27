@@ -97,14 +97,14 @@ impl SmartSubtransport for UreqTransport {
     }
 }
 
-impl UreqSubtransport {
-    fn err<E: Into<Box<dyn error::Error + Send + Sync>>>(&self, err: E) -> io::Error {
-        io::Error::new(io::ErrorKind::Other, err)
-    }
+fn err<E: Into<Box<dyn error::Error + Send + Sync>>>(err: E) -> io::Error {
+    io::Error::new(io::ErrorKind::Other, err)
+}
 
+impl UreqSubtransport {
     fn execute(&mut self, data: &[u8]) -> io::Result<()> {
         if self.stream.is_some() {
-            return Err(self.err("already sent HTTP request"));
+            return Err(err("already sent HTTP request"));
         }
 
         let url = format!("{}{}", self.base_url.lock().unwrap(), self.url_path);
@@ -114,7 +114,7 @@ impl UreqSubtransport {
         let mut req = match self.method {
             "GET" => self.agent.get(url.as_str()),
             "POST" => self.agent.post(url.as_str()),
-            _ => return Err(self.err("invalid HTTP method")),
+            _ => return Err(err("invalid HTTP method")),
         };
 
         // Note: User-Agent must start with "git/" in order to trigger GitHub's
@@ -136,9 +136,12 @@ impl UreqSubtransport {
         };
 
         if let Some(error) = resp.synthetic_error() {
-            return Err(self.err(format!("HTTP request failed: {}", error)));
+            return Err(err(format!("HTTP request failed: {}", error)));
         } else if !resp.ok() {
-            return Err(self.err(format!("HTTP request failed: status {}", resp.status())));
+            return Err(err(format!(
+                "HTTP request failed: status {}",
+                resp.status()
+            )));
         }
 
         // If there was a redirect, update with the new base.
