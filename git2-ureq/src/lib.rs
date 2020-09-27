@@ -122,7 +122,7 @@ impl UreqSubtransport {
         // (as opposed to https://github.com/example/example.git).
         req.set(
             "User-Agent",
-            format!("git/1.0 (git2-rustls {})", env!("CARGO_PKG_VERSION")).as_str(),
+            format!("git/1.0 (git2-ureq {})", env!("CARGO_PKG_VERSION")).as_str(),
         );
         let resp = if data.len() > 0 {
             assert_eq!(self.method, "POST", "wrong method for write");
