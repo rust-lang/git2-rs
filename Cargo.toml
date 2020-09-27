@@ -31,10 +31,9 @@ structopt = "0.3"
 time = "0.1.39"
 tempfile = "3.1.0"
 thread-id = "3.3.0" # remove when we work with minimal-versions without it
+git2-ureq = { path = "git2-ureq" }
 git2-curl = { path = "git2-curl" }
 curl = "0.4"
-git2-rustls = { path = "git2-rustls" }
-git2-ureq = { path = "git2-ureq" }
 env_logger = "0.7.1"
 
 [dev-dependencies.ureq]
@@ -52,4 +51,4 @@ vendored-openssl = ["openssl-sys/vendored"]
 ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 
 [workspace]
-members = ["systest", "git2-curl", "git2-rustls", "git2-ureq"]
+members = ["systest", "git2-curl", "git2-ureq"]

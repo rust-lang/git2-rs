@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>", "Jacob Hoffman-Andrews <crates@hoffman-andrews.com>"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/rust-lang/git2-rs"
-documentation = "https://docs.rs/git2-rustls"
+documentation = "https://docs.rs/git2-ureq"
 description = """
-Backend for an HTTP transport in libgit2 powered by rustls and ureq.
+Backend for an HTTP transport in libgit2 powered by ureq and rustls.
 
 Intended to be used with the git2 crate.
 """
@@ -14,11 +14,9 @@ edition = "2018"
 
 [dependencies]
 url = "2.0"
-log = "0.4"
+log = "0.4.8"
 git2 = { path = ".." }
 rustls = "0.18.1"
-webpki-roots = "0.20.0"
-webpki = "0.21.3"
 
 [dependencies.ureq]
 path = "../../ureq"
