@@ -90,11 +90,9 @@ fn debug(_: curl::easy::InfoType, buf: &[u8]) {
 
 fn run(args: &Args) -> Result<(), git2::Error> {
     env_logger::init();
-    if args.transport == Some("rustls".to_string()) {
-        unsafe {
-            git2_rustls::register();
-        }
-    } else if args.transport == Some("ureq".to_string()) {
+    // choose a transport. If none is specified, default to the
+    // libgit internal transport.
+    if args.transport == Some("ureq".to_string()) {
         let agent = Arc::new(ureq::agent());
         unsafe {
             git2_ureq::register(agent);
