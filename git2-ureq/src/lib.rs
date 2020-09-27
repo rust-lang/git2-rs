@@ -124,7 +124,6 @@ impl UreqSubtransport {
             "User-Agent",
             format!("git/1.0 (git2-rustls {})", env!("CARGO_PKG_VERSION")).as_str(),
         );
-        req.set("Connection", "close");
         let resp = if data.len() > 0 {
             assert_eq!(self.method, "POST", "wrong method for write");
             let pre = format!("application/x-git-{}", self.service);

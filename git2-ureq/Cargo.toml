@@ -21,6 +21,6 @@ webpki-roots = "0.20.0"
 webpki = "0.21.3"
 
 [dependencies.ureq]
-version = "1.4.1"
+path = "../../ureq"
 default-features = false
 features = ["tls"]
