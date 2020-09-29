@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, Once};
 use git2::transport::SmartSubtransportStream;
 use git2::transport::{Service, SmartSubtransport, Transport};
 use git2::Error;
-use log::{debug, info};
+use log::info;
 
 struct UreqTransport {
     /// The URL of the remote server, e.g. "https://github.com/user/repo"
@@ -22,12 +22,70 @@ struct UreqTransport {
     agent: Arc<ureq::Agent>,
 }
 
-struct UreqSubtransport {
-    service: &'static str,
-    url_path: &'static str,
-    base_url: Arc<Mutex<String>>,
-    method: &'static str,
-    agent: Arc<ureq::Agent>,
+impl UreqTransport {
+    fn new_get(&self, service: Service) -> Box<dyn SmartSubtransportStream> {
+        Box::new(GetSubTransport {
+            service,
+            parent: self.clone(),
+            stream: None,
+        })
+    }
+
+    fn new_post(&self, service: Service) -> Box<dyn SmartSubtransportStream> {
+        Box::new(PostSubTransport {
+            service,
+            parent: self.clone(),
+            stream: None,
+        })
+    }
+
+    fn make_url(&self, url_path: &str) -> String {
+        format!("{}{}", self.base_url.lock().unwrap(), url_path)
+    }
+
+    // Set base_url if it hasn't already been set. This function only sets once,
+    // to allow redirects to take precedence.
+    fn set_base(&self, url: &str) {
+        let mut base = self.base_url.lock().unwrap();
+        if *base == "" {
+            *base = url.to_string();
+        }
+    }
+
+    // If last_url is different from url, update the base_url accordingly.
+    // Used to persist redirects, which is necessary for, e.g. GitLab.
+    fn update_base(&self, url: &str, last_url: &str, url_path: &str) {
+        // If there was a redirect, update with the new base.
+        if last_url != url {
+            let new_base = last_url.strip_suffix(url_path);
+            // If redirect target doesn't end in url_path, set  base_url
+            // to the whole target. Not clear that this makes sense but
+            // it's what libgit does.
+            let new_base = new_base.unwrap_or(last_url);
+            info!("got redirect. updating base url to {}", new_base);
+            *self.base_url.lock().unwrap() = new_base.to_string();
+        }
+    }
+}
+
+impl Clone for UreqTransport {
+    fn clone(&self) -> UreqTransport {
+        UreqTransport {
+            base_url: self.base_url.clone(),
+            agent: self.agent.clone(),
+        }
+    }
+}
+
+struct GetSubTransport {
+    service: Service,
+    parent: UreqTransport,
+    stream: Option<Box<dyn Read + Send>>,
+}
+
+struct PostSubTransport {
+    service: Service,
+    parent: UreqTransport,
     stream: Option<Box<dyn Read + Send>>,
 }
 
@@ -69,28 +127,14 @@ impl SmartSubtransport for UreqTransport {
         url: &str,
         action: Service,
     ) -> Result<Box<dyn SmartSubtransportStream>, Error> {
-        let mut base_url = self.base_url.lock().unwrap();
-        if base_url.len() == 0 {
-            info!("setting base url to {}", url);
-            *base_url = url.to_string();
-        }
-        let (service, path, method) = match action {
-            Service::UploadPackLs => ("upload-pack", "/info/refs?service=git-upload-pack", "GET"),
-            Service::UploadPack => ("upload-pack", "/git-upload-pack", "POST"),
-            Service::ReceivePackLs => {
-                ("receive-pack", "/info/refs?service=git-receive-pack", "GET")
-            }
-            Service::ReceivePack => ("receive-pack", "/git-receive-pack", "POST"),
+        self.set_base(url);
+        let subtransport = match action {
+            Service::UploadPackLs => self.new_get(action),
+            Service::UploadPack => self.new_post(action),
+            Service::ReceivePackLs => self.new_get(action),
+            Service::ReceivePack => self.new_post(action),
         };
-        info!("action {} {}", service, path);
-        Ok(Box::new(UreqSubtransport {
-            service,
-            url_path: path,
-            base_url: self.base_url.clone(),
-            method,
-            agent: self.agent.clone(),
-            stream: None,
-        }))
+        Ok(subtransport)
     }
 
     fn close(&self) -> Result<(), Error> {
@@ -109,73 +153,85 @@ fn user_agent() -> String {
     format!("git/1.0 (git2-ureq {})", env!("CARGO_PKG_VERSION"))
 }
 
-impl UreqSubtransport {
-    fn execute(&mut self, data: &[u8]) -> io::Result<()> {
-        if self.stream.is_some() {
-            return Err(err("already sent HTTP request"));
+fn resp_error(resp: &ureq::Response) -> io::Result<()> {
+    match resp.synthetic_error() {
+        Some(error) => Err(err(format!("HTTP request failed: {}", error))),
+        _ if !resp.ok() => Err(err(format!(
+            "HTTP request failed: status {}",
+            resp.status()
+        ))),
+        _ => Ok(()),
+    }
+}
+
+fn service_name(service: Service) -> String {
+    match service {
+        Service::UploadPackLs | Service::UploadPack => "upload-pack",
+        Service::ReceivePackLs | Service::ReceivePack => "receive-pack",
+    }
+    .to_string()
+}
+
+impl Read for GetSubTransport {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if let Some(ref mut stream) = self.stream {
+            return stream.read(buf);
         }
 
-        let url = format!("{}{}", self.base_url.lock().unwrap(), self.url_path);
+        let url_path = format!("/info/refs?service=git-{}", service_name(self.service));
+        let url = self.parent.make_url(&url_path);
+        let agent = &self.parent.agent;
+        let resp = agent
+            .get(&url)
+            .set("User-Agent", &user_agent())
+            .set("Accept", "*/*")
+            .call();
+        resp_error(&resp)?;
+        self.parent.update_base(&url, resp.get_url(), &url_path);
 
-        // Prep the request
-        debug!("request to {}", url);
-        let mut req = match self.method {
-            "GET" => self.agent.get(url.as_str()),
-            "POST" => self.agent.post(url.as_str()),
-            _ => return Err(err("invalid HTTP method")),
-        };
+        let mut stream = resp.into_reader();
+        let n = stream.read(buf)?;
 
-        req.set("User-Agent", user_agent().as_str());
-        let resp = if data.len() > 0 {
-            assert_eq!(self.method, "POST", "wrong method for write");
-            let pre = format!("application/x-git-{}", self.service);
-            req.set("Accept", format!("{}-result", pre).as_str());
-            req.set("Content-Type", format!("{}-request", pre).as_str());
-            req.send_bytes(data)
-        } else {
-            req.set("Accept", "*/*");
-            req.call()
-        };
+        self.stream = Some(Box::new(stream));
+        Ok(n)
+    }
+}
 
-        if let Some(error) = resp.synthetic_error() {
-            return Err(err(format!("HTTP request failed: {}", error)));
-        } else if !resp.ok() {
-            return Err(err(format!(
-                "HTTP request failed: status {}",
-                resp.status()
-            )));
-        }
-
-        // If there was a redirect, update with the new base.
-        let last_url = resp.get_url();
-        if last_url != url {
-            let new_base = last_url.strip_suffix(self.url_path);
-            // If redirect target doesn't end in url_path, set  base_url
-            // to the whole target. Not clear that this makes sense but
-            // it's what libgit does.
-            let new_base = new_base.unwrap_or(last_url);
-            info!("got redirect. updating base url to {}", new_base);
-            *self.base_url.lock().unwrap() = new_base.to_string();
-        }
-
-        self.stream = Some(Box::new(resp.into_reader()));
+impl Write for GetSubTransport {
+    fn write(&mut self, _data: &[u8]) -> io::Result<usize> {
+        Err(err("write not implemented for GetSubTransport"))
+    }
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
 
-impl Read for UreqSubtransport {
+impl Read for PostSubTransport {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.stream.is_none() {
-            self.execute(&[])?;
+        match &mut self.stream {
+            Some(stream) => stream.read(buf),
+            None => Err(err("PostSubTransport got read before write")),
         }
-        let stream = self.stream.as_mut().expect("stream was none after execute");
-        stream.read(buf)
     }
 }
 
-impl Write for UreqSubtransport {
+impl Write for PostSubTransport {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        self.execute(data)?;
+        let url_path = format!("/git-{}", service_name(self.service));
+        let url = self.parent.make_url(&url_path);
+        let pre = format!("application/x-git-{}", service_name(self.service));
+        let agent = &self.parent.agent;
+        let resp = agent
+            .post(&url)
+            .set("User-Agent", &user_agent())
+            .set("Accept", format!("{}-result", pre).as_str())
+            .set("Content-Type", format!("{}-request", pre).as_str())
+            .send_bytes(data);
+        resp_error(&resp)?;
+        self.parent.update_base(&url, resp.get_url(), &url_path);
+
+        self.stream = Some(Box::new(resp.into_reader()));
+
         Ok(data.len())
     }
     fn flush(&mut self) -> io::Result<()> {
