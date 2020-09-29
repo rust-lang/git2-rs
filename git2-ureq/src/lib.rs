@@ -71,6 +71,7 @@ impl SmartSubtransport for UreqTransport {
     ) -> Result<Box<dyn SmartSubtransportStream>, Error> {
         let mut base_url = self.base_url.lock().unwrap();
         if base_url.len() == 0 {
+            info!("setting base url to {}", url);
             *base_url = url.to_string();
         }
         let (service, path, method) = match action {
@@ -101,6 +102,13 @@ fn err<E: Into<Box<dyn error::Error + Send + Sync>>>(err: E) -> io::Error {
     io::Error::new(io::ErrorKind::Other, err)
 }
 
+fn user_agent() -> String {
+    // Note: User-Agent must start with "git/" in order to trigger GitHub's
+    // smart transport when used with https://github.com/example/example URLs
+    // (as opposed to https://github.com/example/example.git).
+    format!("git/1.0 (git2-ureq {})", env!("CARGO_PKG_VERSION"))
+}
+
 impl UreqSubtransport {
     fn execute(&mut self, data: &[u8]) -> io::Result<()> {
         if self.stream.is_some() {
@@ -117,13 +125,7 @@ impl UreqSubtransport {
             _ => return Err(err("invalid HTTP method")),
         };
 
-        // Note: User-Agent must start with "git/" in order to trigger GitHub's
-        // smart transport when used with https://github.com/example/example URLs
-        // (as opposed to https://github.com/example/example.git).
-        req.set(
-            "User-Agent",
-            format!("git/1.0 (git2-ureq {})", env!("CARGO_PKG_VERSION")).as_str(),
-        );
+        req.set("User-Agent", user_agent().as_str());
         let resp = if data.len() > 0 {
             assert_eq!(self.method, "POST", "wrong method for write");
             let pre = format!("application/x-git-{}", self.service);
@@ -147,15 +149,12 @@ impl UreqSubtransport {
         // If there was a redirect, update with the new base.
         let last_url = resp.get_url();
         if last_url != url {
-            debug!("redirect from {} to {}, updating base URL", url, last_url);
-            let new_base = if last_url.ends_with(self.url_path) {
-                // Strip the action from the end.
-                &last_url[..last_url.len() - self.url_path.len()]
-            } else {
-                // I'm not sure if this code path makes sense, but it's what
-                // libgit does.
-                last_url
-            };
+            let new_base = last_url.strip_suffix(self.url_path);
+            // If redirect target doesn't end in url_path, set  base_url
+            // to the whole target. Not clear that this makes sense but
+            // it's what libgit does.
+            let new_base = new_base.unwrap_or(last_url);
+            info!("got redirect. updating base url to {}", new_base);
             *self.base_url.lock().unwrap() = new_base.to_string();
         }
 
