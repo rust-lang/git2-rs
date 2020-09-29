@@ -17,8 +17,4 @@ url = "2.0"
 log = "0.4.8"
 git2 = { path = ".." }
 rustls = "0.18.1"
-
-[dependencies.ureq]
-path = "../../ureq"
-default-features = false
-features = ["tls"]
+ureq = { version = "1.5.0", default-features = false, features = ["tls"]}
