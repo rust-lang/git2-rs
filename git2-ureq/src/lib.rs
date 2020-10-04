@@ -57,7 +57,7 @@ impl UreqTransport {
     fn update_base(&self, url: &str, last_url: &str, url_path: &str) {
         // If there was a redirect, update with the new base.
         if last_url != url {
-            let new_base = last_url.strip_suffix(url_path);
+            let new_base = strip_suffix(last_url, url_path);
             // If redirect target doesn't end in url_path, set  base_url
             // to the whole target. Not clear that this makes sense but
             // it's what libgit does.
@@ -177,7 +177,6 @@ impl Read for GetSubTransport {
         if let Some(ref mut stream) = self.stream {
             return stream.read(buf);
         }
-
         let url_path = format!("/info/refs?service=git-{}", service_name(self.service));
         let url = self.parent.make_url(&url_path);
         let agent = &self.parent.agent;
@@ -236,5 +235,20 @@ impl Write for PostSubTransport {
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
+    }
+}
+
+// String.strip_suffix is new in Rust 1.45: https://doc.rust-lang.org/std/string/struct.String.html#method.strip_suffix
+// Use our own implementation for now so we don't need a nightly to build.
+fn strip_suffix<'a>(source: &'a str, suffix: &str) -> Option<&'a str> {
+    if suffix.len() > source.len() {
+        return None;
+    }
+    let delta = source.len() - suffix.len();
+    let potential_match = &source[delta..];
+    if potential_match == suffix {
+        Some(&source[..delta])
+    } else {
+        None
     }
 }
