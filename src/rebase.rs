@@ -349,21 +349,21 @@ mod tests {
         // We just want to see the iteration work so we can create commits with
         // no changes
         let c1 = repo
-            .commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&tip])
+            .commit(Some("refs/heads/main"), &sig, &sig, "foo", &tree, &[&tip])
             .unwrap();
         let c1 = repo.find_commit(c1).unwrap();
         let c2 = repo
-            .commit(Some("refs/heads/master"), &sig, &sig, "foo", &tree, &[&c1])
+            .commit(Some("refs/heads/main"), &sig, &sig, "foo", &tree, &[&c1])
             .unwrap();
 
-        let head = repo.find_reference("refs/heads/master").unwrap();
+        let head = repo.find_reference("refs/heads/main").unwrap();
         let branch = repo.reference_to_annotated_commit(&head).unwrap();
         let upstream = repo.find_annotated_commit(tip.id()).unwrap();
         let mut rebase = repo
             .rebase(Some(&branch), Some(&upstream), None, None)
             .unwrap();
 
-        assert_eq!(Some("refs/heads/master"), rebase.orig_head_name());
+        assert_eq!(Some("refs/heads/main"), rebase.orig_head_name());
         assert_eq!(Some(c2), rebase.orig_head_id());
 
         assert_eq!(rebase.len(), 2);
@@ -397,7 +397,7 @@ mod tests {
         let tree_id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(tree_id_a).unwrap();
         let c1 = repo
-            .commit(Some("refs/heads/master"), &sig, &sig, "A", &tree_a, &[&tip])
+            .commit(Some("refs/heads/main"), &sig, &sig, "A", &tree_a, &[&tip])
             .unwrap();
         let c1 = repo.find_commit(c1).unwrap();
 
@@ -407,7 +407,7 @@ mod tests {
         let tree_id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(tree_id_b).unwrap();
         let c2 = repo
-            .commit(Some("refs/heads/master"), &sig, &sig, "B", &tree_b, &[&c1])
+            .commit(Some("refs/heads/main"), &sig, &sig, "B", &tree_b, &[&c1])
             .unwrap();
 
         let branch = repo.find_annotated_commit(c2).unwrap();

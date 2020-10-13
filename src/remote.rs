@@ -231,15 +231,15 @@ impl<'repo> Remote<'repo> {
     ///
     /// # Examples
     ///
-    /// Example of functionality similar to `git fetch origin/master`:
+    /// Example of functionality similar to `git fetch origin/main`:
     ///
     /// ```no_run
-    /// fn fetch_origin_master(repo: git2::Repository) -> Result<(), git2::Error> {
-    ///     repo.find_remote("origin")?.fetch(&["master"], None, None)
+    /// fn fetch_origin_main(repo: git2::Repository) -> Result<(), git2::Error> {
+    ///     repo.find_remote("origin")?.fetch(&["main"], None, None)
     /// }
     ///
     /// let repo = git2::Repository::discover("rust").unwrap();
-    /// fetch_origin_master(repo).unwrap();
+    /// fetch_origin_main(repo).unwrap();
     /// ```
     pub fn fetch<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
@@ -757,7 +757,7 @@ mod tests {
             assert_eq!(list.len(), 2);
             assert_eq!(list[0].name(), "HEAD");
             assert!(!list[0].is_local());
-            assert_eq!(list[1].name(), "refs/heads/master");
+            assert_eq!(list[1].name(), "refs/heads/main");
             assert!(!list[1].is_local());
         }
         assert!(progress_hit.get());
@@ -790,7 +790,7 @@ mod tests {
             assert_eq!(list.len(), 2);
             assert_eq!(list[0].name(), "HEAD");
             assert!(!list[0].is_local());
-            assert_eq!(list[1].name(), "refs/heads/master");
+            assert_eq!(list[1].name(), "refs/heads/main");
             assert!(!list[1].is_local());
         }
         assert!(!origin.connected());
@@ -803,7 +803,10 @@ mod tests {
         let td3 = TempDir::new().unwrap();
         let url = crate::test::path2url(&td2.path());
 
-        Repository::init_bare(td2.path()).unwrap();
+        let mut opts = crate::RepositoryInitOptions::new();
+        opts.bare(true);
+        opts.initial_head("main");
+        Repository::init_opts(td2.path(), &opts).unwrap();
         // git push
         let mut remote = repo.remote("origin", &url).unwrap();
         let mut updated = false;
@@ -811,14 +814,14 @@ mod tests {
             let mut callbacks = RemoteCallbacks::new();
             callbacks.push_update_reference(|refname, status| {
                 updated = true;
-                assert_eq!(refname, "refs/heads/master");
+                assert_eq!(refname, "refs/heads/main");
                 assert_eq!(status, None);
                 Ok(())
             });
             let mut options = PushOptions::new();
             options.remote_callbacks(callbacks);
             remote
-                .push(&["refs/heads/master"], Some(&mut options))
+                .push(&["refs/heads/main"], Some(&mut options))
                 .unwrap();
         }
         assert!(updated);

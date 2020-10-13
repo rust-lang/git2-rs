@@ -169,7 +169,7 @@ mod tests {
         let mut b1 = b1.rename("bar", false).unwrap();
         assert_eq!(b1.name().unwrap(), Some("bar"));
         assert!(b1.upstream().is_err());
-        b1.set_upstream(Some("master")).unwrap();
+        b1.set_upstream(Some("main")).unwrap();
         b1.upstream().unwrap();
         b1.set_upstream(None).unwrap();
 

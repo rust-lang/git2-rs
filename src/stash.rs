@@ -184,7 +184,7 @@ mod tests {
         repo.stash_foreach(|index, name, _oid| {
             count += 1;
             assert!(index == 0);
-            assert!(name == "On master: msg1");
+            assert!(name == "On main: msg1");
             true
         })
         .unwrap();
@@ -256,6 +256,6 @@ mod tests {
         })
         .unwrap();
 
-        assert!(stash_name.starts_with("WIP on master:"));
+        assert!(stash_name.starts_with("WIP on main:"));
     }
 }
