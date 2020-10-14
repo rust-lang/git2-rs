@@ -6,7 +6,7 @@ use std::ptr;
 use tempfile::TempDir;
 use url::Url;
 
-use crate::{Oid, Repository};
+use crate::{Oid, Repository, RepositoryInitOptions};
 
 macro_rules! t {
     ($e:expr) => {
@@ -19,7 +19,9 @@ macro_rules! t {
 
 pub fn repo_init() -> (TempDir, Repository) {
     let td = TempDir::new().unwrap();
-    let repo = Repository::init(td.path()).unwrap();
+    let mut opts = RepositoryInitOptions::new();
+    opts.initial_head("main");
+    let repo = Repository::init_opts(td.path(), &opts).unwrap();
     {
         let mut config = repo.config().unwrap();
         config.set_str("user.name", "name").unwrap();

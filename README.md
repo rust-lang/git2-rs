@@ -17,7 +17,7 @@ version of Rust known to pass tests.
 
 ## Version of libgit2
 
-Currently this library requires libgit2 1.0.0. The source for libgit2 is
+Currently this library requires libgit2 1.1.0. The source for libgit2 is
 included in the libgit2-sys crate so there's no need to pre-install the libgit2
 library, the libgit2-sys crate will figure that and/or build that for you.
 

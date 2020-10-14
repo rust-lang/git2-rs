@@ -404,7 +404,7 @@ mod tests {
 
         let mut origin = t!(repo.find_remote("origin"));
 
-        match origin.fetch(&["master"], None, None) {
+        match origin.fetch(&["main"], None, None) {
             Ok(()) => unreachable!(),
             Err(e) => assert_eq!(e, dummy_error()),
         }

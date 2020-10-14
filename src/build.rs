@@ -714,7 +714,9 @@ mod tests {
         let cd = TempDir::new().unwrap();
 
         {
-            let repo = Repository::init(&td.path()).unwrap();
+            let mut opts = crate::RepositoryInitOptions::new();
+            opts.initial_head("main");
+            let repo = Repository::init_opts(&td.path(), &opts).unwrap();
 
             let mut config = repo.config().unwrap();
             config.set_str("user.name", "name").unwrap();
@@ -735,7 +737,7 @@ mod tests {
 
         let repo = Repository::open_bare(&td.path().join(".git")).unwrap();
         let tree = repo
-            .revparse_single(&"master")
+            .revparse_single(&"main")
             .unwrap()
             .peel_to_tree()
             .unwrap();

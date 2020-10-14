@@ -1419,7 +1419,7 @@ bitflags! {
         /// components (e.g., `foo/*/bar` but not `foo/bar*`).
         const REFSPEC_PATTERN = raw::GIT_REFERENCE_FORMAT_REFSPEC_PATTERN as u32;
         /// Interpret the name as part of a refspec in shorthand form so the
-        /// `ALLOW_ONELEVEL` naming rules aren't enforced and `master` becomes a
+        /// `ALLOW_ONELEVEL` naming rules aren't enforced and `main` becomes a
         /// valid name.
         const REFSPEC_SHORTHAND = raw::GIT_REFERENCE_FORMAT_REFSPEC_SHORTHAND as u32;
     }

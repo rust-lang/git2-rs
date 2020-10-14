@@ -48,10 +48,10 @@ impl<'repo> Reference<'repo> {
     /// use git2::Reference;
     ///
     /// assert!(Reference::is_valid_name("HEAD"));
-    /// assert!(Reference::is_valid_name("refs/heads/master"));
+    /// assert!(Reference::is_valid_name("refs/heads/main"));
     ///
     /// // But:
-    /// assert!(!Reference::is_valid_name("master"));
+    /// assert!(!Reference::is_valid_name("main"));
     /// assert!(!Reference::is_valid_name("refs/heads/*"));
     /// assert!(!Reference::is_valid_name("foo//bar"));
     /// ```
@@ -78,7 +78,7 @@ impl<'repo> Reference<'repo> {
     ///    only when combined with [`ReferenceFormat::ALLOW_ONELEVEL`]. If
     ///    it is given, "shorthand" branch names (i.e. those not prefixed by
     ///    `refs/`, but consisting of a single word without `/` separators)
-    ///    become valid. For example, "master" would be accepted.
+    ///    become valid. For example, "main" would be accepted.
     /// 3. If [`ReferenceFormat::REFSPEC_PATTERN`] is given, the name may
     ///    contain a single `*` in place of a full pathname component (e.g.
     ///    `foo/*/bar`, `foo/bar*`).
@@ -121,11 +121,11 @@ impl<'repo> Reference<'repo> {
     ///
     /// assert_eq!(
     ///     Reference::normalize_name(
-    ///         "master",
+    ///         "main",
     ///         ReferenceFormat::ALLOW_ONELEVEL | ReferenceFormat::REFSPEC_SHORTHAND
     ///     )
     ///     .unwrap(),
-    ///     "master".to_owned()
+    ///     "main".to_owned()
     /// );
     /// ```
     ///
@@ -482,18 +482,18 @@ mod tests {
         assert_eq!(head.kind().unwrap(), ReferenceType::Direct);
 
         assert!(head == repo.head().unwrap());
-        assert_eq!(head.name(), Some("refs/heads/master"));
+        assert_eq!(head.name(), Some("refs/heads/main"));
 
-        assert!(head == repo.find_reference("refs/heads/master").unwrap());
+        assert!(head == repo.find_reference("refs/heads/main").unwrap());
         assert_eq!(
-            repo.refname_to_id("refs/heads/master").unwrap(),
+            repo.refname_to_id("refs/heads/main").unwrap(),
             head.target().unwrap()
         );
 
         assert!(head.symbolic_target().is_none());
         assert!(head.target_peel().is_none());
 
-        assert_eq!(head.shorthand(), Some("master"));
+        assert_eq!(head.shorthand(), Some("main"));
         assert!(head.resolve().unwrap() == head);
 
         let mut tag1 = repo
@@ -509,7 +509,7 @@ mod tests {
         tag1.delete().unwrap();
 
         let mut sym1 = repo
-            .reference_symbolic("refs/tags/tag1", "refs/heads/master", false, "test")
+            .reference_symbolic("refs/tags/tag1", "refs/heads/main", false, "test")
             .unwrap();
         assert_eq!(sym1.kind().unwrap(), ReferenceType::Symbolic);
         sym1.delete().unwrap();
@@ -519,7 +519,7 @@ mod tests {
             assert!(repo.references().unwrap().next().unwrap().unwrap() == head);
             let mut names = repo.references().unwrap();
             let mut names = names.names();
-            assert_eq!(names.next().unwrap().unwrap(), "refs/heads/master");
+            assert_eq!(names.next().unwrap().unwrap(), "refs/heads/main");
             assert!(names.next().is_none());
             assert!(repo.references_glob("foo").unwrap().count() == 0);
             assert!(repo.references_glob("refs/heads/*").unwrap().count() == 1);
