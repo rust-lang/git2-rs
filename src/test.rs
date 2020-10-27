@@ -19,13 +19,13 @@ macro_rules! t {
 
 // `repo_test! will
 macro_rules! repo_test {
-    ($test_name:ident, $($repo_type:ident),+ $test_body:block) => {
+    ($test_name:ident, ($($repo_type:ident),+), $test_body:expr) => {
         paste::item! {
             $(#[test]
             fn [<$test_name _ $repo_type:snake>]() {
                 #[allow(unused_variables)]
                 let (td, repo) = $crate::test::repo_init2($crate::test::RepoType::$repo_type);
-                $test_body
+                ($test_body)(&repo);
             })+
         }
     }
