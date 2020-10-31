@@ -165,7 +165,6 @@ impl Repository {
 
     /// Attempt to open an already-existing repository from a worktree.
     pub fn open_from_worktree(worktree: &Worktree) -> Result<Repository, Error> {
-        crate::init();
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_open_from_worktree(
