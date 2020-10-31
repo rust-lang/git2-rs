@@ -2830,24 +2830,23 @@ impl Repository {
     }
 
     /// Creates a new worktree for the repository
-    pub fn worktree(
-        &self,
+    pub fn worktree<'a>(
+        &'a self,
         name: &str,
         path: &Path,
-        opts: Option<&WorktreeAddOptions<'_>>,
+        opts: Option<&WorktreeAddOptions<'a>>,
     ) -> Result<Worktree, Error> {
         let mut raw = ptr::null_mut();
         let raw_name = CString::new(name)?;
         let raw_path = path.into_c_string()?;
 
         unsafe {
-            let opts = opts.map(|o| o.raw());
             try_call!(raw::git_worktree_add(
                 &mut raw,
                 self.raw,
                 raw_name,
                 raw_path,
-                opts.as_ref()
+                opts.map(|o| o.raw())
             ));
             Ok(Binding::from_raw(raw))
         }

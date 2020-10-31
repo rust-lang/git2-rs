@@ -3,11 +3,11 @@ use crate::reference::Reference;
 use crate::repo::Repository;
 use crate::util::{self, Binding};
 use crate::{raw, Error};
-use std::mem;
 use std::os::raw::c_int;
 use std::path::Path;
 use std::ptr;
 use std::str;
+use std::{marker, mem};
 
 /// An owned git worktree
 ///
@@ -23,8 +23,8 @@ unsafe impl Send for Worktree {}
 
 /// Options which can be used to configure how a worktree is initialized
 pub struct WorktreeAddOptions<'a> {
-    lock: bool,
-    reference: Option<Reference<'a>>,
+    raw: raw::git_worktree_add_options,
+    _marker: marker::PhantomData<Reference<'a>>,
 }
 
 /// Options to configure how worktree pruning is performed
@@ -149,39 +149,38 @@ impl<'a> WorktreeAddOptions<'a> {
     ///
     /// By default this will not lock the worktree
     pub fn new() -> WorktreeAddOptions<'a> {
-        WorktreeAddOptions {
-            lock: false,
-            reference: None,
+        unsafe {
+            let mut raw = mem::zeroed();
+            assert_eq!(
+                raw::git_worktree_add_options_init(&mut raw, raw::GIT_WORKTREE_ADD_OPTIONS_VERSION),
+                0
+            );
+            WorktreeAddOptions {
+                raw,
+                _marker: marker::PhantomData,
+            }
         }
     }
 
     /// If enabled, this will cause the newly added worktree to be locked
     pub fn lock(&mut self, enabled: bool) -> &mut WorktreeAddOptions<'a> {
-        self.lock = enabled;
+        self.raw.lock = enabled as c_int;
         self
     }
 
     /// reference to use for the new worktree HEAD
-    pub fn reference(&mut self, reference: Option<Reference<'a>>) -> &mut WorktreeAddOptions<'a> {
-        self.reference = reference;
+    pub fn reference(&mut self, reference: Option<&Reference<'a>>) -> &mut WorktreeAddOptions<'a> {
+        self.raw.reference = if let Some(reference) = reference {
+            reference.raw()
+        } else {
+            ptr::null_mut()
+        };
         self
     }
 
-    /// Creates a set of raw add options to be used with `git_worktree_add`
-    ///
-    /// This method is unsafe as the returned value may have pointers to the
-    /// interior of this structure
-    pub unsafe fn raw(&self) -> raw::git_worktree_add_options {
-        let mut opts = mem::zeroed();
-        assert_eq!(
-            raw::git_worktree_add_options_init(&mut opts, raw::GIT_WORKTREE_ADD_OPTIONS_VERSION),
-            0
-        );
-
-        opts.lock = self.lock as c_int;
-        opts.reference = crate::call::convert(&self.reference.as_ref().map(|o| o.raw()));
-
-        opts
+    /// Get a set of raw add options to be used with `git_worktree_add`
+    pub fn raw(&self) -> *const raw::git_worktree_add_options {
+        &self.raw
     }
 }
 
@@ -311,7 +310,8 @@ mod tests {
             let (wt_top, branch) = crate::test::worktrees_env_init(&repo);
             let wt_path = wt_top.path().join("test");
             let mut opts = WorktreeAddOptions::new();
-            opts.reference(Some(branch.into_reference()));
+            let reference = branch.into_reference();
+            opts.reference(Some(&reference));
 
             let wt = repo
                 .worktree("test-worktree", &wt_path, Some(&opts))
