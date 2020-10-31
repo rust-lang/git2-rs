@@ -116,7 +116,7 @@ impl Worktree {
                     let v = buf.to_vec();
                     Ok(WorktreeLockStatus::Locked(match v.len() {
                         0 => None,
-                        _ => String::from_utf8(v).ok(),
+                        _ => Some(String::from_utf8(v).unwrap()),
                     }))
                 }
             }
