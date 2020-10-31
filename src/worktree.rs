@@ -142,11 +142,6 @@ impl Worktree {
             Ok(rv != 0)
         }
     }
-
-    /// Opens the repository from the worktree
-    pub fn to_repository(&self) -> Result<Repository, Error> {
-        Repository::open_from_worktree(self)
-    }
 }
 
 impl<'a> WorktreeAddOptions<'a> {

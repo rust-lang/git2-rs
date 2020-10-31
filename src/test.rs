@@ -94,7 +94,7 @@ pub fn repo_init_bare_worktree() -> (TempDirs, Repository) {
     let worktree_td = TempDir::new().unwrap();
     std::fs::remove_dir(worktree_td.path()).unwrap(); // worktree will fail if the directory exists
     let worktree = repo.worktree("worktree", worktree_td.path(), None).unwrap();
-    let worktree_repo = worktree.to_repository().unwrap();
+    let worktree_repo = Repository::open_from_worktree(&worktree).unwrap();
 
     let tds = TempDirs {
         main: worktree_td,
@@ -121,7 +121,7 @@ pub fn repo_init_typical_worktree() -> (TempDirs, Repository) {
     let worktree_td = TempDir::new().unwrap();
     std::fs::remove_dir(worktree_td.path()).unwrap(); // worktree will fail if the directory exists
     let worktree = repo.worktree("worktree", worktree_td.path(), None).unwrap();
-    let worktree_repo = worktree.to_repository().unwrap();
+    let worktree_repo = Repository::open_from_worktree(&worktree).unwrap();
 
     let tds = TempDirs {
         main: worktree_td,

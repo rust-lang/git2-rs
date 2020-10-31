@@ -2829,15 +2829,6 @@ impl Repository {
         }
     }
 
-    /// Open a worktree of a the repository
-    ///
-    /// If a repository is not the main tree but a worktree, this
-    /// function will look up the worktree inside the parent
-    /// repository and create a new `git_worktree` structure.
-    pub fn to_worktree(&self) -> Result<Worktree, Error> {
-        Worktree::open_from_repository(self)
-    }
-
     /// Creates a new worktree for the repository
     pub fn worktree(
         &self,
