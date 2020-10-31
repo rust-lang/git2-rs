@@ -2,7 +2,7 @@ use crate::buf::Buf;
 use crate::reference::Reference;
 use crate::repo::Repository;
 use crate::util::{self, Binding};
-use crate::{call, raw, Error};
+use crate::{raw, Error};
 use std::mem;
 use std::os::raw::c_int;
 use std::path::Path;
@@ -84,7 +84,7 @@ impl Worktree {
     /// filesystem and that the metadata is correct
     pub fn validate(&self) -> Result<(), Error> {
         unsafe {
-            call::c_try(raw::git_worktree_validate(call::convert(&self.raw)))?;
+            try_call!(raw::git_worktree_validate(self.raw));
         }
         Ok(())
     }
@@ -101,7 +101,7 @@ impl Worktree {
     /// Unlocks the worktree
     pub fn unlock(&self) -> Result<(), Error> {
         unsafe {
-            call::c_try(raw::git_worktree_unlock(call::convert(&self.raw)))?;
+            try_call!(raw::git_worktree_unlock(self.raw));
         }
         Ok(())
     }
