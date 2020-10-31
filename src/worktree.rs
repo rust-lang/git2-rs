@@ -29,7 +29,7 @@ pub struct WorktreeAddOptions<'a> {
 
 /// Options to configure how worktree pruning is performed
 pub struct WorktreePruneOptions {
-    flags: u32,
+    raw: raw::git_worktree_prune_options,
 }
 
 /// Lock Status of a worktree
@@ -124,21 +124,22 @@ impl Worktree {
     }
 
     /// Prunes the worktree
-    pub fn prune(&self, opts: Option<&WorktreePruneOptions>) -> Result<(), Error> {
+    pub fn prune(&self, opts: Option<&mut WorktreePruneOptions>) -> Result<(), Error> {
         // When successful the worktree should be removed however the backing structure
         // of the git_worktree should still be valid.
         unsafe {
-            let mut opts = opts.map(|o| o.raw());
-            try_call!(raw::git_worktree_prune(self.raw, opts.as_mut()));
+            try_call!(raw::git_worktree_prune(self.raw, opts.map(|o| o.raw())));
         }
         Ok(())
     }
 
     /// Checks if the worktree is prunable
-    pub fn is_prunable(&self, opts: Option<&WorktreePruneOptions>) -> Result<bool, Error> {
+    pub fn is_prunable(&self, opts: Option<&mut WorktreePruneOptions>) -> Result<bool, Error> {
         unsafe {
-            let mut opts = opts.map(|o| o.raw());
-            let rv = try_call!(raw::git_worktree_is_prunable(self.raw, opts.as_mut()));
+            let rv = try_call!(raw::git_worktree_is_prunable(
+                self.raw,
+                opts.map(|o| o.raw())
+            ));
             Ok(rv != 0)
         }
     }
@@ -190,7 +191,17 @@ impl WorktreePruneOptions {
     /// By defaults this will prune only worktrees that are no longer valid
     /// unlocked and not checked out
     pub fn new() -> WorktreePruneOptions {
-        WorktreePruneOptions { flags: 0 }
+        unsafe {
+            let mut raw = mem::zeroed();
+            assert_eq!(
+                raw::git_worktree_prune_options_init(
+                    &mut raw,
+                    raw::GIT_WORKTREE_PRUNE_OPTIONS_VERSION
+                ),
+                0
+            );
+            WorktreePruneOptions { raw }
+        }
     }
 
     /// Controls whether valid (still existing on the filesystem) worktrees
@@ -217,28 +228,16 @@ impl WorktreePruneOptions {
 
     fn flag(&mut self, flag: raw::git_worktree_prune_t, on: bool) -> &mut WorktreePruneOptions {
         if on {
-            self.flags |= flag as u32;
+            self.raw.flags |= flag as u32;
         } else {
-            self.flags &= !(flag as u32);
+            self.raw.flags &= !(flag as u32);
         }
         self
     }
-    /// Creates a set of raw prune options to be used with `git_worktree_prune`
-    ///
-    /// This method is unsafe as the returned value may have pointers to the
-    /// interior of this structure
-    pub unsafe fn raw(&self) -> raw::git_worktree_prune_options {
-        let mut opts = mem::zeroed();
-        assert_eq!(
-            raw::git_worktree_prune_options_init(
-                &mut opts,
-                raw::GIT_WORKTREE_PRUNE_OPTIONS_VERSION
-            ),
-            0
-        );
 
-        opts.flags = self.flags;
-        opts
+    /// Get a set of raw prune options to be used with `git_worktree_prune`
+    pub fn raw(&mut self) -> *mut raw::git_worktree_prune_options {
+        &mut self.raw
     }
 }
 
