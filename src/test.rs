@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::ptr;
@@ -16,118 +15,6 @@ macro_rules! t {
             Err(e) => panic!("{} failed with {}", stringify!($e), e),
         }
     };
-}
-
-// `repo_test! will
-macro_rules! repo_test {
-    ($test_name:ident, ($($repo_type:ident),+), $test_body:expr) => {
-        paste::item! {
-            $(#[test]
-            fn [<$test_name _ $repo_type:snake>]() {
-                #[allow(unused_variables)]
-                let (td, repo) = $crate::test::repo_init2($crate::test::RepoType::$repo_type);
-                ($test_body)(&repo);
-            })+
-        }
-    }
-}
-
-pub struct TempDirs {
-    main: TempDir,
-    _rest: Vec<TempDir>,
-}
-
-impl Deref for TempDirs {
-    type Target = TempDir;
-
-    fn deref(&self) -> &Self::Target {
-        &self.main
-    }
-}
-
-pub fn repo_init_typical() -> (TempDirs, Repository) {
-    let (td, repo) = repo_init();
-    let tds = TempDirs {
-        main: td,
-        _rest: vec![],
-    };
-    (tds, repo)
-}
-
-pub fn repo_init_bare() -> (TempDirs, Repository) {
-    let td = TempDir::new().unwrap();
-    let repo = Repository::init_bare(td.path()).unwrap();
-    {
-        let mut config = repo.config().unwrap();
-        config.set_str("user.name", "name").unwrap();
-        config.set_str("user.email", "email").unwrap();
-        let mut index = repo.index().unwrap();
-        let id = index.write_tree().unwrap();
-
-        let tree = repo.find_tree(id).unwrap();
-        let sig = repo.signature().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
-            .unwrap();
-    }
-    let tds = TempDirs {
-        main: td,
-        _rest: vec![],
-    };
-    (tds, repo)
-}
-
-pub fn repo_init_bare_worktree() -> (TempDirs, Repository) {
-    let td = TempDir::new().unwrap();
-    let repo = Repository::init_bare(td.path()).unwrap();
-    {
-        let mut config = repo.config().unwrap();
-        config.set_str("user.name", "name").unwrap();
-        config.set_str("user.email", "email").unwrap();
-        let mut index = repo.index().unwrap();
-        let id = index.write_tree().unwrap();
-
-        let tree = repo.find_tree(id).unwrap();
-        let sig = repo.signature().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
-            .unwrap();
-    }
-    let worktree_td = TempDir::new().unwrap();
-    std::fs::remove_dir(worktree_td.path()).unwrap(); // worktree will fail if the directory exists
-    let worktree = repo.worktree("worktree", worktree_td.path(), None).unwrap();
-    let worktree_repo = Repository::open_from_worktree(&worktree).unwrap();
-
-    let tds = TempDirs {
-        main: worktree_td,
-        _rest: vec![td],
-    };
-    (tds, worktree_repo)
-}
-
-pub fn repo_init_typical_worktree() -> (TempDirs, Repository) {
-    let td = TempDir::new().unwrap();
-    let repo = Repository::init(td.path()).unwrap();
-    {
-        let mut config = repo.config().unwrap();
-        config.set_str("user.name", "name").unwrap();
-        config.set_str("user.email", "email").unwrap();
-        let mut index = repo.index().unwrap();
-        let id = index.write_tree().unwrap();
-
-        let tree = repo.find_tree(id).unwrap();
-        let sig = repo.signature().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
-            .unwrap();
-    }
-    let worktree_td = TempDir::new().unwrap();
-    std::fs::remove_dir(worktree_td.path()).unwrap(); // worktree will fail if the directory exists
-    let worktree = repo.worktree("worktree", worktree_td.path(), None).unwrap();
-    let worktree_repo = Repository::open_from_worktree(&worktree).unwrap();
-
-    let tds = TempDirs {
-        main: worktree_td,
-        _rest: vec![td],
-    };
-    (tds, worktree_repo)
 }
 
 pub fn repo_init() -> (TempDir, Repository) {
@@ -148,15 +35,6 @@ pub fn repo_init() -> (TempDir, Repository) {
             .unwrap();
     }
     (td, repo)
-}
-
-pub fn repo_init2(repo_type: RepoType) -> (TempDirs, Repository) {
-    match repo_type {
-        RepoType::Typical => repo_init_typical(),
-        RepoType::Bare => repo_init_bare(),
-        RepoType::BareWorktree => repo_init_bare_worktree(),
-        RepoType::TypicalWorktree => repo_init_typical_worktree(),
-    }
 }
 
 pub fn commit(repo: &Repository) -> (Oid, Oid) {
@@ -184,14 +62,6 @@ pub fn worktrees_env_init(repo: &Repository) -> (TempDir, Branch<'_>) {
     let branch = repo.branch("wt-branch", &commit, true).unwrap();
     let wtdir = TempDir::new().unwrap();
     (wtdir, branch)
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum RepoType {
-    Typical,
-    TypicalWorktree,
-    Bare,
-    BareWorktree,
 }
 
 #[cfg(windows)]

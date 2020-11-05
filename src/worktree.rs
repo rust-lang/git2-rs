@@ -259,12 +259,15 @@ impl Drop for Worktree {
 
 #[cfg(test)]
 mod tests {
-    use crate::Repository;
     use crate::WorktreeAddOptions;
     use crate::WorktreeLockStatus;
+
     use tempfile::TempDir;
 
-    repo_test!(smoke_add_no_ref, (Typical, Bare), |repo: &Repository| {
+    #[test]
+    fn smoke_add_no_ref() {
+        let (_td, repo) = crate::test::repo_init();
+
         let wtdir = TempDir::new().unwrap();
         let wt_path = wtdir.path().join("tree-no-ref-dir");
         let opts = WorktreeAddOptions::new();
@@ -277,9 +280,12 @@ mod tests {
         );
         let status = wt.is_locked().unwrap();
         assert_eq!(status, WorktreeLockStatus::Unlocked);
-    });
+    }
 
-    repo_test!(smoke_add_locked, (Typical, Bare), |repo: &Repository| {
+    #[test]
+    fn smoke_add_locked() {
+        let (_td, repo) = crate::test::repo_init();
+
         let wtdir = TempDir::new().unwrap();
         let wt_path = wtdir.path().join("locked-tree");
         let mut opts = WorktreeAddOptions::new();
@@ -300,28 +306,27 @@ mod tests {
             wt.is_locked().unwrap(),
             WorktreeLockStatus::Locked(Some("my reason".to_string()))
         );
-    });
+    }
 
-    repo_test!(
-        smoke_add_from_branch,
-        (Typical, Bare),
-        |repo: &Repository| {
-            let (wt_top, branch) = crate::test::worktrees_env_init(&repo);
-            let wt_path = wt_top.path().join("test");
-            let mut opts = WorktreeAddOptions::new();
-            let reference = branch.into_reference();
-            opts.reference(Some(&reference));
+    #[test]
+    fn smoke_add_from_branch() {
+        let (_td, repo) = crate::test::repo_init();
 
-            let wt = repo
-                .worktree("test-worktree", &wt_path, Some(&opts))
-                .unwrap();
-            assert_eq!(wt.name(), Some("test-worktree"));
-            assert_eq!(
-                wt.path().canonicalize().unwrap(),
-                wt_path.canonicalize().unwrap()
-            );
-            let status = wt.is_locked().unwrap();
-            assert_eq!(status, WorktreeLockStatus::Unlocked);
-        }
-    );
+        let (wt_top, branch) = crate::test::worktrees_env_init(&repo);
+        let wt_path = wt_top.path().join("test");
+        let mut opts = WorktreeAddOptions::new();
+        let reference = branch.into_reference();
+        opts.reference(Some(&reference));
+
+        let wt = repo
+            .worktree("test-worktree", &wt_path, Some(&opts))
+            .unwrap();
+        assert_eq!(wt.name(), Some("test-worktree"));
+        assert_eq!(
+            wt.path().canonicalize().unwrap(),
+            wt_path.canonicalize().unwrap()
+        );
+        let status = wt.is_locked().unwrap();
+        assert_eq!(status, WorktreeLockStatus::Unlocked);
+    }
 }
