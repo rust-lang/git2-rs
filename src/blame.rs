@@ -201,6 +201,18 @@ impl BlameOptions {
         self.flag(raw::GIT_BLAME_FIRST_PARENT, opt)
     }
 
+    /// Use mailmap file to map author and committer names and email addresses
+    /// to canonical real names and email addresses. The mailmap will be read
+    /// from the working directory, or HEAD in a bare repository.
+    pub fn use_mailmap(&mut self, opt: bool) -> &mut BlameOptions {
+        self.flag(raw::GIT_BLAME_USE_MAILMAP, opt)
+    }
+
+    /// Ignore whitespace differences.
+    pub fn ignore_whitespace(&mut self, opt: bool) -> &mut BlameOptions {
+        self.flag(raw::GIT_BLAME_IGNORE_WHITESPACE, opt)
+    }
+
     /// Setter for the id of the newest commit to consider.
     pub fn newest_commit(&mut self, id: Oid) -> &mut BlameOptions {
         unsafe {

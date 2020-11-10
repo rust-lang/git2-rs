@@ -714,6 +714,8 @@ pub const GIT_BLAME_TRACK_COPIES_SAME_COMMIT_MOVES: u32 = 1 << 1;
 pub const GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES: u32 = 1 << 2;
 pub const GIT_BLAME_TRACK_COPIES_ANY_COMMIT_COPIES: u32 = 1 << 3;
 pub const GIT_BLAME_FIRST_PARENT: u32 = 1 << 4;
+pub const GIT_BLAME_USE_MAILMAP: u32 = 1 << 5;
+pub const GIT_BLAME_IGNORE_WHITESPACE: u32 = 1 << 6;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
