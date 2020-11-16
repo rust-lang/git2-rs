@@ -29,7 +29,7 @@ pub struct Refspecs<'remote> {
     remote: &'remote Remote<'remote>,
 }
 
-/// Description of a reference advertised bya remote server, given out on calls
+/// Description of a reference advertised by a remote server, given out on calls
 /// to `list`.
 pub struct RemoteHead<'remote> {
     raw: *const raw::git_remote_head,
