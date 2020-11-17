@@ -17,10 +17,6 @@ pub struct Worktree {
     raw: *mut raw::git_worktree,
 }
 
-// It is the current belief that a `Worktree` can be sent among threads, or
-// even shared among threads in a mutex
-unsafe impl Send for Worktree {}
-
 /// Options which can be used to configure how a worktree is initialized
 pub struct WorktreeAddOptions<'a> {
     raw: raw::git_worktree_add_options,
