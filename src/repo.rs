@@ -16,6 +16,7 @@ use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
 use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
+use crate::worktree::{Worktree, WorktreeAddOptions};
 use crate::CherrypickOptions;
 use crate::RevertOptions;
 use crate::{
@@ -157,6 +158,18 @@ impl Repository {
                 path,
                 flags.bits() as c_uint,
                 ceiling_dirs
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Attempt to open an already-existing repository from a worktree.
+    pub fn open_from_worktree(worktree: &Worktree) -> Result<Repository, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_open_from_worktree(
+                &mut ret,
+                worktree.raw()
             ));
             Ok(Binding::from_raw(ret))
         }
@@ -2789,6 +2802,53 @@ impl Repository {
                 options.map(|o| o.raw())
             ));
             Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Lists all the worktrees for the repository
+    pub fn worktrees(&self) -> Result<StringArray, Error> {
+        let mut arr = raw::git_strarray {
+            strings: ptr::null_mut(),
+            count: 0,
+        };
+        unsafe {
+            try_call!(raw::git_worktree_list(&mut arr, self.raw));
+            Ok(Binding::from_raw(arr))
+        }
+    }
+
+    /// Opens a worktree by name for the given repository
+    ///
+    /// This can open any worktree that the worktrees method returns.
+    pub fn find_worktree(&self, name: &str) -> Result<Worktree, Error> {
+        let mut raw = ptr::null_mut();
+        let raw_name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_worktree_lookup(&mut raw, self.raw, raw_name));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Creates a new worktree for the repository
+    pub fn worktree<'a>(
+        &'a self,
+        name: &str,
+        path: &Path,
+        opts: Option<&WorktreeAddOptions<'a>>,
+    ) -> Result<Worktree, Error> {
+        let mut raw = ptr::null_mut();
+        let raw_name = CString::new(name)?;
+        let raw_path = path.into_c_string()?;
+
+        unsafe {
+            try_call!(raw::git_worktree_add(
+                &mut raw,
+                self.raw,
+                raw_name,
+                raw_path,
+                opts.map(|o| o.raw())
+            ));
+            Ok(Binding::from_raw(raw))
         }
     }
 }

@@ -6,7 +6,7 @@ use std::ptr;
 use tempfile::TempDir;
 use url::Url;
 
-use crate::{Oid, Repository, RepositoryInitOptions};
+use crate::{Branch, Oid, Repository, RepositoryInitOptions};
 
 macro_rules! t {
     ($e:expr) => {
@@ -54,6 +54,14 @@ pub fn commit(repo: &Repository) -> (Oid, Oid) {
 
 pub fn path2url(path: &Path) -> String {
     Url::from_file_path(path).unwrap().to_string()
+}
+
+pub fn worktrees_env_init(repo: &Repository) -> (TempDir, Branch<'_>) {
+    let oid = repo.head().unwrap().target().unwrap();
+    let commit = repo.find_commit(oid).unwrap();
+    let branch = repo.branch("wt-branch", &commit, true).unwrap();
+    let wtdir = TempDir::new().unwrap();
+    (wtdir, branch)
 }
 
 #[cfg(windows)]
