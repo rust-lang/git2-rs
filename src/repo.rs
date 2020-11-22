@@ -11,13 +11,13 @@ use crate::build::{CheckoutBuilder, RepoBuilder};
 use crate::diff::{
     binary_cb_c, file_cb_c, hunk_cb_c, line_cb_c, BinaryCb, DiffCallbacks, FileCb, HunkCb, LineCb,
 };
+use crate::merge::{MergeFileInput, MergeFileOptions, MergeFileResult};
 use crate::oid_array::OidArray;
 use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
 use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::worktree::{Worktree, WorktreeAddOptions};
-use crate::CherrypickOptions;
 use crate::RevertOptions;
 use crate::{
     raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
@@ -29,6 +29,7 @@ use crate::{
 use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
 use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
+use crate::{CherrypickOptions, IndexEntry};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
@@ -1840,6 +1841,80 @@ impl Repository {
         Ok(())
     }
 
+    /// Merge two files as they exist in the in-memory data structures, using
+    /// the given common ancestor as the baseline, producing a
+    /// `git_merge_file_result` that reflects the merge result.  The
+    /// `git_merge_file_result` must be freed with `git_merge_file_result_free`.
+    ///
+    /// Note that this function does not reference a repository and any
+    /// configuration must be passed as `git_merge_file_options`.
+    ///
+    /// @param out The git_merge_file_result to be filled in
+    /// @param ancestor The contents of the ancestor file
+    /// @param ours The contents of the file in "our" side
+    /// @param theirs The contents of the file in "their" side
+    /// @param opts The merge file options or `NULL` for defaults
+    /// @return 0 on success or error code
+    pub fn merge_file(
+        &self,
+        ancestor: Option<&IndexEntry>,
+        ours: Option<&IndexEntry>,
+        theirs: Option<&IndexEntry>,
+        options: Option<&MergeFileOptions>,
+    ) -> Result<MergeFileResult, Error> {
+        let ancestor_input;
+        let ours_input;
+        let theirs_input;
+
+        let ancestor_raw;
+        let ours_raw;
+        let theirs_raw;
+
+        if let Some(ancestor) = ancestor {
+            ancestor_input = MergeFileInput::from(&self, ancestor);
+            ancestor_raw = ancestor_input.raw();
+        } else {
+            ancestor_raw = ptr::null();
+        }
+        if let Some(ours) = ours {
+            ours_input = MergeFileInput::from(&self, ours);
+            ours_raw = ours_input.raw();
+        } else {
+            ours_raw = ptr::null();
+        }
+        if let Some(theirs) = theirs {
+            theirs_input = MergeFileInput::from(&self, theirs);
+            theirs_raw = theirs_input.raw();
+        } else {
+            theirs_raw = ptr::null();
+        }
+
+        let mut ret = raw::git_merge_file_result {
+            automergeable: 0,
+            path: ptr::null(),
+            mode: 0,
+            ptr: ptr::null(),
+            len: 0,
+        };
+
+        unsafe {
+            try_call!(raw::git_merge_file(
+                &mut ret,
+                ancestor_raw,
+                ours_raw,
+                theirs_raw,
+                options.map(|o| o.raw())
+            ));
+
+            let result = MergeFileResult::from_raw(ret);
+
+            // FIXME: need to free????
+            raw::git_merge_file_result_free(&mut ret as *mut _);
+
+            Ok(result)
+        }
+    }
+
     /// Merges the given commit(s) into HEAD, writing the results into the
     /// working directory. Any changes are staged for commit and any conflicts
     /// are written to the index. Callers should inspect the repository's index
@@ -3032,10 +3107,11 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
-    use crate::CherrypickOptions;
+    use crate::{CherrypickOptions, FileMode};
     use crate::{ObjectType, Oid, Repository, ResetType};
     use std::ffi::OsStr;
     use std::fs;
+    use std::io::Write;
     use std::path::Path;
     use tempfile::TempDir;
 
@@ -3254,6 +3330,154 @@ mod tests {
         let main_oid = repo.revparse_single("main").unwrap().id();
         assert!(repo.set_head_detached(main_oid).is_ok());
         assert_eq!(repo.head().unwrap().target().unwrap(), main_oid);
+    }
+
+    /// merge files then return the result
+    #[test]
+    fn smoke_merge_file() {
+        let (_temp_dir, repo) = graph_repo_init();
+        let sig = repo.signature().unwrap();
+
+        // let oid1 = head
+        let oid1 = repo.head().unwrap().target().unwrap();
+        let commit1 = repo.find_commit(oid1).unwrap();
+        println!("created oid1 {:?}", oid1);
+
+        repo.branch("branch_a", &commit1, true).unwrap();
+        repo.branch("branch_b", &commit1, true).unwrap();
+
+        let file_on_branch_a_content_1 = "111\n222\n333\n";
+        let file_on_branch_a_content_2 = "bbb\nccc\nxxx\nyyy\nzzz";
+        let file_on_branch_b_content_1 = "aaa\nbbb\nccc\n";
+        let file_on_branch_b_content_2 = "ooo\nppp\nqqq\nkkk";
+        let merge_file_result_content = "<<<<<<< file_a\n111\n222\n333\nbbb\nccc\nxxx\nyyy\nzzz\n=======\naaa\nbbb\nccc\nooo\nppp\nqqq\nkkk\n>>>>>>> file_a\n";
+
+        // create commit oid2 on branchA
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_a");
+        println!("using path {:?}", p);
+        let mut file_a = fs::File::create(&p).unwrap();
+        file_a
+            .write_all(file_on_branch_a_content_1.as_bytes())
+            .unwrap();
+        index.add_path(Path::new("file_a")).unwrap();
+        let id_a = index.write_tree().unwrap();
+        let tree_a = repo.find_tree(id_a).unwrap();
+        let oid2 = repo
+            .commit(
+                Some("refs/heads/branch_a"),
+                &sig,
+                &sig,
+                "commit 2",
+                &tree_a,
+                &[&commit1],
+            )
+            .unwrap();
+        let commit2 = repo.find_commit(oid2).unwrap();
+        println!("created oid2 {:?}", oid2);
+
+        t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
+
+        // create commit oid3 on branchB
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_a");
+        let mut file_b = fs::File::create(&p).unwrap();
+        file_b
+            .write_all(file_on_branch_b_content_1.as_bytes())
+            .unwrap();
+        index.add_path(Path::new("file_a")).unwrap();
+        let id_b = index.write_tree().unwrap();
+        let tree_b = repo.find_tree(id_b).unwrap();
+        let oid3 = repo
+            .commit(
+                Some("refs/heads/branch_b"),
+                &sig,
+                &sig,
+                "commit 3",
+                &tree_b,
+                &[&commit1],
+            )
+            .unwrap();
+        let commit3 = repo.find_commit(oid3).unwrap();
+        println!("created oid3 {:?}", oid3);
+
+        t!(repo.reset(commit2.as_object(), ResetType::Hard, None));
+
+        // create commit oid4 on branchA
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_a");
+        let mut file_a = fs::OpenOptions::new().append(true).open(&p).unwrap();
+        file_a.write(file_on_branch_a_content_2.as_bytes()).unwrap();
+        index.add_path(Path::new("file_a")).unwrap();
+        let id_a_2 = index.write_tree().unwrap();
+        let tree_a_2 = repo.find_tree(id_a_2).unwrap();
+        let oid4 = repo
+            .commit(
+                Some("refs/heads/branch_a"),
+                &sig,
+                &sig,
+                "commit 4",
+                &tree_a_2,
+                &[&commit2],
+            )
+            .unwrap();
+        let commit4 = repo.find_commit(oid4).unwrap();
+        println!("created oid4 {:?}", oid4);
+
+        t!(repo.reset(commit3.as_object(), ResetType::Hard, None));
+
+        // create commit oid4 on branchB
+        let mut index = repo.index().unwrap();
+        let p = Path::new(repo.workdir().unwrap()).join("file_a");
+        let mut file_a = fs::OpenOptions::new().append(true).open(&p).unwrap();
+        file_a.write(file_on_branch_b_content_2.as_bytes()).unwrap();
+        index.add_path(Path::new("file_a")).unwrap();
+        let id_b_2 = index.write_tree().unwrap();
+        let tree_b_2 = repo.find_tree(id_b_2).unwrap();
+        let oid5 = repo
+            .commit(
+                Some("refs/heads/branch_b"),
+                &sig,
+                &sig,
+                "commit 5",
+                &tree_b_2,
+                &[&commit3],
+            )
+            .unwrap();
+        let commit5 = repo.find_commit(oid5).unwrap();
+        println!("created oid5 {:?}", oid5);
+
+        // create merge commit oid4 on branchA with parents oid2 and oid3
+        //let mut index4 = repo.merge_commits(&commit2, &commit3, None).unwrap();
+        repo.set_head("refs/heads/branch_a").unwrap();
+        repo.checkout_head(None).unwrap();
+
+        let index = repo.merge_commits(&commit4, &commit5, None).unwrap();
+
+        assert!(index.has_conflicts(), "index should have conflicts");
+
+        let index_conflicts = index.conflicts().unwrap();
+        for conflict in index_conflicts {
+            let conflict = conflict.unwrap();
+
+            let merge_file_result = repo
+                .merge_file(
+                    conflict.ancestor.as_ref(),
+                    conflict.our.as_ref(),
+                    conflict.their.as_ref(),
+                    None,
+                )
+                .unwrap();
+
+            assert_eq!(merge_file_result.mode, FileMode::Blob);
+            assert_eq!(merge_file_result.path.unwrap().as_str(), "file_a");
+            assert_eq!(
+                String::from_utf8(merge_file_result.content.unwrap())
+                    .unwrap()
+                    .as_str(),
+                merge_file_result_content
+            );
+        }
     }
 
     /// create the following:

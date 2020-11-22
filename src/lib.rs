@@ -98,7 +98,9 @@ pub use crate::index::{
 };
 pub use crate::indexer::{IndexerProgress, Progress};
 pub use crate::mempack::Mempack;
-pub use crate::merge::{AnnotatedCommit, MergeOptions};
+pub use crate::merge::{
+    AnnotatedCommit, MergeFileInput, MergeFileOptions, MergeFileResult, MergeOptions,
+};
 pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR};
 pub use crate::note::{Note, Notes};
 pub use crate::object::Object;
@@ -1047,6 +1049,34 @@ pub enum FileMode {
     Link,
     /// Commit
     Commit,
+}
+
+impl From<u32> for FileMode {
+    fn from(mode: u32) -> Self {
+        match mode {
+            raw::GIT_FILEMODE_UNREADABLE => FileMode::Unreadable,
+            raw::GIT_FILEMODE_TREE => FileMode::Tree,
+            raw::GIT_FILEMODE_BLOB => FileMode::Blob,
+            raw::GIT_FILEMODE_BLOB_EXECUTABLE => FileMode::BlobExecutable,
+            raw::GIT_FILEMODE_LINK => FileMode::Link,
+            raw::GIT_FILEMODE_COMMIT => FileMode::Commit,
+            mode => panic!("unknown file mode: {}", mode),
+        }
+    }
+}
+
+impl Into<u32> for FileMode {
+    fn into(self) -> u32 {
+        let ret = match self {
+            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE,
+            FileMode::Tree => raw::GIT_FILEMODE_TREE,
+            FileMode::Blob => raw::GIT_FILEMODE_BLOB,
+            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE,
+            FileMode::Link => raw::GIT_FILEMODE_LINK,
+            FileMode::Commit => raw::GIT_FILEMODE_COMMIT,
+        };
+        ret as u32
+    }
 }
 
 bitflags! {
