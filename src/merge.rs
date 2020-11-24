@@ -351,7 +351,7 @@ impl MergeFileInput {
         self.mode = mode;
 
         if let Some(mode) = self.mode {
-            self.raw.mode = mode.into();
+            self.raw.mode = mode as u32;
         }
 
         self
@@ -388,7 +388,7 @@ impl MergeFileInput {
         let mut input = MergeFileInput::new();
         input.content(Some(content));
         input.path(index_entry.path.clone());
-        input.mode(Some(index_entry.mode.into()));
+        input.mode(Some(FileMode::from(index_entry.mode)));
 
         input
     }
@@ -453,7 +453,7 @@ impl MergeFileResult {
         MergeFileResult {
             automergeable: raw.automergeable > 0,
             path: Some(path),
-            mode: raw.mode.into(),
+            mode: FileMode::from(raw.mode),
             content: Some(content),
         }
     }

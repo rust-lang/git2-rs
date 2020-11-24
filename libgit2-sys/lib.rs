@@ -1306,6 +1306,65 @@ git_enum! {
     }
 }
 
+#[repr(C)]
+pub struct git_merge_file_options {
+    pub version: c_uint,
+
+    /// Label for the ancestor file side of the conflict which will be prepended
+    /// to labels in diff3-format merge files.
+    pub ancestor_label: *const c_char,
+
+    /// Label for our file side of the conflict which will be prepended
+    /// to labels in merge files.
+    pub our_label: *const c_char,
+
+    /// Label for their file side of the conflict which will be prepended
+    /// to labels in merge files.
+    pub their_label: *const c_char,
+
+    /// The file to favor in region conflicts.
+    pub favor: git_merge_file_favor_t,
+
+    /// see `git_merge_file_flag_t`
+    pub flags: c_uint,
+    pub marker_size: c_ushort,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct git_merge_file_input {
+    pub version: c_uint,
+    /// Pointer to the contents of the file.
+    pub ptr: *const c_char,
+    /// Size of the contents pointed to in `ptr`.
+    pub size: size_t,
+    /// File name of the conflicted file, or `NULL` to not merge the path.
+    pub path: *const c_char,
+    /// File mode of the conflicted file, or `0` to not merge the mode.
+    pub mode: c_uint,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct git_merge_file_result {
+    /// True if the output was automerged, false if the output contains
+    /// conflict markers.
+    pub automergeable: c_uint,
+
+    /// The path that the resultant merge file should use, or NULL if a
+    /// filename conflict would occur.
+    pub path: *const c_char,
+
+    /// The mode that the resultant merge file should use.
+    pub mode: c_uint,
+
+    /// The contents of the merge.
+    pub ptr: *const c_char,
+
+    /// The length of the merge contents.
+    pub len: size_t,
+}
+
 pub type git_transport_cb = Option<
     extern "C" fn(
         out: *mut *mut git_transport,
@@ -3073,7 +3132,6 @@ extern "C" {
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
 
     // merge analysis
-
     pub fn git_merge_analysis(
         analysis_out: *mut git_merge_analysis_t,
         pref_out: *mut git_merge_preference_t,
@@ -3081,6 +3139,22 @@ extern "C" {
         their_heads: *mut *const git_annotated_commit,
         their_heads_len: usize,
     ) -> c_int;
+
+    // For git_merge_file
+    pub fn git_merge_file_options_init(opts: *mut git_merge_file_options, version: c_uint)
+        -> c_int;
+    pub fn git_merge_file_input_init(opts: *mut git_merge_file_input, version: c_uint) -> c_int;
+
+    pub fn git_merge_file(
+        out: *mut git_merge_file_result,
+        ancestor: *const git_merge_file_input,
+        ours: *const git_merge_file_input,
+        theirs: *const git_merge_file_input,
+        opts: *const git_merge_file_options,
+    ) -> c_int;
+
+    // Not used?
+    pub fn git_merge_file_result_free(result: *mut git_merge_file_result);
 
     // notes
     pub fn git_note_author(note: *const git_note) -> *const git_signature;
@@ -3853,82 +3927,6 @@ extern "C" {
         wt: *mut git_worktree,
         opts: *mut git_worktree_prune_options,
     ) -> c_int;
-}
-
-#[repr(C)]
-pub struct git_merge_file_options {
-    pub version: c_uint,
-
-    /// Label for the ancestor file side of the conflict which will be prepended
-    /// to labels in diff3-format merge files.
-    pub ancestor_label: *const c_char,
-
-    /// Label for our file side of the conflict which will be prepended
-    /// to labels in merge files.
-    pub our_label: *const c_char,
-
-    /// Label for their file side of the conflict which will be prepended
-    /// to labels in merge files.
-    pub their_label: *const c_char,
-
-    /// The file to favor in region conflicts.
-    pub favor: git_merge_file_favor_t,
-
-    /// see `git_merge_file_flag_t`
-    pub flags: c_uint,
-    pub marker_size: c_ushort,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct git_merge_file_input {
-    pub version: c_uint,
-    /// Pointer to the contents of the file.
-    pub ptr: *const c_char,
-    /// Size of the contents pointed to in `ptr`.
-    pub size: size_t,
-    /// File name of the conflicted file, or `NULL` to not merge the path.
-    pub path: *const c_char,
-    /// File mode of the conflicted file, or `0` to not merge the mode.
-    pub mode: c_uint,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct git_merge_file_result {
-    /// True if the output was automerged, false if the output contains
-    /// conflict markers.
-    pub automergeable: c_uint,
-
-    /// The path that the resultant merge file should use, or NULL if a
-    /// filename conflict would occur.
-    pub path: *const c_char,
-
-    /// The mode that the resultant merge file should use.
-    pub mode: c_uint,
-
-    /// The contents of the merge.
-    pub ptr: *const c_char,
-
-    /// The length of the merge contents.
-    pub len: size_t,
-}
-
-extern "C" {
-    pub fn git_merge_file_options_init(opts: *mut git_merge_file_options, version: c_uint)
-        -> c_int;
-    pub fn git_merge_file_input_init(opts: *mut git_merge_file_input, version: c_uint) -> c_int;
-
-    pub fn git_merge_file(
-        out: *mut git_merge_file_result,
-        ancestor: *const git_merge_file_input,
-        ours: *const git_merge_file_input,
-        theirs: *const git_merge_file_input,
-        opts: *const git_merge_file_options,
-    ) -> c_int;
-
-    // Not used?
-    pub fn git_merge_file_result_free(result: *mut git_merge_file_result);
 }
 
 pub fn init() {

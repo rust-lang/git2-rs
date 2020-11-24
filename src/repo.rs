@@ -1908,9 +1908,6 @@ impl Repository {
 
             let result = MergeFileResult::from_raw(ret);
 
-            // FIXME: need to free????
-            raw::git_merge_file_result_free(&mut ret as *mut _);
-
             Ok(result)
         }
     }

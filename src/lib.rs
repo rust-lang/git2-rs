@@ -1051,7 +1051,7 @@ pub enum FileMode {
     Commit,
 }
 
-impl From<u32> for FileMode {
+impl FileMode {
     fn from(mode: u32) -> Self {
         match mode {
             raw::GIT_FILEMODE_UNREADABLE => FileMode::Unreadable,
@@ -1062,20 +1062,6 @@ impl From<u32> for FileMode {
             raw::GIT_FILEMODE_COMMIT => FileMode::Commit,
             mode => panic!("unknown file mode: {}", mode),
         }
-    }
-}
-
-impl Into<u32> for FileMode {
-    fn into(self) -> u32 {
-        let ret = match self {
-            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE,
-            FileMode::Tree => raw::GIT_FILEMODE_TREE,
-            FileMode::Blob => raw::GIT_FILEMODE_BLOB,
-            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE,
-            FileMode::Link => raw::GIT_FILEMODE_LINK,
-            FileMode::Commit => raw::GIT_FILEMODE_COMMIT,
-        };
-        ret as u32
     }
 }
 
