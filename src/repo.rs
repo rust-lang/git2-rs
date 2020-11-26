@@ -18,6 +18,7 @@ use crate::string_array::StringArray;
 use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::worktree::{Worktree, WorktreeAddOptions};
+use crate::CherrypickOptions;
 use crate::RevertOptions;
 use crate::{
     raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
@@ -29,7 +30,6 @@ use crate::{
 use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
 use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
-use crate::{CherrypickOptions, IndexEntry};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
@@ -1848,47 +1848,13 @@ impl Repository {
     ///
     /// Note that this function does not reference a repository and any
     /// configuration must be passed as `git_merge_file_options`.
-    ///
-    /// @param out The git_merge_file_result to be filled in
-    /// @param ancestor The contents of the ancestor file
-    /// @param ours The contents of the file in "our" side
-    /// @param theirs The contents of the file in "their" side
-    /// @param opts The merge file options or `NULL` for defaults
-    /// @return 0 on success or error code
     pub fn merge_file(
         &self,
-        ancestor: Option<&IndexEntry>,
-        ours: Option<&IndexEntry>,
-        theirs: Option<&IndexEntry>,
+        ancestor: Option<&MergeFileInput<'_>>,
+        ours: Option<&MergeFileInput<'_>>,
+        theirs: Option<&MergeFileInput<'_>>,
         options: Option<&MergeFileOptions>,
     ) -> Result<MergeFileResult, Error> {
-        let ancestor_input;
-        let ours_input;
-        let theirs_input;
-
-        let ancestor_raw;
-        let ours_raw;
-        let theirs_raw;
-
-        if let Some(ancestor) = ancestor {
-            ancestor_input = MergeFileInput::from(&self, ancestor);
-            ancestor_raw = ancestor_input.raw();
-        } else {
-            ancestor_raw = ptr::null();
-        }
-        if let Some(ours) = ours {
-            ours_input = MergeFileInput::from(&self, ours);
-            ours_raw = ours_input.raw();
-        } else {
-            ours_raw = ptr::null();
-        }
-        if let Some(theirs) = theirs {
-            theirs_input = MergeFileInput::from(&self, theirs);
-            theirs_raw = theirs_input.raw();
-        } else {
-            theirs_raw = ptr::null();
-        }
-
         let mut ret = raw::git_merge_file_result {
             automergeable: 0,
             path: ptr::null(),
@@ -1900,9 +1866,9 @@ impl Repository {
         unsafe {
             try_call!(raw::git_merge_file(
                 &mut ret,
-                ancestor_raw,
-                ours_raw,
-                theirs_raw,
+                ancestor.map(|a| a.raw()).unwrap_or(ptr::null()),
+                ours.map(|a| a.raw()).unwrap_or(ptr::null()),
+                theirs.map(|a| a.raw()).unwrap_or(ptr::null()),
                 options.map(|o| o.raw())
             ));
 
@@ -3104,8 +3070,9 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
-    use crate::{CherrypickOptions, FileMode};
+    use crate::{CherrypickOptions, FileMode, MergeFileInput};
     use crate::{ObjectType, Oid, Repository, ResetType};
+    use std::convert::TryInto;
     use std::ffi::OsStr;
     use std::fs;
     use std::io::Write;
@@ -3357,6 +3324,7 @@ mod tests {
         file_a
             .write_all(file_on_branch_a_content_1.as_bytes())
             .unwrap();
+        drop(file_a);
         index.add_path(Path::new("file_a")).unwrap();
         let id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(id_a).unwrap();
@@ -3378,10 +3346,11 @@ mod tests {
         // create commit oid3 on branchB
         let mut index = repo.index().unwrap();
         let p = Path::new(repo.workdir().unwrap()).join("file_a");
-        let mut file_b = fs::File::create(&p).unwrap();
-        file_b
+        let mut file_a = fs::File::create(&p).unwrap();
+        file_a
             .write_all(file_on_branch_b_content_1.as_bytes())
             .unwrap();
+        drop(file_a);
         index.add_path(Path::new("file_a")).unwrap();
         let id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(id_b).unwrap();
@@ -3405,6 +3374,7 @@ mod tests {
         let p = Path::new(repo.workdir().unwrap()).join("file_a");
         let mut file_a = fs::OpenOptions::new().append(true).open(&p).unwrap();
         file_a.write(file_on_branch_a_content_2.as_bytes()).unwrap();
+        drop(file_a);
         index.add_path(Path::new("file_a")).unwrap();
         let id_a_2 = index.write_tree().unwrap();
         let tree_a_2 = repo.find_tree(id_a_2).unwrap();
@@ -3423,11 +3393,12 @@ mod tests {
 
         t!(repo.reset(commit3.as_object(), ResetType::Hard, None));
 
-        // create commit oid4 on branchB
+        // create commit oid5 on branchB
         let mut index = repo.index().unwrap();
         let p = Path::new(repo.workdir().unwrap()).join("file_a");
         let mut file_a = fs::OpenOptions::new().append(true).open(&p).unwrap();
         file_a.write(file_on_branch_b_content_2.as_bytes()).unwrap();
+        drop(file_a);
         index.add_path(Path::new("file_a")).unwrap();
         let id_b_2 = index.write_tree().unwrap();
         let tree_b_2 = repo.find_tree(id_b_2).unwrap();
@@ -3457,11 +3428,63 @@ mod tests {
         for conflict in index_conflicts {
             let conflict = conflict.unwrap();
 
+            let ancestor_input;
+            let ours_input;
+            let theirs_input;
+
+            let ancestor_blob;
+            let ours_blob;
+            let theirs_blob;
+
+            let ancestor_content;
+            let ours_content;
+            let theirs_content;
+
+            if let Some(ancestor) = conflict.ancestor {
+                ancestor_blob = repo
+                    .find_blob(ancestor.id.clone())
+                    .expect("failed to find blob of index entry to make MergeFileInput");
+                ancestor_content = ancestor_blob.content();
+                let mut input = MergeFileInput::new();
+                input.path(String::from_utf8(ancestor.path).unwrap());
+                input.mode(Some(FileMode::from(ancestor.mode.try_into().unwrap())));
+                input.content(Some(&ancestor_content));
+                ancestor_input = Some(input);
+            } else {
+                ancestor_input = None;
+            }
+            if let Some(ours) = conflict.our {
+                ours_blob = repo
+                    .find_blob(ours.id.clone())
+                    .expect("failed to find blob of index entry to make MergeFileInput");
+                ours_content = ours_blob.content();
+                let mut input = MergeFileInput::new();
+                input.path(String::from_utf8(ours.path).unwrap());
+                input.mode(Some(FileMode::from(ours.mode.try_into().unwrap())));
+                input.content(Some(&ours_content));
+                ours_input = Some(input);
+            } else {
+                ours_input = None;
+            }
+            if let Some(theirs) = conflict.their {
+                theirs_blob = repo
+                    .find_blob(theirs.id.clone())
+                    .expect("failed to find blob of index entry to make MergeFileInput");
+                theirs_content = theirs_blob.content();
+                let mut input = MergeFileInput::new();
+                input.path(String::from_utf8(theirs.path).unwrap());
+                input.mode(Some(FileMode::from(theirs.mode.try_into().unwrap())));
+                input.content(Some(&theirs_content));
+                theirs_input = Some(input);
+            } else {
+                theirs_input = None;
+            }
+
             let merge_file_result = repo
                 .merge_file(
-                    conflict.ancestor.as_ref(),
-                    conflict.our.as_ref(),
-                    conflict.their.as_ref(),
+                    ancestor_input.as_ref(),
+                    ours_input.as_ref(),
+                    theirs_input.as_ref(),
                     None,
                 )
                 .unwrap();

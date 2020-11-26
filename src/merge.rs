@@ -5,8 +5,9 @@ use std::str;
 
 use crate::call::Convert;
 use crate::util::Binding;
-use crate::{raw, Commit, FileFavor, FileMode, IndexEntry, IntoCString, Oid, Repository};
+use crate::{raw, Commit, FileFavor, FileMode, IntoCString, Oid};
 use core::{ptr, slice};
+use std::convert::TryInto;
 use std::ffi::{CStr, CString};
 
 /// A structure to represent an annotated commit, the input to merge and rebase.
@@ -293,7 +294,7 @@ impl MergeFileOptions {
 }
 
 /// For git_merge_file_input
-pub struct MergeFileInput {
+pub struct MergeFileInput<'a> {
     raw: raw::git_merge_file_input,
 
     /// File name of the conflicted file, or `NULL` to not merge the path.
@@ -304,26 +305,22 @@ pub struct MergeFileInput {
     /// internal `util` module in this crate’s source code.
     path: Option<CString>,
 
-    /// File mode of the conflicted file, or `0` to not merge the mode.
-    pub mode: Option<FileMode>,
-
     /// File content
-    pub content: Option<Vec<u8>>,
+    content: Option<&'a [u8]>,
 }
 
-impl Default for MergeFileInput {
+impl Default for MergeFileInput<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl MergeFileInput {
+impl<'a> MergeFileInput<'a> {
     /// Creates a new set of empty diff options.
-    pub fn new() -> MergeFileInput {
+    pub fn new() -> MergeFileInput<'a> {
         let mut input = MergeFileInput {
             raw: unsafe { mem::zeroed() },
             path: None,
-            mode: None,
             content: None,
         };
         assert_eq!(
@@ -334,7 +331,7 @@ impl MergeFileInput {
     }
 
     /// File name of the conflicted file, or `None` to not merge the path.
-    pub fn path<T: IntoCString>(&mut self, t: T) -> &mut MergeFileInput {
+    pub fn path<T: IntoCString>(&mut self, t: T) -> &mut MergeFileInput<'a> {
         self.path = Some(t.into_c_string().unwrap());
 
         self.raw.path = self
@@ -347,10 +344,8 @@ impl MergeFileInput {
     }
 
     /// File mode of the conflicted file, or `0` to not merge the mode.
-    pub fn mode(&mut self, mode: Option<FileMode>) -> &mut MergeFileInput {
-        self.mode = mode;
-
-        if let Some(mode) = self.mode {
+    pub fn mode(&mut self, mode: Option<FileMode>) -> &mut MergeFileInput<'a> {
+        if let Some(mode) = mode {
             self.raw.mode = mode as u32;
         }
 
@@ -358,7 +353,7 @@ impl MergeFileInput {
     }
 
     /// File content, text or binary
-    pub fn content(&mut self, content: Option<Vec<u8>>) -> &mut MergeFileInput {
+    pub fn content(&mut self, content: Option<&'a [u8]>) -> &mut MergeFileInput<'a> {
         self.content = content;
 
         self.raw.size = self.content.as_ref().map(|c| c.len()).unwrap_or(0);
@@ -377,47 +372,29 @@ impl MergeFileInput {
     }
 }
 
-impl MergeFileInput {
-    /// Create from Repository and IndexEntry
-    pub fn from(repo: &Repository, index_entry: &IndexEntry) -> MergeFileInput {
-        let blob = repo
-            .find_blob(index_entry.id.clone())
-            .expect("failed to find blob of index entry to make MergeFileInput");
-        let content = blob.content().to_vec();
-
-        let mut input = MergeFileInput::new();
-        input.content(Some(content));
-        input.path(index_entry.path.clone());
-        input.mode(Some(FileMode::from(index_entry.mode)));
-
-        input
-    }
-}
-
-impl std::fmt::Debug for MergeFileInput {
+impl std::fmt::Debug for MergeFileInput<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("MergeFileInput");
         if let Some(path) = &self.path {
             ds.field("path", path);
         }
-        ds.field("mode", &self.mode);
+        ds.field("mode", &FileMode::from(self.raw.mode.try_into().unwrap()));
 
-        if let Some(mode) = self.mode {
-            match mode {
-                FileMode::Unreadable => {}
-                FileMode::Tree => {}
-                FileMode::Blob => {
-                    let content = self
-                        .content
-                        .as_ref()
-                        .map(|s| String::from_utf8_lossy(&s).to_string())
-                        .unwrap_or("unknown content".to_string());
-                    ds.field("content", &content);
-                }
-                FileMode::BlobExecutable => {}
-                FileMode::Link => {}
-                FileMode::Commit => {}
+        match FileMode::from(self.raw.mode.try_into().unwrap()) {
+            FileMode::Unreadable => {}
+            FileMode::Tree => {}
+            FileMode::Blob => {
+                let content = self
+                    .content
+                    .as_ref()
+                    .map(|s| String::from_utf8_lossy(&s).to_string())
+                    .unwrap_or("unknown content".to_string());
+
+                ds.field("content", &content);
             }
+            FileMode::BlobExecutable => {}
+            FileMode::Link => {}
+            FileMode::Commit => {}
         }
         ds.finish()
     }
@@ -442,18 +419,17 @@ pub struct MergeFileResult {
 
 impl MergeFileResult {
     /// Create MergeFileResult from C
-    pub fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult {
-        let c_str: &CStr = unsafe { CStr::from_ptr(raw.path) };
+    pub unsafe fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult {
+        let c_str: &CStr = CStr::from_ptr(raw.path);
         let str_slice: &str = c_str.to_str().unwrap();
         let path: String = str_slice.to_owned();
 
-        let content =
-            unsafe { slice::from_raw_parts(raw.ptr as *const u8, raw.len as usize).to_vec() };
+        let content = slice::from_raw_parts(raw.ptr as *const u8, raw.len as usize).to_vec();
 
         MergeFileResult {
             automergeable: raw.automergeable > 0,
             path: Some(path),
-            mode: FileMode::from(raw.mode),
+            mode: FileMode::from(raw.mode.try_into().unwrap()),
             content: Some(content),
         }
     }
