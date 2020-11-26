@@ -402,53 +402,59 @@ impl std::fmt::Debug for MergeFileInput<'_> {
 
 /// For git_merge_file_result
 pub struct MergeFileResult {
-    /// True if the output was automerged, false if the output contains
-    /// conflict markers.
-    pub automergeable: bool,
-
-    /// The path that the resultant merge file should use, or NULL if a
-    /// filename conflict would occur.
-    pub path: Option<String>,
-
-    /// The mode that the resultant merge file should use.
-    pub mode: FileMode,
-
-    /// The contents of the merge.
-    pub content: Option<Vec<u8>>,
+    raw: raw::git_merge_file_result,
 }
 
 impl MergeFileResult {
     /// Create MergeFileResult from C
     pub unsafe fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult {
-        let c_str: &CStr = CStr::from_ptr(raw.path);
+        MergeFileResult { raw }
+    }
+
+    /// True if the output was automerged, false if the output contains
+    /// conflict markers.
+    pub fn automergeable(&self) -> bool {
+        self.raw.automergeable > 0
+    }
+
+    /// The path that the resultant merge file should use, or NULL if a
+    /// filename conflict would occur.
+    pub unsafe fn path(&self) -> Option<String> {
+        let c_str: &CStr = CStr::from_ptr(self.raw.path);
         let str_slice: &str = c_str.to_str().unwrap();
         let path: String = str_slice.to_owned();
+        Some(path)
+    }
 
-        let content = slice::from_raw_parts(raw.ptr as *const u8, raw.len as usize).to_vec();
+    /// The mode that the resultant merge file should use.
+    pub fn mode(&self) -> FileMode {
+        FileMode::from(self.raw.mode.try_into().unwrap())
+    }
 
-        MergeFileResult {
-            automergeable: raw.automergeable > 0,
-            path: Some(path),
-            mode: FileMode::from(raw.mode.try_into().unwrap()),
-            content: Some(content),
-        }
+    /// The contents of the merge.
+    pub unsafe fn content(&self) -> Option<Vec<u8>> {
+        let content =
+            slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize).to_vec();
+        Some(content)
     }
 }
 
 impl std::fmt::Debug for MergeFileResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("MergeFileResult");
-        if let Some(path) = &self.path {
-            ds.field("path", path);
+        unsafe {
+            if let Some(path) = &self.path() {
+                ds.field("path", path);
+            }
         }
-        ds.field("mode", &self.mode);
+        ds.field("mode", &self.mode());
 
-        match self.mode {
+        match self.mode() {
             FileMode::Unreadable => {}
             FileMode::Tree => {}
             FileMode::Blob => unsafe {
                 let content = self
-                    .content
+                    .content()
                     .as_ref()
                     .map(|c| String::from_utf8_unchecked(c.clone()))
                     .unwrap_or("unknown content".to_string());

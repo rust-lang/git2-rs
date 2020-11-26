@@ -3436,15 +3436,11 @@ mod tests {
             let ours_blob;
             let theirs_blob;
 
-            let ancestor_content;
-            let ours_content;
-            let theirs_content;
-
             if let Some(ancestor) = conflict.ancestor {
                 ancestor_blob = repo
                     .find_blob(ancestor.id.clone())
                     .expect("failed to find blob of index entry to make MergeFileInput");
-                ancestor_content = ancestor_blob.content();
+                let ancestor_content = ancestor_blob.content();
                 let mut input = MergeFileInput::new();
                 input.path(String::from_utf8(ancestor.path).unwrap());
                 input.mode(Some(FileMode::from(ancestor.mode.try_into().unwrap())));
@@ -3457,7 +3453,7 @@ mod tests {
                 ours_blob = repo
                     .find_blob(ours.id.clone())
                     .expect("failed to find blob of index entry to make MergeFileInput");
-                ours_content = ours_blob.content();
+                let ours_content = ours_blob.content();
                 let mut input = MergeFileInput::new();
                 input.path(String::from_utf8(ours.path).unwrap());
                 input.mode(Some(FileMode::from(ours.mode.try_into().unwrap())));
@@ -3470,7 +3466,7 @@ mod tests {
                 theirs_blob = repo
                     .find_blob(theirs.id.clone())
                     .expect("failed to find blob of index entry to make MergeFileInput");
-                theirs_content = theirs_blob.content();
+                let theirs_content = theirs_blob.content();
                 let mut input = MergeFileInput::new();
                 input.path(String::from_utf8(theirs.path).unwrap());
                 input.mode(Some(FileMode::from(theirs.mode.try_into().unwrap())));
@@ -3489,12 +3485,17 @@ mod tests {
                 )
                 .unwrap();
 
-            assert_eq!(merge_file_result.mode, FileMode::Blob);
-            assert_eq!(merge_file_result.path.unwrap().as_str(), "file_a");
+            assert_eq!(merge_file_result.mode(), FileMode::Blob);
             assert_eq!(
-                String::from_utf8(merge_file_result.content.unwrap())
-                    .unwrap()
-                    .as_str(),
+                unsafe { merge_file_result.path().unwrap().as_str() },
+                "file_a"
+            );
+            assert_eq!(
+                unsafe {
+                    String::from_utf8(merge_file_result.content().unwrap())
+                        .unwrap()
+                        .as_str()
+                },
                 merge_file_result_content
             );
         }
