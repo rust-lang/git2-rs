@@ -3424,6 +3424,8 @@ mod tests {
 
         assert!(index.has_conflicts(), "index should have conflicts");
 
+        let mut conflict_count = 0;
+
         let index_conflicts = index.conflicts().unwrap();
         for conflict in index_conflicts {
             let conflict = conflict.unwrap();
@@ -3437,41 +3439,56 @@ mod tests {
             let theirs_blob;
 
             if let Some(ancestor) = conflict.ancestor {
-                ancestor_blob = repo
-                    .find_blob(ancestor.id.clone())
-                    .expect("failed to find blob of index entry to make MergeFileInput");
-                let ancestor_content = ancestor_blob.content();
-                let mut input = MergeFileInput::new();
-                input.path(String::from_utf8(ancestor.path).unwrap());
-                input.mode(Some(FileMode::from(ancestor.mode.try_into().unwrap())));
-                input.content(Some(&ancestor_content));
-                ancestor_input = Some(input);
+                match repo.find_blob(ancestor.id.clone()) {
+                    Ok(b) => {
+                        ancestor_blob = b;
+                        let ancestor_content = ancestor_blob.content();
+                        let mut input = MergeFileInput::new();
+                        input.path(String::from_utf8(ancestor.path).unwrap());
+                        input.mode(Some(FileMode::from(ancestor.mode.try_into().unwrap())));
+                        input.content(Some(&ancestor_content));
+                        ancestor_input = Some(input);
+                    }
+                    Err(_e) => {
+                        ancestor_input = None;
+                    }
+                }
             } else {
                 ancestor_input = None;
             }
             if let Some(ours) = conflict.our {
-                ours_blob = repo
-                    .find_blob(ours.id.clone())
-                    .expect("failed to find blob of index entry to make MergeFileInput");
-                let ours_content = ours_blob.content();
-                let mut input = MergeFileInput::new();
-                input.path(String::from_utf8(ours.path).unwrap());
-                input.mode(Some(FileMode::from(ours.mode.try_into().unwrap())));
-                input.content(Some(&ours_content));
-                ours_input = Some(input);
+                match repo.find_blob(ours.id.clone()) {
+                    Ok(b) => {
+                        ours_blob = b;
+                        let ours_content = ours_blob.content();
+                        let mut input = MergeFileInput::new();
+                        input.path(String::from_utf8(ours.path).unwrap());
+                        input.mode(Some(FileMode::from(ours.mode.try_into().unwrap())));
+                        input.content(Some(&ours_content));
+                        ours_input = Some(input);
+                    }
+                    Err(_e) => {
+                        ours_input = None;
+                    }
+                }
             } else {
                 ours_input = None;
             }
             if let Some(theirs) = conflict.their {
-                theirs_blob = repo
-                    .find_blob(theirs.id.clone())
-                    .expect("failed to find blob of index entry to make MergeFileInput");
-                let theirs_content = theirs_blob.content();
-                let mut input = MergeFileInput::new();
-                input.path(String::from_utf8(theirs.path).unwrap());
-                input.mode(Some(FileMode::from(theirs.mode.try_into().unwrap())));
-                input.content(Some(&theirs_content));
-                theirs_input = Some(input);
+                match repo.find_blob(theirs.id.clone()) {
+                    Ok(b) => {
+                        theirs_blob = b;
+                        let theirs_content = theirs_blob.content();
+                        let mut input = MergeFileInput::new();
+                        input.path(String::from_utf8(theirs.path).unwrap());
+                        input.mode(Some(FileMode::from(theirs.mode.try_into().unwrap())));
+                        input.content(Some(&theirs_content));
+                        theirs_input = Some(input);
+                    }
+                    Err(_e) => {
+                        theirs_input = None;
+                    }
+                }
             } else {
                 theirs_input = None;
             }
@@ -3498,7 +3515,10 @@ mod tests {
                 },
                 merge_file_result_content
             );
+
+            conflict_count += 1;
         }
+        assert_eq!(conflict_count, 1, "There should be one conflict!");
     }
 
     /// create the following:
