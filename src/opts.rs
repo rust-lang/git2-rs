@@ -10,7 +10,7 @@ pub fn strict_hash_verification(enabled: bool) {
     let error = unsafe {
         raw::git_libgit2_opts(
             raw::GIT_OPT_ENABLE_STRICT_HASH_VERIFICATION as libc::c_int,
-            if enabled { 1 } else { 0 } as libc::c_int,
+            enabled as libc::c_int,
         )
     };
     // This function cannot actually fail, but the function has an error return
