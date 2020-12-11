@@ -182,6 +182,10 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=Security");
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
     }
+
+    rerun_if(Path::new("libgit2/include"));
+    rerun_if(Path::new("libgit2/src"));
+    rerun_if(Path::new("libgit2/deps"));
 }
 
 fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
@@ -212,5 +216,15 @@ fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
         } else if path.extension().and_then(|s| s.to_str()) == Some("c") {
             build.file(&path);
         }
+    }
+}
+
+fn rerun_if(path: &Path) {
+    if path.is_dir() {
+        for entry in fs::read_dir(path).expect("read_dir") {
+            rerun_if(&entry.expect("entry").path());
+        }
+    } else {
+        println!("cargo:rerun-if-changed={}", path.display());
     }
 }
