@@ -456,6 +456,9 @@ pub struct git_cert_hostkey {
     pub hash_md5: [u8; 16],
     pub hash_sha1: [u8; 20],
     pub hash_sha256: [u8; 32],
+    pub raw_type: git_cert_ssh_raw_type_t,
+    pub hostkey: *const c_char,
+    pub hostkey_len: size_t,
 }
 
 #[repr(C)]
@@ -470,6 +473,14 @@ git_enum! {
         GIT_CERT_SSH_MD5 = 1 << 0,
         GIT_CERT_SSH_SHA1 = 1 << 1,
         GIT_CERT_SSH_SHA256 = 1 << 2,
+    }
+}
+
+git_enum! {
+    pub enum git_cert_ssh_raw_type_t {
+        GIT_CERT_SSH_RAW_TYPE_UNKNOWN = 0,
+        GIT_CERT_SSH_RAW_TYPE_RSA = 1,
+        GIT_CERT_SSH_RAW_TYPE_DSS = 2,
     }
 }
 
