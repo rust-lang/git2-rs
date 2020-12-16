@@ -80,6 +80,7 @@ impl<'repo> Remote<'repo> {
     /// Contrasted with an anonymous remote, a detached remote will not
     /// consider any repo configuration values.
     pub fn create_detached(url: &str) -> Result<Remote<'_>, Error> {
+        crate::init();
         let mut ret = ptr::null_mut();
         let url = CString::new(url)?;
         unsafe {
