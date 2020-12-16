@@ -2030,10 +2030,7 @@ extern "C" {
         repo: *mut git_repository,
         url: *const c_char,
     ) -> c_int;
-    pub fn git_remote_create_detached(
-        out: *mut *mut git_remote,
-        url: *const c_char,
-    ) -> c_int;
+    pub fn git_remote_create_detached(out: *mut *mut git_remote, url: *const c_char) -> c_int;
     pub fn git_remote_delete(repo: *mut git_repository, name: *const c_char) -> c_int;
     pub fn git_remote_free(remote: *mut git_remote);
     pub fn git_remote_name(remote: *const git_remote) -> *const c_char;
