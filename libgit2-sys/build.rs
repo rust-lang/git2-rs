@@ -78,6 +78,7 @@ fn main() {
     // when when COMPILE_PCRE8 is not defined, which is the default.
     add_c_files(&mut cfg, "libgit2/deps/pcre");
 
+    cfg.file("libgit2/src/allocators/failalloc.c");
     cfg.file("libgit2/src/allocators/stdalloc.c");
 
     if windows {
