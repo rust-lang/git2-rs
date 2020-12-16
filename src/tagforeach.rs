@@ -1,5 +1,5 @@
 //! git_tag_foreach support
-//! see original: https://libgit2.org/libgit2/#HEAD/group/tag/git_tag_foreach
+//! see original: <https://libgit2.org/libgit2/#HEAD/group/tag/git_tag_foreach>
 
 use crate::{panic, raw, util::Binding, Oid};
 use libc::{c_char, c_int};
@@ -16,7 +16,7 @@ pub(crate) struct TagForeachData<'a> {
 }
 
 /// c callback forwarding to rust callback inside `TagForeachData`
-/// see original: https://libgit2.org/libgit2/#HEAD/group/callback/git_tag_foreach_cb
+/// see original: <https://libgit2.org/libgit2/#HEAD/group/callback/git_tag_foreach_cb>
 pub(crate) extern "C" fn tag_foreach_cb(
     name: *const c_char,
     oid: *mut git_oid,

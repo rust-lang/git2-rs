@@ -1,12 +1,12 @@
 //! git_apply support
-//! see original: https://github.com/libgit2/libgit2/blob/master/include/git2/apply.h
+//! see original: <https://github.com/libgit2/libgit2/blob/master/include/git2/apply.h>
 
 use crate::{panic, raw, util::Binding, DiffDelta, DiffHunk};
 use libc::c_int;
 use std::{ffi::c_void, mem};
 
 /// Possible application locations for git_apply
-/// see https://libgit2.org/libgit2/#HEAD/type/git_apply_options
+/// see <https://libgit2.org/libgit2/#HEAD/type/git_apply_options>
 #[derive(Copy, Clone, Debug)]
 pub enum ApplyLocation {
     /// Apply the patch to the workdir
