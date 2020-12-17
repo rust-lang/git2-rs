@@ -61,7 +61,7 @@
 //!
 //! ## Working with a `Repository`
 //!
-//! All deriviative objects, references, etc are attached to the lifetime of the
+//! All derivative objects, references, etc are attached to the lifetime of the
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
