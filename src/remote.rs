@@ -73,6 +73,22 @@ impl<'repo> Remote<'repo> {
         unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
     }
 
+    /// Create a detached remote
+    ///
+    /// Create a remote with the given url in-memory. You can use this
+    /// when you have a URL instead of a remote's name.
+    /// Contrasted with an anonymous remote, a detached remote will not
+    /// consider any repo configuration values.
+    pub fn create_detached(url: &str) -> Result<Remote<'_>, Error> {
+        crate::init();
+        let mut ret = ptr::null_mut();
+        let url = CString::new(url)?;
+        unsafe {
+            try_call!(raw::git_remote_create_detached(&mut ret, url));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Get the remote's name.
     ///
     /// Returns `None` if this remote has not yet been named or if the name is
