@@ -313,7 +313,7 @@ impl Repository {
     /// Find a single object and intermediate reference by a revision string.
     ///
     /// See `man gitrevisions`, or
-    /// http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions for
+    /// <http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions> for
     /// information on the syntax accepted.
     ///
     /// In some cases (`@{<-n>}` or `<branchname>@{upstream}`), the expression
