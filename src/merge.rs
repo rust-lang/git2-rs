@@ -5,7 +5,10 @@ use std::str;
 
 use crate::call::Convert;
 use crate::util::Binding;
-use crate::{raw, Commit, FileFavor, Oid};
+use crate::{raw, Commit, FileFavor, FileMode, IntoCString, Oid};
+use core::{ptr, slice};
+use std::convert::TryInto;
+use std::ffi::{CStr, CString};
 
 /// A structure to represent an annotated commit, the input to merge and rebase.
 ///
@@ -190,5 +193,278 @@ impl<'repo> Binding for AnnotatedCommit<'repo> {
 impl<'repo> Drop for AnnotatedCommit<'repo> {
     fn drop(&mut self) {
         unsafe { raw::git_annotated_commit_free(self.raw) }
+    }
+}
+
+/// Options for merging files
+pub struct MergeFileOptions {
+    /// Label for the ancestor file side of the conflict which will be prepended
+    /// to labels in diff3-format merge files.
+    ancestor_label: Option<CString>,
+
+    /// Label for our file side of the conflict which will be prepended
+    /// to labels in merge files.
+    our_label: Option<CString>,
+
+    /// Label for their file side of the conflict which will be prepended
+    /// to labels in merge files.
+    their_label: Option<CString>,
+
+    // raw data
+    raw: raw::git_merge_file_options,
+}
+
+impl Default for MergeFileOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MergeFileOptions {
+    /// Creates a default set of merge options.
+    pub fn new() -> MergeFileOptions {
+        let mut opts = MergeFileOptions {
+            ancestor_label: None,
+            our_label: None,
+            their_label: None,
+            raw: unsafe { mem::zeroed() },
+        };
+        assert_eq!(
+            unsafe { raw::git_merge_file_options_init(&mut opts.raw, 1) },
+            0
+        );
+        opts
+    }
+
+    /// Specify ancestor label, default is "ancestor"
+    pub fn ancestor_label<T: IntoCString>(&mut self, t: T) -> &mut MergeFileOptions {
+        self.ancestor_label = Some(t.into_c_string().unwrap());
+
+        self.raw.ancestor_label = self
+            .ancestor_label
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
+
+        self
+    }
+
+    /// Specify ancestor label, default is "ours"
+    pub fn our_label<T: IntoCString>(&mut self, t: T) -> &mut MergeFileOptions {
+        self.our_label = Some(t.into_c_string().unwrap());
+
+        self.raw.our_label = self
+            .our_label
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
+
+        self
+    }
+
+    /// Specify ancestor label, default is "theirs"
+    pub fn their_label<T: IntoCString>(&mut self, t: T) -> &mut MergeFileOptions {
+        self.their_label = Some(t.into_c_string().unwrap());
+
+        self.raw.their_label = self
+            .their_label
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
+
+        self
+    }
+
+    /// Specify a side to favor for resolving conflicts
+    pub fn file_favor(&mut self, favor: FileFavor) -> &mut MergeFileOptions {
+        self.raw.favor = favor.convert();
+        self
+    }
+
+    /// Specify marker size, default is 7: <<<<<<< ours
+    pub fn marker_size(&mut self, size: u16) -> &mut MergeFileOptions {
+        self.raw.marker_size = size;
+        self
+    }
+
+    /// Acquire a pointer to the underlying raw options.
+    pub unsafe fn raw(&self) -> *const raw::git_merge_file_options {
+        &self.raw as *const _
+    }
+}
+
+/// For git_merge_file_input
+pub struct MergeFileInput<'a> {
+    raw: raw::git_merge_file_input,
+
+    /// File name of the conflicted file, or `NULL` to not merge the path.
+    ///
+    /// You can turn this value into a `std::ffi::CString` with
+    /// `CString::new(&entry.path[..]).unwrap()`. To turn a reference into a
+    /// `&std::path::Path`, see the `bytes2path()` function in the private,
+    /// internal `util` module in this crate’s source code.
+    path: Option<CString>,
+
+    /// File content
+    content: Option<&'a [u8]>,
+}
+
+impl Default for MergeFileInput<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a> MergeFileInput<'a> {
+    /// Creates a new set of empty diff options.
+    pub fn new() -> MergeFileInput<'a> {
+        let mut input = MergeFileInput {
+            raw: unsafe { mem::zeroed() },
+            path: None,
+            content: None,
+        };
+        assert_eq!(
+            unsafe { raw::git_merge_file_input_init(&mut input.raw, 1) },
+            0
+        );
+        input
+    }
+
+    /// File name of the conflicted file, or `None` to not merge the path.
+    pub fn path<T: IntoCString>(&mut self, t: T) -> &mut MergeFileInput<'a> {
+        self.path = Some(t.into_c_string().unwrap());
+
+        self.raw.path = self
+            .path
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
+
+        self
+    }
+
+    /// File mode of the conflicted file, or `0` to not merge the mode.
+    pub fn mode(&mut self, mode: Option<FileMode>) -> &mut MergeFileInput<'a> {
+        if let Some(mode) = mode {
+            self.raw.mode = mode as u32;
+        }
+
+        self
+    }
+
+    /// File content, text or binary
+    pub fn content(&mut self, content: Option<&'a [u8]>) -> &mut MergeFileInput<'a> {
+        self.content = content;
+
+        self.raw.size = self.content.as_ref().map(|c| c.len()).unwrap_or(0);
+        self.raw.ptr = self
+            .content
+            .as_ref()
+            .map(|c| c.as_ptr() as *const _)
+            .unwrap_or(ptr::null());
+
+        self
+    }
+
+    /// Get the raw struct in C
+    pub fn raw(&self) -> *const raw::git_merge_file_input {
+        &self.raw as *const _
+    }
+}
+
+impl std::fmt::Debug for MergeFileInput<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut ds = f.debug_struct("MergeFileInput");
+        if let Some(path) = &self.path {
+            ds.field("path", path);
+        }
+        ds.field("mode", &FileMode::from(self.raw.mode.try_into().unwrap()));
+
+        match FileMode::from(self.raw.mode.try_into().unwrap()) {
+            FileMode::Unreadable => {}
+            FileMode::Tree => {}
+            FileMode::Blob => {
+                let content = self
+                    .content
+                    .as_ref()
+                    .map(|s| String::from_utf8_lossy(&s).to_string())
+                    .unwrap_or("unknown content".to_string());
+
+                ds.field("content", &content);
+            }
+            FileMode::BlobExecutable => {}
+            FileMode::Link => {}
+            FileMode::Commit => {}
+        }
+        ds.finish()
+    }
+}
+
+/// For git_merge_file_result
+pub struct MergeFileResult {
+    raw: raw::git_merge_file_result,
+}
+
+impl MergeFileResult {
+    /// Create MergeFileResult from C
+    pub unsafe fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult {
+        MergeFileResult { raw }
+    }
+
+    /// True if the output was automerged, false if the output contains
+    /// conflict markers.
+    pub fn automergeable(&self) -> bool {
+        self.raw.automergeable > 0
+    }
+
+    /// The path that the resultant merge file should use, or NULL if a
+    /// filename conflict would occur.
+    pub unsafe fn path(&self) -> Option<String> {
+        let c_str: &CStr = CStr::from_ptr(self.raw.path);
+        let str_slice: &str = c_str.to_str().unwrap();
+        let path: String = str_slice.to_owned();
+        Some(path)
+    }
+
+    /// The mode that the resultant merge file should use.
+    pub fn mode(&self) -> FileMode {
+        FileMode::from(self.raw.mode.try_into().unwrap())
+    }
+
+    /// The contents of the merge.
+    pub unsafe fn content(&self) -> Option<Vec<u8>> {
+        let content =
+            slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize).to_vec();
+        Some(content)
+    }
+}
+
+impl std::fmt::Debug for MergeFileResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut ds = f.debug_struct("MergeFileResult");
+        unsafe {
+            if let Some(path) = &self.path() {
+                ds.field("path", path);
+            }
+        }
+        ds.field("mode", &self.mode());
+
+        match self.mode() {
+            FileMode::Unreadable => {}
+            FileMode::Tree => {}
+            FileMode::Blob => unsafe {
+                let content = self
+                    .content()
+                    .as_ref()
+                    .map(|c| String::from_utf8_unchecked(c.clone()))
+                    .unwrap_or("unknown content".to_string());
+                ds.field("content", &content);
+            },
+            FileMode::BlobExecutable => {}
+            FileMode::Link => {}
+            FileMode::Commit => {}
+        }
+
+        ds.finish()
     }
 }
