@@ -704,6 +704,21 @@ pub type git_treebuilder_filter_cb =
 
 pub type git_revwalk_hide_cb = Option<extern "C" fn(*const git_oid, *mut c_void) -> c_int>;
 
+git_enum! {
+    pub enum git_tree_update_t {
+        GIT_TREE_UPDATE_UPSERT = 0,
+        GIT_TREE_UPDATE_REMOVE = 1,
+    }
+}
+
+#[repr(C)]
+pub struct git_tree_update {
+    pub action: git_tree_update_t,
+    pub id: git_oid,
+    pub filemode: git_filemode_t,
+    pub path: *const c_char,
+}
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct git_buf {
@@ -2530,6 +2545,13 @@ extern "C" {
         mode: git_treewalk_mode,
         callback: git_treewalk_cb,
         payload: *mut c_void,
+    ) -> c_int;
+    pub fn git_tree_create_updated(
+        out: *mut git_oid,
+        repo: *mut git_repository,
+        baseline: *mut git_tree,
+        nupdates: usize,
+        updates: *const git_tree_update,
     ) -> c_int;
 
     // treebuilder
