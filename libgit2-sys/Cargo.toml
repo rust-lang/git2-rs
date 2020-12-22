@@ -8,6 +8,10 @@ repository = "https://github.com/rust-lang/git2-rs"
 license = "MIT/Apache-2.0"
 description = "Native bindings to the libgit2 library"
 exclude = [
+    "libgit2/ci/*",
+    "libgit2/docs/*",
+    "libgit2/examples/*",
+    "libgit2/fuzzers/*",
     "libgit2/tests/*",
 ]
 edition = "2018"
