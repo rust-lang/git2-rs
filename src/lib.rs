@@ -1049,6 +1049,19 @@ pub enum FileMode {
     Commit,
 }
 
+impl From<FileMode> for i32 {
+    fn from(mode: FileMode) -> i32 {
+        match mode {
+            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as i32,
+            FileMode::Tree => raw::GIT_FILEMODE_TREE as i32,
+            FileMode::Blob => raw::GIT_FILEMODE_BLOB as i32,
+            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as i32,
+            FileMode::Link => raw::GIT_FILEMODE_LINK as i32,
+            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as i32,
+        }
+    }
+}
+
 impl From<FileMode> for u32 {
     fn from(mode: FileMode) -> u32 {
         match mode {
@@ -1465,6 +1478,8 @@ mod tests {
 
     #[test]
     fn convert_filemode() {
+        assert_eq!(i32::from(FileMode::Blob), 0o100644);
+        assert_eq!(i32::from(FileMode::BlobExecutable), 0o100755);
         assert_eq!(u32::from(FileMode::Blob), 0o100644);
         assert_eq!(u32::from(FileMode::BlobExecutable), 0o100755);
     }
