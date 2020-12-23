@@ -3621,4 +3621,25 @@ mod tests {
         // reverting twice restores `foo` file
         assert!(foo_file.exists());
     }
+
+    #[test]
+    fn smoke_config_write_and_read() {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let repo = Repository::init(path).unwrap();
+
+        let mut config = repo.config().unwrap();
+
+        config.set_bool("commit.gpgsign", false).unwrap();
+
+        let c = fs::read_to_string(path.join(".git").join("config")).unwrap();
+
+        assert!(c.contains("[commit]"));
+        assert!(c.contains("gpgsign = false"));
+
+        let config = repo.config().unwrap();
+
+        assert!(!config.get_bool("commit.gpgsign").unwrap());
+    }
 }
