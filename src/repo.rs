@@ -3624,16 +3624,13 @@ mod tests {
 
     #[test]
     fn smoke_config_write_and_read() {
-        let td = TempDir::new().unwrap();
-        let path = td.path();
-
-        let repo = Repository::init(path).unwrap();
+        let (td, repo) = crate::test::repo_init();
 
         let mut config = repo.config().unwrap();
 
         config.set_bool("commit.gpgsign", false).unwrap();
 
-        let c = fs::read_to_string(path.join(".git").join("config")).unwrap();
+        let c = fs::read_to_string(td.path().join(".git").join("config")).unwrap();
 
         assert!(c.contains("[commit]"));
         assert!(c.contains("gpgsign = false"));
