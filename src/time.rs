@@ -42,7 +42,7 @@ impl Time {
     /// Return whether the offset was positive or negative. Primarily useful
     /// in case the offset is specified as a negative zero.
     pub fn sign(&self) -> char {
-        self.raw.offset as u8 as char
+        self.raw.sign as u8 as char
     }
 }
 
@@ -110,5 +110,18 @@ impl Ord for IndexTime {
         let me = (self.raw.seconds, self.raw.nanoseconds);
         let other = (other.raw.seconds, other.raw.nanoseconds);
         me.cmp(&other)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Time;
+
+    #[test]
+    fn smoke() {
+        assert_eq!(Time::new(1608839587, -300).seconds(), 1608839587);
+        assert_eq!(Time::new(1608839587, -300).offset_minutes(), -300);
+        assert_eq!(Time::new(1608839587, -300).sign(), '-');
+        assert_eq!(Time::new(1608839587, 300).sign(), '+');
     }
 }
