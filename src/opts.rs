@@ -96,8 +96,34 @@ pub fn strict_hash_verification(enabled: bool) {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    use std::env::join_paths;
+
     #[test]
     fn smoke() {
-        super::strict_hash_verification(false);
+        strict_hash_verification(false);
+    }
+
+    #[test]
+    fn search_path() -> Result<(), Box<dyn std::error::Error>> {
+        let path = "fake_path";
+        let original = get_search_path(ConfigLevel::Global);
+        assert_ne!(original, Ok(path.into()));
+
+        // Set
+        set_search_path(ConfigLevel::Global, &path)?;
+        assert_eq!(get_search_path(ConfigLevel::Global), Ok(path.into()));
+
+        // Append
+        let paths = join_paths(["$PATH", path].iter())?;
+        let expected_paths = join_paths([path, path].iter())?.into_string().unwrap();
+        set_search_path(ConfigLevel::Global, paths)?;
+        assert_eq!(get_search_path(ConfigLevel::Global), Ok(expected_paths));
+
+        // Reset
+        reset_search_path(ConfigLevel::Global)?;
+        assert_eq!(get_search_path(ConfigLevel::Global), original);
+
+        Ok(())
     }
 }
