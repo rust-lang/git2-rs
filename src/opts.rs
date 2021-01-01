@@ -1,7 +1,58 @@
 //! Bindings to libgit2's git_libgit2_opts function.
 
+use std::sync::Mutex;
+
+use once_cell::sync::Lazy;
+
 use crate::util::Binding;
 use crate::{call, raw, Buf, ConfigLevel, Error, IntoCString};
+
+static SEARCH_PATH: Lazy<Mutex<SearchPath>> = Lazy::new(|| {
+    crate::init();
+    Mutex::new(SearchPath)
+});
+
+struct SearchPath;
+
+impl SearchPath {
+    pub fn set<P>(&self, level: ConfigLevel, path: P) -> Result<(), Error>
+    where
+        P: IntoCString,
+    {
+        let path = path.into_c_string()?;
+        unsafe {
+            call::c_try(raw::git_libgit2_opts(
+                raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
+                level as libc::c_int,
+                path.as_ptr(),
+            ))?;
+        }
+        Ok(())
+    }
+
+    pub fn reset(&self, level: ConfigLevel) -> Result<(), Error> {
+        unsafe {
+            call::c_try(raw::git_libgit2_opts(
+                raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
+                level as libc::c_int,
+                core::ptr::null::<u8>(),
+            ))?;
+        }
+        Ok(())
+    }
+
+    pub fn get(&self, level: ConfigLevel) -> Result<String, Error> {
+        let buf = Buf::new();
+        unsafe {
+            call::c_try(raw::git_libgit2_opts(
+                raw::GIT_OPT_GET_SEARCH_PATH as libc::c_int,
+                level as libc::c_int,
+                buf.raw(),
+            ))?;
+        }
+        Ok(buf.as_str().unwrap().to_string())
+    }
+}
 
 /// Set the search path for a level of config data. The search path applied to
 /// shared attributes and ignore files, too.
@@ -16,16 +67,7 @@ pub fn set_search_path<P>(level: ConfigLevel, path: P) -> Result<(), Error>
 where
     P: IntoCString,
 {
-    crate::init();
-    let path = path.into_c_string()?;
-    unsafe {
-        call::c_try(raw::git_libgit2_opts(
-            raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
-            level as libc::c_int,
-            path.as_ptr(),
-        ))?;
-    }
-    Ok(())
+    SEARCH_PATH.lock().unwrap().set(level, path)
 }
 
 /// Reset the search path for a given level of config data to the default
@@ -34,15 +76,7 @@ where
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
 pub fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
-    crate::init();
-    unsafe {
-        call::c_try(raw::git_libgit2_opts(
-            raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
-            level as libc::c_int,
-            core::ptr::null::<u8>(),
-        ))?;
-    }
-    Ok(())
+    SEARCH_PATH.lock().unwrap().reset(level)
 }
 
 /// Get the search path for a given level of config data.
@@ -50,15 +84,7 @@ pub fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
 pub fn get_search_path(level: ConfigLevel) -> Result<String, Error> {
-    let buf = Buf::new();
-    unsafe {
-        call::c_try(raw::git_libgit2_opts(
-            raw::GIT_OPT_GET_SEARCH_PATH as libc::c_int,
-            level as libc::c_int,
-            buf.raw(),
-        ))?;
-    }
-    Ok(buf.as_str().unwrap().to_string())
+    SEARCH_PATH.lock().unwrap().get(level)
 }
 
 /// Controls whether or not libgit2 will verify when writing an object that all
