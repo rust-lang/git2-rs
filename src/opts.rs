@@ -1,5 +1,6 @@
 //! Bindings to libgit2's git_libgit2_opts function.
 
+use std::ffi::CString;
 use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
@@ -41,7 +42,7 @@ impl SearchPath {
         Ok(())
     }
 
-    pub fn get(&self, level: ConfigLevel) -> Result<String, Error> {
+    pub fn get(&self, level: ConfigLevel) -> Result<CString, Error> {
         let buf = Buf::new();
         unsafe {
             call::c_try(raw::git_libgit2_opts(
@@ -50,7 +51,7 @@ impl SearchPath {
                 buf.raw(),
             ))?;
         }
-        Ok(buf.as_str().unwrap().to_string())
+        buf.into_c_string()
     }
 }
 
@@ -83,7 +84,7 @@ pub fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
-pub fn get_search_path(level: ConfigLevel) -> Result<String, Error> {
+pub fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
     SEARCH_PATH.lock().unwrap().get(level)
 }
 
@@ -134,15 +135,18 @@ mod test {
     fn search_path() -> Result<(), Box<dyn std::error::Error>> {
         let path = "fake_path";
         let original = get_search_path(ConfigLevel::Global);
-        assert_ne!(original, Ok(path.into()));
+        assert_ne!(original, Ok(path.into_c_string()?));
 
         // Set
         set_search_path(ConfigLevel::Global, &path)?;
-        assert_eq!(get_search_path(ConfigLevel::Global), Ok(path.into()));
+        assert_eq!(
+            get_search_path(ConfigLevel::Global),
+            Ok(path.into_c_string()?)
+        );
 
         // Append
         let paths = join_paths(["$PATH", path].iter())?;
-        let expected_paths = join_paths([path, path].iter())?.into_string().unwrap();
+        let expected_paths = join_paths([path, path].iter())?.into_c_string()?;
         set_search_path(ConfigLevel::Global, paths)?;
         assert_eq!(get_search_path(ConfigLevel::Global), Ok(expected_paths));
 
