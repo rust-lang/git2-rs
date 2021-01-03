@@ -204,7 +204,7 @@ pub fn c_cmp_to_ordering(cmp: c_int) -> Ordering {
 pub fn path_to_repo_path(path: &Path) -> Result<CString, Error> {
     macro_rules! err {
         ($msg:literal, $path:expr) => {
-            return Err(Error::from_str(&format!($msg, $path.display())));
+            return Err(Error::from_str(&format!($msg, $path.display())))
         };
     }
     match path.components().next() {
