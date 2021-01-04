@@ -1964,6 +1964,35 @@ impl Repository {
         }
     }
 
+    /// Analyzes the given branch(es) and determines the opportunities for
+    /// merging them into a reference.
+    pub fn merge_analysis_for_ref(
+        &self,
+        our_ref: &Reference<'_>,
+        their_heads: &[&AnnotatedCommit<'_>],
+    ) -> Result<(MergeAnalysis, MergePreference), Error> {
+        unsafe {
+            let mut raw_merge_analysis = 0 as raw::git_merge_analysis_t;
+            let mut raw_merge_preference = 0 as raw::git_merge_preference_t;
+            let mut their_heads = their_heads
+                .iter()
+                .map(|v| v.raw() as *const _)
+                .collect::<Vec<_>>();
+            try_call!(raw::git_merge_analysis_for_ref(
+                &mut raw_merge_analysis,
+                &mut raw_merge_preference,
+                self.raw,
+                our_ref.raw(),
+                their_heads.as_mut_ptr() as *mut _,
+                their_heads.len()
+            ));
+            Ok((
+                MergeAnalysis::from_bits_truncate(raw_merge_analysis as u32),
+                MergePreference::from_bits_truncate(raw_merge_preference as u32),
+            ))
+        }
+    }
+
     /// Initializes a rebase operation to rebase the changes in `branch`
     /// relative to `upstream` onto another branch. To begin the rebase process,
     /// call `next()`.
@@ -3638,5 +3667,42 @@ mod tests {
         let config = repo.config().unwrap();
 
         assert!(!config.get_bool("commit.gpgsign").unwrap());
+    }
+
+    #[test]
+    fn smoke_merge_analysis_for_ref() -> Result<(), crate::Error> {
+        let (_td, repo) = graph_repo_init();
+
+        // Set up this repo state:
+        // * second (their-branch)
+        // * initial (HEAD -> main)
+        //
+        // We expect that their-branch can be fast-forward merged into main.
+
+        // git checkout --detach HEAD
+        let head_commit = repo.head()?.peel_to_commit()?;
+        repo.set_head_detached(head_commit.id())?;
+
+        // git branch their-branch HEAD
+        let their_branch = repo.branch("their-branch", &head_commit, false)?;
+
+        // git branch -f main HEAD~
+        let mut parents_iter = head_commit.parents();
+        let parent = parents_iter.next().unwrap();
+        assert!(parents_iter.next().is_none());
+
+        let main = repo.branch("main", &parent, true)?;
+
+        // git checkout main
+        repo.set_head(main.get().name().expect("should be utf-8"))?;
+
+        let (merge_analysis, _merge_preference) = repo.merge_analysis_for_ref(
+            main.get(),
+            &[&repo.reference_to_annotated_commit(their_branch.get())?],
+        )?;
+
+        assert!(merge_analysis.contains(crate::MergeAnalysis::ANALYSIS_FASTFORWARD));
+
+        Ok(())
     }
 }
