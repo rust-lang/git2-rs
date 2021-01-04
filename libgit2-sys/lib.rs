@@ -3116,6 +3116,15 @@ extern "C" {
         their_heads_len: usize,
     ) -> c_int;
 
+    pub fn git_merge_analysis_for_ref(
+        analysis_out: *mut git_merge_analysis_t,
+        pref_out: *mut git_merge_preference_t,
+        repo: *mut git_repository,
+        git_reference: *mut git_reference,
+        their_heads: *mut *const git_annotated_commit,
+        their_heads_len: usize,
+    ) -> c_int;
+
     // notes
     pub fn git_note_author(note: *const git_note) -> *const git_signature;
     pub fn git_note_committer(note: *const git_note) -> *const git_signature;
