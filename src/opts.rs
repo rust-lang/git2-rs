@@ -1,59 +1,9 @@
 //! Bindings to libgit2's git_libgit2_opts function.
 
 use std::ffi::CString;
-use std::sync::Mutex;
-
-use once_cell::sync::Lazy;
 
 use crate::util::Binding;
 use crate::{call, raw, Buf, ConfigLevel, Error, IntoCString};
-
-static SEARCH_PATH: Lazy<Mutex<SearchPath>> = Lazy::new(|| {
-    crate::init();
-    Mutex::new(SearchPath)
-});
-
-struct SearchPath;
-
-impl SearchPath {
-    pub fn set<P>(&self, level: ConfigLevel, path: P) -> Result<(), Error>
-    where
-        P: IntoCString,
-    {
-        let path = path.into_c_string()?;
-        unsafe {
-            call::c_try(raw::git_libgit2_opts(
-                raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
-                level as libc::c_int,
-                path.as_ptr(),
-            ))?;
-        }
-        Ok(())
-    }
-
-    pub fn reset(&self, level: ConfigLevel) -> Result<(), Error> {
-        unsafe {
-            call::c_try(raw::git_libgit2_opts(
-                raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
-                level as libc::c_int,
-                core::ptr::null::<u8>(),
-            ))?;
-        }
-        Ok(())
-    }
-
-    pub fn get(&self, level: ConfigLevel) -> Result<CString, Error> {
-        let buf = Buf::new();
-        unsafe {
-            call::c_try(raw::git_libgit2_opts(
-                raw::GIT_OPT_GET_SEARCH_PATH as libc::c_int,
-                level as libc::c_int,
-                buf.raw(),
-            ))?;
-        }
-        buf.into_c_string()
-    }
-}
 
 /// Set the search path for a level of config data. The search path applied to
 /// shared attributes and ignore files, too.
@@ -64,11 +14,20 @@ impl SearchPath {
 /// `path` lists directories delimited by `GIT_PATH_LIST_SEPARATOR`.
 /// Use magic path `$PATH` to include the old value of the path
 /// (if you want to prepend or append, for instance).
-pub fn set_search_path<P>(level: ConfigLevel, path: P) -> Result<(), Error>
+///
+/// This function is unsafe as it mutates the global state but cannot guarantee
+/// thread-safety. It needs to be externally synchronized with calls to access
+/// the global state.
+pub unsafe fn set_search_path<P>(level: ConfigLevel, path: P) -> Result<(), Error>
 where
     P: IntoCString,
 {
-    SEARCH_PATH.lock().unwrap().set(level, path)
+    call::c_try(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
+        level as libc::c_int,
+        path.into_c_string()?.as_ptr(),
+    ))?;
+    Ok(())
 }
 
 /// Reset the search path for a given level of config data to the default
@@ -76,16 +35,35 @@ where
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
-pub fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
-    SEARCH_PATH.lock().unwrap().reset(level)
+///
+/// This function is unsafe as it mutates the global state but cannot guarantee
+/// thread-safety. It needs to be externally synchronized with calls to access
+/// the global state.
+pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
+    call::c_try(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
+        level as libc::c_int,
+        core::ptr::null::<u8>(),
+    ))?;
+    Ok(())
 }
 
 /// Get the search path for a given level of config data.
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
-pub fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
-    SEARCH_PATH.lock().unwrap().get(level)
+///
+/// This function is unsafe as it mutates the global state but cannot guarantee
+/// thread-safety. It needs to be externally synchronized with calls to access
+/// the global state.
+pub unsafe fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
+    let buf = Buf::new();
+    call::c_try(raw::git_libgit2_opts(
+        raw::GIT_OPT_GET_SEARCH_PATH as libc::c_int,
+        level as libc::c_int,
+        buf.raw(),
+    ))?;
+    buf.into_c_string()
 }
 
 /// Controls whether or not libgit2 will verify when writing an object that all
@@ -134,25 +112,34 @@ mod test {
     #[test]
     fn search_path() -> Result<(), Box<dyn std::error::Error>> {
         let path = "fake_path";
-        let original = get_search_path(ConfigLevel::Global);
+        let original = unsafe { get_search_path(ConfigLevel::Global) };
         assert_ne!(original, Ok(path.into_c_string()?));
 
         // Set
-        set_search_path(ConfigLevel::Global, &path)?;
+        unsafe {
+            set_search_path(ConfigLevel::Global, &path)?;
+        }
         assert_eq!(
-            get_search_path(ConfigLevel::Global),
+            unsafe { get_search_path(ConfigLevel::Global) },
             Ok(path.into_c_string()?)
         );
 
         // Append
         let paths = join_paths(["$PATH", path].iter())?;
         let expected_paths = join_paths([path, path].iter())?.into_c_string()?;
-        set_search_path(ConfigLevel::Global, paths)?;
-        assert_eq!(get_search_path(ConfigLevel::Global), Ok(expected_paths));
+        unsafe {
+            set_search_path(ConfigLevel::Global, paths)?;
+        }
+        assert_eq!(
+            unsafe { get_search_path(ConfigLevel::Global) },
+            Ok(expected_paths)
+        );
 
         // Reset
-        reset_search_path(ConfigLevel::Global)?;
-        assert_eq!(get_search_path(ConfigLevel::Global), original);
+        unsafe {
+            reset_search_path(ConfigLevel::Global)?;
+        }
+        assert_eq!(unsafe { get_search_path(ConfigLevel::Global) }, original);
 
         Ok(())
     }
