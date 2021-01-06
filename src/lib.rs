@@ -363,7 +363,7 @@ pub enum BranchType {
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
     /// System-wide on Windows, for compatibility with portable git
-    ProgramData,
+    ProgramData = 1,
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
     /// XDG-compatible configuration file, e.g. ~/.config/git/config
@@ -375,7 +375,7 @@ pub enum ConfigLevel {
     /// Application specific configuration file
     App,
     /// Highest level available
-    Highest,
+    Highest = -1,
 }
 
 /// Merge file favor options for `MergeOptions` instruct the file-level
