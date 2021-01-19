@@ -22,6 +22,7 @@ pub unsafe fn set_search_path<P>(level: ConfigLevel, path: P) -> Result<(), Erro
 where
     P: IntoCString,
 {
+    crate::init();
     call::c_try(raw::git_libgit2_opts(
         raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
         level as libc::c_int,
@@ -40,6 +41,7 @@ where
 /// thread-safety. It needs to be externally synchronized with calls to access
 /// the global state.
 pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
+    crate::init();
     call::c_try(raw::git_libgit2_opts(
         raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
         level as libc::c_int,
@@ -57,6 +59,7 @@ pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 /// thread-safety. It needs to be externally synchronized with calls to access
 /// the global state.
 pub unsafe fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
+    crate::init();
     let buf = Buf::new();
     call::c_try(raw::git_libgit2_opts(
         raw::GIT_OPT_GET_SEARCH_PATH as libc::c_int,
