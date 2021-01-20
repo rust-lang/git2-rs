@@ -22,6 +22,7 @@ pub struct CredentialHelper {
     pub username: Option<String>,
     protocol: Option<String>,
     host: Option<String>,
+    path: Option<String>,
     url: String,
     commands: Vec<String>,
 }
@@ -198,6 +199,7 @@ impl CredentialHelper {
         let mut ret = CredentialHelper {
             protocol: None,
             host: None,
+            path: None,
             username: None,
             url: url.to_string(),
             commands: Vec::new(),
@@ -208,7 +210,7 @@ impl CredentialHelper {
             if let Some(url::Host::Domain(s)) = url.host() {
                 ret.host = Some(s.to_string());
             }
-            ret.protocol = Some(url.scheme().to_string())
+            ret.protocol = Some(url.scheme().to_string());
         }
         ret
     }
@@ -227,12 +229,11 @@ impl CredentialHelper {
         // Figure out the configured username/helper program.
         //
         // see http://git-scm.com/docs/gitcredentials.html#_configuration_options
-        //
-        // TODO: implement useHttpPath
         if self.username.is_none() {
             self.config_username(config);
         }
         self.config_helper(config);
+        self.config_use_http_path(config);
         self
     }
 
@@ -259,6 +260,29 @@ impl CredentialHelper {
         }
         let global = config.get_string("credential.helper");
         self.add_command(global.as_ref().ok().map(|s| &s[..]));
+    }
+
+    // Discover `useHttpPath` from `config`
+    fn config_use_http_path(&mut self, config: &Config) {
+        let mut use_http_path = false;
+        if let Some(value) = config.get_bool(&self.exact_key("useHttpPath")).ok() {
+            use_http_path = value;
+        } else if let Some(value) = self
+            .url_key("useHttpPath")
+            .and_then(|key| config.get_bool(&key).ok())
+        {
+            use_http_path = value;
+        } else if let Some(value) = config.get_bool("credential.useHttpPath").ok() {
+            use_http_path = value;
+        }
+
+        if use_http_path {
+            if let Ok(url) = url::Url::parse(&self.url) {
+                let path = url.path();
+                // Url::parse always includes a leading slash for rooted URLs, while git does not.
+                self.path = Some(path.strip_prefix('/').unwrap_or(path).to_string());
+            }
+        }
     }
 
     // Add a `helper` configured command to the list of commands to execute.
@@ -385,6 +409,9 @@ impl CredentialHelper {
             }
             if let Some(ref p) = self.host {
                 let _ = writeln!(stdin, "host={}", p);
+            }
+            if let Some(ref p) = self.path {
+                let _ = writeln!(stdin, "path={}", p);
             }
             if let Some(ref p) = *username {
                 let _ = writeln!(stdin, "username={}", p);
@@ -600,6 +627,16 @@ echo password=$2
             .unwrap();
         assert_eq!(u, "a");
         assert_eq!(p, "b");
+    }
+
+    #[test]
+    fn credential_helper8() {
+        let cfg = test_cfg! {
+            "credential.useHttpPath" => "true"
+        };
+        let mut helper = CredentialHelper::new("https://example.com/foo/bar");
+        helper.config(&cfg);
+        assert_eq!(helper.path.as_deref(), Some("foo/bar"));
     }
 
     #[test]
