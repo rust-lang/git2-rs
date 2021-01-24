@@ -775,7 +775,7 @@ impl DiffOptions {
 
     /// Treat all files as binary, disabling text diffs
     pub fn force_binary(&mut self, force: bool) -> &mut DiffOptions {
-        self.flag(raw::GIT_DIFF_FORCE_TEXT, force)
+        self.flag(raw::GIT_DIFF_FORCE_BINARY, force)
     }
 
     /// Ignore all whitespace
