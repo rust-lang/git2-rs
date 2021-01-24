@@ -685,7 +685,7 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNTRACKED, include)
     }
 
-    /// Flag indicating whether untracked directories are deeply traversed or
+    /// Flag indicating whether untracked directories are traversed deeply or
     /// not.
     pub fn recurse_untracked_dirs(&mut self, recurse: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_RECURSE_UNTRACKED_DIRS, recurse)
@@ -696,13 +696,13 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNMODIFIED, include)
     }
 
-    /// If entrabled, then Typechange delta records are generated.
+    /// If enabled, then Typechange delta records are generated.
     pub fn include_typechange(&mut self, include: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_TYPECHANGE, include)
     }
 
-    /// Event with `include_typechange`, the tree treturned generally shows a
-    /// deleted blow. This flag correctly labels the tree transitions as a
+    /// Event with `include_typechange`, the tree returned generally shows a
+    /// deleted blob. This flag correctly labels the tree transitions as a
     /// typechange record with the `new_file`'s mode set to tree.
     ///
     /// Note that the tree SHA will not be available.
@@ -763,7 +763,7 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE, include)
     }
 
-    /// Include unreadable files in the diff
+    /// Include unreadable files in the diff as untracked files
     pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
