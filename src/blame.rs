@@ -228,6 +228,18 @@ impl BlameOptions {
         }
         self
     }
+
+    /// The first line in the file to blame.
+    pub fn min_line(&mut self, lineno: usize) -> &mut BlameOptions {
+        self.raw.min_line = lineno;
+        self
+    }
+
+    /// The last line in the file to blame.
+    pub fn max_line(&mut self, lineno: usize) -> &mut BlameOptions {
+        self.raw.max_line = lineno;
+        self
+    }
 }
 
 impl<'repo> Binding for Blame<'repo> {
