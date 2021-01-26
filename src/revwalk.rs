@@ -1,4 +1,4 @@
-use libc::c_uint;
+use libc::{c_int, c_uint, c_void};
 use std::ffi::CString;
 use std::marker;
 
@@ -10,6 +10,19 @@ use crate::{raw, Error, Oid, Repository, Sort};
 pub struct Revwalk<'repo> {
     raw: *mut raw::git_revwalk,
     _marker: marker::PhantomData<&'repo Repository>,
+    hide_cb: Option<Box<dyn FnMut(Oid) -> bool>>,
+}
+
+extern "C" fn revwalk_hide_cb(commit_id: *const raw::git_oid, payload: *mut c_void) -> c_int {
+    unsafe {
+        let revwalk = payload as *mut Revwalk<'_>;
+        if let Some(cb) = &mut (*revwalk).hide_cb {
+            if cb(Oid::from_raw(commit_id)) {
+                return 1;
+            }
+        }
+        return 0;
+    }
 }
 
 impl<'repo> Revwalk<'repo> {
@@ -21,6 +34,7 @@ impl<'repo> Revwalk<'repo> {
         unsafe {
             try_call!(raw::git_revwalk_reset(self.raw()));
         }
+        self.hide_cb = None;
         Ok(())
     }
 
@@ -119,6 +133,20 @@ impl<'repo> Revwalk<'repo> {
         Ok(())
     }
 
+    /// Hide all commits for which the callback returns true from
+    /// the walk.
+    pub fn hide_callback(&mut self, callback: Box<dyn FnMut(Oid) -> bool>) -> Result<(), Error> {
+        self.hide_cb = Some(callback);
+        unsafe {
+            raw::git_revwalk_add_hide_cb(
+                self.raw(),
+                Some(revwalk_hide_cb),
+                self as *mut Revwalk<'_> as *mut c_void,
+            );
+        };
+        Ok(())
+    }
+
     /// Hide the repository's HEAD
     ///
     /// For more information, see `hide`.
@@ -165,6 +193,7 @@ impl<'repo> Binding for Revwalk<'repo> {
         Revwalk {
             raw: raw,
             _marker: marker::PhantomData,
+            hide_cb: None,
         }
     }
     fn raw(&self) -> *mut raw::git_revwalk {
@@ -215,5 +244,36 @@ mod tests {
         walk.push_head().unwrap();
         walk.hide_head().unwrap();
         assert_eq!(walk.by_ref().count(), 0);
+    }
+
+    #[test]
+    fn smoke_hide_cb() {
+        let (_td, repo) = crate::test::repo_init();
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+
+        let mut walk = repo.revwalk().unwrap();
+        walk.push(target).unwrap();
+
+        let oids: Vec<crate::Oid> = walk.by_ref().collect::<Result<Vec<_>, _>>().unwrap();
+
+        assert_eq!(oids.len(), 1);
+        assert_eq!(oids[0], target);
+
+        walk.reset().unwrap();
+        walk.push_head().unwrap();
+        assert_eq!(walk.by_ref().count(), 1);
+
+        walk.reset().unwrap();
+        walk.push_head().unwrap();
+
+        walk.hide_callback(Box::new(move |oid| oid == target))
+            .unwrap();
+
+        assert_eq!(walk.by_ref().count(), 0);
+
+        walk.reset().unwrap();
+        walk.push_head().unwrap();
+        assert_eq!(walk.by_ref().count(), 1);
     }
 }
