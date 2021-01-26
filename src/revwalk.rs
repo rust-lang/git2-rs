@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::marker;
 
 use crate::util::Binding;
-use crate::{raw, Error, Oid, Repository, Sort};
+use crate::{panic, raw, Error, Oid, Repository, Sort};
 
 /// A revwalk allows traversal of the commit graph defined by including one or
 /// more leaves and excluding one or more roots.
@@ -14,7 +14,7 @@ pub struct Revwalk<'repo> {
 }
 
 extern "C" fn revwalk_hide_cb(commit_id: *const raw::git_oid, payload: *mut c_void) -> c_int {
-    unsafe {
+    panic::wrap(|| unsafe {
         let revwalk = payload as *mut Revwalk<'_>;
         if let Some(cb) = &mut (*revwalk).hide_cb {
             if cb(Oid::from_raw(commit_id)) {
@@ -22,7 +22,8 @@ extern "C" fn revwalk_hide_cb(commit_id: *const raw::git_oid, payload: *mut c_vo
             }
         }
         return 0;
-    }
+    })
+    .unwrap_or(-1)
 }
 
 impl<'repo> Revwalk<'repo> {
@@ -34,6 +35,7 @@ impl<'repo> Revwalk<'repo> {
         unsafe {
             try_call!(raw::git_revwalk_reset(self.raw()));
         }
+        // After git_revwalk_reset this will not be used anymore, so clear it.
         self.hide_cb = None;
         Ok(())
     }
@@ -215,7 +217,11 @@ impl<'repo> Iterator for Revwalk<'repo> {
         };
         unsafe {
             try_call_iter!(raw::git_revwalk_next(&mut out, self.raw()));
-            Some(Ok(Binding::from_raw(&out as *const _)))
+            Some(if crate::panic::panicked() {
+                Err(Error::from_str("panicked during git_revwalk_next"))
+            } else {
+                Ok(Binding::from_raw(&out as *const _))
+            })
         }
     }
 }
