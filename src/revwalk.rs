@@ -217,11 +217,8 @@ impl<'repo> Iterator for Revwalk<'repo> {
         };
         unsafe {
             try_call_iter!(raw::git_revwalk_next(&mut out, self.raw()));
-            Some(if crate::panic::panicked() {
-                Err(Error::from_str("panicked during git_revwalk_next"))
-            } else {
-                Ok(Binding::from_raw(&out as *const _))
-            })
+            crate::panic::check();
+            Some(Ok(Binding::from_raw(&out as *const _)))
         }
     }
 }
