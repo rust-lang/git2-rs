@@ -12,6 +12,7 @@ pub struct Revwalk<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+/// A `Revwalk` with an assiciated "hide callback", see `with_hide_callback`
 pub struct RevwalkWithHideCb<'repo, 'cb, C>
 where
     C: FnMut(Oid) -> bool,
@@ -35,6 +36,9 @@ where
 }
 
 impl<'repo, 'cb, C: FnMut(Oid) -> bool> RevwalkWithHideCb<'repo, 'cb, C> {
+    /// Consumes the `RevwalkWithHideCb` and returns the contained `Revwalk`.
+    ///
+    /// Note that this will reset the `Revwalk`.
     pub fn into_inner(mut self) -> Result<Revwalk<'repo>, Error> {
         self.revwalk.reset()?;
         Ok(self.revwalk)
@@ -50,7 +54,6 @@ impl<'repo> Revwalk<'repo> {
         unsafe {
             try_call!(raw::git_revwalk_reset(self.raw()));
         }
-        // After git_revwalk_reset this will not be used anymore, so clear it.
         Ok(())
     }
 
@@ -153,7 +156,7 @@ impl<'repo> Revwalk<'repo> {
     /// the walk.
     pub fn with_hide_callback<'cb, C>(
         self,
-        callback: &'cb mut C,
+        callback: &'cb C,
     ) -> Result<RevwalkWithHideCb<'repo, 'cb, C>, Error>
     where
         C: FnMut(Oid) -> bool,
@@ -166,7 +169,7 @@ impl<'repo> Revwalk<'repo> {
             raw::git_revwalk_add_hide_cb(
                 r.revwalk.raw(),
                 Some(revwalk_hide_cb::<C>),
-                callback as *mut _ as *mut c_void,
+                callback as *const _ as *mut c_void,
             );
         };
         Ok(r)
@@ -300,8 +303,8 @@ mod tests {
         walk.reset().unwrap();
         walk.push_head().unwrap();
 
-        let mut hide_cb = move |oid| oid == target;
-        let mut walk = walk.with_hide_callback(&mut hide_cb).unwrap();
+        let hide_cb = |oid| oid == target;
+        let mut walk = walk.with_hide_callback(&hide_cb).unwrap();
 
         assert_eq!(walk.by_ref().count(), 0);
 
