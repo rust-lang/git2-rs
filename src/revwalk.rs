@@ -1,15 +1,48 @@
-use libc::c_uint;
+use libc::{c_int, c_uint, c_void};
 use std::ffi::CString;
 use std::marker;
 
 use crate::util::Binding;
-use crate::{raw, Error, Oid, Repository, Sort};
+use crate::{panic, raw, Error, Oid, Repository, Sort};
 
 /// A revwalk allows traversal of the commit graph defined by including one or
 /// more leaves and excluding one or more roots.
 pub struct Revwalk<'repo> {
     raw: *mut raw::git_revwalk,
     _marker: marker::PhantomData<&'repo Repository>,
+}
+
+/// A `Revwalk` with an assiciated "hide callback", see `with_hide_callback`
+pub struct RevwalkWithHideCb<'repo, 'cb, C>
+where
+    C: FnMut(Oid) -> bool,
+{
+    revwalk: Revwalk<'repo>,
+    _marker: marker::PhantomData<&'cb C>,
+}
+
+extern "C" fn revwalk_hide_cb<C>(commit_id: *const raw::git_oid, payload: *mut c_void) -> c_int
+where
+    C: FnMut(Oid) -> bool,
+{
+    panic::wrap(|| unsafe {
+        let hide_cb = payload as *mut C;
+        if (*hide_cb)(Oid::from_raw(commit_id)) {
+            return 1;
+        }
+        return 0;
+    })
+    .unwrap_or(-1)
+}
+
+impl<'repo, 'cb, C: FnMut(Oid) -> bool> RevwalkWithHideCb<'repo, 'cb, C> {
+    /// Consumes the `RevwalkWithHideCb` and returns the contained `Revwalk`.
+    ///
+    /// Note that this will reset the `Revwalk`.
+    pub fn into_inner(mut self) -> Result<Revwalk<'repo>, Error> {
+        self.revwalk.reset()?;
+        Ok(self.revwalk)
+    }
 }
 
 impl<'repo> Revwalk<'repo> {
@@ -119,6 +152,29 @@ impl<'repo> Revwalk<'repo> {
         Ok(())
     }
 
+    /// Hide all commits for which the callback returns true from
+    /// the walk.
+    pub fn with_hide_callback<'cb, C>(
+        self,
+        callback: &'cb C,
+    ) -> Result<RevwalkWithHideCb<'repo, 'cb, C>, Error>
+    where
+        C: FnMut(Oid) -> bool,
+    {
+        let r = RevwalkWithHideCb {
+            revwalk: self,
+            _marker: marker::PhantomData,
+        };
+        unsafe {
+            raw::git_revwalk_add_hide_cb(
+                r.revwalk.raw(),
+                Some(revwalk_hide_cb::<C>),
+                callback as *const _ as *mut c_void,
+            );
+        };
+        Ok(r)
+    }
+
     /// Hide the repository's HEAD
     ///
     /// For more information, see `hide`.
@@ -191,6 +247,15 @@ impl<'repo> Iterator for Revwalk<'repo> {
     }
 }
 
+impl<'repo, 'cb, C: FnMut(Oid) -> bool> Iterator for RevwalkWithHideCb<'repo, 'cb, C> {
+    type Item = Result<Oid, Error>;
+    fn next(&mut self) -> Option<Result<Oid, Error>> {
+        let out = self.revwalk.next();
+        crate::panic::check();
+        out
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -215,5 +280,36 @@ mod tests {
         walk.push_head().unwrap();
         walk.hide_head().unwrap();
         assert_eq!(walk.by_ref().count(), 0);
+    }
+
+    #[test]
+    fn smoke_hide_cb() {
+        let (_td, repo) = crate::test::repo_init();
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+
+        let mut walk = repo.revwalk().unwrap();
+        walk.push(target).unwrap();
+
+        let oids: Vec<crate::Oid> = walk.by_ref().collect::<Result<Vec<_>, _>>().unwrap();
+
+        assert_eq!(oids.len(), 1);
+        assert_eq!(oids[0], target);
+
+        walk.reset().unwrap();
+        walk.push_head().unwrap();
+        assert_eq!(walk.by_ref().count(), 1);
+
+        walk.reset().unwrap();
+        walk.push_head().unwrap();
+
+        let hide_cb = |oid| oid == target;
+        let mut walk = walk.with_hide_callback(&hide_cb).unwrap();
+
+        assert_eq!(walk.by_ref().count(), 0);
+
+        let mut walk = walk.into_inner().unwrap();
+        walk.push_head().unwrap();
+        assert_eq!(walk.by_ref().count(), 1);
     }
 }
