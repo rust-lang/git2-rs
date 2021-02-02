@@ -21,7 +21,7 @@ pub type ForEachCb<'a> = dyn FnMut(&[u8]) -> bool + 'a;
 /// A builder for creating a packfile
 pub struct PackBuilder<'repo> {
     raw: *mut raw::git_packbuilder,
-    progress: Option<Box<Box<ProgressCb<'repo>>>>,
+    _progress: Option<Box<Box<ProgressCb<'repo>>>>,
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
@@ -122,7 +122,7 @@ impl<'repo> PackBuilder<'repo> {
                 ptr as *mut _
             ));
         }
-        self.progress = Some(progress);
+        self._progress = Some(progress);
         Ok(())
     }
 
@@ -135,7 +135,7 @@ impl<'repo> PackBuilder<'repo> {
                 None,
                 ptr::null_mut()
             ));
-            self.progress = None;
+            self._progress = None;
         }
         Ok(())
     }
@@ -174,7 +174,7 @@ impl<'repo> Binding for PackBuilder<'repo> {
     unsafe fn from_raw(ptr: *mut raw::git_packbuilder) -> PackBuilder<'repo> {
         PackBuilder {
             raw: ptr,
-            progress: None,
+            _progress: None,
             _marker: marker::PhantomData,
         }
     }
