@@ -6,7 +6,7 @@ use std::ptr;
 use std::str;
 
 use crate::util::Binding;
-use crate::{raw, signature, Error, Object, Oid, Signature, Time, Tree};
+use crate::{raw, signature, Buf, Error, IntoCString, Object, Oid, Signature, Time, Tree};
 
 /// A structure to represent a git [commit][1]
 ///
@@ -103,6 +103,20 @@ impl<'repo> Commit<'repo> {
     /// `None` will be returned if the message is not valid utf-8
     pub fn raw_header(&self) -> Option<&str> {
         str::from_utf8(self.raw_header_bytes()).ok()
+    }
+
+    /// Get an arbitrary header field.
+    pub fn header_field_bytes<T: IntoCString>(&self, field: T) -> Result<Buf, Error> {
+        let buf = Buf::new();
+        let raw_field = field.into_c_string()?;
+        unsafe {
+            try_call!(raw::git_commit_header_field(
+                buf.raw(),
+                &*self.raw,
+                raw_field
+            ));
+        }
+        Ok(buf)
     }
 
     /// Get the full raw text of the commit header.
@@ -367,6 +381,11 @@ mod tests {
         commit.tree().unwrap();
         assert_eq!(commit.parents().count(), 0);
 
+        let tree_header_bytes = commit.header_field_bytes("tree").unwrap();
+        assert_eq!(
+            crate::Oid::from_str(tree_header_bytes.as_str().unwrap()).unwrap(),
+            commit.tree_id()
+        );
         assert_eq!(commit.author().name(), Some("name"));
         assert_eq!(commit.author().email(), Some("email"));
         assert_eq!(commit.committer().name(), Some("name"));
