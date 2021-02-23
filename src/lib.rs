@@ -80,7 +80,7 @@ use std::str;
 use std::sync::Once;
 
 pub use crate::apply::{ApplyLocation, ApplyOptions};
-pub use crate::attr::{AttrValue, AttrValueBytes};
+pub use crate::attr::AttrValue;
 pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use crate::blob::{Blob, BlobWriter};
 pub use crate::branch::{Branch, Branches};

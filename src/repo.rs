@@ -955,8 +955,8 @@ impl Repository {
     ///
     /// This function will return a special string if the attribute is set to a special value.
     /// Interpreting the special string is discouraged. You should always use
-    /// [`AttrValue::new`](crate::AttrValue::new) to interpret the return value and avoid the
-    /// special string.
+    /// [`AttrValue::from_string`](crate::AttrValue::from_string) to interpret the return value
+    /// and avoid the special string.
     ///
     /// As such, the return type of this function will probably be changed in the next major version
     /// to prevent interpreting the returned string without checking whether it's special.
@@ -975,8 +975,8 @@ impl Repository {
     ///
     /// This function will return a special byte slice if the attribute is set to a special value.
     /// Interpreting the special byte slice is discouraged. You should always use
-    /// [`AttrValueBytes::new`](crate::AttrValueBytes::new) to interpret the return value and avoid
-    /// the special string.
+    /// [`AttrValue::from_bytes`](crate::AttrValue::from_bytes) to interpret the return value and
+    /// avoid the special string.
     ///
     /// As such, the return type of this function will probably be changed in the next major version
     /// to prevent interpreting the returned byte slice without checking whether it's special.
