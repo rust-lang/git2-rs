@@ -4,7 +4,7 @@ use std::ptr;
 use std::str::{self, Utf8Error};
 
 macro_rules! define_inspector {
-    ($enum_name:ident, $enum_doc:literal, $fn_name:ident, $fn_doc:literal, $s:ty) => {
+    ($enum_name:ident, $enum_doc:literal, $fn_doc:literal, $s:ty) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         #[doc = $enum_doc]
         pub enum $enum_name<'string> {
@@ -18,16 +18,18 @@ macro_rules! define_inspector {
             Unspecified,
         }
 
-        #[doc = $fn_doc]
-        pub fn $fn_name(attr_value: Option<&$s>) -> $enum_name<'_> {
-            match unsafe {
-                raw::git_attr_value(attr_value.map_or(ptr::null(), |v| v.as_ptr().cast()))
-            } {
-                raw::GIT_ATTR_VALUE_TRUE => $enum_name::True,
-                raw::GIT_ATTR_VALUE_FALSE => $enum_name::False,
-                raw::GIT_ATTR_VALUE_STRING => $enum_name::String(attr_value.unwrap()),
-                raw::GIT_ATTR_VALUE_UNSPECIFIED => $enum_name::Unspecified,
-                _ => unreachable!(),
+        impl<'string> $enum_name<'string> {
+            #[doc = $fn_doc]
+            pub fn new(attr_value: Option<&'string $s>) -> Self {
+                match unsafe {
+                    raw::git_attr_value(attr_value.map_or(ptr::null(), |v| v.as_ptr().cast()))
+                } {
+                    raw::GIT_ATTR_VALUE_TRUE => $enum_name::True,
+                    raw::GIT_ATTR_VALUE_FALSE => $enum_name::False,
+                    raw::GIT_ATTR_VALUE_STRING => $enum_name::String(attr_value.unwrap()),
+                    raw::GIT_ATTR_VALUE_UNSPECIFIED => $enum_name::Unspecified,
+                    _ => unreachable!(),
+                }
             }
         }
     };
@@ -36,8 +38,8 @@ macro_rules! define_inspector {
 define_inspector!(
     AttrValue,
     "All possible states of an attribute, using [`prim@str`] to represent the string.\n\n\
-     This enum is returned by [`attr_value`].",
-    attr_value,
+     This enum is used to interpret the value returned by \
+     [`Repository::get_attr`](crate::Repository::get_attr).",
     "Returns the state of an attribute by inspecting its [value](crate::Repository::get_attr) \
      by a [string](prim@str).",
     str
@@ -61,8 +63,8 @@ impl<'string> TryFrom<AttrValueBytes<'string>> for AttrValue<'string> {
 define_inspector!(
     AttrValueBytes,
     "All possible states of an attribute, using a [byte](u8) [slice] to represent the string.\n\n\
-     This enum is returned by [`attr_value_bytes`].",
-    attr_value_bytes,
+     This enum is used to interpret the value returned by \
+     [`Repository::get_attr_bytes`](crate::Repository::get_attr_bytes).",
     "Returns the state of an attribute by inspecting its [value](crate::Repository::get_attr_bytes) \
      by a [byte](u8) [slice].",
     [u8]
@@ -97,49 +99,47 @@ mod tests {
         static mut git_attr__unset: *const c_char;
     }
 
-    macro_rules! define_test {
-        ($enum_name:ident, $fn_name:ident) => {
-            #[test]
-            fn $fn_name() {
-                let attr_true = unsafe { CStr::from_ptr(git_attr__true) }.to_str().unwrap();
-                let attr_false = unsafe { CStr::from_ptr(git_attr__false) }.to_str().unwrap();
-                let attr_unset = unsafe { CStr::from_ptr(git_attr__unset) }.to_str().unwrap();
-                assert_eq!(
-                    super::$fn_name(Some(attr_true.to_owned().as_ref())),
-                    $enum_name::String(attr_true.as_ref())
-                );
-                assert_eq!(
-                    super::$fn_name(Some(attr_false.to_owned().as_ref())),
-                    $enum_name::String(attr_false.as_ref())
-                );
-                assert_eq!(
-                    super::$fn_name(Some(attr_unset.to_owned().as_ref())),
-                    $enum_name::String(attr_unset.as_ref())
-                );
-                assert_eq!(
-                    super::$fn_name(Some("foo".as_ref())),
-                    $enum_name::String("foo".as_ref())
-                );
-                assert_eq!(
-                    super::$fn_name(Some("bar".as_ref())),
-                    $enum_name::String("bar".as_ref())
-                );
-                assert_eq!(super::$fn_name(Some(attr_true.as_ref())), $enum_name::True);
-                assert_eq!(
-                    super::$fn_name(Some(attr_false.as_ref())),
-                    $enum_name::False
-                );
-                assert_eq!(
-                    super::$fn_name(Some(attr_unset.as_ref())),
-                    $enum_name::Unspecified
-                );
-                assert_eq!(super::$fn_name(None), $enum_name::Unspecified);
-            }
+    macro_rules! test_enum {
+        ($name:ident) => {
+            let attr_true = unsafe { CStr::from_ptr(git_attr__true) }.to_str().unwrap();
+            let attr_false = unsafe { CStr::from_ptr(git_attr__false) }.to_str().unwrap();
+            let attr_unset = unsafe { CStr::from_ptr(git_attr__unset) }.to_str().unwrap();
+            assert_eq!(
+                $name::new(Some(attr_true.to_owned().as_ref())),
+                $name::String(attr_true.as_ref())
+            );
+            assert_eq!(
+                $name::new(Some(attr_false.to_owned().as_ref())),
+                $name::String(attr_false.as_ref())
+            );
+            assert_eq!(
+                $name::new(Some(attr_unset.to_owned().as_ref())),
+                $name::String(attr_unset.as_ref())
+            );
+            assert_eq!(
+                $name::new(Some("foo".as_ref())),
+                $name::String("foo".as_ref())
+            );
+            assert_eq!(
+                $name::new(Some("bar".as_ref())),
+                $name::String("bar".as_ref())
+            );
+            assert_eq!($name::new(Some(attr_true.as_ref())), $name::True);
+            assert_eq!($name::new(Some(attr_false.as_ref())), $name::False);
+            assert_eq!($name::new(Some(attr_unset.as_ref())), $name::Unspecified);
+            assert_eq!($name::new(None), $name::Unspecified);
         };
     }
 
-    define_test!(AttrValue, attr_value);
-    define_test!(AttrValueBytes, attr_value_bytes);
+    #[test]
+    fn attr_value() {
+        test_enum!(AttrValue);
+    }
+
+    #[test]
+    fn attr_value_bytes() {
+        test_enum!(AttrValueBytes);
+    }
 
     #[test]
     fn attr_value_from_attr_value_bytes() {

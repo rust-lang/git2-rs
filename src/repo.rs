@@ -954,9 +954,9 @@ impl Repository {
     /// Get the value of a git attribute for a path as a string.
     ///
     /// This function will return a special string if the attribute is set to a special value.
-    /// Interpreting the special string is discouraged. You should always use the
-    /// [`attr_value`](crate::attr_value) function to determine whether the returned string is
-    /// special and use the [`AttrValue`](crate::AttrValue) enum to access the value.
+    /// Interpreting the special string is discouraged. You should always use
+    /// [`AttrValue::new`](crate::AttrValue::new) to interpret the return value and avoid the
+    /// special string.
     ///
     /// As such, the return type of this function will probably be changed in the next major version
     /// to prevent interpreting the returned string without checking whether it's special.
@@ -974,10 +974,9 @@ impl Repository {
     /// Get the value of a git attribute for a path as a byte slice.
     ///
     /// This function will return a special byte slice if the attribute is set to a special value.
-    /// Interpreting the special byte slice is discouraged. You should always use the
-    /// [`attr_value_bytes`](crate::attr_value_bytes) function to determine whether the returned
-    /// byte slice is special and use the [`AttrValueBytes`](crate::AttrValueBytes) enum to access
-    /// the value.
+    /// Interpreting the special byte slice is discouraged. You should always use
+    /// [`AttrValueBytes::new`](crate::AttrValueBytes::new) to interpret the return value and avoid
+    /// the special string.
     ///
     /// As such, the return type of this function will probably be changed in the next major version
     /// to prevent interpreting the returned byte slice without checking whether it's special.
