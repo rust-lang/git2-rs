@@ -15,51 +15,60 @@ pub enum AttrValue<'string> {
     False,
     /// The attribute is set to a [valid UTF-8 string](prim@str).
     String(&'string str),
-    /// The attribute is set to a non-UTF-8 string.
+    /// The attribute is set to a string that might not be [valid UTF-8](prim@str).
     Bytes(&'string [u8]),
     /// The attribute is not specified.
     Unspecified,
+}
+
+macro_rules! from_value {
+    ($value:expr => $string:expr) => {
+        match unsafe { raw::git_attr_value($value.map_or(ptr::null(), |v| v.as_ptr().cast())) } {
+            raw::GIT_ATTR_VALUE_TRUE => Self::True,
+            raw::GIT_ATTR_VALUE_FALSE => Self::False,
+            raw::GIT_ATTR_VALUE_STRING => $string,
+            raw::GIT_ATTR_VALUE_UNSPECIFIED => Self::Unspecified,
+            _ => unreachable!(),
+        }
+    };
 }
 
 impl<'string> AttrValue<'string> {
     /// Returns the state of an attribute by inspecting its [value](crate::Repository::get_attr)
     /// by a [string](prim@str).
     ///
-    /// As [`str`](prim@str) is guaranteed to contain only valid UTF-8, this function never returns
-    /// [`AttrValue::Bytes`].
+    /// This function always returns [`AttrValue::String`] and never returns [`AttrValue::Bytes`]
+    /// when the attribute is set to a string.
     pub fn from_string(value: Option<&'string str>) -> Self {
-        match unsafe { raw::git_attr_value(value.map_or(ptr::null(), |v| v.as_ptr().cast())) } {
-            raw::GIT_ATTR_VALUE_TRUE => Self::True,
-            raw::GIT_ATTR_VALUE_FALSE => Self::False,
-            raw::GIT_ATTR_VALUE_STRING => Self::String(value.unwrap()),
-            raw::GIT_ATTR_VALUE_UNSPECIFIED => Self::Unspecified,
-            _ => unreachable!(),
-        }
+        from_value!(value => Self::String(value.unwrap()))
     }
 
     /// Returns the state of an attribute by inspecting its [value](crate::Repository::get_attr_bytes)
     /// by a [byte](u8) [slice].
+    ///
+    /// This function will perform UTF-8 validation when the attribute is set to a string, returns
+    /// [`AttrValue::String`] if it's valid UTF-8 and [`AttrValue::Bytes`] otherwise.
     pub fn from_bytes(value: Option<&'string [u8]>) -> Self {
-        match unsafe { raw::git_attr_value(value.map_or(ptr::null(), |v| v.as_ptr().cast())) } {
-            raw::GIT_ATTR_VALUE_TRUE => Self::True,
-            raw::GIT_ATTR_VALUE_FALSE => Self::False,
-            raw::GIT_ATTR_VALUE_STRING => {
-                let value = value.unwrap();
-                if let Ok(string) = str::from_utf8(value) {
-                    Self::String(string)
-                } else {
-                    Self::Bytes(value)
-                }
+        from_value!(value => {
+            let value = value.unwrap();
+            if let Ok(string) = str::from_utf8(value) {
+                Self::String(string)
+            } else {
+                Self::Bytes(value)
             }
-            raw::GIT_ATTR_VALUE_UNSPECIFIED => Self::Unspecified,
-            _ => unreachable!(),
-        }
+        })
+    }
+
+    /// Returns the state of an attribute just like [`AttrValue::from_bytes`], but skips UTF-8
+    /// validation and always returns [`AttrValue::Bytes`] when it's set to a string.
+    pub fn always_bytes(value: Option<&'string [u8]>) -> Self {
+        from_value!(value => Self::Bytes(value.unwrap()))
     }
 }
 
 /// Compare two [`AttrValue`]s.
 ///
-/// Note that this implementation does not differentiate [`AttrValue::String`] and
+/// Note that this implementation does not differentiate between [`AttrValue::String`] and
 /// [`AttrValue::Bytes`].
 impl PartialEq for AttrValue<'_> {
     fn eq(&self, other: &AttrValue<'_>) -> bool {
@@ -90,31 +99,34 @@ mod tests {
         static mut git_attr__unset: *const c_char;
     }
 
-    macro_rules! test_attr_value_from {
+    macro_rules! test_attr_value {
         ($function:ident, $variant:ident) => {
             let attr_true = unsafe { CStr::from_ptr(git_attr__true) }.to_str().unwrap();
             let attr_false = unsafe { CStr::from_ptr(git_attr__false) }.to_str().unwrap();
             let attr_unset = unsafe { CStr::from_ptr(git_attr__unset) }.to_str().unwrap();
-            assert_eq!(
+            let as_bytes = AsRef::<[u8]>::as_ref;
+            // Use `matches!` here since the `PartialEq` implementation does not differentiate
+            // between `String` and `Bytes`.
+            assert!(matches!(
                 AttrValue::$function(Some(attr_true.to_owned().as_ref())),
-                AttrValue::$variant(attr_true.as_ref())
-            );
-            assert_eq!(
+                AttrValue::$variant(s) if as_bytes(s) == attr_true.as_bytes()
+            ));
+            assert!(matches!(
                 AttrValue::$function(Some(attr_false.to_owned().as_ref())),
-                AttrValue::$variant(attr_false.as_ref())
-            );
-            assert_eq!(
+                AttrValue::$variant(s) if as_bytes(s) == attr_false.as_bytes()
+            ));
+            assert!(matches!(
                 AttrValue::$function(Some(attr_unset.to_owned().as_ref())),
-                AttrValue::$variant(attr_unset.as_ref())
-            );
-            assert_eq!(
+                AttrValue::$variant(s) if as_bytes(s) == attr_unset.as_bytes()
+            ));
+            assert!(matches!(
                 AttrValue::$function(Some("foo".as_ref())),
-                AttrValue::$variant("foo".as_ref())
-            );
-            assert_eq!(
+                AttrValue::$variant(s) if as_bytes(s) == b"foo"
+            ));
+            assert!(matches!(
                 AttrValue::$function(Some("bar".as_ref())),
-                AttrValue::$variant("bar".as_ref())
-            );
+                AttrValue::$variant(s) if as_bytes(s) == b"bar"
+            ));
             assert_eq!(
                 AttrValue::$function(Some(attr_true.as_ref())),
                 AttrValue::True
@@ -133,12 +145,33 @@ mod tests {
 
     #[test]
     fn attr_value_from_string() {
-        test_attr_value_from!(from_string, String);
+        test_attr_value!(from_string, String);
     }
 
     #[test]
     fn attr_value_from_bytes() {
-        test_attr_value_from!(from_bytes, Bytes);
+        test_attr_value!(from_bytes, String);
+        assert!(matches!(
+            AttrValue::from_bytes(Some(&[0xff])),
+            AttrValue::Bytes(&[0xff])
+        ));
+        assert!(matches!(
+            AttrValue::from_bytes(Some(b"\xffoobar")),
+            AttrValue::Bytes(b"\xffoobar")
+        ));
+    }
+
+    #[test]
+    fn attr_value_always_bytes() {
+        test_attr_value!(always_bytes, Bytes);
+        assert!(matches!(
+            AttrValue::always_bytes(Some(&[0xff; 2])),
+            AttrValue::Bytes(&[0xff, 0xff])
+        ));
+        assert!(matches!(
+            AttrValue::always_bytes(Some(b"\xffoo")),
+            AttrValue::Bytes(b"\xffoo")
+        ));
     }
 
     #[test]
