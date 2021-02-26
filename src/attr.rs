@@ -49,14 +49,13 @@ impl<'string> AttrValue<'string> {
     /// This function will perform UTF-8 validation when the attribute is set to a string, returns
     /// [`AttrValue::String`] if it's valid UTF-8 and [`AttrValue::Bytes`] otherwise.
     pub fn from_bytes(value: Option<&'string [u8]>) -> Self {
-        from_value!(value => {
-            let value = value.unwrap();
-            if let Ok(string) = str::from_utf8(value) {
-                Self::String(string)
-            } else {
-                Self::Bytes(value)
+        let mut value = Self::always_bytes(value);
+        if let Self::Bytes(bytes) = value {
+            if let Ok(string) = str::from_utf8(bytes) {
+                value = Self::String(string);
             }
-        })
+        }
+        value
     }
 
     /// Returns the state of an attribute just like [`AttrValue::from_bytes`], but skips UTF-8
