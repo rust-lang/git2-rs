@@ -221,6 +221,17 @@ impl<'repo> Remote<'repo> {
         Ok(())
     }
 
+    /// Cancel the operation
+    ///
+    /// At certain points in its operation, the network code checks whether the
+    /// operation has been cancelled and if so stops the operation.
+    pub fn stop(&mut self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_remote_stop(self.raw));
+        }
+        Ok(())
+    }
+
     /// Get the number of refspecs for a remote
     pub fn refspecs(&self) -> Refspecs<'_> {
         let cnt = unsafe { raw::git_remote_refspec_count(&*self.raw) as usize };
@@ -636,7 +647,7 @@ mod tests {
         drop(repo);
 
         let repo = t!(Repository::init(td.path()));
-        let origin = t!(repo.find_remote("origin"));
+        let mut origin = t!(repo.find_remote("origin"));
         assert_eq!(origin.name(), Some("origin"));
         assert_eq!(origin.url(), Some("/path/to/nowhere"));
         assert_eq!(origin.pushurl(), None);
@@ -646,6 +657,8 @@ mod tests {
 
         let stats = origin.stats();
         assert_eq!(stats.total_objects(), 0);
+
+        t!(origin.stop());
     }
 
     #[test]
