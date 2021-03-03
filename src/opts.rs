@@ -3,7 +3,7 @@
 use std::ffi::CString;
 
 use crate::util::Binding;
-use crate::{call, raw, Buf, ConfigLevel, Error, IntoCString};
+use crate::{raw, Buf, ConfigLevel, Error, IntoCString};
 
 /// Set the search path for a level of config data. The search path applied to
 /// shared attributes and ignore files, too.
@@ -23,11 +23,11 @@ where
     P: IntoCString,
 {
     crate::init();
-    call::c_try(raw::git_libgit2_opts(
+    try_call!(raw::git_libgit2_opts(
         raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
         level as libc::c_int,
-        path.into_c_string()?.as_ptr(),
-    ))?;
+        path.into_c_string()?.as_ptr()
+    ));
     Ok(())
 }
 
@@ -42,11 +42,11 @@ where
 /// the global state.
 pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
     crate::init();
-    call::c_try(raw::git_libgit2_opts(
+    try_call!(raw::git_libgit2_opts(
         raw::GIT_OPT_SET_SEARCH_PATH as libc::c_int,
         level as libc::c_int,
-        core::ptr::null::<u8>(),
-    ))?;
+        core::ptr::null::<u8>()
+    ));
     Ok(())
 }
 
@@ -61,11 +61,11 @@ pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 pub unsafe fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
     crate::init();
     let buf = Buf::new();
-    call::c_try(raw::git_libgit2_opts(
+    try_call!(raw::git_libgit2_opts(
         raw::GIT_OPT_GET_SEARCH_PATH as libc::c_int,
         level as libc::c_int,
-        buf.raw(),
-    ))?;
+        buf.raw() as *const _
+    ));
     buf.into_c_string()
 }
 
