@@ -58,7 +58,9 @@ mod impls {
 
     use crate::call::Convert;
     use crate::{raw, BranchType, ConfigLevel, Direction, ObjectType, ResetType};
-    use crate::{AutotagOption, DiffFormat, FetchPrune, FileFavor, SubmoduleIgnore};
+    use crate::{
+        AutotagOption, DiffFormat, FetchPrune, FileFavor, SubmoduleIgnore, SubmoduleUpdate,
+    };
 
     impl<T: Copy> Convert<T> for T {
         fn convert(&self) -> T {
@@ -205,6 +207,18 @@ mod impls {
                 SubmoduleIgnore::Untracked => raw::GIT_SUBMODULE_IGNORE_UNTRACKED,
                 SubmoduleIgnore::Dirty => raw::GIT_SUBMODULE_IGNORE_DIRTY,
                 SubmoduleIgnore::All => raw::GIT_SUBMODULE_IGNORE_ALL,
+            }
+        }
+    }
+
+    impl Convert<raw::git_submodule_update_t> for SubmoduleUpdate {
+        fn convert(&self) -> raw::git_submodule_update_t {
+            match *self {
+                SubmoduleUpdate::Checkout => raw::GIT_SUBMODULE_UPDATE_CHECKOUT,
+                SubmoduleUpdate::Rebase => raw::GIT_SUBMODULE_UPDATE_REBASE,
+                SubmoduleUpdate::Merge => raw::GIT_SUBMODULE_UPDATE_MERGE,
+                SubmoduleUpdate::None => raw::GIT_SUBMODULE_UPDATE_NONE,
+                SubmoduleUpdate::Default => raw::GIT_SUBMODULE_UPDATE_DEFAULT,
             }
         }
     }

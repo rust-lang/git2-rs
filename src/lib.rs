@@ -931,6 +931,34 @@ impl ConfigLevel {
     }
 }
 
+impl SubmoduleIgnore {
+    /// Converts a [`raw::git_submodule_ignore_t`] to a [`SubmoduleIgnore`]
+    pub fn from_raw(raw: raw::git_submodule_ignore_t) -> Self {
+        match raw {
+            raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED => SubmoduleIgnore::Unspecified,
+            raw::GIT_SUBMODULE_IGNORE_NONE => SubmoduleIgnore::None,
+            raw::GIT_SUBMODULE_IGNORE_UNTRACKED => SubmoduleIgnore::Untracked,
+            raw::GIT_SUBMODULE_IGNORE_DIRTY => SubmoduleIgnore::Dirty,
+            raw::GIT_SUBMODULE_IGNORE_ALL => SubmoduleIgnore::All,
+            n => panic!("unknown submodule ignore rule: {}", n),
+        }
+    }
+}
+
+impl SubmoduleUpdate {
+    /// Converts a [`raw::git_submodule_update_t`] to a [`SubmoduleUpdate`]
+    pub fn from_raw(raw: raw::git_submodule_update_t) -> Self {
+        match raw {
+            raw::GIT_SUBMODULE_UPDATE_CHECKOUT => SubmoduleUpdate::Checkout,
+            raw::GIT_SUBMODULE_UPDATE_REBASE => SubmoduleUpdate::Rebase,
+            raw::GIT_SUBMODULE_UPDATE_MERGE => SubmoduleUpdate::Merge,
+            raw::GIT_SUBMODULE_UPDATE_NONE => SubmoduleUpdate::None,
+            raw::GIT_SUBMODULE_UPDATE_DEFAULT => SubmoduleUpdate::Default,
+            n => panic!("unknown submodule update strategy: {}", n),
+        }
+    }
+}
+
 bitflags! {
     /// Status flags for a single file
     ///
@@ -1173,6 +1201,7 @@ impl SubmoduleStatus {
 /// These values represent settings for the `submodule.$name.ignore`
 /// configuration value which says how deeply to look at the working
 /// directory when getting the submodule status.
+#[derive(Debug)]
 pub enum SubmoduleIgnore {
     /// Use the submodule's configuration
     Unspecified,
