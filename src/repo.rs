@@ -24,7 +24,8 @@ use crate::{
     StashFlags,
 };
 use crate::{
-    AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore, SubmoduleStatus,
+    AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore,
+    SubmoduleStatus, SubmoduleUpdate,
 };
 use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
@@ -1635,6 +1636,62 @@ impl Repository {
         Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
     }
 
+    /// Set the ignore rule for the submodule in the configuration
+    ///
+    /// This does not affect any currently-loaded instances.
+    pub fn submodule_set_ignore(
+        &mut self,
+        name: &str,
+        ignore: SubmoduleIgnore,
+    ) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_ignore(self.raw(), name, ignore));
+        }
+        Ok(())
+    }
+
+    /// Set the update rule for the submodule in the configuration
+    ///
+    /// This setting won't affect any existing instances.
+    pub fn submodule_set_update(
+        &mut self,
+        name: &str,
+        update: SubmoduleUpdate,
+    ) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_update(self.raw(), name, update));
+        }
+        Ok(())
+    }
+
+    /// Set the URL for the submodule in the configuration
+    ///
+    /// After calling this, you may wish to call [`Submodule::sync`] to write
+    /// the changes to the checked out submodule repository.
+    pub fn submodule_set_url(&mut self, name: &str, url: &str) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        let url = CString::new(url)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_url(self.raw(), name, url));
+        }
+        Ok(())
+    }
+
+    /// Set the branch for the submodule in the configuration
+    ///
+    /// After calling this, you may wish to call [`Submodule::sync`] to write
+    /// the changes to the checked out submodule repository.
+    pub fn submodule_set_branch(&mut self, name: &str, branch_name: &str) -> Result<(), Error> {
+        let name = CString::new(name)?;
+        let branch_name = CString::new(branch_name)?;
+        unsafe {
+            try_call!(raw::git_submodule_set_branch(self.raw(), name, branch_name));
+        }
+        Ok(())
+    }
+
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_tree(&self, oid: Oid) -> Result<Tree<'_>, Error> {
         let mut raw = ptr::null_mut();
@@ -3078,7 +3135,7 @@ impl RepositoryInitOptions {
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::CherrypickOptions;
-    use crate::{ObjectType, Oid, Repository, ResetType};
+    use crate::{ObjectType, Oid, Repository, ResetType, SubmoduleIgnore, SubmoduleUpdate};
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
@@ -3718,6 +3775,55 @@ mod tests {
         )?;
 
         assert!(merge_analysis.contains(crate::MergeAnalysis::ANALYSIS_FASTFORWARD));
+
+        Ok(())
+    }
+
+    #[test]
+    fn smoke_submodule_set() -> Result<(), crate::Error> {
+        let (td1, _repo) = crate::test::repo_init();
+        let (td2, mut repo2) = crate::test::repo_init();
+        let url = crate::test::path2url(td1.path());
+        let name = "bar";
+        {
+            let mut s = repo2.submodule(&url, Path::new(name), true)?;
+            fs::remove_dir_all(td2.path().join("bar")).unwrap();
+            Repository::clone(&url, td2.path().join("bar"))?;
+            s.add_to_index(false)?;
+            s.add_finalize()?;
+        }
+
+        // update strategy
+        repo2.submodule_set_update(name, SubmoduleUpdate::None)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.update_strategy(),
+            SubmoduleUpdate::None
+        ));
+        repo2.submodule_set_update(name, SubmoduleUpdate::Rebase)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.update_strategy(),
+            SubmoduleUpdate::Rebase
+        ));
+
+        // ignore rule
+        repo2.submodule_set_ignore(name, SubmoduleIgnore::Untracked)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.ignore_rule(),
+            SubmoduleIgnore::Untracked
+        ));
+        repo2.submodule_set_ignore(name, SubmoduleIgnore::Dirty)?;
+        assert!(matches!(
+            repo2.find_submodule(name)?.ignore_rule(),
+            SubmoduleIgnore::Dirty
+        ));
+
+        // url
+        repo2.submodule_set_url(name, "fake-url")?;
+        assert_eq!(repo2.find_submodule(name)?.url(), Some("fake-url"));
+
+        // branch
+        repo2.submodule_set_branch(name, "fake-branch")?;
+        assert_eq!(repo2.find_submodule(name)?.branch(), Some("fake-branch"));
 
         Ok(())
     }
