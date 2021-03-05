@@ -634,6 +634,11 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
     pub fn default_branch(&self) -> Result<Buf, Error> {
         self.remote.default_branch()
     }
+
+    /// access remote bound to this connection
+    pub fn remote(&mut self) -> &mut Remote<'repo> {
+        self.remote
+    }
 }
 
 impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
