@@ -58,6 +58,11 @@ pub struct DiffFormatEmailOptions {
     raw: raw::git_diff_format_email_options,
 }
 
+/// Control behavior of formatting emails
+pub struct DiffPatchidOptions {
+    raw: raw::git_diff_patchid_options,
+}
+
 /// An iterator over the diffs in a delta
 pub struct Deltas<'diff> {
     range: Range<usize>,
@@ -276,6 +281,21 @@ impl<'repo> Diff<'repo> {
             try_call!(raw::git_diff_format_email(buf.raw(), self.raw, &*raw_opts));
         }
         Ok(buf)
+    }
+
+    /// Create an patchid from a diff.
+    pub fn patchid(&self, opts: Option<&mut DiffPatchidOptions>) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+        unsafe {
+            try_call!(raw::git_diff_patchid(
+                &mut raw,
+                self.raw,
+                opts.map(|o| &mut o.raw)
+            ));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
     }
 
     // TODO: num_deltas_of_type, find_similar
@@ -1433,9 +1453,29 @@ impl DiffFormatEmailOptions {
     }
 }
 
+impl DiffPatchidOptions {
+    /// Creates a new set of patchid options,
+    /// initialized to the default values
+    pub fn new() -> Self {
+        let mut opts = DiffPatchidOptions {
+            raw: unsafe { mem::zeroed() },
+        };
+        assert_eq!(
+            unsafe {
+                raw::git_diff_patchid_options_init(
+                    &mut opts.raw,
+                    raw::GIT_DIFF_PATCHID_OPTIONS_VERSION,
+                )
+            },
+            0
+        );
+        opts
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{DiffOptions, Signature, Time};
+    use crate::{DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -1450,6 +1490,8 @@ mod tests {
         assert_eq!(stats.insertions(), 0);
         assert_eq!(stats.deletions(), 0);
         assert_eq!(stats.files_changed(), 0);
+        let patchid = diff.patchid(None).unwrap();
+        assert_ne!(patchid, Oid::zero());
     }
 
     #[test]
