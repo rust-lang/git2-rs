@@ -951,6 +951,61 @@ impl<'diff> DoubleEndedIterator for Deltas<'diff> {
 }
 impl<'diff> ExactSizeIterator for Deltas<'diff> {}
 
+/// Line origin constants.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum DiffLineType {
+    /// These values will be sent to `git_diff_line_cb` along with the line
+    Context,
+    ///
+    Addition,
+    ///
+    Deletion,
+    /// Both files have no LF at end
+    ContextEOFNL,
+    /// Old has no LF at end, new does
+    AddEOFNL,
+    /// Old has LF at end, new does not
+    DeleteEOFNL,
+    /// The following values will only be sent to a `git_diff_line_cb` when
+    /// the content of a diff is being formatted through `git_diff_print`.
+    FileHeader,
+    ///
+    HunkHeader,
+    /// For "Binary files x and y differ"
+    Binary,
+}
+
+impl Binding for DiffLineType {
+    type Raw = raw::git_diff_line_t;
+    unsafe fn from_raw(raw: raw::git_diff_line_t) -> Self {
+        match raw {
+            raw::GIT_DIFF_LINE_CONTEXT => DiffLineType::Context,
+            raw::GIT_DIFF_LINE_ADDITION => DiffLineType::Addition,
+            raw::GIT_DIFF_LINE_DELETION => DiffLineType::Deletion,
+            raw::GIT_DIFF_LINE_CONTEXT_EOFNL => DiffLineType::ContextEOFNL,
+            raw::GIT_DIFF_LINE_ADD_EOFNL => DiffLineType::AddEOFNL,
+            raw::GIT_DIFF_LINE_DEL_EOFNL => DiffLineType::DeleteEOFNL,
+            raw::GIT_DIFF_LINE_FILE_HDR => DiffLineType::FileHeader,
+            raw::GIT_DIFF_LINE_HUNK_HDR => DiffLineType::HunkHeader,
+            raw::GIT_DIFF_LINE_BINARY => DiffLineType::Binary,
+            _ => panic!("Unknown git diff line type"),
+        }
+    }
+    fn raw(&self) -> raw::git_diff_line_t {
+        match *self {
+            DiffLineType::Context => raw::GIT_DIFF_LINE_CONTEXT,
+            DiffLineType::Addition => raw::GIT_DIFF_LINE_ADDITION,
+            DiffLineType::Deletion => raw::GIT_DIFF_LINE_DELETION,
+            DiffLineType::ContextEOFNL => raw::GIT_DIFF_LINE_CONTEXT_EOFNL,
+            DiffLineType::AddEOFNL => raw::GIT_DIFF_LINE_ADD_EOFNL,
+            DiffLineType::DeleteEOFNL => raw::GIT_DIFF_LINE_DEL_EOFNL,
+            DiffLineType::FileHeader => raw::GIT_DIFF_LINE_FILE_HDR,
+            DiffLineType::HunkHeader => raw::GIT_DIFF_LINE_HUNK_HDR,
+            DiffLineType::Binary => raw::GIT_DIFF_LINE_BINARY,
+        }
+    }
+}
+
 impl<'a> DiffLine<'a> {
     /// Line number in old file or `None` for added line
     pub fn old_lineno(&self) -> Option<u32> {
@@ -986,6 +1041,12 @@ impl<'a> DiffLine<'a> {
                 (*self.raw).content_len as usize,
             )
         }
+    }
+
+    /// origin of this `DiffLine`.
+    ///
+    pub fn origin_value(&self) -> DiffLineType {
+        unsafe { Binding::from_raw((*self.raw).origin as raw::git_diff_line_t) }
     }
 
     /// Sigil showing the origin of this `DiffLine`.
@@ -1475,7 +1536,7 @@ impl DiffPatchidOptions {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DiffOptions, Oid, Signature, Time};
+    use crate::{DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -1725,5 +1786,29 @@ mod tests {
         while let Some(line) = remaining_lines.next() {
             assert_eq!(line.trim(), "")
         }
+    }
+
+    #[test]
+    fn foreach_diff_line_origin_value() {
+        let foo_path = Path::new("foo");
+        let (td, repo) = crate::test::repo_init();
+        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+        let mut index = t!(repo.index());
+        t!(index.add_path(foo_path));
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(&mut opts)));
+        let mut origin_values: Vec<DiffLineType> = Vec::new();
+        t!(diff.foreach(
+            &mut |_file, _progress| { true },
+            None,
+            None,
+            Some(&mut |_file, _hunk, line| {
+                origin_values.push(line.origin_value());
+                true
+            })
+        ));
+        assert_eq!(origin_values.len(), 1);
+        assert_eq!(origin_values[0], DiffLineType::Addition);
     }
 }
