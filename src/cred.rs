@@ -380,12 +380,16 @@ impl CredentialHelper {
             Ok(p) => p,
             Err(e) => {
                 debug!("`sh` failed to spawn: {}", e);
-                let mut parts = cmd.split_whitespace();
+                let mut parts = match shell_words::split(cmd) {
+                    Ok(parts) => parts.into_iter(),
+                    Err(e) => {
+                        debug!("command {:?} parsing failed with {}", cmd, e);
+                        return (None, None);
+                    }
+                };
                 let mut c = Command::new(parts.next().unwrap());
-                for arg in parts {
-                    c.arg(arg);
-                }
-                c.arg("get")
+                c.args(parts)
+                    .arg("get")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .stderr(Stdio::piped());
