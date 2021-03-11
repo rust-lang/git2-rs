@@ -1247,6 +1247,13 @@ pub const GIT_DIFF_FORMAT_EMAIL_NONE: u32 = 0;
 pub const GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER: u32 = 1 << 0;
 
 #[repr(C)]
+pub struct git_diff_patchid_options {
+    pub version: c_uint,
+}
+
+pub const GIT_DIFF_PATCHID_OPTIONS_VERSION: c_uint = 1;
+
+#[repr(C)]
 pub struct git_diff_binary {
     pub contains_data: c_uint,
     pub old_file: git_diff_binary_file,
@@ -3432,6 +3439,16 @@ extern "C" {
     ) -> c_int;
     pub fn git_diff_format_email_options_init(
         opts: *mut git_diff_format_email_options,
+        version: c_uint,
+    ) -> c_int;
+
+    pub fn git_diff_patchid(
+        out: *mut git_oid,
+        diff: *mut git_diff,
+        opts: *mut git_diff_patchid_options,
+    ) -> c_int;
+    pub fn git_diff_patchid_options_init(
+        opts: *mut git_diff_patchid_options,
         version: c_uint,
     ) -> c_int;
 
