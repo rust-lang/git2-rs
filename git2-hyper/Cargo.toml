@@ -1,0 +1,30 @@
+[package]
+name = "git2-hyper"
+version = "0.1.0"
+authors = ["Henry Wu <2316687+henry40408@users.noreply.github.com>"]
+license = "MIT/Apache-2.0"
+repository = "https://github.com/rust-lang/git2-rs"
+documentation = "https://docs.rs/git2-hyper"
+description = """
+Backend for an HTTP transport in libgit2 powered by hyper.
+
+Intended to be used with the git2 crate.
+"""
+edition = "2018"
+
+[dependencies]
+git2 = { path = "..", version = "0.13", default-features = false }
+hyper = { version = "0.14.4", features = ["client", "http1", "tcp"] }
+hyper-rustls = { version = "0.22.1", default-features=false, features = ["webpki-tokio"] }
+log = "0.4.14"
+tokio = { version = "1.3.0", features = ["rt-multi-thread"] }
+
+[dev-dependencies]
+civet = "0.11"
+conduit = "0.8"
+conduit-git-http-backend = "0.8"
+tempfile = "3.0"
+
+[[test]]
+name = "all"
+harness = false
