@@ -22,6 +22,7 @@ pub struct CredentialHelper {
     pub username: Option<String>,
     protocol: Option<String>,
     host: Option<String>,
+    port: Option<u16>,
     path: Option<String>,
     url: String,
     commands: Vec<String>,
@@ -199,6 +200,7 @@ impl CredentialHelper {
         let mut ret = CredentialHelper {
             protocol: None,
             host: None,
+            port: None,
             path: None,
             username: None,
             url: url.to_string(),
@@ -210,6 +212,7 @@ impl CredentialHelper {
             if let Some(url::Host::Domain(s)) = url.host() {
                 ret.host = Some(s.to_string());
             }
+            ret.port = url.port();
             ret.protocol = Some(url.scheme().to_string());
         }
         ret
@@ -408,7 +411,11 @@ impl CredentialHelper {
                 let _ = writeln!(stdin, "protocol={}", p);
             }
             if let Some(ref p) = self.host {
-                let _ = writeln!(stdin, "host={}", p);
+                if let Some(ref p2) = self.port {
+                    let _ = writeln!(stdin, "host={}:{}", p, p2);
+                } else {
+                    let _ = writeln!(stdin, "host={}", p);
+                }
             }
             if let Some(ref p) = self.path {
                 let _ = writeln!(stdin, "path={}", p);
@@ -637,6 +644,19 @@ echo password=$2
         let mut helper = CredentialHelper::new("https://example.com/foo/bar");
         helper.config(&cfg);
         assert_eq!(helper.path.as_deref(), Some("foo/bar"));
+    }
+
+    #[test]
+    fn credential_helper9() {
+        let cfg = test_cfg! {
+            "credential.helper" => "!f() { while read line; do eval $line; done; if [ \"$host\" = example.com:3000 ]; then echo username=a; echo password=b; fi; }; f"
+        };
+        let (u, p) = CredentialHelper::new("https://example.com:3000/foo/bar")
+            .config(&cfg)
+            .execute()
+            .unwrap();
+        assert_eq!(u, "a");
+        assert_eq!(p, "b");
     }
 
     #[test]
