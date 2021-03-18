@@ -54,7 +54,7 @@ pub trait SmartSubtransport: Send + 'static {
 }
 
 /// Actions that a smart transport can ask a subtransport to perform
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub enum Service {
     UploadPackLs,
@@ -87,6 +87,8 @@ struct TransportData {
 #[repr(C)]
 struct RawSmartSubtransport {
     raw: raw::git_smart_subtransport,
+    stream: Option<*mut raw::git_smart_subtransport_stream>,
+    rpc: bool,
     obj: Box<dyn SmartSubtransport>,
 }
 
@@ -142,6 +144,8 @@ impl Transport {
                 close: Some(subtransport_close),
                 free: Some(subtransport_free),
             },
+            stream: None,
+            rpc,
             obj: Box::new(subtransport),
         });
         let mut defn = raw::git_smart_subtransport_definition {
@@ -246,23 +250,36 @@ extern "C" fn subtransport_action(
             raw::GIT_SERVICE_RECEIVEPACK => Service::ReceivePack,
             n => panic!("unknown action: {}", n),
         };
-        let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
-        let obj = match transport.obj.action(url, action) {
-            Ok(s) => s,
-            Err(e) => {
-                set_err(&e);
-                return e.raw_code() as c_int;
+
+        let mut transport = &mut *(raw_transport as *mut RawSmartSubtransport);
+        // Note: we only need to generate if rpc is on. Else, for receive-pack and upload-pack
+        // libgit2 reuses the stream generated for receive-pack-ls or upload-pack-ls.
+        let generate_stream =
+            transport.rpc || action == Service::UploadPackLs || action == Service::ReceivePackLs;
+        if generate_stream {
+            let obj = match transport.obj.action(url, action) {
+                Ok(s) => s,
+                Err(e) => {
+                    set_err(&e);
+                    return e.raw_code() as c_int;
+                }
+            };
+            *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
+                raw: raw::git_smart_subtransport_stream {
+                    subtransport: raw_transport,
+                    read: Some(stream_read),
+                    write: Some(stream_write),
+                    free: Some(stream_free),
+                },
+                obj: obj,
+            }));
+            transport.stream = Some(*stream);
+        } else {
+            if transport.stream.is_none() {
+                return -1;
             }
-        };
-        *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
-            raw: raw::git_smart_subtransport_stream {
-                subtransport: raw_transport,
-                read: Some(stream_read),
-                write: Some(stream_write),
-                free: Some(stream_free),
-            },
-            obj: obj,
-        }));
+            *stream = transport.stream.unwrap();
+        }
         0
     })
     .unwrap_or(-1)
