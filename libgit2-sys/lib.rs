@@ -89,6 +89,7 @@ pub enum git_odb {}
 pub enum git_odb_stream {}
 pub enum git_odb_object {}
 pub enum git_worktree {}
+pub enum git_transaction {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -3914,6 +3915,32 @@ extern "C" {
         wt: *mut git_worktree,
         opts: *mut git_worktree_prune_options,
     ) -> c_int;
+
+    // Ref transactions
+    pub fn git_transaction_new(out: *mut *mut git_transaction, repo: *mut git_repository) -> c_int;
+    pub fn git_transaction_lock_ref(tx: *mut git_transaction, refname: *const c_char) -> c_int;
+    pub fn git_transaction_set_target(
+        tx: *mut git_transaction,
+        refname: *const c_char,
+        target: *const git_oid,
+        sig: *const git_signature,
+        msg: *const c_char,
+    ) -> c_int;
+    pub fn git_transaction_set_symbolic_target(
+        tx: *mut git_transaction,
+        refname: *const c_char,
+        target: *const c_char,
+        sig: *const git_signature,
+        msg: *const c_char,
+    ) -> c_int;
+    pub fn git_transaction_set_reflog(
+        tx: *mut git_transaction,
+        refname: *const c_char,
+        reflog: *const git_reflog,
+    ) -> c_int;
+    pub fn git_transaction_remove(tx: *mut git_transaction, refname: *const c_char) -> c_int;
+    pub fn git_transaction_commit(tx: *mut git_transaction) -> c_int;
+    pub fn git_transaction_free(tx: *mut git_transaction);
 }
 
 pub fn init() {

@@ -32,7 +32,7 @@ use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Su
 use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
-use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag};
+use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -2950,6 +2950,15 @@ impl Repository {
                 raw_path,
                 opts.map(|o| o.raw())
             ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
+    /// Create a new transaction
+    pub fn transaction<'a>(&'a self) -> Result<Transaction<'a>, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_transaction_new(&mut raw, self.raw));
             Ok(Binding::from_raw(raw))
         }
     }
