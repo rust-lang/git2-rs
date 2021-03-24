@@ -87,36 +87,26 @@ impl PartialEq for AttrValue<'_> {
 #[cfg(test)]
 mod tests {
     use super::AttrValue;
-    use std::ffi::CStr;
-    use std::os::raw::c_char;
-
-    extern "C" {
-        // libgit2 defines them as mutable, so they are also declared mutable here.
-        // However, libgit2 never mutates them, thus it's always safe to access them in Rust.
-        static mut git_attr__true: *const c_char;
-        static mut git_attr__false: *const c_char;
-        static mut git_attr__unset: *const c_char;
-    }
 
     macro_rules! test_attr_value {
         ($function:ident, $variant:ident) => {
-            let attr_true = unsafe { CStr::from_ptr(git_attr__true) }.to_str().unwrap();
-            let attr_false = unsafe { CStr::from_ptr(git_attr__false) }.to_str().unwrap();
-            let attr_unset = unsafe { CStr::from_ptr(git_attr__unset) }.to_str().unwrap();
+            const ATTR_TRUE: &str = "[internal]__TRUE__";
+            const ATTR_FALSE: &str = "[internal]__FALSE__";
+            const ATTR_UNSET: &str = "[internal]__UNSET__";
             let as_bytes = AsRef::<[u8]>::as_ref;
             // Use `matches!` here since the `PartialEq` implementation does not differentiate
             // between `String` and `Bytes`.
             assert!(matches!(
-                AttrValue::$function(Some(attr_true.to_owned().as_ref())),
-                AttrValue::$variant(s) if as_bytes(s) == attr_true.as_bytes()
+                AttrValue::$function(Some(ATTR_TRUE.as_ref())),
+                AttrValue::$variant(s) if as_bytes(s) == ATTR_TRUE.as_bytes()
             ));
             assert!(matches!(
-                AttrValue::$function(Some(attr_false.to_owned().as_ref())),
-                AttrValue::$variant(s) if as_bytes(s) == attr_false.as_bytes()
+                AttrValue::$function(Some(ATTR_FALSE.as_ref())),
+                AttrValue::$variant(s) if as_bytes(s) == ATTR_FALSE.as_bytes()
             ));
             assert!(matches!(
-                AttrValue::$function(Some(attr_unset.to_owned().as_ref())),
-                AttrValue::$variant(s) if as_bytes(s) == attr_unset.as_bytes()
+                AttrValue::$function(Some(ATTR_UNSET.as_ref())),
+                AttrValue::$variant(s) if as_bytes(s) == ATTR_UNSET.as_bytes()
             ));
             assert!(matches!(
                 AttrValue::$function(Some("foo".as_ref())),
@@ -126,18 +116,6 @@ mod tests {
                 AttrValue::$function(Some("bar".as_ref())),
                 AttrValue::$variant(s) if as_bytes(s) == b"bar"
             ));
-            assert_eq!(
-                AttrValue::$function(Some(attr_true.as_ref())),
-                AttrValue::True
-            );
-            assert_eq!(
-                AttrValue::$function(Some(attr_false.as_ref())),
-                AttrValue::False
-            );
-            assert_eq!(
-                AttrValue::$function(Some(attr_unset.as_ref())),
-                AttrValue::Unspecified
-            );
             assert_eq!(AttrValue::$function(None), AttrValue::Unspecified);
         };
     }
