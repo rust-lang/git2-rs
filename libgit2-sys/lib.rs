@@ -90,6 +90,7 @@ pub enum git_odb_stream {}
 pub enum git_odb_object {}
 pub enum git_worktree {}
 pub enum git_transaction {}
+pub enum git_mailmap {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -2598,7 +2599,17 @@ extern "C" {
 
     // commit
     pub fn git_commit_author(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_author_with_mailmap(
+        out: *mut *mut git_signature,
+        commit: *const git_commit,
+        mailmap: *const git_mailmap,
+    ) -> c_int;
     pub fn git_commit_committer(commit: *const git_commit) -> *const git_signature;
+    pub fn git_commit_committer_with_mailmap(
+        out: *mut *mut git_signature,
+        commit: *const git_commit,
+        mailmap: *const git_mailmap,
+    ) -> c_int;
     pub fn git_commit_free(commit: *mut git_commit);
     pub fn git_commit_id(commit: *const git_commit) -> *const git_oid;
     pub fn git_commit_lookup(
@@ -3941,6 +3952,18 @@ extern "C" {
     pub fn git_transaction_remove(tx: *mut git_transaction, refname: *const c_char) -> c_int;
     pub fn git_transaction_commit(tx: *mut git_transaction) -> c_int;
     pub fn git_transaction_free(tx: *mut git_transaction);
+
+    // Mailmap
+    pub fn git_mailmap_from_repository(
+        out: *mut *mut git_mailmap,
+        repo: *mut git_repository,
+    ) -> c_int;
+    pub fn git_mailmap_free(mm: *mut git_mailmap);
+    pub fn git_mailmap_resolve_signature(
+        out: *mut *mut git_signature,
+        mm: *const git_mailmap,
+        sig: *const git_signature,
+    ) -> c_int;
 }
 
 pub fn init() {
