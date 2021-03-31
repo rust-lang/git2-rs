@@ -6,7 +6,7 @@ use std::ptr;
 use std::str;
 
 use crate::util::Binding;
-use crate::{raw, signature, Buf, Error, IntoCString, Object, Oid, Signature, Time, Tree};
+use crate::{raw, signature, Buf, Error, IntoCString, Mailmap, Object, Oid, Signature, Time, Tree};
 
 /// A structure to represent a git [commit][1]
 ///
@@ -183,11 +183,39 @@ impl<'repo> Commit<'repo> {
         }
     }
 
+    /// Get the author of this commit, using the mailmap to map names and email
+    /// addresses to canonical real names and email addresses.
+    pub fn author_with_mailmap(&self, mailmap: &Mailmap) -> Result<Signature<'static>, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_commit_author_with_mailmap(
+                &mut ret,
+                &*self.raw,
+                &*mailmap.raw()
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Get the committer of this commit.
     pub fn committer(&self) -> Signature<'_> {
         unsafe {
             let ptr = raw::git_commit_committer(&*self.raw);
             signature::from_raw_const(self, ptr)
+        }
+    }
+
+    /// Get the committer of this commit, using the mailmap to map names and email
+    /// addresses to canonical real names and email addresses.
+    pub fn committer_with_mailmap(&self, mailmap: &Mailmap) -> Result<Signature<'static>, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_commit_committer_with_mailmap(
+                &mut ret,
+                &*self.raw,
+                &*mailmap.raw()
+            ));
+            Ok(Binding::from_raw(ret))
         }
     }
 

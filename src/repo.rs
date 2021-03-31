@@ -11,6 +11,7 @@ use crate::build::{CheckoutBuilder, RepoBuilder};
 use crate::diff::{
     binary_cb_c, file_cb_c, hunk_cb_c, line_cb_c, BinaryCb, DiffCallbacks, FileCb, HunkCb, LineCb,
 };
+use crate::mailmap::Mailmap;
 use crate::oid_array::OidArray;
 use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
@@ -2962,6 +2963,15 @@ impl Repository {
             Ok(Binding::from_raw(raw))
         }
     }
+
+    /// Gets this repository's mailmap.
+    pub fn mailmap(&self) -> Result<Mailmap, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_mailmap_from_repository(&mut ret, self.raw));
+            Ok(Binding::from_raw(ret))
+        }
+    }
 }
 
 impl Binding for Repository {
@@ -3144,7 +3154,9 @@ impl RepositoryInitOptions {
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::CherrypickOptions;
-    use crate::{ObjectType, Oid, Repository, ResetType, SubmoduleIgnore, SubmoduleUpdate};
+    use crate::{
+        ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
+    };
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
@@ -3835,5 +3847,95 @@ mod tests {
         assert_eq!(repo2.find_submodule(name)?.branch(), Some("fake-branch"));
 
         Ok(())
+    }
+
+    #[test]
+    fn smoke_mailmap_from_repository() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let commit = {
+            let head = t!(repo.head()).target().unwrap();
+            t!(repo.find_commit(head))
+        };
+
+        // This is our baseline for HEAD.
+        let author = commit.author();
+        let committer = commit.committer();
+        assert_eq!(author.name(), Some("name"));
+        assert_eq!(author.email(), Some("email"));
+        assert_eq!(committer.name(), Some("name"));
+        assert_eq!(committer.email(), Some("email"));
+
+        // There is no .mailmap file in the test repo so all signature identities are equal.
+        let mailmap = t!(repo.mailmap());
+        let mailmapped_author = t!(commit.author_with_mailmap(&mailmap));
+        let mailmapped_committer = t!(commit.committer_with_mailmap(&mailmap));
+        assert_eq!(mailmapped_author.name(), author.name());
+        assert_eq!(mailmapped_author.email(), author.email());
+        assert_eq!(mailmapped_committer.name(), committer.name());
+        assert_eq!(mailmapped_committer.email(), committer.email());
+
+        let commit = {
+            // - Add a .mailmap file to the repository.
+            // - Commit with a signature identity different from the author's.
+            // - Include entries for both author and committer to prove we call
+            //   the right raw functions.
+            let mailmap_file = Path::new(".mailmap");
+            let p = Path::new(repo.workdir().unwrap()).join(&mailmap_file);
+            t!(fs::write(
+                p,
+                r#"
+Author Name <author.proper@email> name <email>
+Committer Name <committer.proper@email> <committer@email>"#,
+            ));
+            let mut index = t!(repo.index());
+            t!(index.add_path(&mailmap_file));
+            let id_mailmap = t!(index.write_tree());
+            let tree_mailmap = t!(repo.find_tree(id_mailmap));
+
+            let head = t!(repo.commit(
+                Some("HEAD"),
+                &author,
+                t!(&Signature::now("committer", "committer@email")),
+                "Add mailmap",
+                &tree_mailmap,
+                &[&commit],
+            ));
+            t!(repo.find_commit(head))
+        };
+
+        // Sanity check that we're working with the right commit and that its
+        // author and committer identities differ.
+        let author = commit.author();
+        let committer = commit.committer();
+        assert_ne!(author.name(), committer.name());
+        assert_ne!(author.email(), committer.email());
+        assert_eq!(author.name(), Some("name"));
+        assert_eq!(author.email(), Some("email"));
+        assert_eq!(committer.name(), Some("committer"));
+        assert_eq!(committer.email(), Some("committer@email"));
+
+        // Fetch the newly added .mailmap from the repository.
+        let mailmap = t!(repo.mailmap());
+        let mailmapped_author = t!(commit.author_with_mailmap(&mailmap));
+        let mailmapped_committer = t!(commit.committer_with_mailmap(&mailmap));
+
+        let mm_resolve_author = t!(mailmap.resolve_signature(&author));
+        let mm_resolve_committer = t!(mailmap.resolve_signature(&committer));
+
+        // Mailmap Signature lifetime is independent of Commit lifetime.
+        drop(author);
+        drop(committer);
+        drop(commit);
+
+        // author_with_mailmap() + committer_with_mailmap() work
+        assert_eq!(mailmapped_author.name(), Some("Author Name"));
+        assert_eq!(mailmapped_author.email(), Some("author.proper@email"));
+        assert_eq!(mailmapped_committer.name(), Some("Committer Name"));
+        assert_eq!(mailmapped_committer.email(), Some("committer.proper@email"));
+
+        // resolve_signature() works
+        assert_eq!(mm_resolve_author.email(), mailmapped_author.email());
+        assert_eq!(mm_resolve_committer.email(), mailmapped_committer.email());
     }
 }
