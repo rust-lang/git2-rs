@@ -161,7 +161,7 @@ impl Cred {
     }
 
     /// Unwrap access to the underlying raw pointer, canceling the destructor
-    pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
+    pub fn unwrap(mut self) -> *mut raw::git_cred {
         mem::replace(&mut self.raw, ptr::null_mut())
     }
 }
