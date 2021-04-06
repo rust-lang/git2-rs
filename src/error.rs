@@ -72,7 +72,7 @@ impl Error {
         let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
         let msg = String::from_utf8_lossy(msg).into_owned();
         Error {
-            code: code,
+            code,
             klass: (*ptr).klass,
             message: msg,
         }

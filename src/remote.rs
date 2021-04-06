@@ -1,4 +1,3 @@
-use libc;
 use std::ffi::CString;
 use std::marker;
 use std::mem;
@@ -401,7 +400,7 @@ impl<'repo> Binding for Remote<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo> {
         Remote {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

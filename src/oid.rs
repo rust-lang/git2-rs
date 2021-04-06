@@ -52,7 +52,7 @@ impl Oid {
             unsafe {
                 try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
             }
-            Ok(Oid { raw: raw })
+            Ok(Oid { raw })
         }
     }
 

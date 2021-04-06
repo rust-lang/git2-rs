@@ -16,7 +16,7 @@ impl<'odb> Binding for Mempack<'odb> {
 
     unsafe fn from_raw(raw: *mut raw::git_odb_backend) -> Mempack<'odb> {
         Mempack {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
