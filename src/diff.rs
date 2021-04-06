@@ -1517,6 +1517,7 @@ impl DiffFormatEmailOptions {
 impl DiffPatchidOptions {
     /// Creates a new set of patchid options,
     /// initialized to the default values
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let mut opts = DiffPatchidOptions {
             raw: unsafe { mem::zeroed() },

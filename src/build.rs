@@ -116,6 +116,7 @@ impl<'cb> Default for RepoBuilder<'cb> {
 }
 
 /// Options that can be passed to `RepoBuilder::clone_local`.
+#[allow(clippy::manual_non_exhaustive)]
 #[derive(Clone, Copy)]
 pub enum CloneLocal {
     /// Auto-detect (default)

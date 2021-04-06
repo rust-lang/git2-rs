@@ -165,6 +165,7 @@ impl Config {
     /// level. A higher level means a higher priority. The first occurrence of
     /// the variable will be returned here.
     pub fn get_bool(&self, name: &str) -> Result<bool, Error> {
+        #[allow(clippy::unnecessary_cast)]
         let mut out = 0 as libc::c_int;
         let name = CString::new(name)?;
         unsafe {

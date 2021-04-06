@@ -878,6 +878,7 @@ impl Repository {
     /// One way to think of this is if you were to do "git add ." on the
     /// directory containing the file, would it be added or not?
     pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
+        #[allow(clippy::unnecessary_cast)]
         let mut ret = 0 as c_int;
         let path = util::cstring_to_repo_path(path)?;
         unsafe {
@@ -903,6 +904,7 @@ impl Repository {
     /// detection, there is no choice but to do a full `statuses` and scan
     /// through looking for the path that you are interested in.
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
+        #[allow(clippy::unnecessary_cast)]
         let mut ret = 0 as c_uint;
         let path = path_to_repo_path(path)?;
         unsafe {
@@ -2413,6 +2415,7 @@ impl Repository {
     /// like binary data, the `DiffFile` binary attribute will be set to 1 and no call to
     /// the `hunk_cb` nor `line_cb` will be made (unless you set the `force_text`
     /// option).
+    #[allow(clippy::too_many_arguments)]
     pub fn diff_blobs(
         &self,
         old_blob: Option<&Blob<'_>>,
@@ -2995,6 +2998,7 @@ impl RepositoryInitOptions {
     ///
     /// By default this will set flags for creating all necessary directories
     /// and initializing a directory from the user-configured templates path.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> RepositoryInitOptions {
         RepositoryInitOptions {
             flags: raw::GIT_REPOSITORY_INIT_MKDIR as u32

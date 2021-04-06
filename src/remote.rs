@@ -348,6 +348,7 @@ impl<'repo> Remote<'repo> {
                 mem::size_of::<*const raw::git_remote_head>()
             );
             let slice = slice::from_raw_parts(base as *const _, size as usize);
+            #[allow(clippy::transmute_ptr_to_ptr)]
             Ok(mem::transmute::<
                 &[*const raw::git_remote_head],
                 &[RemoteHead<'_>],

@@ -88,6 +88,7 @@ extern "C" fn hunk_cb_c(hunk: *const raw::git_diff_hunk, data: *mut c_void) -> c
 
 impl<'cb> ApplyOptions<'cb> {
     /// Creates a new set of empty options (zeroed).
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let mut opts = Self {
             raw: unsafe { mem::zeroed() },

@@ -82,6 +82,7 @@ impl Error {
     ///
     /// The error returned will have the code `GIT_ERROR` and the class
     /// `GIT_ERROR_NONE`.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Error {
         Error {
             code: raw::GIT_ERROR as c_int,
