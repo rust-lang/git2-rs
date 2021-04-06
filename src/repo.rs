@@ -2785,7 +2785,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_cherrypick(self.raw(), commit.raw(), ptr_raw_opts));
@@ -2880,7 +2880,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_revert(self.raw(), commit.raw(), ptr_raw_opts));
@@ -2959,7 +2959,7 @@ impl Repository {
     }
 
     /// Create a new transaction
-    pub fn transaction<'a>(&'a self) -> Result<Transaction<'a>, Error> {
+    pub fn transaction(&self) -> Result<Transaction<'_>, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_transaction_new(&mut raw, self.raw));
@@ -3132,6 +3132,7 @@ impl RepositoryInitOptions {
     /// Creates a set of raw init options to be used with
     /// `git_repository_init_ext`.
     ///
+    /// # Safety
     /// This method is unsafe as the returned value may have pointers to the
     /// interior of this structure.
     pub unsafe fn raw(&self) -> raw::git_repository_init_options {

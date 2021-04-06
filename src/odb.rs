@@ -238,10 +238,7 @@ impl<'repo> Odb<'repo> {
     ///     odb.add_new_mempack_backend(1000).unwrap()
     /// };
     /// ```
-    pub fn add_new_mempack_backend<'odb>(
-        &'odb self,
-        priority: i32,
-    ) -> Result<Mempack<'odb>, Error> {
+    pub fn add_new_mempack_backend(&self, priority: i32) -> Result<Mempack<'_>, Error> {
         unsafe {
             let mut mempack = ptr::null_mut();
             // The mempack backend object in libgit2 is only ever freed by an
@@ -300,13 +297,17 @@ impl<'a> OdbObject<'a> {
         unsafe { raw::git_odb_object_size(self.raw) }
     }
 
+    /// Returns `true` if the OdbObject contains no element.
+    pub fn is_empty(&self) -> bool {
+        unsafe { raw::git_odb_object_size(self.raw) == 0 }
+    }
+
     /// Get the object data.
     pub fn data(&self) -> &[u8] {
         unsafe {
             let size = self.len();
             let ptr: *const u8 = raw::git_odb_object_data(self.raw) as *const u8;
-            let buffer = slice::from_raw_parts(ptr, size);
-            return buffer;
+            slice::from_raw_parts(ptr, size)
         }
     }
 
@@ -490,11 +491,9 @@ impl<'repo> Drop for OdbPackwriter<'repo> {
     fn drop(&mut self) {
         unsafe {
             let writepack = &*self.raw;
-            match writepack.free {
-                Some(free) => free(self.raw),
-                None => (),
+            if let Some(free) = writepack.free {
+                free(self.raw)
             };
-
             Box::from_raw(self.progress_payload_ptr);
         }
     }
@@ -549,6 +548,7 @@ extern "C" fn write_pack_progress_cb(
 mod tests {
     use crate::{Buf, ObjectType, Oid, Repository};
     use std::io::prelude::*;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     #[test]

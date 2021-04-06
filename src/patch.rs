@@ -213,7 +213,7 @@ impl<'buffers> Patch<'buffers> {
     }
 
     /// Get the Patch text as a Buf.
-    pub fn to_buf(&mut self) -> Result<Buf, Error> {
+    pub fn to_buf(&self) -> Result<Buf, Error> {
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_patch_to_buf(buf.raw(), self.raw));

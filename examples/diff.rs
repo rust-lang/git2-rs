@@ -17,6 +17,7 @@
 use git2::{Blob, Diff, DiffOptions, Error, Object, ObjectType, Oid, Repository};
 use git2::{DiffDelta, DiffFindOptions, DiffFormat, DiffHunk, DiffLine};
 use std::str;
+use std::str::FromStr;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]

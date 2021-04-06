@@ -112,6 +112,11 @@ impl<'repo> Rebase<'repo> {
         unsafe { raw::git_rebase_operation_entrycount(self.raw) }
     }
 
+    /// Return `true` if there is no operation
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Gets the original `HEAD` ref name for merge rebases.
     pub fn orig_head_name(&self) -> Option<&str> {
         let name_bytes =

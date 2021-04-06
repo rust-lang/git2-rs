@@ -1,5 +1,4 @@
 #![macro_use]
-use libc;
 
 use crate::Error;
 
@@ -53,8 +52,6 @@ pub fn last_error(code: libc::c_int) -> Error {
 mod impls {
     use std::ffi::CString;
     use std::ptr;
-
-    use libc;
 
     use crate::call::Convert;
     use crate::{raw, BranchType, ConfigLevel, Direction, ObjectType, ResetType};

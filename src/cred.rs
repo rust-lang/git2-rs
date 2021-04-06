@@ -5,7 +5,6 @@ use std::mem;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::ptr;
-use url;
 
 use crate::util::Binding;
 use crate::{raw, Config, Error, IntoCString};
@@ -268,14 +267,14 @@ impl CredentialHelper {
     // Discover `useHttpPath` from `config`
     fn config_use_http_path(&mut self, config: &Config) {
         let mut use_http_path = false;
-        if let Some(value) = config.get_bool(&self.exact_key("useHttpPath")).ok() {
+        if let Ok(value) = config.get_bool(&self.exact_key("useHttpPath")) {
             use_http_path = value;
         } else if let Some(value) = self
             .url_key("useHttpPath")
             .and_then(|key| config.get_bool(&key).ok())
         {
             use_http_path = value;
-        } else if let Some(value) = config.get_bool("credential.useHttpPath").ok() {
+        } else if let Ok(value) = config.get_bool("credential.useHttpPath") {
             use_http_path = value;
         }
 
@@ -298,9 +297,9 @@ impl CredentialHelper {
             Some(s) => s,
         };
 
-        if cmd.starts_with('!') {
-            self.commands.push(cmd[1..].to_string());
-        } else if cmd.contains("/") || cmd.contains("\\") {
+        if let Some(stripped_cmd) = cmd.strip_prefix('!') {
+            self.commands.push(stripped_cmd.to_string());
+        } else if cmd.contains('/') || cmd.contains('\\') {
             self.commands.push(cmd.to_string());
         } else {
             self.commands.push(format!("git credential-{}", cmd));
@@ -353,7 +352,7 @@ impl CredentialHelper {
         cmd: &str,
         username: &Option<String>,
     ) -> (Option<String>, Option<String>) {
-        macro_rules! my_try( ($e:expr) => (
+        macro_rules! my_try ( ($e:expr) => (
             match $e {
                 Ok(e) => e,
                 Err(e) => {
@@ -480,7 +479,7 @@ mod test {
 
     use crate::{Config, ConfigLevel, Cred, CredentialHelper};
 
-    macro_rules! test_cfg( ($($k:expr => $v:expr),*) => ({
+    macro_rules! test_cfg ( ($($k:expr => $v:expr),*) => ({
         let td = TempDir::new().unwrap();
         let mut cfg = Config::new().unwrap();
         cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
@@ -709,6 +708,7 @@ echo password=$2
         perms.set_mode(0o755);
         fs::set_permissions(path, perms).unwrap();
     }
+
     #[cfg(windows)]
     fn chmod(_path: &Path) {}
 }

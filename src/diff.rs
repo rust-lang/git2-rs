@@ -914,6 +914,7 @@ impl DiffOptions {
 
     /// Acquire a pointer to the underlying raw options.
     ///
+    /// # Safety
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_options {

@@ -834,7 +834,7 @@ fn openssl_env_init() {
 ))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<'a, T>(_anchor: &'a T, c: *const libc::c_char) -> Option<&'a [u8]> {
+unsafe fn opt_bytes<T>(_anchor: &T, c: *const libc::c_char) -> Option<&[u8]> {
     if c.is_null() {
         None
     } else {

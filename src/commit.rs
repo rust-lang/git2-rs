@@ -392,6 +392,8 @@ impl<'repo> Drop for Commit<'repo> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     #[test]
     fn smoke() {
         let (_td, repo) = crate::test::repo_init();

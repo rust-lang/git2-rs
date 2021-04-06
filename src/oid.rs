@@ -1,4 +1,3 @@
-use libc;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -17,27 +16,6 @@ pub struct Oid {
 }
 
 impl Oid {
-    /// Parse a hex-formatted object id into an Oid structure.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the string is empty, is longer than 40 hex
-    /// characters, or contains any non-hex characters.
-    pub fn from_str(s: &str) -> Result<Oid, Error> {
-        crate::init();
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
-        };
-        unsafe {
-            try_call!(raw::git_oid_fromstrn(
-                &mut raw,
-                s.as_bytes().as_ptr() as *const libc::c_char,
-                s.len() as libc::size_t
-            ));
-        }
-        Ok(Oid { raw: raw })
-    }
-
     /// Parse a raw object id into an Oid structure.
     ///
     /// If the array given is not 20 bytes in length, an error is returned.
@@ -157,8 +135,19 @@ impl str::FromStr for Oid {
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
-    fn from_str(s: &str) -> Result<Oid, Error> {
-        Oid::from_str(s)
+    fn from_str(s: &str) -> Result<Oid, Self::Err> {
+        crate::init();
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+        unsafe {
+            try_call!(raw::git_oid_fromstrn(
+                &mut raw,
+                s.as_bytes().as_ptr() as *const libc::c_char,
+                s.len() as libc::size_t
+            ));
+        }
+        Ok(Oid { raw })
     }
 }
 
@@ -197,6 +186,7 @@ impl AsRef<[u8]> for Oid {
 mod tests {
     use std::fs::File;
     use std::io::prelude::*;
+    use std::str::FromStr;
 
     use super::Error;
     use super::Oid;

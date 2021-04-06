@@ -144,6 +144,10 @@ impl<'cb> ApplyOptions<'cb> {
     }
 
     /// Pointer to a raw git_stash_apply_options
+    ///
+    /// # Safety
+    /// This function is unsafe as it is not guaranteed that `raw` is a valid
+    /// pointer.
     pub unsafe fn raw(&mut self) -> *const raw::git_apply_options {
         &self.raw as *const _
     }

@@ -28,9 +28,10 @@ where
     panic::wrap(|| unsafe {
         let hide_cb = payload as *mut C;
         if (*hide_cb)(Oid::from_raw(commit_id)) {
-            return 1;
+            1
+        } else {
+            0
         }
-        return 0;
     })
     .unwrap_or(-1)
 }

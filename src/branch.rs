@@ -116,6 +116,7 @@ impl<'repo> Branch<'repo> {
 impl<'repo> Branches<'repo> {
     /// Creates a new iterator from the raw pointer given.
     ///
+    /// # Safety
     /// This function is unsafe as it is not guaranteed that `raw` is a valid
     /// pointer.
     pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Branches<'repo> {
