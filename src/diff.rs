@@ -338,9 +338,9 @@ pub extern "C" fn print_cb(
             (*data)(delta, hunk, line)
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -361,9 +361,9 @@ pub extern "C" fn file_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -385,9 +385,9 @@ pub extern "C" fn binary_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -409,9 +409,9 @@ pub extern "C" fn hunk_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -435,9 +435,9 @@ pub extern "C" fn line_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -1810,5 +1810,35 @@ mod tests {
         ));
         assert_eq!(origin_values.len(), 1);
         assert_eq!(origin_values[0], DiffLineType::Addition);
+    }
+
+    #[test]
+    fn foreach_exits_with_euser() {
+        let foo_path = Path::new("foo");
+        let bar_path = Path::new("foo");
+
+        let (td, repo) = crate::test::repo_init();
+        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+
+        let mut index = t!(repo.index());
+        t!(index.add_path(foo_path));
+        t!(index.add_path(bar_path));
+
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(&mut opts)));
+
+        let mut calls = 0;
+        let result = diff.foreach(
+            &mut |_file, _progress| {
+                calls += 1;
+                false
+            },
+            None,
+            None,
+            None,
+        );
+
+        assert_eq!(result.unwrap_err().code(), crate::ErrorCode::User);
     }
 }
