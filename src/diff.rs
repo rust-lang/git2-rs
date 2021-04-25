@@ -309,6 +309,7 @@ impl Diff<'static> {
     /// a patch file likely contains abbreviated object IDs, so the
     /// object IDs parsed by this function will also be abreviated.
     pub fn from_buffer(buffer: &[u8]) -> Result<Diff<'static>, Error> {
+        crate::init();
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
         unsafe {
             // NOTE: Doesn't depend on repo, so lifetime can be 'static
