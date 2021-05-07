@@ -47,7 +47,7 @@ struct HyperSubtransport {
     url_path: &'static str,
     base_url: Arc<Mutex<String>>,
     method: &'static str,
-    reader: Option<Cursor<Vec<u8>>>,
+    response: Option<hyper::Response<hyper::body::Body>>,
     sent_request: bool,
     runtime_handle: tokio::runtime::Handle,
 }
@@ -119,7 +119,7 @@ impl SmartSubtransport for HyperTransport {
             url_path: path,
             base_url: self.base_url.clone(),
             method,
-            reader: None,
+            response: None,
             sent_request: false,
             runtime_handle: self.runtime.handle().clone(),
         }))
@@ -181,7 +181,7 @@ impl HyperSubtransport {
             .body(Body::from(Vec::from(data)))
             .map_err(|_| self.err("invalid body"))?;
 
-        let mut res = self
+        let res = self
             .runtime_handle
             .block_on(client.request(request))
             .unwrap();
@@ -229,10 +229,22 @@ impl HyperSubtransport {
             ));
         }
 
-        // Ok, time to read off some data.
-        let body = self.runtime_handle.block_on(res.body_mut().data());
+        // preserve response body for reading afterwards
+        self.response = Some(res);
 
-        let body = match body {
+        Ok(())
+    }
+}
+
+impl Read for HyperSubtransport {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if self.response.is_none() {
+            self.execute(&[])?;
+        }
+
+        let data = self.response.as_mut().unwrap().body_mut().data();
+
+        let body = match self.runtime_handle.block_on(data) {
             Some(b) => b,
             None => return Err(self.err("empty response body")),
         };
@@ -242,28 +254,14 @@ impl HyperSubtransport {
             Err(_) => return Err(self.err("invalid response body")),
         };
 
-        let mut chunks = vec![];
-        for byte in bytes {
-            chunks.push(byte);
-        }
-        self.reader = Some(Cursor::new(chunks));
-
-        Ok(())
-    }
-}
-
-impl Read for HyperSubtransport {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.reader.is_none() {
-            self.execute(&[])?;
-        }
-        self.reader.as_mut().unwrap().read(buf)
+        let mut reader = Cursor::new(bytes);
+        reader.read(buf)
     }
 }
 
 impl Write for HyperSubtransport {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        if self.reader.is_none() {
+        if self.response.is_none() {
             self.execute(data)?;
         }
         Ok(data.len())
