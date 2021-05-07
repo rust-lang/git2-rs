@@ -38,6 +38,7 @@ struct HyperTransport {
     /// This is an empty string until the first action is performed.
     /// If there is an HTTP redirect, this will be updated with the new URL.
     base_url: Arc<Mutex<String>>,
+    runtime: Arc<tokio::runtime::Runtime>,
 }
 
 struct HyperSubtransport {
@@ -48,6 +49,7 @@ struct HyperSubtransport {
     method: &'static str,
     reader: Option<Cursor<Vec<u8>>>,
     sent_request: bool,
+    runtime_handle: tokio::runtime::Handle,
 }
 
 /// Register the hyper backend for HTTP requests made by libgit2.
@@ -87,6 +89,7 @@ fn factory(
         HyperTransport {
             handle,
             base_url: Arc::new(Mutex::new(String::new())),
+            runtime: Arc::new(tokio::runtime::Runtime::new().unwrap()),
         },
     )
 }
@@ -118,6 +121,7 @@ impl SmartSubtransport for HyperTransport {
             method,
             reader: None,
             sent_request: false,
+            runtime_handle: self.runtime.handle().clone(),
         }))
     }
 
@@ -135,9 +139,6 @@ impl HyperSubtransport {
         if self.sent_request {
             return Err(self.err("already sent HTTP request"));
         }
-
-        // FIXME: wrap a runtime here is definitely NOT a good idea
-        let rt = tokio::runtime::Runtime::new().unwrap();
 
         let agent = format!("git/1.0 (git2-hyper {})", env!("CARGO_PKG_VERSION"));
 
@@ -180,7 +181,10 @@ impl HyperSubtransport {
             .body(Body::from(Vec::from(data)))
             .map_err(|_| self.err("invalid body"))?;
 
-        let mut res = rt.block_on(client.request(request)).unwrap();
+        let mut res = self
+            .runtime_handle
+            .block_on(client.request(request))
+            .unwrap();
         let headers = res.headers();
 
         let content_type = match headers.get(header::CONTENT_TYPE) {
@@ -226,7 +230,7 @@ impl HyperSubtransport {
         }
 
         // Ok, time to read off some data.
-        let body = rt.block_on(res.body_mut().data());
+        let body = self.runtime_handle.block_on(res.body_mut().data());
 
         let body = match body {
             Some(b) => b,
