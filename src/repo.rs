@@ -11,7 +11,6 @@ use crate::build::{CheckoutBuilder, RepoBuilder};
 use crate::diff::{
     binary_cb_c, file_cb_c, hunk_cb_c, line_cb_c, BinaryCb, DiffCallbacks, FileCb, HunkCb, LineCb,
 };
-use crate::mailmap::Mailmap;
 use crate::oid_array::OidArray;
 use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
 use crate::string_array::StringArray;
@@ -20,6 +19,7 @@ use crate::util::{self, path_to_repo_path, Binding};
 use crate::worktree::{Worktree, WorktreeAddOptions};
 use crate::CherrypickOptions;
 use crate::RevertOptions;
+use crate::{mailmap::Mailmap, panic};
 use crate::{
     raw, AttrCheckFlags, Buf, Error, Object, Remote, RepositoryOpenFlags, RepositoryState, Revspec,
     StashFlags,
@@ -34,6 +34,29 @@ use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Inde
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
+
+type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
+
+struct MergeheadForeachCbData<'a> {
+    callback: &'a mut MergeheadForeachCb<'a>,
+}
+
+extern "C" fn mergehead_foreach_cb(oid: *const raw::git_oid, payload: *mut c_void) -> c_int {
+    panic::wrap(|| unsafe {
+        let data = &mut *(payload as *mut MergeheadForeachCbData<'_>);
+        let res = {
+            let callback = &mut data.callback;
+            callback(&Binding::from_raw(oid))
+        };
+
+        if res {
+            0
+        } else {
+            1
+        }
+    })
+    .unwrap_or(1)
+}
 
 /// An owned git repository, representing all state associated with the
 /// underlying filesystem.
@@ -2970,6 +2993,26 @@ impl Repository {
         unsafe {
             try_call!(raw::git_mailmap_from_repository(&mut ret, self.raw));
             Ok(Binding::from_raw(ret))
+        }
+    }
+
+    ///  If a merge is in progress, invoke 'callback' for each commit ID in the
+    ///  * MERGE_HEAD file.
+    pub fn mergehead_foreach<C>(&mut self, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&Oid) -> bool,
+    {
+        unsafe {
+            let mut data = MergeheadForeachCbData {
+                callback: &mut callback,
+            };
+            let cb: raw::git_repository_mergehead_foreach_cb = Some(mergehead_foreach_cb);
+            try_call!(raw::git_repository_mergehead_foreach(
+                self.raw(),
+                cb,
+                &mut data as *mut _ as *mut _
+            ));
+            Ok(())
         }
     }
 }

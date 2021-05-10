@@ -1889,6 +1889,9 @@ pub struct git_worktree_prune_options {
 
 pub const GIT_WORKTREE_PRUNE_OPTIONS_VERSION: c_uint = 1;
 
+pub type git_repository_mergehead_foreach_cb =
+    Option<extern "C" fn(oid: *const git_oid, payload: *mut c_void) -> c_int>;
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -1980,6 +1983,11 @@ extern "C" {
     pub fn git_repository_reinit_filesystem(
         repo: *mut git_repository,
         recurse_submodules: c_int,
+    ) -> c_int;
+    pub fn git_repository_mergehead_foreach(
+        repo: *mut git_repository,
+        callback: git_repository_mergehead_foreach_cb,
+        payload: *mut c_void,
     ) -> c_int;
     pub fn git_ignore_add_rule(repo: *mut git_repository, rules: *const c_char) -> c_int;
     pub fn git_ignore_clear_internal_rules(repo: *mut git_repository) -> c_int;
