@@ -116,6 +116,7 @@ impl<'cb> Default for RepoBuilder<'cb> {
 }
 
 /// Options that can be passed to `RepoBuilder::clone_local`.
+#[allow(clippy::manual_non_exhaustive)]
 #[derive(Clone, Copy)]
 pub enum CloneLocal {
     /// Auto-detect (default)
@@ -571,6 +572,7 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Configure a raw checkout options based on this configuration.
     ///
+    /// # Safety
     /// This method is unsafe as there is no guarantee that this structure will
     /// outlive the provided checkout options.
     pub unsafe fn configure(&mut self, opts: &mut raw::git_checkout_options) {

@@ -834,7 +834,7 @@ fn openssl_env_init() {
 ))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<'a, T>(_anchor: &'a T, c: *const libc::c_char) -> Option<&'a [u8]> {
+unsafe fn opt_bytes<T>(_anchor: &T, c: *const libc::c_char) -> Option<&[u8]> {
     if c.is_null() {
         None
     } else {
@@ -882,6 +882,7 @@ impl ObjectType {
     }
 
     /// Convert a string object type representation to its object type.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<ObjectType> {
         let raw = unsafe { call!(raw::git_object_string2type(CString::new(s).unwrap())) };
         ObjectType::from_raw(raw)

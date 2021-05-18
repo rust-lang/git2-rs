@@ -232,7 +232,7 @@ impl<'repo> Binding for Object<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
         Object {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -169,7 +169,7 @@ impl MergeOptions {
     }
 
     /// Acquire a pointer to the underlying raw options.
-    pub unsafe fn raw(&self) -> *const raw::git_merge_options {
+    pub fn raw(&self) -> *const raw::git_merge_options {
         &self.raw as *const _
     }
 }
@@ -178,7 +178,7 @@ impl<'repo> Binding for AnnotatedCommit<'repo> {
     type Raw = *mut raw::git_annotated_commit;
     unsafe fn from_raw(raw: *mut raw::git_annotated_commit) -> AnnotatedCommit<'repo> {
         AnnotatedCommit {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -166,7 +166,7 @@ impl Index {
                 gid: entry.gid,
                 file_size: entry.file_size,
                 id: *entry.id.raw(),
-                flags: flags,
+                flags,
                 flags_extended: entry.flags_extended,
                 path: path.as_ptr(),
                 mtime: raw::git_index_time {
@@ -223,7 +223,7 @@ impl Index {
                 gid: entry.gid,
                 file_size: entry.file_size,
                 id: *entry.id.raw(),
-                flags: flags,
+                flags,
                 flags_extended: entry.flags_extended,
                 path: path.as_ptr(),
                 mtime: raw::git_index_time {
@@ -600,7 +600,7 @@ impl Index {
 impl Binding for Index {
     type Raw = *mut raw::git_index;
     unsafe fn from_raw(raw: *mut raw::git_index) -> Index {
-        Index { raw: raw }
+        Index { raw }
     }
     fn raw(&self) -> *mut raw::git_index {
         self.raw
@@ -718,15 +718,15 @@ impl Binding for IndexEntry {
         let path = slice::from_raw_parts(path as *const u8, pathlen);
 
         IndexEntry {
-            dev: dev,
-            ino: ino,
-            mode: mode,
-            uid: uid,
-            gid: gid,
-            file_size: file_size,
+            dev,
+            ino,
+            mode,
+            uid,
+            gid,
+            file_size,
             id: Binding::from_raw(&id as *const _),
-            flags: flags,
-            flags_extended: flags_extended,
+            flags,
+            flags_extended,
             path: path.to_vec(),
             mtime: Binding::from_raw(mtime),
             ctime: Binding::from_raw(ctime),

@@ -79,7 +79,7 @@ impl StringArray {
 impl Binding for StringArray {
     type Raw = raw::git_strarray;
     unsafe fn from_raw(raw: raw::git_strarray) -> StringArray {
-        StringArray { raw: raw }
+        StringArray { raw }
     }
     fn raw(&self) -> raw::git_strarray {
         self.raw

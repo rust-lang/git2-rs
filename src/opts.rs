@@ -15,6 +15,7 @@ use crate::{raw, Buf, ConfigLevel, Error, IntoCString};
 /// Use magic path `$PATH` to include the old value of the path
 /// (if you want to prepend or append, for instance).
 ///
+/// # Safety
 /// This function is unsafe as it mutates the global state but cannot guarantee
 /// thread-safety. It needs to be externally synchronized with calls to access
 /// the global state.
@@ -37,6 +38,7 @@ where
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
 ///
+/// # Safety
 /// This function is unsafe as it mutates the global state but cannot guarantee
 /// thread-safety. It needs to be externally synchronized with calls to access
 /// the global state.
@@ -55,6 +57,7 @@ pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
 ///
+/// # Safety
 /// This function is unsafe as it mutates the global state but cannot guarantee
 /// thread-safety. It needs to be externally synchronized with calls to access
 /// the global state.

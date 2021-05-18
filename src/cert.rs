@@ -100,7 +100,7 @@ impl<'a> Binding for Cert<'a> {
     type Raw = *mut raw::git_cert;
     unsafe fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
         Cert {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -14,6 +14,7 @@ pub struct CherrypickOptions<'cb> {
 
 impl<'cb> CherrypickOptions<'cb> {
     /// Creates a default set of cherrypick options
+    #[allow(clippy::new_without_default)]
     pub fn new() -> CherrypickOptions<'cb> {
         CherrypickOptions {
             mainline: 0,

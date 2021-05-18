@@ -14,6 +14,7 @@ pub struct RevertOptions<'cb> {
 
 impl<'cb> RevertOptions<'cb> {
     /// Creates a default set of revert options
+    #[allow(clippy::new_without_default)]
     pub fn new() -> RevertOptions<'cb> {
         RevertOptions {
             mainline: 0,

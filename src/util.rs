@@ -204,7 +204,7 @@ pub fn c_cmp_to_ordering(cmp: c_int) -> Ordering {
 pub fn path_to_repo_path(path: &Path) -> Result<CString, Error> {
     macro_rules! err {
         ($msg:literal, $path:expr) => {
-            return Err(Error::from_str(&format!($msg, $path.display())))
+            return Err(Error::from_str(&format!($msg, $path.display())));
         };
     }
     match path.components().next() {
@@ -221,12 +221,10 @@ pub fn path_to_repo_path(path: &Path) -> Result<CString, Error> {
     #[cfg(windows)]
     {
         match path.to_str() {
-            None => {
-                return Err(Error::from_str(
-                    "only valid unicode paths are accepted on windows",
-                ))
-            }
-            Some(s) => return fixup_windows_path(s),
+            None => Err(Error::from_str(
+                "only valid unicode paths are accepted on windows",
+            )),
+            Some(s) => fixup_windows_path(s),
         }
     }
     #[cfg(not(windows))]
@@ -242,9 +240,9 @@ pub fn cstring_to_repo_path<T: IntoCString>(path: T) -> Result<CString, Error> {
 #[cfg(windows)]
 fn fixup_windows_path<P: Into<Vec<u8>>>(path: P) -> Result<CString, Error> {
     let mut bytes: Vec<u8> = path.into();
-    for i in 0..bytes.len() {
-        if bytes[i] == b'\\' {
-            bytes[i] = b'/';
+    for b in &mut bytes {
+        if *b == b'\\' {
+            *b = b'/';
         }
     }
     Ok(CString::new(bytes)?)

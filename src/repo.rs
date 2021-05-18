@@ -901,6 +901,7 @@ impl Repository {
     /// One way to think of this is if you were to do "git add ." on the
     /// directory containing the file, would it be added or not?
     pub fn status_should_ignore(&self, path: &Path) -> Result<bool, Error> {
+        #[allow(clippy::unnecessary_cast)]
         let mut ret = 0 as c_int;
         let path = util::cstring_to_repo_path(path)?;
         unsafe {
@@ -926,6 +927,7 @@ impl Repository {
     /// detection, there is no choice but to do a full `statuses` and scan
     /// through looking for the path that you are interested in.
     pub fn status_file(&self, path: &Path) -> Result<Status, Error> {
+        #[allow(clippy::unnecessary_cast)]
         let mut ret = 0 as c_uint;
         let path = path_to_repo_path(path)?;
         unsafe {
@@ -2436,6 +2438,7 @@ impl Repository {
     /// like binary data, the `DiffFile` binary attribute will be set to 1 and no call to
     /// the `hunk_cb` nor `line_cb` will be made (unless you set the `force_text`
     /// option).
+    #[allow(clippy::too_many_arguments)]
     pub fn diff_blobs(
         &self,
         old_blob: Option<&Blob<'_>>,
@@ -2805,7 +2808,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_cherrypick(self.raw(), commit.raw(), ptr_raw_opts));
@@ -2900,7 +2903,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_revert(self.raw(), commit.raw(), ptr_raw_opts));
@@ -2979,7 +2982,7 @@ impl Repository {
     }
 
     /// Create a new transaction
-    pub fn transaction<'a>(&'a self) -> Result<Transaction<'a>, Error> {
+    pub fn transaction(&self) -> Result<Transaction<'_>, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_transaction_new(&mut raw, self.raw));
@@ -3038,6 +3041,7 @@ impl RepositoryInitOptions {
     ///
     /// By default this will set flags for creating all necessary directories
     /// and initializing a directory from the user-configured templates path.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> RepositoryInitOptions {
         RepositoryInitOptions {
             flags: raw::GIT_REPOSITORY_INIT_MKDIR as u32
@@ -3171,6 +3175,7 @@ impl RepositoryInitOptions {
     /// Creates a set of raw init options to be used with
     /// `git_repository_init_ext`.
     ///
+    /// # Safety
     /// This method is unsafe as the returned value may have pointers to the
     /// interior of this structure.
     pub unsafe fn raw(&self) -> raw::git_repository_init_options {

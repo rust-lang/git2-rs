@@ -72,7 +72,7 @@ impl Error {
         let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
         let msg = String::from_utf8_lossy(msg).into_owned();
         Error {
-            code: code,
+            code,
             klass: (*ptr).klass,
             message: msg,
         }
@@ -82,6 +82,7 @@ impl Error {
     ///
     /// The error returned will have the code `GIT_ERROR` and the class
     /// `GIT_ERROR_NONE`.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Error {
         Error {
             code: raw::GIT_ERROR as c_int,

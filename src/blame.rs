@@ -247,7 +247,7 @@ impl<'repo> Binding for Blame<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_blame) -> Blame<'repo> {
         Blame {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -268,7 +268,7 @@ impl<'blame> Binding for BlameHunk<'blame> {
 
     unsafe fn from_raw(raw: *mut raw::git_blame_hunk) -> BlameHunk<'blame> {
         BlameHunk {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

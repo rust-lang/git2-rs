@@ -53,7 +53,7 @@ impl<'repo> Binding for Note<'repo> {
     type Raw = *mut raw::git_note;
     unsafe fn from_raw(raw: *mut raw::git_note) -> Note<'repo> {
         Note {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -80,7 +80,7 @@ impl<'repo> Binding for Notes<'repo> {
     type Raw = *mut raw::git_note_iterator;
     unsafe fn from_raw(raw: *mut raw::git_note_iterator) -> Notes<'repo> {
         Notes {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -387,7 +387,7 @@ impl<'repo> Binding for Reference<'repo> {
     type Raw = *mut raw::git_reference;
     unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
         Reference {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -419,7 +419,7 @@ impl<'repo> Binding for References<'repo> {
     type Raw = *mut raw::git_reference_iterator;
     unsafe fn from_raw(raw: *mut raw::git_reference_iterator) -> References<'repo> {
         References {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

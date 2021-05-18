@@ -118,7 +118,7 @@ impl<'repo> Binding for Tag<'repo> {
     type Raw = *mut raw::git_tag;
     unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
         Tag {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

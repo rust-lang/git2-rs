@@ -1,4 +1,3 @@
-use libc;
 use std::ffi::CString;
 use std::marker;
 use std::mem;
@@ -62,7 +61,7 @@ pub struct RemoteConnection<'repo, 'connection, 'cb> {
 pub fn remote_into_raw(remote: Remote<'_>) -> *mut raw::git_remote {
     let ret = remote.raw;
     mem::forget(remote);
-    return ret;
+    ret
 }
 
 impl<'repo> Remote<'repo> {
@@ -349,6 +348,7 @@ impl<'repo> Remote<'repo> {
                 mem::size_of::<*const raw::git_remote_head>()
             );
             let slice = slice::from_raw_parts(base as *const _, size as usize);
+            #[allow(clippy::transmute_ptr_to_ptr)]
             Ok(mem::transmute::<
                 &[*const raw::git_remote_head],
                 &[RemoteHead<'_>],
@@ -401,7 +401,7 @@ impl<'repo> Binding for Remote<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo> {
         Remote {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -206,7 +206,7 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
     entry: *const raw::git_tree_entry,
     payload: *mut c_void,
 ) -> c_int {
-    match panic::wrap(|| unsafe {
+    panic::wrap(|| unsafe {
         let root = match CStr::from_ptr(root).to_str() {
             Ok(value) => value,
             _ => return -1,
@@ -214,10 +214,8 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
         let entry = entry_from_raw_const(entry);
         let payload = payload as *mut &mut TreeWalkCb<'_, T>;
         (*payload)(root, &entry).into()
-    }) {
-        Some(value) => value,
-        None => -1,
-    }
+    })
+    .unwrap_or(-1)
 }
 
 impl<'repo> Binding for Tree<'repo> {
@@ -225,7 +223,7 @@ impl<'repo> Binding for Tree<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
         Tree {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -334,7 +332,7 @@ impl<'a> Binding for TreeEntry<'a> {
     type Raw = *mut raw::git_tree_entry;
     unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'a> {
         TreeEntry {
-            raw: raw,
+            raw,
             owned: true,
             _marker: marker::PhantomData,
         }

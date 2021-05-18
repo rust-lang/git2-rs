@@ -145,6 +145,7 @@ impl<'a> WorktreeAddOptions<'a> {
     /// Creates a default set of add options.
     ///
     /// By default this will not lock the worktree
+    #[allow(clippy::new_without_default)]
     pub fn new() -> WorktreeAddOptions<'a> {
         unsafe {
             let mut raw = mem::zeroed();
@@ -189,6 +190,7 @@ impl WorktreePruneOptions {
     ///
     /// By defaults this will prune only worktrees that are no longer valid
     /// unlocked and not checked out
+    #[allow(clippy::new_without_default)]
     pub fn new() -> WorktreePruneOptions {
         unsafe {
             let mut raw = mem::zeroed();

@@ -103,6 +103,7 @@ struct RawSmartSubtransportStream {
 /// Add a custom transport definition, to be used in addition to the built-in
 /// set of transports that come with libgit2.
 ///
+/// # Safety
 /// This function is unsafe as it needs to be externally synchronized with calls
 /// to creation of other transports.
 pub unsafe fn register<F>(prefix: &str, factory: F) -> Result<(), Error>
@@ -271,7 +272,7 @@ extern "C" fn subtransport_action(
                     write: Some(stream_write),
                     free: Some(stream_free),
                 },
-                obj: obj,
+                obj,
             }));
             transport.stream = Some(*stream);
         } else {

@@ -61,7 +61,7 @@ impl Ord for Time {
 impl Binding for Time {
     type Raw = raw::git_time;
     unsafe fn from_raw(raw: raw::git_time) -> Time {
-        Time { raw: raw }
+        Time { raw }
     }
     fn raw(&self) -> raw::git_time {
         self.raw
@@ -73,8 +73,8 @@ impl IndexTime {
     pub fn new(seconds: i32, nanoseconds: u32) -> IndexTime {
         unsafe {
             Binding::from_raw(raw::git_index_time {
-                seconds: seconds,
-                nanoseconds: nanoseconds,
+                seconds,
+                nanoseconds,
             })
         }
     }
@@ -92,7 +92,7 @@ impl IndexTime {
 impl Binding for IndexTime {
     type Raw = raw::git_index_time;
     unsafe fn from_raw(raw: raw::git_index_time) -> IndexTime {
-        IndexTime { raw: raw }
+        IndexTime { raw }
     }
     fn raw(&self) -> raw::git_index_time {
         self.raw

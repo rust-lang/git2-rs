@@ -1,4 +1,3 @@
-use libc;
 use std::ffi::CString;
 use std::marker;
 use std::path::{Path, PathBuf};
@@ -166,6 +165,7 @@ impl Config {
     /// level. A higher level means a higher priority. The first occurrence of
     /// the variable will be returned here.
     pub fn get_bool(&self, name: &str) -> Result<bool, Error> {
+        #[allow(clippy::unnecessary_cast)]
         let mut out = 0 as libc::c_int;
         let name = CString::new(name)?;
         unsafe {
@@ -465,7 +465,7 @@ impl Config {
 impl Binding for Config {
     type Raw = *mut raw::git_config;
     unsafe fn from_raw(raw: *mut raw::git_config) -> Config {
-        Config { raw: raw }
+        Config { raw }
     }
     fn raw(&self) -> *mut raw::git_config {
         self.raw
@@ -534,7 +534,7 @@ impl<'cfg> Binding for ConfigEntry<'cfg> {
 
     unsafe fn from_raw(raw: *mut raw::git_config_entry) -> ConfigEntry<'cfg> {
         ConfigEntry {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
             owned: true,
         }
@@ -549,7 +549,7 @@ impl<'cfg> Binding for ConfigEntries<'cfg> {
 
     unsafe fn from_raw(raw: *mut raw::git_config_iterator) -> ConfigEntries<'cfg> {
         ConfigEntries {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -571,7 +571,7 @@ impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
             try_call_iter!(raw::git_config_next(&mut raw, self.raw));
             Some(Ok(ConfigEntry {
                 owned: false,
-                raw: raw,
+                raw,
                 _marker: marker::PhantomData,
             }))
         }

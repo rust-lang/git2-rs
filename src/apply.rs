@@ -88,6 +88,7 @@ extern "C" fn hunk_cb_c(hunk: *const raw::git_diff_hunk, data: *mut c_void) -> c
 
 impl<'cb> ApplyOptions<'cb> {
     /// Creates a new set of empty options (zeroed).
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let mut opts = Self {
             raw: unsafe { mem::zeroed() },
@@ -143,6 +144,10 @@ impl<'cb> ApplyOptions<'cb> {
     }
 
     /// Pointer to a raw git_stash_apply_options
+    ///
+    /// # Safety
+    /// This function is unsafe as it is not guaranteed that `raw` is a valid
+    /// pointer.
     pub unsafe fn raw(&mut self) -> *const raw::git_apply_options {
         &self.raw as *const _
     }

@@ -14,11 +14,7 @@ impl<'repo> Revspec<'repo> {
         to: Option<Object<'repo>>,
         mode: RevparseMode,
     ) -> Revspec<'repo> {
-        Revspec {
-            from: from,
-            to: to,
-            mode: mode,
-        }
+        Revspec { from, to, mode }
     }
 
     /// Access the `from` range of this revspec.

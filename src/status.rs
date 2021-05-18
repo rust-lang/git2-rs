@@ -72,7 +72,7 @@ impl StatusOptions {
             let r = raw::git_status_init_options(&mut raw, raw::GIT_STATUS_OPTIONS_VERSION);
             assert_eq!(r, 0);
             StatusOptions {
-                raw: raw,
+                raw,
                 pathspec: Vec::new(),
                 ptrs: Vec::new(),
             }
@@ -218,6 +218,7 @@ impl StatusOptions {
 
     /// Get a pointer to the inner list of status options.
     ///
+    /// # Safety
     /// This function is unsafe as the returned structure has interior pointers
     /// and may no longer be valid if these options continue to be mutated.
     pub unsafe fn raw(&mut self) -> *const raw::git_status_options {
@@ -264,7 +265,7 @@ impl<'repo> Binding for Statuses<'repo> {
     type Raw = *mut raw::git_status_list;
     unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
         Statuses {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -340,7 +341,7 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 
     unsafe fn from_raw(raw: *const raw::git_status_entry) -> StatusEntry<'statuses> {
         StatusEntry {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
