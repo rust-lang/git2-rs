@@ -1,11 +1,12 @@
 use libc;
-use std::ffi::CString;
+use raw::git_strarray;
 use std::marker;
 use std::mem;
 use std::ops::Range;
 use std::ptr;
 use std::slice;
 use std::str;
+use std::{ffi::CString, os::raw::c_char};
 
 use crate::string_array::StringArray;
 use crate::util::Binding;
@@ -43,6 +44,8 @@ pub struct FetchOptions<'cb> {
     prune: FetchPrune,
     update_fetchhead: bool,
     download_tags: AutotagOption,
+    custom_headers: Vec<CString>,
+    custom_headers_ptrs: Vec<*const c_char>,
 }
 
 /// Options to control the behavior of a git push.
@@ -50,6 +53,8 @@ pub struct PushOptions<'cb> {
     callbacks: Option<RemoteCallbacks<'cb>>,
     proxy: Option<ProxyOptions<'cb>>,
     pb_parallelism: u32,
+    custom_headers: Vec<CString>,
+    custom_headers_ptrs: Vec<*const c_char>,
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
@@ -474,6 +479,8 @@ impl<'cb> FetchOptions<'cb> {
             prune: FetchPrune::Unspecified,
             update_fetchhead: true,
             download_tags: AutotagOption::Unspecified,
+            custom_headers: Vec::new(),
+            custom_headers_ptrs: Vec::new(),
         }
     }
 
@@ -511,6 +518,16 @@ impl<'cb> FetchOptions<'cb> {
         self.download_tags = opt;
         self
     }
+
+    /// Set extra headers for this fetch operation.
+    pub fn custom_headers(&mut self, custom_headers: &[&str]) -> &mut Self {
+        self.custom_headers = custom_headers
+            .iter()
+            .map(|&s| CString::new(s).unwrap())
+            .collect();
+        self.custom_headers_ptrs = self.custom_headers.iter().map(|s| s.as_ptr()).collect();
+        self
+    }
 }
 
 impl<'cb> Binding for FetchOptions<'cb> {
@@ -535,10 +552,9 @@ impl<'cb> Binding for FetchOptions<'cb> {
             prune: crate::call::convert(&self.prune),
             update_fetchhead: crate::call::convert(&self.update_fetchhead),
             download_tags: crate::call::convert(&self.download_tags),
-            // TODO: expose this as a builder option
-            custom_headers: raw::git_strarray {
-                count: 0,
-                strings: ptr::null_mut(),
+            custom_headers: git_strarray {
+                count: self.custom_headers_ptrs.len(),
+                strings: self.custom_headers_ptrs.as_ptr() as *mut _,
             },
         }
     }
@@ -557,6 +573,8 @@ impl<'cb> PushOptions<'cb> {
             callbacks: None,
             proxy: None,
             pb_parallelism: 1,
+            custom_headers: Vec::new(),
+            custom_headers_ptrs: Vec::new(),
         }
     }
 
@@ -582,6 +600,16 @@ impl<'cb> PushOptions<'cb> {
         self.pb_parallelism = parallel;
         self
     }
+
+    /// Set extra headers for this push operation.
+    pub fn custom_headers(&mut self, custom_headers: &[&str]) -> &mut Self {
+        self.custom_headers = custom_headers
+            .iter()
+            .map(|&s| CString::new(s).unwrap())
+            .collect();
+        self.custom_headers_ptrs = self.custom_headers.iter().map(|s| s.as_ptr()).collect();
+        self
+    }
 }
 
 impl<'cb> Binding for PushOptions<'cb> {
@@ -604,10 +632,9 @@ impl<'cb> Binding for PushOptions<'cb> {
                 .map(|m| m.raw())
                 .unwrap_or_else(|| ProxyOptions::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
-            // TODO: expose this as a builder option
-            custom_headers: raw::git_strarray {
-                count: 0,
-                strings: ptr::null_mut(),
+            custom_headers: git_strarray {
+                count: self.custom_headers_ptrs.len(),
+                strings: self.custom_headers_ptrs.as_ptr() as *mut _,
             },
         }
     }
