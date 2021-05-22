@@ -76,9 +76,9 @@ impl PartialEq for AttrValue<'_> {
             | (Self::False, AttrValue::False)
             | (Self::Unspecified, AttrValue::Unspecified) => true,
             (AttrValue::String(string), AttrValue::Bytes(bytes))
-            | (Self::Bytes(bytes), AttrValue::String(string)) => string.as_bytes() == *bytes,
-            (Self::String(left), AttrValue::String(right)) => left == right,
-            (Self::Bytes(left), AttrValue::Bytes(right)) => left == right,
+            | (AttrValue::Bytes(bytes), AttrValue::String(string)) => string.as_bytes() == *bytes,
+            (AttrValue::String(left), AttrValue::String(right)) => left == right,
+            (AttrValue::Bytes(left), AttrValue::Bytes(right)) => left == right,
             _ => false,
         }
     }
