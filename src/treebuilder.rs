@@ -141,7 +141,7 @@ impl<'repo> Binding for TreeBuilder<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_treebuilder) -> TreeBuilder<'repo> {
         TreeBuilder {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -313,7 +313,7 @@ impl<'repo> Binding for Commit<'repo> {
     type Raw = *mut raw::git_commit;
     unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
         Commit {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

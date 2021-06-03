@@ -230,7 +230,7 @@ impl<'repo> Binding for Rebase<'repo> {
     type Raw = *mut raw::git_rebase;
     unsafe fn from_raw(raw: *mut raw::git_rebase) -> Rebase<'repo> {
         Rebase {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -324,7 +324,7 @@ impl<'rebase> Binding for RebaseOperation<'rebase> {
     type Raw = *const raw::git_rebase_operation;
     unsafe fn from_raw(raw: *const raw::git_rebase_operation) -> RebaseOperation<'rebase> {
         RebaseOperation {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

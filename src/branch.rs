@@ -130,7 +130,7 @@ impl<'repo> Branches<'repo> {
     /// pointer.
     pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Branches<'repo> {
         Branches {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -21,7 +21,7 @@ impl<'buffers> Binding for Patch<'buffers> {
     type Raw = *mut raw::git_patch;
     unsafe fn from_raw(raw: Self::Raw) -> Self {
         Patch {
-            raw: raw,
+            raw,
             buffers: PhantomData,
         }
     }

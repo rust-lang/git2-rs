@@ -69,12 +69,12 @@ impl Error {
     }
 
     unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Error {
-        let msg = CStr::from_ptr((*ptr).message as *const _).to_bytes();
-        let msg = String::from_utf8_lossy(msg).into_owned();
+        let message = CStr::from_ptr((*ptr).message as *const _).to_bytes();
+        let message = String::from_utf8_lossy(message).into_owned();
         Error {
-            code: code,
+            code,
             klass: (*ptr).klass,
-            message: msg,
+            message,
         }
     }
 

@@ -23,7 +23,7 @@ impl<'repo> Binding for Odb<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_odb) -> Odb<'repo> {
         Odb {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -273,7 +273,7 @@ impl<'a> Binding for OdbObject<'a> {
 
     unsafe fn from_raw(raw: *mut raw::git_odb_object) -> OdbObject<'a> {
         OdbObject {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -327,7 +327,7 @@ impl<'repo> Binding for OdbReader<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_odb_stream) -> OdbReader<'repo> {
         OdbReader {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -386,7 +386,7 @@ impl<'repo> Binding for OdbWriter<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_odb_stream) -> OdbWriter<'repo> {
         OdbWriter {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

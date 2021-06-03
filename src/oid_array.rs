@@ -32,7 +32,7 @@ impl Deref for OidArray {
 impl Binding for OidArray {
     type Raw = raw::git_oidarray;
     unsafe fn from_raw(raw: raw::git_oidarray) -> OidArray {
-        OidArray { raw: raw }
+        OidArray { raw }
     }
     fn raw(&self) -> raw::git_oidarray {
         self.raw

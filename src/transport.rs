@@ -271,7 +271,7 @@ extern "C" fn subtransport_action(
                     write: Some(stream_write),
                     free: Some(stream_free),
                 },
-                obj: obj,
+                obj,
             }));
             transport.stream = Some(*stream);
         } else {

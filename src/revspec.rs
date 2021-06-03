@@ -15,9 +15,9 @@ impl<'repo> Revspec<'repo> {
         mode: RevparseMode,
     ) -> Revspec<'repo> {
         Revspec {
-            from: from,
-            to: to,
-            mode: mode,
+            from,
+            to,
+            mode,
         }
     }
 
