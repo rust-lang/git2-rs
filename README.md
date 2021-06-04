@@ -12,8 +12,7 @@ git2 = "0.13"
 ## Rust version requirements
 
 git2-rs works with stable Rust, and typically works with the most recent prior
-stable release as well. Check the MSRV job of [the CI script](.github/workflows/main.yml) to see the oldest
-version of Rust known to pass tests.
+stable release as well.
 
 ## Version of libgit2
 
