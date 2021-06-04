@@ -168,7 +168,7 @@ impl Binding for Pathspec {
     type Raw = *mut raw::git_pathspec;
 
     unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Pathspec {
-        Pathspec { raw: raw }
+        Pathspec { raw }
     }
     fn raw(&self) -> *mut raw::git_pathspec {
         self.raw
@@ -268,7 +268,7 @@ impl<'ps> Binding for PathspecMatchList<'ps> {
 
     unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list) -> PathspecMatchList<'ps> {
         PathspecMatchList {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -67,7 +67,7 @@ pub struct RemoteConnection<'repo, 'connection, 'cb> {
 pub fn remote_into_raw(remote: Remote<'_>) -> *mut raw::git_remote {
     let ret = remote.raw;
     mem::forget(remote);
-    return ret;
+    ret
 }
 
 impl<'repo> Remote<'repo> {
@@ -406,7 +406,7 @@ impl<'repo> Binding for Remote<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo> {
         Remote {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

@@ -225,7 +225,7 @@ impl<'repo> Binding for Tree<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
         Tree {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -334,7 +334,7 @@ impl<'a> Binding for TreeEntry<'a> {
     type Raw = *mut raw::git_tree_entry;
     unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'a> {
         TreeEntry {
-            raw: raw,
+            raw,
             owned: true,
             _marker: marker::PhantomData,
         }
