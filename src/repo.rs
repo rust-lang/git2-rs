@@ -2891,6 +2891,26 @@ impl Repository {
         }
     }
 
+    /// Apply a Diff to the provided tree, and return the resulting Index.
+    pub fn apply_to_tree(
+        &self,
+        tree: &Tree<'_>,
+        diff: &Diff<'_>,
+        options: Option<&mut ApplyOptions<'_>>,
+    ) -> Result<Index, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_apply_to_tree(
+                &mut ret,
+                self.raw,
+                tree.raw(),
+                diff.raw(),
+                options.map(|s| s.raw()).unwrap_or(ptr::null())
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Reverts the given commit, producing changes in the index and working directory.
     pub fn revert(
         &self,
