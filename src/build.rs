@@ -64,7 +64,7 @@ pub struct RepoBuilder<'cb> {
 pub type RemoteCreate<'cb> =
     dyn for<'a> FnMut(&'a Repository, &str, &str) -> Result<Remote<'a>, Error> + 'cb;
 
-/// A builder struct for git tree updates, for use with `git_tree_create_updated`.
+/// A builder struct for git tree updates.
 pub struct TreeUpdateBuilder {
     updates: Vec<raw::git_tree_update>,
     paths: Vec<CString>,
