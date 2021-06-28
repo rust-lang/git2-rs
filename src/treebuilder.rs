@@ -6,7 +6,15 @@ use libc::{c_int, c_void};
 use crate::util::{Binding, IntoCString};
 use crate::{panic, raw, tree, Error, Oid, Repository, TreeEntry};
 
-/// Constructor for in-memory trees
+/// Constructor for in-memory trees (low-level)
+///
+/// You probably want to use [`build::TreeUpdateBuilder`] instead.
+///
+/// This is the more raw of the two tree update facilities.  It
+/// handles only one level of a nested tree structure at a time.  Each
+/// path passed to `insert` etc. must be a single component.
+///
+/// [`build::TreeUpdateBuilder`]: crate::build::TreeUpdateBuilder
 pub struct TreeBuilder<'repo> {
     raw: *mut raw::git_treebuilder,
     _marker: marker::PhantomData<&'repo Repository>,
