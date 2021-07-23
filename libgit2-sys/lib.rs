@@ -1892,6 +1892,33 @@ pub const GIT_WORKTREE_PRUNE_OPTIONS_VERSION: c_uint = 1;
 pub type git_repository_mergehead_foreach_cb =
     Option<extern "C" fn(oid: *const git_oid, payload: *mut c_void) -> c_int>;
 
+git_enum! {
+    pub enum git_trace_level_t {
+        /* No tracing will be performed. */
+        GIT_TRACE_NONE = 0,
+
+        /* Severe errors that may impact the program's execution */
+        GIT_TRACE_FATAL = 1,
+
+        /* Errors that do not impact the program's execution */
+        GIT_TRACE_ERROR = 2,
+
+        /* Warnings that suggest abnormal data */
+        GIT_TRACE_WARN = 3,
+
+        /* Informational messages about program execution */
+        GIT_TRACE_INFO = 4,
+
+        /* Detailed data that allows for debugging */
+        GIT_TRACE_DEBUG = 5,
+
+        /* Exceptionally detailed debugging data */
+        GIT_TRACE_TRACE = 6,
+    }
+}
+
+pub type git_trace_cb = Option<extern "C" fn(level: git_trace_level_t, msg: *const c_char)>;
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -3986,6 +4013,8 @@ extern "C" {
         replace_name: *const c_char,
         replace_email: *const c_char,
     ) -> c_int;
+
+    pub fn git_trace_set(level: git_trace_level_t, cb: git_trace_cb);
 }
 
 pub fn init() {
