@@ -4014,7 +4014,7 @@ extern "C" {
         replace_email: *const c_char,
     ) -> c_int;
 
-    pub fn git_trace_set(level: git_trace_level_t, cb: git_trace_cb);
+    pub fn git_trace_set(level: git_trace_level_t, cb: git_trace_cb) -> c_int;
 }
 
 pub fn init() {
