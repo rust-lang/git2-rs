@@ -130,6 +130,7 @@ pub use crate::status::{StatusEntry, StatusIter, StatusOptions, StatusShow, Stat
 pub use crate::submodule::{Submodule, SubmoduleUpdateOptions};
 pub use crate::tag::Tag;
 pub use crate::time::{IndexTime, Time};
+pub use crate::tracing::{trace_set, TraceLevel};
 pub use crate::transaction::Transaction;
 pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use crate::treebuilder::TreeBuilder;
@@ -690,6 +691,7 @@ mod submodule;
 mod tag;
 mod tagforeach;
 mod time;
+mod tracing;
 mod transaction;
 mod tree;
 mod treebuilder;
