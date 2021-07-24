@@ -1,5 +1,7 @@
-use lazy_static::lazy_static;
-use std::sync::Mutex;
+use std::{
+    mem::ManuallyDrop,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use libc::c_char;
 
@@ -42,7 +44,7 @@ impl Binding for TraceLevel {
             raw::GIT_TRACE_INFO => Self::Info,
             raw::GIT_TRACE_DEBUG => Self::Debug,
             raw::GIT_TRACE_TRACE => Self::Trace,
-            _ => panic!("Unknown git diff binary kind"),
+            _ => panic!("Unknown git trace level"),
         }
     }
     fn raw(&self) -> raw::git_trace_level_t {
@@ -58,37 +60,28 @@ impl Binding for TraceLevel {
     }
 }
 
-pub type TracingCb = Box<dyn FnMut(TraceLevel, &str) + Sync + Send>;
+pub type TracingCb = fn(TraceLevel, &str);
 
-lazy_static! {
-    static ref CALLBACK: Mutex<Option<TracingCb>> = Mutex::new(None);
-}
+static CALLBACK: AtomicUsize = AtomicUsize::new(0);
 
 ///
-pub fn trace_set<T>(level: TraceLevel, cb: T) -> bool
-where
-    T: FnMut(TraceLevel, &str) + Sync + Send + 'static,
-{
-    if let Ok(mut static_cb) = CALLBACK.lock() {
-        *static_cb = Some(Box::new(cb));
+pub fn trace_set(level: TraceLevel, cb: TracingCb) -> bool {
+    let boxed_cb = Box::new(cb);
+    CALLBACK.store(Box::into_raw(boxed_cb) as *mut _ as usize, Ordering::SeqCst);
 
-        unsafe {
-            raw::git_trace_set(level.raw(), Some(tracing_cb_c));
-        }
-
-        return true;
+    unsafe {
+        raw::git_trace_set(level.raw(), Some(tracing_cb_c));
     }
 
-    false
+    return true;
 }
 
 extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     panic::wrap(|| unsafe {
-        if let Ok(mut cb) = CALLBACK.lock() {
-            if let Some(cb) = cb.as_mut() {
-                let msg = std::ffi::CStr::from_ptr(msg).to_str().unwrap();
-                (*cb)(Binding::from_raw(level), msg);
-            }
-        }
+        let cb = CALLBACK.load(Ordering::SeqCst);
+        let cb: Box<TracingCb> = Box::from_raw(cb as *mut _);
+        let msg = std::ffi::CStr::from_ptr(msg).to_str().unwrap();
+        (*cb)(Binding::from_raw(level), msg);
+        let _cb = ManuallyDrop::new(cb);
     });
 }
