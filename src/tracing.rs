@@ -1,5 +1,4 @@
 use std::{
-    mem::ManuallyDrop,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -66,8 +65,7 @@ static CALLBACK: AtomicUsize = AtomicUsize::new(0);
 
 ///
 pub fn trace_set(level: TraceLevel, cb: TracingCb) -> bool {
-    let boxed_cb = Box::new(cb);
-    CALLBACK.store(Box::into_raw(boxed_cb) as *mut _ as usize, Ordering::SeqCst);
+    CALLBACK.store(cb as usize, Ordering::SeqCst);
 
     unsafe {
         raw::git_trace_set(level.raw(), Some(tracing_cb_c));
@@ -77,11 +75,10 @@ pub fn trace_set(level: TraceLevel, cb: TracingCb) -> bool {
 }
 
 extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
+    let cb = CALLBACK.load(Ordering::SeqCst);
     panic::wrap(|| unsafe {
-        let cb = CALLBACK.load(Ordering::SeqCst);
-        let cb: Box<TracingCb> = Box::from_raw(cb as *mut _);
+        let cb: TracingCb = std::mem::transmute(cb);
         let msg = std::ffi::CStr::from_ptr(msg).to_str().unwrap();
-        (*cb)(Binding::from_raw(level), msg);
-        let _cb = ManuallyDrop::new(cb);
+        cb(Binding::from_raw(level), msg);
     });
 }
