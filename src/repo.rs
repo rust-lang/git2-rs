@@ -36,6 +36,11 @@ use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
 
 type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
+type FetchheadForeachCb<'a> = dyn FnMut(&str, Option<&str>, &Oid, bool) -> bool + 'a;
+
+struct FetchheadForeachCbData<'a> {
+    callback: &'a mut FetchheadForeachCb<'a>,
+}
 
 struct MergeheadForeachCbData<'a> {
     callback: &'a mut MergeheadForeachCb<'a>,
@@ -47,6 +52,35 @@ extern "C" fn mergehead_foreach_cb(oid: *const raw::git_oid, payload: *mut c_voi
         let res = {
             let callback = &mut data.callback;
             callback(&Binding::from_raw(oid))
+        };
+
+        if res {
+            0
+        } else {
+            1
+        }
+    })
+    .unwrap_or(1)
+}
+
+extern "C" fn fetchhead_foreach_cb(
+    ref_name: *const c_char,
+    remote_url: *const c_char,
+    oid: *const raw::git_oid,
+    is_merge: c_uint,
+    payload: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let data = &mut *(payload as *mut FetchheadForeachCbData<'_>);
+        let res = {
+            let callback = &mut data.callback;
+
+            let ref_name = str::from_utf8(CStr::from_ptr(ref_name).to_bytes()).unwrap();
+            let remote_url = str::from_utf8(CStr::from_ptr(remote_url).to_bytes()).ok();
+            let oid = Binding::from_raw(oid);
+            let is_merge = is_merge == 1;
+
+            callback(&ref_name, remote_url.as_deref(), &oid, is_merge)
         };
 
         if res {
@@ -3028,6 +3062,25 @@ impl Repository {
             };
             let cb: raw::git_repository_mergehead_foreach_cb = Some(mergehead_foreach_cb);
             try_call!(raw::git_repository_mergehead_foreach(
+                self.raw(),
+                cb,
+                &mut data as *mut _ as *mut _
+            ));
+            Ok(())
+        }
+    }
+
+    /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
+    pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&str, Option<&str>, &Oid, bool) -> bool,
+    {
+        unsafe {
+            let mut data = FetchheadForeachCbData {
+                callback: &mut callback,
+            };
+            let cb: raw::git_repository_fetchhead_foreach_cb = Some(fetchhead_foreach_cb);
+            try_call!(raw::git_repository_fetchhead_foreach(
                 self.raw(),
                 cb,
                 &mut data as *mut _ as *mut _
