@@ -75,6 +75,10 @@ extern "C" fn fetchhead_foreach_cb(
         let res = {
             let callback = &mut data.callback;
 
+            assert!(!ref_name.is_null());
+            assert!(!remote_url.is_null());
+            assert!(!oid.is_null());
+
             let ref_name = str::from_utf8(CStr::from_ptr(ref_name).to_bytes()).unwrap();
             let remote_url = str::from_utf8(CStr::from_ptr(remote_url).to_bytes()).ok();
             let oid = Binding::from_raw(oid);
