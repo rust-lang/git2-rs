@@ -30,6 +30,7 @@ impl<'repo> Branch<'repo> {
 
     /// Ensure the branch name is well-formed.
     pub fn name_is_valid(name: &str) -> Result<bool, Error> {
+        crate::init();
         let name = CString::new(name)?;
         let mut valid: libc::c_int = 0;
         unsafe {
