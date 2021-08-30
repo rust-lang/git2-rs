@@ -3075,6 +3075,13 @@ impl Repository {
     }
 
     /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
+    ///
+    /// `callback` will be called with with following arguments:
+    ///
+    /// - `&str`: the reference name
+    /// - `&[u8]`: the remote url
+    /// - `&Oid`: the reference target OID
+    /// - `bool`: was the reference the result of a merge
     pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
     where
         C: FnMut(&str, &[u8], &Oid, bool) -> bool,
