@@ -3055,7 +3055,7 @@ impl Repository {
     }
 
     ///  If a merge is in progress, invoke 'callback' for each commit ID in the
-    ///  * MERGE_HEAD file.
+    ///  MERGE_HEAD file.
     pub fn mergehead_foreach<C>(&mut self, mut callback: C) -> Result<(), Error>
     where
         C: FnMut(&Oid) -> bool,
