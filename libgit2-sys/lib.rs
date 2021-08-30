@@ -1892,6 +1892,10 @@ pub const GIT_WORKTREE_PRUNE_OPTIONS_VERSION: c_uint = 1;
 pub type git_repository_mergehead_foreach_cb =
     Option<extern "C" fn(oid: *const git_oid, payload: *mut c_void) -> c_int>;
 
+pub type git_repository_fetchhead_foreach_cb = Option<
+    extern "C" fn(*const c_char, *const c_char, *const git_oid, c_uint, *mut c_void) -> c_int,
+>;
+
 git_enum! {
     pub enum git_trace_level_t {
         /* No tracing will be performed. */
@@ -2014,6 +2018,11 @@ extern "C" {
     pub fn git_repository_mergehead_foreach(
         repo: *mut git_repository,
         callback: git_repository_mergehead_foreach_cb,
+        payload: *mut c_void,
+    ) -> c_int;
+    pub fn git_repository_fetchhead_foreach(
+        repo: *mut git_repository,
+        callback: git_repository_fetchhead_foreach_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_ignore_add_rule(repo: *mut git_repository, rules: *const c_char) -> c_int;

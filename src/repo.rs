@@ -36,6 +36,11 @@ use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
 
 type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
+type FetchheadForeachCb<'a> = dyn FnMut(&str, &[u8], &Oid, bool) -> bool + 'a;
+
+struct FetchheadForeachCbData<'a> {
+    callback: &'a mut FetchheadForeachCb<'a>,
+}
 
 struct MergeheadForeachCbData<'a> {
     callback: &'a mut MergeheadForeachCb<'a>,
@@ -47,6 +52,39 @@ extern "C" fn mergehead_foreach_cb(oid: *const raw::git_oid, payload: *mut c_voi
         let res = {
             let callback = &mut data.callback;
             callback(&Binding::from_raw(oid))
+        };
+
+        if res {
+            0
+        } else {
+            1
+        }
+    })
+    .unwrap_or(1)
+}
+
+extern "C" fn fetchhead_foreach_cb(
+    ref_name: *const c_char,
+    remote_url: *const c_char,
+    oid: *const raw::git_oid,
+    is_merge: c_uint,
+    payload: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let data = &mut *(payload as *mut FetchheadForeachCbData<'_>);
+        let res = {
+            let callback = &mut data.callback;
+
+            assert!(!ref_name.is_null());
+            assert!(!remote_url.is_null());
+            assert!(!oid.is_null());
+
+            let ref_name = str::from_utf8(CStr::from_ptr(ref_name).to_bytes()).unwrap();
+            let remote_url = CStr::from_ptr(remote_url).to_bytes();
+            let oid = Binding::from_raw(oid);
+            let is_merge = is_merge == 1;
+
+            callback(&ref_name, remote_url, &oid, is_merge)
         };
 
         if res {
@@ -3017,7 +3055,7 @@ impl Repository {
     }
 
     ///  If a merge is in progress, invoke 'callback' for each commit ID in the
-    ///  * MERGE_HEAD file.
+    ///  MERGE_HEAD file.
     pub fn mergehead_foreach<C>(&mut self, mut callback: C) -> Result<(), Error>
     where
         C: FnMut(&Oid) -> bool,
@@ -3028,6 +3066,32 @@ impl Repository {
             };
             let cb: raw::git_repository_mergehead_foreach_cb = Some(mergehead_foreach_cb);
             try_call!(raw::git_repository_mergehead_foreach(
+                self.raw(),
+                cb,
+                &mut data as *mut _ as *mut _
+            ));
+            Ok(())
+        }
+    }
+
+    /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
+    ///
+    /// `callback` will be called with with following arguments:
+    ///
+    /// - `&str`: the reference name
+    /// - `&[u8]`: the remote url
+    /// - `&Oid`: the reference target OID
+    /// - `bool`: was the reference the result of a merge
+    pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(&str, &[u8], &Oid, bool) -> bool,
+    {
+        unsafe {
+            let mut data = FetchheadForeachCbData {
+                callback: &mut callback,
+            };
+            let cb: raw::git_repository_fetchhead_foreach_cb = Some(fetchhead_foreach_cb);
+            try_call!(raw::git_repository_fetchhead_foreach(
                 self.raw(),
                 cb,
                 &mut data as *mut _ as *mut _
