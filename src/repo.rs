@@ -36,7 +36,7 @@ use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
 
 type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
-type FetchheadForeachCb<'a> = dyn FnMut(&str, Option<&str>, &Oid, bool) -> bool + 'a;
+type FetchheadForeachCb<'a> = dyn FnMut(&str, &[u8], &Oid, bool) -> bool + 'a;
 
 struct FetchheadForeachCbData<'a> {
     callback: &'a mut FetchheadForeachCb<'a>,
@@ -80,11 +80,11 @@ extern "C" fn fetchhead_foreach_cb(
             assert!(!oid.is_null());
 
             let ref_name = str::from_utf8(CStr::from_ptr(ref_name).to_bytes()).unwrap();
-            let remote_url = str::from_utf8(CStr::from_ptr(remote_url).to_bytes()).ok();
+            let remote_url = CStr::from_ptr(remote_url).to_bytes();
             let oid = Binding::from_raw(oid);
             let is_merge = is_merge == 1;
 
-            callback(&ref_name, remote_url.as_deref(), &oid, is_merge)
+            callback(&ref_name, remote_url, &oid, is_merge)
         };
 
         if res {
@@ -3077,7 +3077,7 @@ impl Repository {
     /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
     pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
     where
-        C: FnMut(&str, Option<&str>, &Oid, bool) -> bool,
+        C: FnMut(&str, &[u8], &Oid, bool) -> bool,
     {
         unsafe {
             let mut data = FetchheadForeachCbData {
