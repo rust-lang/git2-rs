@@ -353,6 +353,8 @@ pub type git_indexer_progress_cb =
 )]
 pub type git_transfer_progress = git_indexer_progress;
 
+pub type git_remote_ready_cb = Option<extern "C" fn(*mut git_remote, c_int, *mut c_void) -> c_int>;
+
 #[repr(C)]
 pub struct git_remote_callbacks {
     pub version: c_uint,
@@ -368,6 +370,7 @@ pub struct git_remote_callbacks {
     pub push_update_reference: git_push_update_reference_cb,
     pub push_negotiation: git_push_negotiation,
     pub transport: git_transport_cb,
+    pub remote_ready: git_remote_ready_cb,
     pub payload: *mut c_void,
     pub resolve_url: git_url_resolve_cb,
 }
@@ -1486,6 +1489,8 @@ pub struct git_odb_backend {
         ) -> c_int,
     >,
 
+    pub writemidx: Option<extern "C" fn(*mut git_odb_backend) -> c_int>,
+
     pub freshen: Option<extern "C" fn(*mut git_odb_backend, *const git_oid) -> c_int>,
 
     pub free: Option<extern "C" fn(*mut git_odb_backend)>,
@@ -1745,6 +1750,20 @@ pub type git_commit_signing_cb = Option<
     ) -> c_int,
 >;
 
+pub type git_commit_create_cb = Option<
+    extern "C" fn(
+        *mut git_oid,
+        *const git_signature,
+        *const git_signature,
+        *const c_char,
+        *const c_char,
+        *const git_tree,
+        usize,
+        *const git_commit,
+        *mut c_void,
+    ) -> c_int,
+>;
+
 pub const GIT_REBASE_NO_OPERATION: usize = usize::max_value();
 
 #[repr(C)]
@@ -1755,6 +1774,7 @@ pub struct git_rebase_options {
     pub rewrite_notes_ref: *const c_char,
     pub merge_options: git_merge_options,
     pub checkout_options: git_checkout_options,
+    pub commit_create_cb: git_commit_create_cb,
     pub signing_cb: git_commit_signing_cb,
     pub payload: *mut c_void,
 }
