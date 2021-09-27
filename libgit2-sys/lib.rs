@@ -1960,7 +1960,7 @@ pub struct git_message_trailer {
 }
 
 #[repr(C)]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct git_message_trailer_array {
     pub trailers: *const git_message_trailer,
     pub count: size_t,
@@ -3697,9 +3697,7 @@ extern "C" {
         message: *const c_char,
     ) -> c_int;
 
-    pub fn git_message_trailer_array_free(
-        trailer: *mut git_message_trailer_array,
-    );
+    pub fn git_message_trailer_array_free(trailer: *mut git_message_trailer_array);
 
     // packbuilder
     pub fn git_packbuilder_new(out: *mut *mut git_packbuilder, repo: *mut git_repository) -> c_int;

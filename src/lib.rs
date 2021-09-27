@@ -101,7 +101,10 @@ pub use crate::indexer::{IndexerProgress, Progress};
 pub use crate::mailmap::Mailmap;
 pub use crate::mempack::Mempack;
 pub use crate::merge::{AnnotatedCommit, MergeOptions};
-pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR, message_trailers, MessageTrailers, MessageTrailersIterator};
+pub use crate::message::{
+    message_prettify, message_trailers, MessageTrailers, MessageTrailersIterator,
+    DEFAULT_COMMENT_CHAR,
+};
 pub use crate::note::{Note, Notes};
 pub use crate::object::Object;
 pub use crate::odb::{Odb, OdbObject, OdbPackwriter, OdbReader, OdbWriter};

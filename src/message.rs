@@ -1,7 +1,7 @@
-use std::ffi::CString;
 use std::ffi::CStr;
-use std::ptr;
+use std::ffi::CString;
 use std::marker;
+use std::ptr;
 
 use libc::{c_char, c_int};
 
@@ -73,9 +73,7 @@ impl<'pair> Drop for MessageTrailers<'pair> {
 
 impl<'pair> Binding for MessageTrailers<'pair> {
     type Raw = *mut raw::git_message_trailer_array;
-    unsafe fn from_raw(
-        raw: *mut raw::git_message_trailer_array
-    ) -> MessageTrailers<'pair> {
+    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers<'pair> {
         MessageTrailers {
             raw: *raw,
             _marker: marker::PhantomData,
@@ -118,11 +116,14 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
             unsafe {
                 let addr = self.trailers.raw.trailers.wrapping_add(self.counter);
                 self.counter += 1;
-                Some(Trailer {
-                    key: (*addr).key,
-                    value: (*addr).value,
-                    _marker: marker::PhantomData,
-                }.to_str_tuple())
+                Some(
+                    Trailer {
+                        key: (*addr).key,
+                        value: (*addr).value,
+                        _marker: marker::PhantomData,
+                    }
+                    .to_str_tuple(),
+                )
             }
         }
     }
@@ -130,20 +131,15 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
 
 /// Get the trailers for the given message.
 pub fn message_trailers<'pair, S: IntoCString>(
-    message: S
+    message: S,
 ) -> Result<MessageTrailers<'pair>, Error> {
     _message_trailers(message.into_c_string()?)
 }
 
-fn _message_trailers<'pair>(
-    message: CString
-) -> Result<MessageTrailers<'pair>, Error> {
+fn _message_trailers<'pair>(message: CString) -> Result<MessageTrailers<'pair>, Error> {
     let ret = MessageTrailers::new();
     unsafe {
-        try_call!(raw::git_message_trailers(
-            ret.raw(),
-            message
-        ));
+        try_call!(raw::git_message_trailers(ret.raw(), message));
     }
     Ok(ret)
 }
@@ -182,8 +178,8 @@ mod tests {
 
     #[test]
     fn trailers() {
-        use std::collections::HashMap;
         use crate::{message_trailers, MessageTrailers};
+        use std::collections::HashMap;
 
         // no trailers
         let message1 = "
@@ -209,8 +205,10 @@ Signed-off-by: Colonel Kale
         let expected: HashMap<&str, &str> = vec![
             ("Spoken-by", "Major Turnips"),
             ("Transcribed-by", "Seargant Persimmons"),
-            ("Signed-off-by", "Colonel Kale")
-        ].into_iter().collect();
+            ("Signed-off-by", "Colonel Kale"),
+        ]
+        .into_iter()
+        .collect();
         assert_eq!(expected, to_map(&message_trailers(message2).unwrap()));
 
         // ignore everything after `---`
@@ -225,14 +223,12 @@ I never liked that guy, anyway.
 
 Opined-by: Corporal Garlic
 ";
-        let expected: HashMap<&str, &str> = vec![
-            ("Signed-off-by", "Colonel Kale")
-        ].into_iter().collect();
+        let expected: HashMap<&str, &str> = vec![("Signed-off-by", "Colonel Kale")]
+            .into_iter()
+            .collect();
         assert_eq!(expected, to_map(&message_trailers(message3).unwrap()));
 
-        fn to_map<'pair>(
-            trailers: &'pair MessageTrailers<'pair>
-        ) -> HashMap<&str, &str> {
+        fn to_map<'pair>(trailers: &'pair MessageTrailers<'pair>) -> HashMap<&str, &str> {
             let mut map = HashMap::with_capacity(trailers.len());
             for (key, value) in trailers.iter() {
                 map.insert(key, value);
