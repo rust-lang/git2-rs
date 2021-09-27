@@ -135,6 +135,7 @@ pub use crate::transaction::Transaction;
 pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use crate::treebuilder::TreeBuilder;
 pub use crate::util::IntoCString;
+pub use crate::version::Version;
 pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions};
 
 // Create a convinience method on bitflag struct which checks the given flag
@@ -695,6 +696,7 @@ mod tracing;
 mod transaction;
 mod tree;
 mod treebuilder;
+mod version;
 mod worktree;
 
 fn init() {

@@ -1943,6 +1943,15 @@ git_enum! {
 
 pub type git_trace_cb = Option<extern "C" fn(level: git_trace_level_t, msg: *const c_char)>;
 
+git_enum! {
+    pub enum git_feature_t {
+        GIT_FEATURE_THREADS = 1 << 0,
+        GIT_FEATURE_HTTPS   = 1 << 1,
+        GIT_FEATURE_SSH     = 1 << 2,
+        GIT_FEATURE_NSEC    = 1 << 3,
+    }
+}
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -3948,6 +3957,9 @@ extern "C" {
         given_opts: *const git_revert_options,
     ) -> c_int;
 
+    // Common
+    pub fn git_libgit2_version(major: *mut c_int, minor: *mut c_int, rev: *mut c_int) -> c_int;
+    pub fn git_libgit2_features() -> c_int;
     pub fn git_libgit2_opts(option: c_int, ...) -> c_int;
 
     // Worktrees
@@ -4092,3 +4104,8 @@ fn ssh_init() {
 
 #[cfg(not(feature = "ssh"))]
 fn ssh_init() {}
+
+#[doc(hidden)]
+pub fn vendored() -> bool {
+    cfg!(libgit2_vendored)
+}
