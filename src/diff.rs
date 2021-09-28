@@ -814,6 +814,11 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_EOL, ignore)
     }
 
+    /// Ignore blank lines
+    pub fn ignore_blank_lines(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_BLANK_LINES, ignore)
+    }
+
     /// When generating patch text, include the content of untracked files.
     ///
     /// This automatically turns on `include_untracked` but it does not turn on
