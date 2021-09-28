@@ -1172,6 +1172,7 @@ pub const GIT_DIFF_UPDATE_INDEX: git_diff_option_t = 1 << 15;
 pub const GIT_DIFF_INCLUDE_UNREADABLE: git_diff_option_t = 1 << 16;
 pub const GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED: git_diff_option_t = 1 << 17;
 pub const GIT_DIFF_INDENT_HEURISTIC: git_diff_option_t = 1 << 18;
+pub const GIT_DIFF_IGNORE_BLANK_LINES: git_diff_option_t = 1 << 19;
 pub const GIT_DIFF_FORCE_TEXT: git_diff_option_t = 1 << 20;
 pub const GIT_DIFF_FORCE_BINARY: git_diff_option_t = 1 << 21;
 pub const GIT_DIFF_IGNORE_WHITESPACE: git_diff_option_t = 1 << 22;
