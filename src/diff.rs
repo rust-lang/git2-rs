@@ -1170,7 +1170,7 @@ impl<'a> std::fmt::Debug for DiffHunk<'a> {
 }
 
 impl DiffStats {
-    /// Get the total number of files chaned in a diff.
+    /// Get the total number of files changed in a diff.
     pub fn files_changed(&self) -> usize {
         unsafe { raw::git_diff_stats_files_changed(&*self.raw) as usize }
     }
