@@ -1962,7 +1962,7 @@ pub struct git_message_trailer {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct git_message_trailer_array {
-    pub trailers: *const git_message_trailer,
+    pub trailers: *mut git_message_trailer,
     pub count: size_t,
     pub _trailer_block: *mut c_char,
 }
