@@ -1,3 +1,4 @@
+use core::ops::Range;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::marker;
@@ -54,7 +55,10 @@ impl<'pair> MessageTrailers {
     pub fn iter(&'pair self) -> MessageTrailersIterator<'pair> {
         MessageTrailersIterator {
             trailers: self,
-            counter: 0,
+            range: Range {
+                start: 0,
+                end: self.raw.count,
+            },
         }
     }
     /// The number of trailer key–value pairs.
@@ -103,29 +107,22 @@ impl<'pair> Trailer<'pair> {
 /// A borrowed iterator.
 pub struct MessageTrailersIterator<'a> {
     trailers: &'a MessageTrailers,
-    counter: usize,
+    range: Range<usize>,
 }
 
 impl<'pair> Iterator for MessageTrailersIterator<'pair> {
     type Item = (&'pair str, &'pair str);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.counter == self.trailers.raw.count {
-            None
-        } else {
-            unsafe {
-                let addr = self.trailers.raw.trailers.wrapping_add(self.counter);
-                self.counter += 1;
-                Some(
-                    Trailer {
-                        key: (*addr).key,
-                        value: (*addr).value,
-                        _marker: marker::PhantomData,
-                    }
-                    .to_str_tuple(),
-                )
+        self.range.next().map(|index| unsafe {
+            let addr = self.trailers.raw.trailers.wrapping_add(index);
+            Trailer {
+                key: (*addr).key,
+                value: (*addr).value,
+                _marker: marker::PhantomData,
             }
-        }
+            .to_str_tuple()
+        })
     }
 }
 
