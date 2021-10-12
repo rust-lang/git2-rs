@@ -127,9 +127,7 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
 }
 
 /// Get the trailers for the given message.
-pub fn message_trailers<'pair, S: IntoCString>(
-    message: S,
-) -> Result<MessageTrailers, Error> {
+pub fn message_trailers<'pair, S: IntoCString>(message: S) -> Result<MessageTrailers, Error> {
     _message_trailers(message.into_c_string()?)
 }
 
