@@ -71,7 +71,7 @@ impl<'pair> Drop for MessageTrailers {
     }
 }
 
-impl<'pair> Binding for MessageTrailers {
+impl Binding for MessageTrailers {
     type Raw = *mut raw::git_message_trailer_array;
     unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers {
         MessageTrailers {
