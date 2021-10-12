@@ -34,13 +34,13 @@ fn _message_prettify(message: CString, comment_char: Option<u8>) -> Result<Strin
 /// Collection of trailer key–value pairs.
 ///
 /// Use `iter()` to get access to the values.
-pub struct MessageTrailers<'pair> {
+pub struct MessageTrailers {
     raw: raw::git_message_trailer_array,
-    _marker: marker::PhantomData<&'pair c_char>,
+    _marker: marker::PhantomData<c_char>,
 }
 
-impl<'pair> MessageTrailers<'pair> {
-    fn new() -> MessageTrailers<'pair> {
+impl<'pair> MessageTrailers {
+    fn new() -> MessageTrailers {
         crate::init();
         unsafe {
             Binding::from_raw(&mut raw::git_message_trailer_array {
@@ -63,7 +63,7 @@ impl<'pair> MessageTrailers<'pair> {
     }
 }
 
-impl<'pair> Drop for MessageTrailers<'pair> {
+impl<'pair> Drop for MessageTrailers {
     fn drop(&mut self) {
         unsafe {
             raw::git_message_trailer_array_free(&mut self.raw);
@@ -71,9 +71,9 @@ impl<'pair> Drop for MessageTrailers<'pair> {
     }
 }
 
-impl<'pair> Binding for MessageTrailers<'pair> {
+impl<'pair> Binding for MessageTrailers {
     type Raw = *mut raw::git_message_trailer_array;
-    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers<'pair> {
+    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers {
         MessageTrailers {
             raw: *raw,
             _marker: marker::PhantomData,
@@ -101,8 +101,8 @@ impl<'pair> Trailer<'pair> {
 }
 
 /// A borrowed iterator.
-pub struct MessageTrailersIterator<'pair> {
-    trailers: &'pair MessageTrailers<'pair>,
+pub struct MessageTrailersIterator<'a> {
+    trailers: &'a MessageTrailers,
     counter: usize,
 }
 
@@ -132,11 +132,11 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
 /// Get the trailers for the given message.
 pub fn message_trailers<'pair, S: IntoCString>(
     message: S,
-) -> Result<MessageTrailers<'pair>, Error> {
+) -> Result<MessageTrailers, Error> {
     _message_trailers(message.into_c_string()?)
 }
 
-fn _message_trailers<'pair>(message: CString) -> Result<MessageTrailers<'pair>, Error> {
+fn _message_trailers<'pair>(message: CString) -> Result<MessageTrailers, Error> {
     let ret = MessageTrailers::new();
     unsafe {
         try_call!(raw::git_message_trailers(ret.raw(), message));
@@ -228,7 +228,7 @@ Opined-by: Corporal Garlic
             .collect();
         assert_eq!(expected, to_map(&message_trailers(message3).unwrap()));
 
-        fn to_map<'pair>(trailers: &'pair MessageTrailers<'pair>) -> HashMap<&str, &str> {
+        fn to_map(trailers: &MessageTrailers) -> HashMap<&str, &str> {
             let mut map = HashMap::with_capacity(trailers.len());
             for (key, value) in trailers.iter() {
                 map.insert(key, value);
