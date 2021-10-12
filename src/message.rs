@@ -88,22 +88,6 @@ impl Binding for MessageTrailers {
     }
 }
 
-struct Trailer<'pair> {
-    key: *const c_char,
-    value: *const c_char,
-    _marker: marker::PhantomData<&'pair c_char>,
-}
-
-impl<'pair> Trailer<'pair> {
-    fn to_str_tuple(self) -> (&'pair str, &'pair str) {
-        unsafe {
-            let key = CStr::from_ptr(self.key).to_str().unwrap();
-            let value = CStr::from_ptr(self.value).to_str().unwrap();
-            (key, value)
-        }
-    }
-}
-
 /// A borrowed iterator.
 pub struct MessageTrailersIterator<'a> {
     trailers: &'a MessageTrailers,
@@ -116,13 +100,20 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
     fn next(&mut self) -> Option<Self::Item> {
         self.range.next().map(|index| unsafe {
             let addr = self.trailers.raw.trailers.wrapping_add(index);
-            Trailer {
-                key: (*addr).key,
-                value: (*addr).value,
-                _marker: marker::PhantomData,
-            }
-            .to_str_tuple()
+            to_str_tuple((*addr).key, (*addr).value, marker::PhantomData)
         })
+    }
+}
+
+fn to_str_tuple<'pair>(
+    key: *const c_char,
+    value: *const c_char,
+    _marker: marker::PhantomData<&'pair c_char>,
+) -> (&'pair str, &'pair str) {
+    unsafe {
+        let k = CStr::from_ptr(key).to_str().unwrap();
+        let v = CStr::from_ptr(value).to_str().unwrap();
+        (k, v)
     }
 }
 
