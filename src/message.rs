@@ -98,22 +98,37 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
     type Item = (&'pair str, &'pair str);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.range.next().map(|index| unsafe {
-            let addr = self.trailers.raw.trailers.wrapping_add(index);
-            to_str_tuple((*addr).key, (*addr).value, marker::PhantomData)
-        })
+        self.range
+            .next()
+            .map(|index| to_str_tuple(&self.trailers, index, marker::PhantomData))
     }
 }
 
-fn to_str_tuple<'pair>(
-    key: *const c_char,
-    value: *const c_char,
-    _marker: marker::PhantomData<&'pair c_char>,
-) -> (&'pair str, &'pair str) {
+#[inline(always)]
+fn to_str_tuple(
+    trailers: &MessageTrailers,
+    index: usize,
+    _marker: marker::PhantomData<c_char>,
+) -> (&str, &str) {
     unsafe {
-        let k = CStr::from_ptr(key).to_str().unwrap();
-        let v = CStr::from_ptr(value).to_str().unwrap();
-        (k, v)
+        let addr = trailers.raw.trailers.wrapping_add(index);
+        let key = CStr::from_ptr((*addr).key).to_str().unwrap();
+        let value = CStr::from_ptr((*addr).value).to_str().unwrap();
+        (key, value)
+    }
+}
+
+impl ExactSizeIterator for MessageTrailersIterator<'_> {
+    fn len(&self) -> usize {
+        self.range.end
+    }
+}
+
+impl DoubleEndedIterator for MessageTrailersIterator<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.range
+            .next_back()
+            .map(|index| to_str_tuple(&self.trailers, index, marker::PhantomData))
     }
 }
 
