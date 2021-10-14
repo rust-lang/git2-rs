@@ -32,6 +32,7 @@ fn main() {
 
     let target = env::var("TARGET").unwrap();
     let windows = target.contains("windows");
+    let aarch64 = target.contains("aarch64");
     let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let include = dst.join("include");
     let mut cfg = cc::Build::new();
@@ -104,6 +105,10 @@ fn main() {
     if target.contains("solaris") || target.contains("illumos") {
         cfg.define("_POSIX_C_SOURCE", "200112L");
         cfg.define("__EXTENSIONS__", None);
+    }
+
+    if aarch64 {
+        cfg.flag("-mno-outline-atomics");
     }
 
     let mut features = String::new();
