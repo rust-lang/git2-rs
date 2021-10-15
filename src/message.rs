@@ -1,7 +1,6 @@
 use core::ops::Range;
 use std::ffi::CStr;
 use std::ffi::CString;
-use std::marker;
 use std::ptr;
 
 use libc::{c_char, c_int};
@@ -37,7 +36,6 @@ fn _message_prettify(message: CString, comment_char: Option<u8>) -> Result<Strin
 /// Use `iter()` to get access to the values.
 pub struct MessageTrailers {
     raw: raw::git_message_trailer_array,
-    _marker: marker::PhantomData<c_char>,
 }
 
 impl MessageTrailers {
@@ -80,7 +78,6 @@ impl Binding for MessageTrailers {
     unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers {
         MessageTrailers {
             raw: *raw,
-            _marker: marker::PhantomData,
         }
     }
     fn raw(&self) -> *mut raw::git_message_trailer_array {
@@ -100,7 +97,7 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
     fn next(&mut self) -> Option<Self::Item> {
         self.range
             .next()
-            .map(|index| to_str_tuple(&self.trailers, index, marker::PhantomData))
+            .map(|index| to_str_tuple(&self.trailers, index))
     }
 }
 
@@ -108,7 +105,6 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
 fn to_str_tuple(
     trailers: &MessageTrailers,
     index: usize,
-    _marker: marker::PhantomData<c_char>,
 ) -> (&str, &str) {
     unsafe {
         let addr = trailers.raw.trailers.wrapping_add(index);
@@ -128,7 +124,7 @@ impl DoubleEndedIterator for MessageTrailersIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.range
             .next_back()
-            .map(|index| to_str_tuple(&self.trailers, index, marker::PhantomData))
+            .map(|index| to_str_tuple(&self.trailers, index))
     }
 }
 
