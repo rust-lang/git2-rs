@@ -40,7 +40,7 @@ pub struct MessageTrailers {
     _marker: marker::PhantomData<c_char>,
 }
 
-impl<'pair> MessageTrailers {
+impl MessageTrailers {
     fn new() -> MessageTrailers {
         crate::init();
         unsafe {
@@ -52,7 +52,7 @@ impl<'pair> MessageTrailers {
         }
     }
     /// Create a borrowed iterator.
-    pub fn iter(&'pair self) -> MessageTrailersIterator<'pair> {
+    pub fn iter(&self) -> MessageTrailersIterator<'_> {
         MessageTrailersIterator {
             trailers: self,
             range: Range {
