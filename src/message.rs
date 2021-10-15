@@ -116,7 +116,7 @@ fn to_str_tuple(
 
 impl ExactSizeIterator for MessageTrailersIterator<'_> {
     fn len(&self) -> usize {
-        self.range.end
+        self.range.len()
     }
 }
 
