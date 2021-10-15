@@ -99,6 +99,10 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
             .next()
             .map(|index| to_str_tuple(&self.trailers, index))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
 }
 
 fn to_str_tuple(
