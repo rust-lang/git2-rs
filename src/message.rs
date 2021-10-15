@@ -101,7 +101,6 @@ impl<'pair> Iterator for MessageTrailersIterator<'pair> {
     }
 }
 
-#[inline(always)]
 fn to_str_tuple(
     trailers: &MessageTrailers,
     index: usize,
