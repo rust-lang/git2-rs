@@ -31,10 +31,72 @@ fn _message_prettify(message: CString, comment_char: Option<u8>) -> Result<Strin
     Ok(ret.as_str().unwrap().to_string())
 }
 
-/// Collection of trailer key–value pairs.
+/// The default comment character for `message_prettify` ('#')
+pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
+
+/// Get the trailers for the given message.
+///
+/// Use this function when you are dealing with a UTF-8-encoded message.
+pub fn message_trailers_strs<'pair>(message: &str) -> Result<MessageTrailersStrs, Error> {
+    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersStrs(res))
+}
+
+/// Get the trailers for the given message.
+///
+/// Use this function when the message might not be UTF-8-encoded,
+/// or if you want to handle the returned trailer key–value pairs
+/// as bytes.
+pub fn message_trailers_bytes<'pair, S: IntoCString>(
+    message: S,
+) -> Result<MessageTrailersBytes, Error> {
+    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersBytes(res))
+}
+
+fn _message_trailers<'pair>(message: CString) -> Result<MessageTrailers, Error> {
+    let ret = MessageTrailers::new();
+    unsafe {
+        try_call!(raw::git_message_trailers(ret.raw(), message));
+    }
+    Ok(ret)
+}
+
+/// Collection of UTF-8-encoded trailer key–value pairs.
 ///
 /// Use `iter()` to get access to the values.
-pub struct MessageTrailers {
+pub struct MessageTrailersStrs(MessageTrailers);
+
+impl MessageTrailersStrs {
+    /// Create a borrowed iterator.
+    pub fn iter(&self) -> MessageTrailersStrsIterator<'_> {
+        MessageTrailersStrsIterator(self.0.iter())
+    }
+    /// The number of trailer key–value pairs.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    /// Convert to the “bytes” variant.
+    pub fn to_bytes(self) -> MessageTrailersBytes {
+        MessageTrailersBytes(self.0)
+    }
+}
+
+/// Collection of unencoded (bytes) trailer key–value pairs.
+///
+/// Use `iter()` to get access to the values.
+pub struct MessageTrailersBytes(MessageTrailers);
+
+impl MessageTrailersBytes {
+    /// Create a borrowed iterator.
+    pub fn iter(&self) -> MessageTrailersBytesIterator<'_> {
+        MessageTrailersBytesIterator(self.0.iter())
+    }
+    /// The number of trailer key–value pairs.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+struct MessageTrailers {
     raw: raw::git_message_trailer_array,
 }
 
@@ -49,8 +111,7 @@ impl MessageTrailers {
             } as *mut _)
         }
     }
-    /// Create a borrowed iterator.
-    pub fn iter(&self) -> MessageTrailersIterator<'_> {
+    fn iter(&self) -> MessageTrailersIterator<'_> {
         MessageTrailersIterator {
             trailers: self,
             range: Range {
@@ -59,8 +120,7 @@ impl MessageTrailers {
             },
         }
     }
-    /// The number of trailer key–value pairs.
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.raw.count
     }
 }
@@ -76,76 +136,108 @@ impl<'pair> Drop for MessageTrailers {
 impl Binding for MessageTrailers {
     type Raw = *mut raw::git_message_trailer_array;
     unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers {
-        MessageTrailers {
-            raw: *raw,
-        }
+        MessageTrailers { raw: *raw }
     }
     fn raw(&self) -> *mut raw::git_message_trailer_array {
         &self.raw as *const _ as *mut _
     }
 }
 
-/// A borrowed iterator.
-pub struct MessageTrailersIterator<'a> {
+struct MessageTrailersIterator<'a> {
     trailers: &'a MessageTrailers,
     range: Range<usize>,
 }
 
-impl<'pair> Iterator for MessageTrailersIterator<'pair> {
-    type Item = (&'pair str, &'pair str);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.range
-            .next()
-            .map(|index| to_str_tuple(&self.trailers, index))
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.range.size_hint()
+fn to_raw_tuple(trailers: &MessageTrailers, index: usize) -> (*const c_char, *const c_char) {
+    unsafe {
+        let addr = trailers.raw.trailers.wrapping_add(index);
+        ((*addr).key, (*addr).value)
     }
 }
 
-fn to_str_tuple(
-    trailers: &MessageTrailers,
-    index: usize,
-) -> (&str, &str) {
+/// Borrowed iterator over the UTF-8-encoded trailer.
+pub struct MessageTrailersStrsIterator<'a>(MessageTrailersIterator<'a>);
+
+impl<'pair> Iterator for MessageTrailersStrsIterator<'pair> {
+    type Item = (&'pair str, &'pair str);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0
+            .range
+            .next()
+            .map(|index| to_str_tuple(&self.0.trailers, index))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.range.size_hint()
+    }
+}
+
+impl ExactSizeIterator for MessageTrailersStrsIterator<'_> {
+    fn len(&self) -> usize {
+        self.0.range.len()
+    }
+}
+
+impl DoubleEndedIterator for MessageTrailersStrsIterator<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0
+            .range
+            .next_back()
+            .map(|index| to_str_tuple(&self.0.trailers, index))
+    }
+}
+
+fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
     unsafe {
-        let addr = trailers.raw.trailers.wrapping_add(index);
-        let key = CStr::from_ptr((*addr).key).to_str().unwrap();
-        let value = CStr::from_ptr((*addr).value).to_str().unwrap();
+        let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+        let key = CStr::from_ptr(rkey).to_str().unwrap();
+        let value = CStr::from_ptr(rvalue).to_str().unwrap();
         (key, value)
     }
 }
 
-impl ExactSizeIterator for MessageTrailersIterator<'_> {
+/// Borrowed iterator over the raw (bytes) trailer.
+pub struct MessageTrailersBytesIterator<'a>(MessageTrailersIterator<'a>);
+
+impl<'pair> Iterator for MessageTrailersBytesIterator<'pair> {
+    type Item = (&'pair [u8], &'pair [u8]);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0
+            .range
+            .next()
+            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.range.size_hint()
+    }
+}
+
+impl ExactSizeIterator for MessageTrailersBytesIterator<'_> {
     fn len(&self) -> usize {
-        self.range.len()
+        self.0.range.len()
     }
 }
 
-impl DoubleEndedIterator for MessageTrailersIterator<'_> {
+impl DoubleEndedIterator for MessageTrailersBytesIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.range
+        self.0
+            .range
             .next_back()
-            .map(|index| to_str_tuple(&self.trailers, index))
+            .map(|index| to_bytes_tuple(&self.0.trailers, index))
     }
 }
 
-/// Get the trailers for the given message.
-pub fn message_trailers<'pair, S: IntoCString>(message: S) -> Result<MessageTrailers, Error> {
-    _message_trailers(message.into_c_string()?)
-}
-
-fn _message_trailers<'pair>(message: CString) -> Result<MessageTrailers, Error> {
-    let ret = MessageTrailers::new();
+fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
     unsafe {
-        try_call!(raw::git_message_trailers(ret.raw(), message));
+        let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+        let key = CStr::from_ptr(rkey).to_bytes();
+        let value = CStr::from_ptr(rvalue).to_bytes();
+        (key, value)
     }
-    Ok(ret)
 }
-
-/// The default comment character for `message_prettify` ('#')
-pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 
 #[cfg(test)]
 mod tests {
@@ -178,7 +270,7 @@ mod tests {
 
     #[test]
     fn trailers() {
-        use crate::{message_trailers, MessageTrailers};
+        use crate::{message_trailers_bytes, message_trailers_strs, MessageTrailersStrs};
         use std::collections::HashMap;
 
         // no trailers
@@ -190,7 +282,7 @@ What are we here for?
 Just to be eaten?
 ";
         let expected: HashMap<&str, &str> = HashMap::new();
-        assert_eq!(expected, to_map(&message_trailers(message1).unwrap()));
+        assert_eq!(expected, to_map(&message_trailers_strs(message1).unwrap()));
 
         // standard PSA
         let message2 = "
@@ -209,7 +301,7 @@ Signed-off-by: Colonel Kale
         ]
         .into_iter()
         .collect();
-        assert_eq!(expected, to_map(&message_trailers(message2).unwrap()));
+        assert_eq!(expected, to_map(&message_trailers_strs(message2).unwrap()));
 
         // ignore everything after `---`
         let message3 = "
@@ -226,9 +318,27 @@ Opined-by: Corporal Garlic
         let expected: HashMap<&str, &str> = vec![("Signed-off-by", "Colonel Kale")]
             .into_iter()
             .collect();
-        assert_eq!(expected, to_map(&message_trailers(message3).unwrap()));
+        assert_eq!(expected, to_map(&message_trailers_strs(message3).unwrap()));
 
-        fn to_map(trailers: &MessageTrailers) -> HashMap<&str, &str> {
+        // Raw bytes message; not valid UTF-8
+        // Source: https://stackoverflow.com/a/3886015/1725151
+        let message4 = b"
+Be honest guys
+
+Am I a malformed brussels sprout?
+
+Signed-off-by: Lieutenant \xe2\x28\xa1prout
+";
+
+        let trailer = message_trailers_bytes(&message4[..]).unwrap();
+        let expected = (
+            &b"Signed-off-by"[..],
+            &b"Lieutenant \xe2\x28\xa1prout"[..],
+        );
+        let actual = trailer.iter().next().unwrap();
+        assert_eq!(expected, actual);
+
+        fn to_map(trailers: &MessageTrailersStrs) -> HashMap<&str, &str> {
             let mut map = HashMap::with_capacity(trailers.len());
             for (key, value) in trailers.iter() {
                 map.insert(key, value);

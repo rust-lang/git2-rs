@@ -102,7 +102,8 @@ pub use crate::mailmap::Mailmap;
 pub use crate::mempack::Mempack;
 pub use crate::merge::{AnnotatedCommit, MergeOptions};
 pub use crate::message::{
-    message_prettify, message_trailers, MessageTrailers, MessageTrailersIterator,
+    message_prettify, message_trailers_bytes, message_trailers_strs, MessageTrailersBytes,
+    MessageTrailersBytesIterator, MessageTrailersStrs, MessageTrailersStrsIterator,
     DEFAULT_COMMENT_CHAR,
 };
 pub use crate::note::{Note, Notes};
