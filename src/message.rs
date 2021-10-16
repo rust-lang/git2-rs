@@ -37,7 +37,7 @@ pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 /// Get the trailers for the given message.
 ///
 /// Use this function when you are dealing with a UTF-8-encoded message.
-pub fn message_trailers_strs<'pair>(message: &str) -> Result<MessageTrailersStrs, Error> {
+pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error> {
     _message_trailers(message.into_c_string()?).map(|res| MessageTrailersStrs(res))
 }
 
@@ -46,13 +46,13 @@ pub fn message_trailers_strs<'pair>(message: &str) -> Result<MessageTrailersStrs
 /// Use this function when the message might not be UTF-8-encoded,
 /// or if you want to handle the returned trailer key–value pairs
 /// as bytes.
-pub fn message_trailers_bytes<'pair, S: IntoCString>(
+pub fn message_trailers_bytes<S: IntoCString>(
     message: S,
 ) -> Result<MessageTrailersBytes, Error> {
     _message_trailers(message.into_c_string()?).map(|res| MessageTrailersBytes(res))
 }
 
-fn _message_trailers<'pair>(message: CString) -> Result<MessageTrailers, Error> {
+fn _message_trailers(message: CString) -> Result<MessageTrailers, Error> {
     let ret = MessageTrailers::new();
     unsafe {
         try_call!(raw::git_message_trailers(ret.raw(), message));
@@ -125,7 +125,7 @@ impl MessageTrailers {
     }
 }
 
-impl<'pair> Drop for MessageTrailers {
+impl Drop for MessageTrailers {
     fn drop(&mut self) {
         unsafe {
             raw::git_message_trailer_array_free(&mut self.raw);
