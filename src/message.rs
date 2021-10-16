@@ -60,7 +60,7 @@ fn _message_trailers(message: CString) -> Result<MessageTrailers, Error> {
     Ok(ret)
 }
 
-/// Collection of UTF-8-encoded trailer key–value pairs.
+/// Collection of UTF-8-encoded trailers.
 ///
 /// Use `iter()` to get access to the values.
 pub struct MessageTrailersStrs(MessageTrailers);
@@ -80,7 +80,7 @@ impl MessageTrailersStrs {
     }
 }
 
-/// Collection of unencoded (bytes) trailer key–value pairs.
+/// Collection of unencoded (bytes) trailers.
 ///
 /// Use `iter()` to get access to the values.
 pub struct MessageTrailersBytes(MessageTrailers);
@@ -155,7 +155,7 @@ fn to_raw_tuple(trailers: &MessageTrailers, index: usize) -> (*const c_char, *co
     }
 }
 
-/// Borrowed iterator over the UTF-8-encoded trailer.
+/// Borrowed iterator over the UTF-8-encoded trailers.
 pub struct MessageTrailersStrsIterator<'a>(MessageTrailersIterator<'a>);
 
 impl<'pair> Iterator for MessageTrailersStrsIterator<'pair> {
@@ -197,7 +197,7 @@ fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
     }
 }
 
-/// Borrowed iterator over the raw (bytes) trailer.
+/// Borrowed iterator over the raw (bytes) trailers.
 pub struct MessageTrailersBytesIterator<'a>(MessageTrailersIterator<'a>);
 
 impl<'pair> Iterator for MessageTrailersBytesIterator<'pair> {
