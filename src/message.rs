@@ -46,9 +46,7 @@ pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error
 /// Use this function when the message might not be UTF-8-encoded,
 /// or if you want to handle the returned trailer key–value pairs
 /// as bytes.
-pub fn message_trailers_bytes<S: IntoCString>(
-    message: S,
-) -> Result<MessageTrailersBytes, Error> {
+pub fn message_trailers_bytes<S: IntoCString>(message: S) -> Result<MessageTrailersBytes, Error> {
     _message_trailers(message.into_c_string()?).map(|res| MessageTrailersBytes(res))
 }
 
@@ -331,10 +329,7 @@ Signed-off-by: Lieutenant \xe2\x28\xa1prout
 ";
 
         let trailer = message_trailers_bytes(&message4[..]).unwrap();
-        let expected = (
-            &b"Signed-off-by"[..],
-            &b"Lieutenant \xe2\x28\xa1prout"[..],
-        );
+        let expected = (&b"Signed-off-by"[..], &b"Lieutenant \xe2\x28\xa1prout"[..]);
         let actual = trailer.iter().next().unwrap();
         assert_eq!(expected, actual);
 
