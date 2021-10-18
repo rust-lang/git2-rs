@@ -1953,6 +1953,20 @@ git_enum! {
     }
 }
 
+#[repr(C)]
+pub struct git_message_trailer {
+    pub key: *const c_char,
+    pub value: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct git_message_trailer_array {
+    pub trailers: *mut git_message_trailer,
+    pub count: size_t,
+    pub _trailer_block: *mut c_char,
+}
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -3677,6 +3691,13 @@ extern "C" {
         strip_comments: c_int,
         comment_char: c_char,
     ) -> c_int;
+
+    pub fn git_message_trailers(
+        out: *mut git_message_trailer_array,
+        message: *const c_char,
+    ) -> c_int;
+
+    pub fn git_message_trailer_array_free(trailer: *mut git_message_trailer_array);
 
     // packbuilder
     pub fn git_packbuilder_new(out: *mut *mut git_packbuilder, repo: *mut git_repository) -> c_int;
