@@ -143,7 +143,7 @@ pub struct git_signature {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct git_time {
     pub time: git_time_t,
     pub offset: c_int,
@@ -817,7 +817,7 @@ pub const GIT_INDEX_ENTRY_STAGEMASK: u16 = 0x3000;
 pub const GIT_INDEX_ENTRY_STAGESHIFT: u16 = 12;
 
 #[repr(C)]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct git_index_time {
     pub seconds: i32,
     pub nanoseconds: u32,

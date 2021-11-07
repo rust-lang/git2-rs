@@ -54,6 +54,7 @@ pub type IndexMatchedPath<'a> = dyn FnMut(&Path, &[u8]) -> i32 + 'a;
 /// All fields of an entry are public for modification and inspection. This is
 /// also how a new index entry is created.
 #[allow(missing_docs)]
+#[derive(Debug)]
 pub struct IndexEntry {
     pub ctime: IndexTime,
     pub mtime: IndexTime,
