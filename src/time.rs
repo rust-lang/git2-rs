@@ -6,13 +6,13 @@ use crate::raw;
 use crate::util::Binding;
 
 /// Time in a signature
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Time {
     raw: raw::git_time,
 }
 
 /// Time structure used in a git index entry.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct IndexTime {
     raw: raw::git_index_time,
 }
