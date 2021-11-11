@@ -311,7 +311,7 @@ pub enum RepositoryState {
 }
 
 /// An enumeration of the possible directions for a remote.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Direction {
     /// Data will be fetched (read) from this remote.
     Fetch,
@@ -321,7 +321,7 @@ pub enum Direction {
 
 /// An enumeration of the operations that can be performed for the `reset`
 /// method on a `Repository`.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ResetType {
     /// Move the head to the given commit.
     Soft,
@@ -1213,7 +1213,7 @@ impl SubmoduleStatus {
 /// These values represent settings for the `submodule.$name.ignore`
 /// configuration value which says how deeply to look at the working
 /// directory when getting the submodule status.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SubmoduleIgnore {
     /// Use the submodule's configuration
     Unspecified,
@@ -1233,7 +1233,7 @@ pub enum SubmoduleIgnore {
 /// configuration value which says how to handle `git submodule update`
 /// for this submodule. The value is usually set in the ".gitmodules"
 /// file and copied to ".git/config" when the submodule is initialized.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SubmoduleUpdate {
     /// The default; when a submodule is updated, checkout the new detached
     /// HEAD to the submodule directory.
@@ -1322,7 +1322,7 @@ impl CheckoutNotificationType {
 }
 
 /// Possible output formats for diff data
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DiffFormat {
     /// full git diff
     Patch,
@@ -1386,7 +1386,7 @@ pub enum FetchPrune {
 }
 
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StashApplyProgress {
     /// None
     None,
