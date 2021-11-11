@@ -18,6 +18,10 @@ pub struct Odb<'repo> {
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
+// `git_odb` uses locking and atomics internally.
+unsafe impl<'repo> Send for Odb<'repo> {}
+unsafe impl<'repo> Sync for Odb<'repo> {}
+
 impl<'repo> Binding for Odb<'repo> {
     type Raw = *mut raw::git_odb;
 
