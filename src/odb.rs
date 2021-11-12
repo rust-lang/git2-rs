@@ -6,11 +6,13 @@ use std::slice;
 
 use std::ffi::CString;
 
-use libc::{c_char, c_int, c_void, size_t};
+use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
-use crate::{raw, Error, IndexerProgress, Mempack, Object, ObjectType, Oid, Progress};
+use crate::{
+    raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
+};
 
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
@@ -184,6 +186,11 @@ impl<'repo> Odb<'repo> {
     /// Checks if the object database has an object.
     pub fn exists(&self, oid: Oid) -> bool {
         unsafe { raw::git_odb_exists(self.raw, oid.raw()) != 0 }
+    }
+
+    /// Checks if the object database has an object, with extended flags.
+    pub fn exists_ext(&self, oid: Oid, flags: OdbLookupFlags) -> bool {
+        unsafe { raw::git_odb_exists_ext(self.raw, oid.raw(), flags.bits() as c_uint) != 0 }
     }
 
     /// Potentially finds an object that starts with the given prefix.
