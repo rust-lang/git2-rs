@@ -326,6 +326,10 @@ pub struct OdbReader<'repo> {
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
+// `git_odb_stream` is not thread-safe internally, so it can't use `Sync`, but moving it to another
+// thread and continuing to read will work.
+unsafe impl<'repo> Send for OdbReader<'repo> {}
+
 impl<'repo> Binding for OdbReader<'repo> {
     type Raw = *mut raw::git_odb_stream;
 
@@ -366,6 +370,10 @@ pub struct OdbWriter<'repo> {
     raw: *mut raw::git_odb_stream,
     _marker: marker::PhantomData<Object<'repo>>,
 }
+
+// `git_odb_stream` is not thread-safe internally, so it can't use `Sync`, but moving it to another
+// thread and continuing to write will work.
+unsafe impl<'repo> Send for OdbWriter<'repo> {}
 
 impl<'repo> OdbWriter<'repo> {
     /// Finish writing to an ODB stream
