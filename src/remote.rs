@@ -288,6 +288,25 @@ impl<'repo> Remote<'repo> {
         Ok(())
     }
 
+    /// like `fetch` but passing NULL for `refspecs` array effectively fetching all
+    pub fn fetch_all(
+        &mut self,
+        opts: Option<&mut FetchOptions<'_>>,
+        reflog_msg: Option<&str>,
+    ) -> Result<(), Error> {
+        let msg = crate::opt_cstr(reflog_msg)?;
+        let raw = opts.map(|o| o.raw());
+        unsafe {
+            try_call!(raw::git_remote_fetch(
+                self.raw,
+                ptr::null(),
+                raw.as_ref(),
+                msg
+            ));
+        }
+        Ok(())
+    }
+
     /// Update the tips to the new state
     pub fn update_tips(
         &mut self,
