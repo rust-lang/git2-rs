@@ -427,7 +427,7 @@ impl CredentialHelper {
         let output = my_try!(p.wait_with_output());
         if !output.status.success() {
             debug!(
-                "credential helper failed: {}\nstdout ---\n{}\nstdout ---\n{}",
+                "credential helper failed: {}\nstdout ---\n{}\nstderr ---\n{}",
                 output.status,
                 String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
