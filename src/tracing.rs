@@ -57,6 +57,12 @@ impl Binding for TraceLevel {
     }
 }
 
+/// Callback type used to pass tracing events to the subscriber.
+/// see `trace_set` to register a scubscriber.
+///
+/// Note:
+///     libgit2 might pass non-utf8 strings therefore we
+///     pass the message as a byte slice
 pub type TracingCb = fn(TraceLevel, &[u8]);
 
 static CALLBACK: AtomicUsize = AtomicUsize::new(0);
