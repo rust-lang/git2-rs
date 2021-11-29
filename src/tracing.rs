@@ -63,7 +63,7 @@ impl Binding for TraceLevel {
 /// Note:
 ///     libgit2 might pass non-utf8 strings therefore we
 ///     pass the message as a byte slice
-pub type TracingCb = fn(TraceLevel, &[u8]);
+pub type TracingCb = fn(TraceLevel, &str);
 
 static CALLBACK: AtomicUsize = AtomicUsize::new(0);
 
@@ -82,10 +82,7 @@ extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     let cb = CALLBACK.load(Ordering::SeqCst);
     panic::wrap(|| unsafe {
         let cb: TracingCb = std::mem::transmute(cb);
-
-        if !msg.is_null() {
-            let msg = std::ffi::CStr::from_ptr(msg).to_bytes();
-            cb(Binding::from_raw(level), msg);
-        }
+        let msg = std::ffi::CStr::from_ptr(msg).to_string_lossy();
+        cb(Binding::from_raw(level), msg.as_ref());
     });
 }
