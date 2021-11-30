@@ -535,7 +535,12 @@ impl Index {
         let our_raw_ptr = our_raw.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
         let their_raw_ptr = their_raw.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
         unsafe {
-            try_call!(raw::git_index_conflict_add(self.raw, ancestor_raw_ptr, our_raw_ptr, their_raw_ptr));
+            try_call!(raw::git_index_conflict_add(
+                self.raw,
+                ancestor_raw_ptr,
+                our_raw_ptr,
+                their_raw_ptr
+            ));
             Ok(())
         }
     }
@@ -558,9 +563,13 @@ impl Index {
         let mut their = ptr::null();
 
         unsafe {
-            try_call!(
-                raw::git_index_conflict_get(&mut ancestor, &mut our, &mut their, self.raw, path)
-            );
+            try_call!(raw::git_index_conflict_get(
+                &mut ancestor,
+                &mut our,
+                &mut their,
+                self.raw,
+                path
+            ));
             Ok(IndexConflict {
                 ancestor: match ancestor.is_null() {
                     false => Some(IndexEntry::from_raw(*ancestor)),
