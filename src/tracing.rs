@@ -57,6 +57,9 @@ impl Binding for TraceLevel {
     }
 }
 
+//TODO: pass raw &[u8] and leave conversion to consumer (breaking API)
+/// Callback type used to pass tracing events to the subscriber.
+/// see `trace_set` to register a scubscriber.
 pub type TracingCb = fn(TraceLevel, &str);
 
 static CALLBACK: AtomicUsize = AtomicUsize::new(0);
@@ -76,7 +79,7 @@ extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     let cb = CALLBACK.load(Ordering::SeqCst);
     panic::wrap(|| unsafe {
         let cb: TracingCb = std::mem::transmute(cb);
-        let msg = std::ffi::CStr::from_ptr(msg).to_str().unwrap();
-        cb(Binding::from_raw(level), msg);
+        let msg = std::ffi::CStr::from_ptr(msg).to_string_lossy();
+        cb(Binding::from_raw(level), msg.as_ref());
     });
 }
