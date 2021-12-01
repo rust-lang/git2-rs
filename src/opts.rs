@@ -69,6 +69,23 @@ pub unsafe fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
     buf.into_c_string()
 }
 
+/// Controls whether or not libgit2 will cache loaded objects.  Enabled by
+/// default, but disabling this can improve performance and memory usage if
+/// loading a large number of objects that will not be referenced again.
+/// Disabling this will cause repository objects to clear their caches when next
+/// accessed.
+pub fn enable_caching(enabled: bool) {
+    let error = unsafe {
+        raw::git_libgit2_opts(
+            raw::GIT_OPT_ENABLE_CACHING as libc::c_int,
+            enabled as libc::c_int,
+        )
+    };
+    // This function cannot actually fail, but the function has an error return
+    // for other options that can.
+    debug_assert!(error >= 0);
+}
+
 /// Controls whether or not libgit2 will verify when writing an object that all
 /// objects it references are valid. Enabled by default, but disabling this can
 /// significantly improve performance, at the cost of potentially allowing the
