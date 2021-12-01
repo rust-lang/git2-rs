@@ -680,6 +680,8 @@ extern "C" fn notify_cb(
     .unwrap_or(2)
 }
 
+unsafe impl Send for TreeUpdateBuilder {}
+
 impl Default for TreeUpdateBuilder {
     fn default() -> Self {
         Self::new()
