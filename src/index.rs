@@ -85,6 +85,70 @@ pub struct IndexEntry {
     pub path: Vec<u8>,
 }
 
+// We cannot return raw::git_index_entry instances directly, as they rely on
+// a CString which is owned by the function. To make the pointer to the CString
+// valid during usage of raw::git_index_entry, we supply the index entry in a
+// callback where pointers to the CString are valid.
+fn try_raw_entries(
+    entries: &[Option<&IndexEntry>],
+    cb: impl FnOnce(&[*const raw::git_index_entry]) -> Result<(), Error>,
+) -> Result<(), Error> {
+    let paths = entries.iter()
+        .map(|entry| {
+            if let Some(entry) = entry {
+                CString::new(&entry.path[..]).map(|ok| Some(ok))
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<Option<CString>>, std::ffi::NulError>>()?;
+
+    let raw_entries = entries.iter().zip(&paths).map(|(entry, path)| {
+        if let Some(entry) = entry {
+            // libgit2 encodes the length of the path in the lower bits of the
+            // `flags` entry, so mask those out and recalculate here to ensure we
+            // don't corrupt anything.
+            let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
+
+            if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
+                flags |= entry.path.len() as u16;
+            } else {
+                flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
+            }
+
+            unsafe {
+                Some(raw::git_index_entry {
+                    dev: entry.dev,
+                    ino: entry.ino,
+                    mode: entry.mode,
+                    uid: entry.uid,
+                    gid: entry.gid,
+                    file_size: entry.file_size,
+                    id: *entry.id.raw(),
+                    flags,
+                    flags_extended: entry.flags_extended,
+                    path: path.as_ref().unwrap().as_ptr(),
+                    mtime: raw::git_index_time {
+                        seconds: entry.mtime.seconds(),
+                        nanoseconds: entry.mtime.nanoseconds(),
+                    },
+                    ctime: raw::git_index_time {
+                        seconds: entry.ctime.seconds(),
+                        nanoseconds: entry.ctime.nanoseconds(),
+                    },
+                })
+            }
+        } else {
+            None
+        }
+    }).collect::<Vec<_>>();
+    let raw_entry_ptrs = raw_entries.iter()
+        .map(|opt| opt.as_ref().map_or_else(std::ptr::null, |ptr| ptr))
+        .collect::<Vec<_>>();
+
+    cb(&raw_entry_ptrs)
+}
+
 impl Index {
     /// Creates a new in-memory index.
     ///
@@ -145,43 +209,12 @@ impl Index {
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
     pub fn add(&mut self, entry: &IndexEntry) -> Result<(), Error> {
-        let path = CString::new(&entry.path[..])?;
-
-        // libgit2 encodes the length of the path in the lower bits of the
-        // `flags` entry, so mask those out and recalculate here to ensure we
-        // don't corrupt anything.
-        let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-        if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-            flags |= entry.path.len() as u16;
-        } else {
-            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-        }
-
-        unsafe {
-            let raw = raw::git_index_entry {
-                dev: entry.dev,
-                ino: entry.ino,
-                mode: entry.mode,
-                uid: entry.uid,
-                gid: entry.gid,
-                file_size: entry.file_size,
-                id: *entry.id.raw(),
-                flags,
-                flags_extended: entry.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: entry.mtime.seconds(),
-                    nanoseconds: entry.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: entry.ctime.seconds(),
-                    nanoseconds: entry.ctime.nanoseconds(),
-                },
-            };
-            try_call!(raw::git_index_add(self.raw, &raw));
+        try_raw_entries(&[Some(entry)], |raws| {
+            unsafe {
+                try_call!(raw::git_index_add(self.raw, raws[0]));
+            }
             Ok(())
-        }
+        })
     }
 
     /// Add or update an index entry from a buffer in memory
@@ -202,46 +235,14 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn add_frombuffer(&mut self, entry: &IndexEntry, data: &[u8]) -> Result<(), Error> {
-        let path = CString::new(&entry.path[..])?;
-
-        // libgit2 encodes the length of the path in the lower bits of the
-        // `flags` entry, so mask those out and recalculate here to ensure we
-        // don't corrupt anything.
-        let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-        if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-            flags |= entry.path.len() as u16;
-        } else {
-            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-        }
-
-        unsafe {
-            let raw = raw::git_index_entry {
-                dev: entry.dev,
-                ino: entry.ino,
-                mode: entry.mode,
-                uid: entry.uid,
-                gid: entry.gid,
-                file_size: entry.file_size,
-                id: *entry.id.raw(),
-                flags,
-                flags_extended: entry.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: entry.mtime.seconds(),
-                    nanoseconds: entry.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: entry.ctime.seconds(),
-                    nanoseconds: entry.ctime.nanoseconds(),
-                },
-            };
-
-            let ptr = data.as_ptr() as *const c_void;
-            let len = data.len() as size_t;
-            try_call!(raw::git_index_add_frombuffer(self.raw, &raw, ptr, len));
+        try_raw_entries(&[Some(entry)], |raws| {
+            unsafe {
+                let ptr = data.as_ptr() as *const c_void;
+                let len = data.len() as size_t;
+                try_call!(raw::git_index_add_frombuffer(self.raw, raws[0], ptr, len));
+            }
             Ok(())
-        }
+        })
     }
 
     /// Add or update an index entry from a file on disk
@@ -425,124 +426,17 @@ impl Index {
         our_entry: Option<&IndexEntry>,
         their_entry: Option<&IndexEntry>,
     ) -> Result<(), Error> {
-        let mut ancestor_raw: Option<raw::git_index_entry> = None;
-        let mut our_raw: Option<raw::git_index_entry> = None;
-        let mut their_raw: Option<raw::git_index_entry> = None;
-
-        if let Some(ancestor_entry) = ancestor_entry {
-            let ancestor_path = CString::new(&ancestor_entry.path[..])?;
-            let mut ancestor_flags = ancestor_entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-            if ancestor_entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-                ancestor_flags |= ancestor_entry.path.len() as u16;
-            } else {
-                ancestor_flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-            }
-
+        try_raw_entries(&[ancestor_entry, our_entry, their_entry], |raw_entries| {
             unsafe {
-                ancestor_raw = Some(raw::git_index_entry {
-                    dev: ancestor_entry.dev,
-                    ino: ancestor_entry.ino,
-                    mode: ancestor_entry.mode,
-                    uid: ancestor_entry.uid,
-                    gid: ancestor_entry.gid,
-                    file_size: ancestor_entry.file_size,
-                    id: *ancestor_entry.id.raw(),
-                    flags: ancestor_flags,
-                    flags_extended: ancestor_entry.flags_extended,
-                    path: ancestor_path.as_ptr(),
-                    mtime: raw::git_index_time {
-                        seconds: ancestor_entry.mtime.seconds(),
-                        nanoseconds: ancestor_entry.mtime.nanoseconds(),
-                    },
-                    ctime: raw::git_index_time {
-                        seconds: ancestor_entry.ctime.seconds(),
-                        nanoseconds: ancestor_entry.ctime.nanoseconds(),
-                    },
-                });
+                try_call!(raw::git_index_conflict_add(
+                    self.raw,
+                    raw_entries[0],
+                    raw_entries[1],
+                    raw_entries[2]
+                ));
+                Ok(())
             }
-        }
-
-        if let Some(our_entry) = our_entry {
-            let our_path = CString::new(&our_entry.path[..])?;
-            let mut our_flags = our_entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-            if our_entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-                our_flags |= our_entry.path.len() as u16;
-            } else {
-                our_flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-            }
-
-            unsafe {
-                our_raw = Some(raw::git_index_entry {
-                    dev: our_entry.dev,
-                    ino: our_entry.ino,
-                    mode: our_entry.mode,
-                    uid: our_entry.uid,
-                    gid: our_entry.gid,
-                    file_size: our_entry.file_size,
-                    id: *our_entry.id.raw(),
-                    flags: our_flags,
-                    flags_extended: our_entry.flags_extended,
-                    path: our_path.as_ptr(),
-                    mtime: raw::git_index_time {
-                        seconds: our_entry.mtime.seconds(),
-                        nanoseconds: our_entry.mtime.nanoseconds(),
-                    },
-                    ctime: raw::git_index_time {
-                        seconds: our_entry.ctime.seconds(),
-                        nanoseconds: our_entry.ctime.nanoseconds(),
-                    },
-                });
-            }
-        }
-
-        if let Some(their_entry) = their_entry {
-            let their_path = CString::new(&their_entry.path[..])?;
-            let mut their_flags = their_entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-            if their_entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-                their_flags |= their_entry.path.len() as u16;
-            } else {
-                their_flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-            }
-
-            unsafe {
-                their_raw = Some(raw::git_index_entry {
-                    dev: their_entry.dev,
-                    ino: their_entry.ino,
-                    mode: their_entry.mode,
-                    uid: their_entry.uid,
-                    gid: their_entry.gid,
-                    file_size: their_entry.file_size,
-                    id: *their_entry.id.raw(),
-                    flags: their_flags,
-                    flags_extended: their_entry.flags_extended,
-                    path: their_path.as_ptr(),
-                    mtime: raw::git_index_time {
-                        seconds: their_entry.mtime.seconds(),
-                        nanoseconds: their_entry.mtime.nanoseconds(),
-                    },
-                    ctime: raw::git_index_time {
-                        seconds: their_entry.ctime.seconds(),
-                        nanoseconds: their_entry.ctime.nanoseconds(),
-                    },
-                });
-            }
-        }
-
-        let ancestor_raw_ptr = ancestor_raw.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
-        let our_raw_ptr = our_raw.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
-        let their_raw_ptr = their_raw.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
-        unsafe {
-            try_call!(raw::git_index_conflict_add(
-                self.raw,
-                ancestor_raw_ptr,
-                our_raw_ptr,
-                their_raw_ptr
-            ));
-            Ok(())
-        }
+        })
     }
 
     /// Remove all conflicts in the index (entries with a stage greater than 0).
