@@ -93,7 +93,8 @@ fn try_raw_entries(
     entries: &[Option<&IndexEntry>],
     cb: impl FnOnce(&[*const raw::git_index_entry]) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    let paths = entries.iter()
+    let paths = entries
+        .iter()
         .map(|entry| {
             if let Some(entry) = entry {
                 CString::new(&entry.path[..]).map(|ok| Some(ok))
@@ -103,46 +104,51 @@ fn try_raw_entries(
         })
         .collect::<Result<Vec<Option<CString>>, std::ffi::NulError>>()?;
 
-    let raw_entries = entries.iter().zip(&paths).map(|(entry, path)| {
-        if let Some(entry) = entry {
-            // libgit2 encodes the length of the path in the lower bits of the
-            // `flags` entry, so mask those out and recalculate here to ensure we
-            // don't corrupt anything.
-            let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
+    let raw_entries = entries
+        .iter()
+        .zip(&paths)
+        .map(|(entry, path)| {
+            if let Some(entry) = entry {
+                // libgit2 encodes the length of the path in the lower bits of the
+                // `flags` entry, so mask those out and recalculate here to ensure we
+                // don't corrupt anything.
+                let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
 
-            if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-                flags |= entry.path.len() as u16;
+                if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
+                    flags |= entry.path.len() as u16;
+                } else {
+                    flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
+                }
+
+                unsafe {
+                    Some(raw::git_index_entry {
+                        dev: entry.dev,
+                        ino: entry.ino,
+                        mode: entry.mode,
+                        uid: entry.uid,
+                        gid: entry.gid,
+                        file_size: entry.file_size,
+                        id: *entry.id.raw(),
+                        flags,
+                        flags_extended: entry.flags_extended,
+                        path: path.as_ref().unwrap().as_ptr(),
+                        mtime: raw::git_index_time {
+                            seconds: entry.mtime.seconds(),
+                            nanoseconds: entry.mtime.nanoseconds(),
+                        },
+                        ctime: raw::git_index_time {
+                            seconds: entry.ctime.seconds(),
+                            nanoseconds: entry.ctime.nanoseconds(),
+                        },
+                    })
+                }
             } else {
-                flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
+                None
             }
-
-            unsafe {
-                Some(raw::git_index_entry {
-                    dev: entry.dev,
-                    ino: entry.ino,
-                    mode: entry.mode,
-                    uid: entry.uid,
-                    gid: entry.gid,
-                    file_size: entry.file_size,
-                    id: *entry.id.raw(),
-                    flags,
-                    flags_extended: entry.flags_extended,
-                    path: path.as_ref().unwrap().as_ptr(),
-                    mtime: raw::git_index_time {
-                        seconds: entry.mtime.seconds(),
-                        nanoseconds: entry.mtime.nanoseconds(),
-                    },
-                    ctime: raw::git_index_time {
-                        seconds: entry.ctime.seconds(),
-                        nanoseconds: entry.ctime.nanoseconds(),
-                    },
-                })
-            }
-        } else {
-            None
-        }
-    }).collect::<Vec<_>>();
-    let raw_entry_ptrs = raw_entries.iter()
+        })
+        .collect::<Vec<_>>();
+    let raw_entry_ptrs = raw_entries
+        .iter()
         .map(|opt| opt.as_ref().map_or_else(std::ptr::null, |ptr| ptr))
         .collect::<Vec<_>>();
 
@@ -426,8 +432,9 @@ impl Index {
         our_entry: Option<&IndexEntry>,
         their_entry: Option<&IndexEntry>,
     ) -> Result<(), Error> {
-        try_raw_entries(&[ancestor_entry, our_entry, their_entry], |raw_entries| {
-            unsafe {
+        try_raw_entries(
+            &[ancestor_entry, our_entry, their_entry],
+            |raw_entries| unsafe {
                 try_call!(raw::git_index_conflict_add(
                     self.raw,
                     raw_entries[0],
@@ -435,8 +442,8 @@ impl Index {
                     raw_entries[2]
                 ));
                 Ok(())
-            }
-        })
+            },
+        )
     }
 
     /// Remove all conflicts in the index (entries with a stage greater than 0).
