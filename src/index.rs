@@ -89,68 +89,70 @@ pub struct IndexEntry {
 // a CString which is owned by the function. To make the pointer to the CString
 // valid during usage of raw::git_index_entry, we supply the index entry in a
 // callback where pointers to the CString are valid.
-fn try_raw_entries(
-    entries: &[Option<&IndexEntry>],
-    cb: impl FnOnce(&[*const raw::git_index_entry]) -> Result<(), Error>,
+fn try_raw_entries<const N: usize>(
+    entries: &[Option<&IndexEntry>; N],
+    cb: impl FnOnce(&[*const raw::git_index_entry; N]) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    let paths = entries
-        .iter()
-        .map(|entry| {
-            if let Some(entry) = entry {
-                CString::new(&entry.path[..]).map(|ok| Some(ok))
+    let mut paths: [Option<CString>; N] = unsafe {
+        std::mem::MaybeUninit::uninit().assume_init()
+    };
+    for (idx, entry) in entries.iter().enumerate() {
+        paths[idx] = if let Some(entry) = entry {
+            Some(CString::new(&entry.path[..])?)
+        } else {
+            None
+        }
+    }
+
+    let mut raw_entries: [Option<raw::git_index_entry>; N] = unsafe {
+        std::mem::MaybeUninit::uninit().assume_init()
+    };
+    for (idx, (entry, path)) in entries.iter().zip(&paths).enumerate() {
+        raw_entries[idx] = if let Some(entry) = entry {
+            // libgit2 encodes the length of the path in the lower bits of the
+            // `flags` entry, so mask those out and recalculate here to ensure we
+            // don't corrupt anything.
+            let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
+
+            if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
+                flags |= entry.path.len() as u16;
             } else {
-                Ok(None)
+                flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
             }
-        })
-        .collect::<Result<Vec<Option<CString>>, std::ffi::NulError>>()?;
 
-    let raw_entries = entries
-        .iter()
-        .zip(&paths)
-        .map(|(entry, path)| {
-            if let Some(entry) = entry {
-                // libgit2 encodes the length of the path in the lower bits of the
-                // `flags` entry, so mask those out and recalculate here to ensure we
-                // don't corrupt anything.
-                let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-                if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-                    flags |= entry.path.len() as u16;
-                } else {
-                    flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-                }
-
-                unsafe {
-                    Some(raw::git_index_entry {
-                        dev: entry.dev,
-                        ino: entry.ino,
-                        mode: entry.mode,
-                        uid: entry.uid,
-                        gid: entry.gid,
-                        file_size: entry.file_size,
-                        id: *entry.id.raw(),
-                        flags,
-                        flags_extended: entry.flags_extended,
-                        path: path.as_ref().unwrap().as_ptr(),
-                        mtime: raw::git_index_time {
-                            seconds: entry.mtime.seconds(),
-                            nanoseconds: entry.mtime.nanoseconds(),
-                        },
-                        ctime: raw::git_index_time {
-                            seconds: entry.ctime.seconds(),
-                            nanoseconds: entry.ctime.nanoseconds(),
-                        },
-                    })
-                }
-            } else {
-                None
+            unsafe {
+                Some(raw::git_index_entry {
+                    dev: entry.dev,
+                    ino: entry.ino,
+                    mode: entry.mode,
+                    uid: entry.uid,
+                    gid: entry.gid,
+                    file_size: entry.file_size,
+                    id: *entry.id.raw(),
+                    flags,
+                    flags_extended: entry.flags_extended,
+                    path: path.as_ref().unwrap().as_ptr(),
+                    mtime: raw::git_index_time {
+                        seconds: entry.mtime.seconds(),
+                        nanoseconds: entry.mtime.nanoseconds(),
+                    },
+                    ctime: raw::git_index_time {
+                        seconds: entry.ctime.seconds(),
+                        nanoseconds: entry.ctime.nanoseconds(),
+                    },
+                })
             }
-        })
-        .collect::<Vec<_>>();
-    let raw_entry_ptrs = raw_entries
-        .iter()
-        .map(|opt| opt.as_ref().map_or_else(std::ptr::null, |ptr| ptr))
-        .collect::<Vec<_>>();
+        } else {
+            None
+        }
+    }
+
+    let mut raw_entry_ptrs: [*const raw::git_index_entry; N] = unsafe {
+        std::mem::MaybeUninit::uninit().assume_init()
+    };
+    for (idx, entry) in raw_entries.iter().enumerate() {
+        raw_entry_ptrs[idx] = entry.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
+    }
 
     cb(&raw_entry_ptrs)
 }
