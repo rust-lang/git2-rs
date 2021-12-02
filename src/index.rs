@@ -96,19 +96,22 @@ fn try_raw_entries<const N: usize>(
     let mut paths: [Option<CString>; N] = unsafe {
         std::mem::MaybeUninit::uninit().assume_init()
     };
-    for (idx, entry) in entries.iter().enumerate() {
-        paths[idx] = if let Some(entry) = entry {
+    for (path, entry) in paths.iter_mut().zip(entries.iter()) {
+        let c_path = if let Some(entry) = entry {
             Some(CString::new(&entry.path[..])?)
         } else {
             None
-        }
+        };
+
+        let path_ptr: *mut Option<CString> = path;
+        unsafe { path_ptr.write(c_path); }
     }
 
     let mut raw_entries: [Option<raw::git_index_entry>; N] = unsafe {
         std::mem::MaybeUninit::uninit().assume_init()
     };
-    for (idx, (entry, path)) in entries.iter().zip(&paths).enumerate() {
-        raw_entries[idx] = if let Some(entry) = entry {
+    for (raw_entry, (entry, path)) in raw_entries.iter_mut().zip(entries.iter().zip(&paths)) {
+        let c_raw_entry = if let Some(entry) = entry {
             // libgit2 encodes the length of the path in the lower bits of the
             // `flags` entry, so mask those out and recalculate here to ensure we
             // don't corrupt anything.
@@ -120,38 +123,42 @@ fn try_raw_entries<const N: usize>(
                 flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
             }
 
-            unsafe {
-                Some(raw::git_index_entry {
-                    dev: entry.dev,
-                    ino: entry.ino,
-                    mode: entry.mode,
-                    uid: entry.uid,
-                    gid: entry.gid,
-                    file_size: entry.file_size,
-                    id: *entry.id.raw(),
-                    flags,
-                    flags_extended: entry.flags_extended,
-                    path: path.as_ref().unwrap().as_ptr(),
-                    mtime: raw::git_index_time {
-                        seconds: entry.mtime.seconds(),
-                        nanoseconds: entry.mtime.nanoseconds(),
-                    },
-                    ctime: raw::git_index_time {
-                        seconds: entry.ctime.seconds(),
-                        nanoseconds: entry.ctime.nanoseconds(),
-                    },
-                })
-            }
+            Some(raw::git_index_entry {
+                dev: entry.dev,
+                ino: entry.ino,
+                mode: entry.mode,
+                uid: entry.uid,
+                gid: entry.gid,
+                file_size: entry.file_size,
+                id: unsafe { *entry.id.raw() },
+                flags,
+                flags_extended: entry.flags_extended,
+                path: path.as_ref().unwrap().as_ptr(),
+                mtime: raw::git_index_time {
+                    seconds: entry.mtime.seconds(),
+                    nanoseconds: entry.mtime.nanoseconds(),
+                },
+                ctime: raw::git_index_time {
+                    seconds: entry.ctime.seconds(),
+                    nanoseconds: entry.ctime.nanoseconds(),
+                },
+            })
         } else {
             None
-        }
+        };
+
+        let raw_entry_ptr: *mut Option<raw::git_index_entry> = raw_entry;
+        unsafe { raw_entry_ptr.write(c_raw_entry); }
     }
 
     let mut raw_entry_ptrs: [*const raw::git_index_entry; N] = unsafe {
         std::mem::MaybeUninit::uninit().assume_init()
     };
-    for (idx, entry) in raw_entries.iter().enumerate() {
-        raw_entry_ptrs[idx] = entry.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
+    for (raw_entry_ptr, raw_entry) in raw_entry_ptrs.iter_mut().zip(raw_entries.iter()) {
+        let c_raw_entry_ptr = raw_entry.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
+
+        let raw_entry_ptr_ptr: *mut *const raw::git_index_entry = raw_entry_ptr;
+        unsafe { raw_entry_ptr_ptr.write(c_raw_entry_ptr); }
     }
 
     cb(&raw_entry_ptrs)
