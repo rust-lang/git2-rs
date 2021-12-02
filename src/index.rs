@@ -93,9 +93,7 @@ fn try_raw_entries<const N: usize>(
     entries: &[Option<&IndexEntry>; N],
     cb: impl FnOnce(&[*const raw::git_index_entry; N]) -> Result<(), Error>,
 ) -> Result<(), Error> {
-    let mut paths: [Option<CString>; N] = unsafe {
-        std::mem::MaybeUninit::uninit().assume_init()
-    };
+    let mut paths: [Option<CString>; N] = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
     for (path, entry) in paths.iter_mut().zip(entries.iter()) {
         let c_path = if let Some(entry) = entry {
             Some(CString::new(&entry.path[..])?)
@@ -104,12 +102,13 @@ fn try_raw_entries<const N: usize>(
         };
 
         let path_ptr: *mut Option<CString> = path;
-        unsafe { path_ptr.write(c_path); }
+        unsafe {
+            path_ptr.write(c_path);
+        }
     }
 
-    let mut raw_entries: [Option<raw::git_index_entry>; N] = unsafe {
-        std::mem::MaybeUninit::uninit().assume_init()
-    };
+    let mut raw_entries: [Option<raw::git_index_entry>; N] =
+        unsafe { std::mem::MaybeUninit::uninit().assume_init() };
     for (raw_entry, (entry, path)) in raw_entries.iter_mut().zip(entries.iter().zip(&paths)) {
         let c_raw_entry = if let Some(entry) = entry {
             // libgit2 encodes the length of the path in the lower bits of the
@@ -148,17 +147,20 @@ fn try_raw_entries<const N: usize>(
         };
 
         let raw_entry_ptr: *mut Option<raw::git_index_entry> = raw_entry;
-        unsafe { raw_entry_ptr.write(c_raw_entry); }
+        unsafe {
+            raw_entry_ptr.write(c_raw_entry);
+        }
     }
 
-    let mut raw_entry_ptrs: [*const raw::git_index_entry; N] = unsafe {
-        std::mem::MaybeUninit::uninit().assume_init()
-    };
+    let mut raw_entry_ptrs: [*const raw::git_index_entry; N] =
+        unsafe { std::mem::MaybeUninit::uninit().assume_init() };
     for (raw_entry_ptr, raw_entry) in raw_entry_ptrs.iter_mut().zip(raw_entries.iter()) {
         let c_raw_entry_ptr = raw_entry.as_ref().map_or_else(std::ptr::null, |ptr| ptr);
 
         let raw_entry_ptr_ptr: *mut *const raw::git_index_entry = raw_entry_ptr;
-        unsafe { raw_entry_ptr_ptr.write(c_raw_entry_ptr); }
+        unsafe {
+            raw_entry_ptr_ptr.write(c_raw_entry_ptr);
+        }
     }
 
     cb(&raw_entry_ptrs)
