@@ -121,7 +121,7 @@ impl<'blame> BlameHunk<'blame> {
 
     /// Returns path to the file where this hunk originated.
     ///
-    /// Note: `None` could be returned for non-unicode paths on Widnows.
+    /// Note: `None` could be returned for non-unicode paths on Windows.
     pub fn path(&self) -> Option<&Path> {
         unsafe {
             if let Some(bytes) = crate::opt_bytes(self, (*self.raw).orig_path) {
