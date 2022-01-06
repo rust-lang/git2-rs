@@ -14,7 +14,7 @@
 
 #![deny(warnings)]
 
-use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
+use git2::{Commit, Error, Repository, RepositoryInitMode, RepositoryInitOptions};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
@@ -113,7 +113,14 @@ fn create_initial_commit(repo: &Repository) -> Result<(), Error> {
     // Normally creating a commit would involve looking up the current HEAD
     // commit and making that be the parent of the initial commit, but here this
     // is the first commit so there will be no parent.
-    repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])?;
+    repo.new_commit(
+        Some("HEAD"),
+        &sig,
+        &sig,
+        "Initial commit",
+        &tree,
+        &[] as &[Commit<'_>],
+    )?;
 
     Ok(())
 }

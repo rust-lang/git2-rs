@@ -131,7 +131,7 @@ fn normal_merge(
     let local_commit = repo.find_commit(local.id())?;
     let remote_commit = repo.find_commit(remote.id())?;
     // Do our merge commit and set current branch head to that commit.
-    let _merge_commit = repo.commit(
+    let _merge_commit = repo.new_commit(
         Some("HEAD"),
         &sig,
         &sig,

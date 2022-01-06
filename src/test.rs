@@ -6,7 +6,7 @@ use std::ptr;
 use tempfile::TempDir;
 use url::Url;
 
-use crate::{Branch, Oid, Repository, RepositoryInitOptions};
+use crate::{Branch, Commit, Oid, Repository, RepositoryInitOptions};
 
 macro_rules! t {
     ($e:expr) => {
@@ -31,8 +31,15 @@ pub fn repo_init() -> (TempDir, Repository) {
 
         let tree = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
-            .unwrap();
+        repo.new_commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            "initial",
+            &tree,
+            &[] as &[Commit<'_>],
+        )
+        .unwrap();
     }
     (td, repo)
 }
@@ -48,7 +55,7 @@ pub fn commit(repo: &Repository) -> (Oid, Oid) {
     let sig = t!(repo.signature());
     let head_id = t!(repo.refname_to_id("HEAD"));
     let parent = t!(repo.find_commit(head_id));
-    let commit = t!(repo.commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent]));
+    let commit = t!(repo.new_commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent]));
     (commit, tree_id)
 }
 

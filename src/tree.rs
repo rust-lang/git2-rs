@@ -482,7 +482,7 @@ mod tests {
         let parent = repo
             .find_commit(repo.head().unwrap().target().unwrap())
             .unwrap();
-        repo.commit(
+        repo.new_commit(
             Some("HEAD"),
             &sig,
             &sig,

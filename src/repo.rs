@@ -1231,6 +1231,56 @@ impl Repository {
     /// current branch and make it point to this commit. If the reference
     /// doesn't exist yet, it will be created. If it does exist, the first
     /// parent must be the tip of this branch.
+    pub fn new_commit<'a, C: AsRef<Commit<'a>>>(
+        &self,
+        update_ref: Option<&str>,
+        author: &Signature<'_>,
+        committer: &Signature<'_>,
+        message: &str,
+        tree: &Tree<'_>,
+        parents: &[C],
+    ) -> Result<Oid, Error>
+    where
+        C: AsRef<Commit<'a>>,
+    {
+        let update_ref = crate::opt_cstr(update_ref)?;
+        let mut parent_ptrs = parents
+            .iter()
+            .map(|p| p.as_ref().raw() as *const raw::git_commit)
+            .collect::<Vec<_>>();
+        let message = CString::new(message)?;
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+        unsafe {
+            try_call!(raw::git_commit_create(
+                &mut raw,
+                self.raw(),
+                update_ref,
+                author.raw(),
+                committer.raw(),
+                ptr::null(),
+                message,
+                tree.raw(),
+                parents.len() as size_t,
+                parent_ptrs.as_mut_ptr()
+            ));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
+    /// Create new commit in the repository
+    ///
+    /// If the `update_ref` is not `None`, name of the reference that will be
+    /// updated to point to this commit. If the reference is not direct, it will
+    /// be resolved to a direct reference. Use "HEAD" to update the HEAD of the
+    /// current branch and make it point to this commit. If the reference
+    /// doesn't exist yet, it will be created. If it does exist, the first
+    /// parent must be the tip of this branch.
+    #[deprecated(
+        since = "0.13.25",
+        note = "Use new_commit instead, see https://github.com/rust-lang/git2-rs/issues/140"
+    )]
     pub fn commit(
         &self,
         update_ref: Option<&str>,
@@ -3433,7 +3483,7 @@ mod tests {
 
             let tree = repo.find_tree(id).unwrap();
             let sig = repo.signature().unwrap();
-            repo.commit(Some("HEAD"), &sig, &sig, "second", &tree, &[&head])
+            repo.new_commit(Some("HEAD"), &sig, &sig, "second", &tree, &[head])
                 .unwrap();
         }
         (_td, repo)
@@ -3533,7 +3583,7 @@ mod tests {
         let id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(id_a).unwrap();
         let oid2 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3555,7 +3605,7 @@ mod tests {
         let id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(id_b).unwrap();
         let oid3 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_b"),
                 &sig,
                 &sig,
@@ -3577,7 +3627,7 @@ mod tests {
         let id_c = index.write_tree().unwrap();
         let tree_c = repo.find_tree(id_c).unwrap();
         let oid4 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_c"),
                 &sig,
                 &sig,
@@ -3625,7 +3675,7 @@ mod tests {
         let id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(id_a).unwrap();
         let oid2 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3647,7 +3697,7 @@ mod tests {
         let id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(id_b).unwrap();
         let oid3 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_b"),
                 &sig,
                 &sig,
@@ -3660,11 +3710,10 @@ mod tests {
         println!("created oid3 {:?}", oid3);
 
         // create merge commit oid4 on branchA with parents oid2 and oid3
-        //let mut index4 = repo.merge_commits(&commit2, &commit3, None).unwrap();
         repo.set_head("refs/heads/branch_a").unwrap();
         repo.checkout_head(None).unwrap();
         let oid4 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3673,7 +3722,6 @@ mod tests {
                 &[&commit2, &commit3],
             )
             .unwrap();
-        //index4.write_tree_to(&repo).unwrap();
         println!("created oid4 {:?}", oid4);
 
         // create merge commit oid5 on branchB with parents oid2 and oid3
@@ -3681,7 +3729,7 @@ mod tests {
         repo.set_head("refs/heads/branch_b").unwrap();
         repo.checkout_head(None).unwrap();
         let oid5 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_b"),
                 &sig,
                 &sig,
@@ -3789,7 +3837,7 @@ mod tests {
         let id = index.write_tree().unwrap();
         let tree_c = repo.find_tree(id).unwrap();
         let oid2 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3809,7 +3857,7 @@ mod tests {
         let id = index.write_tree().unwrap();
         let tree_d = repo.find_tree(id).unwrap();
         let oid3 = repo
-            .commit(
+            .new_commit(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3832,7 +3880,7 @@ mod tests {
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree_d = repo.find_tree(id).unwrap();
         let oid4 = repo
-            .commit(Some("HEAD"), &sig, &sig, "commit 4", &tree_d, &[&commit1])
+            .new_commit(Some("HEAD"), &sig, &sig, "commit 4", &tree_d, &[&commit1])
             .unwrap();
         let commit4 = repo.find_commit(oid4).unwrap();
         // should have file from commit3, but not the file from commit2
@@ -3856,7 +3904,7 @@ mod tests {
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree2 = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "commit 1", &tree2, &[&commit1])
+        repo.new_commit(Some("HEAD"), &sig, &sig, "commit 1", &tree2, &[&commit1])
             .unwrap();
         // reverting once removes `foo` file
         assert!(!foo_file.exists());
@@ -3866,7 +3914,7 @@ mod tests {
         repo.revert(&commit2, None).unwrap();
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree3 = repo.find_tree(id).unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "commit 2", &tree3, &[&commit2])
+        repo.new_commit(Some("HEAD"), &sig, &sig, "commit 2", &tree3, &[&commit2])
             .unwrap();
         // reverting twice restores `foo` file
         assert!(foo_file.exists());
@@ -4020,7 +4068,7 @@ Committer Name <committer.proper@email> <committer@email>"#,
             let id_mailmap = t!(index.write_tree());
             let tree_mailmap = t!(repo.find_tree(id_mailmap));
 
-            let head = t!(repo.commit(
+            let head = t!(repo.new_commit(
                 Some("HEAD"),
                 &author,
                 t!(&Signature::now("committer", "committer@email")),

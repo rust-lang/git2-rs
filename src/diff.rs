@@ -1542,7 +1542,7 @@ impl DiffPatchidOptions {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DiffLineType, DiffOptions, Oid, Signature, Time};
+    use crate::{Commit, DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -1758,13 +1758,13 @@ mod tests {
         let time = Time::new(64_000_000, 0);
         let author = Signature::new("Techcable", "dummy@dummy.org", &time).unwrap();
         let updated_commit = repo
-            .commit(
+            .new_commit(
                 None,
                 &author,
                 &author,
                 COMMIT_MESSAGE,
                 &repo.find_tree(updated_tree).unwrap(),
-                &[], // NOTE: Have no parents to ensure stable hash
+                &[] as &[Commit<'_>], // NOTE: Have no parents to ensure stable hash
             )
             .unwrap();
         let updated_commit = repo.find_commit(updated_commit).unwrap();

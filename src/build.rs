@@ -754,7 +754,7 @@ impl TreeUpdateBuilder {
 #[cfg(test)]
 mod tests {
     use super::{CheckoutBuilder, RepoBuilder, TreeUpdateBuilder};
-    use crate::{CheckoutNotificationType, FileMode, Repository};
+    use crate::{CheckoutNotificationType, Commit, FileMode, Repository};
     use std::fs;
     use std::path::Path;
     use tempfile::TempDir;
@@ -825,8 +825,15 @@ mod tests {
 
             let tree = repo.find_tree(id).unwrap();
             let sig = repo.signature().unwrap();
-            repo.commit(Some("HEAD"), &sig, &sig, "initial", &tree, &[])
-                .unwrap();
+            repo.new_commit(
+                Some("HEAD"),
+                &sig,
+                &sig,
+                "initial",
+                &tree,
+                &[] as &[Commit<'_>],
+            )
+            .unwrap();
         }
 
         let repo = Repository::open_bare(&td.path().join(".git")).unwrap();

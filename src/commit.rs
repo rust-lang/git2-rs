@@ -379,6 +379,12 @@ impl<'commit> DoubleEndedIterator for ParentIds<'commit> {
 
 impl<'commit> ExactSizeIterator for ParentIds<'commit> {}
 
+impl<'repo> AsRef<Commit<'repo>> for Commit<'repo> {
+    fn as_ref(&self) -> &Self {
+        &self
+    }
+}
+
 impl<'repo> Clone for Commit<'repo> {
     fn clone(&self) -> Self {
         self.as_object().clone().into_commit().ok().unwrap()
@@ -422,7 +428,7 @@ mod tests {
         let sig = repo.signature().unwrap();
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         let id = repo
-            .commit(Some("HEAD"), &sig, &sig, "bar", &tree, &[&commit])
+            .new_commit(Some("HEAD"), &sig, &sig, "bar", &tree, &[&commit])
             .unwrap();
         let head = repo.find_commit(id).unwrap();
 
