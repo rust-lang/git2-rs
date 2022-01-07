@@ -825,7 +825,7 @@ mod tests {
 
             let tree = repo.find_tree(id).unwrap();
             let sig = repo.signature().unwrap();
-            repo.new_commit(
+            repo.commit_new(
                 Some("HEAD"),
                 &sig,
                 &sig,

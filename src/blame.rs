@@ -330,7 +330,7 @@ mod tests {
         let id = repo.refname_to_id("HEAD").unwrap();
         let parent = repo.find_commit(id).unwrap();
         let commit = repo
-            .new_commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent])
+            .commit_new(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent])
             .unwrap();
 
         let blame = repo.blame_file(Path::new("foo/bar"), None).unwrap();

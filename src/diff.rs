@@ -1758,7 +1758,7 @@ mod tests {
         let time = Time::new(64_000_000, 0);
         let author = Signature::new("Techcable", "dummy@dummy.org", &time).unwrap();
         let updated_commit = repo
-            .new_commit(
+            .commit_new(
                 None,
                 &author,
                 &author,

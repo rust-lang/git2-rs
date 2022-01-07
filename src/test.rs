@@ -31,7 +31,7 @@ pub fn repo_init() -> (TempDir, Repository) {
 
         let tree = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
-        repo.new_commit(
+        repo.commit_new(
             Some("HEAD"),
             &sig,
             &sig,
@@ -55,7 +55,7 @@ pub fn commit(repo: &Repository) -> (Oid, Oid) {
     let sig = t!(repo.signature());
     let head_id = t!(repo.refname_to_id("HEAD"));
     let parent = t!(repo.find_commit(head_id));
-    let commit = t!(repo.new_commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent]));
+    let commit = t!(repo.commit_new(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent]));
     (commit, tree_id)
 }
 

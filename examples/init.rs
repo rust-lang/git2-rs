@@ -113,7 +113,7 @@ fn create_initial_commit(repo: &Repository) -> Result<(), Error> {
     // Normally creating a commit would involve looking up the current HEAD
     // commit and making that be the parent of the initial commit, but here this
     // is the first commit so there will be no parent.
-    repo.new_commit(
+    repo.commit_new(
         Some("HEAD"),
         &sig,
         &sig,

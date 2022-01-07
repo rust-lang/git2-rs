@@ -1231,7 +1231,10 @@ impl Repository {
     /// current branch and make it point to this commit. If the reference
     /// doesn't exist yet, it will be created. If it does exist, the first
     /// parent must be the tip of this branch.
-    pub fn new_commit<'a, C: AsRef<Commit<'a>>>(
+    ///
+    /// If you choose to pass an empty parents slice, you'll need to provide a type annotation
+    /// like so: `&[] as &[Commit<'_>]`.
+    pub fn commit_new<'a, C: AsRef<Commit<'a>>>(
         &self,
         update_ref: Option<&str>,
         author: &Signature<'_>,
@@ -1239,10 +1242,7 @@ impl Repository {
         message: &str,
         tree: &Tree<'_>,
         parents: &[C],
-    ) -> Result<Oid, Error>
-    where
-        C: AsRef<Commit<'a>>,
-    {
+    ) -> Result<Oid, Error> {
         let update_ref = crate::opt_cstr(update_ref)?;
         let mut parent_ptrs = parents
             .iter()
@@ -3483,7 +3483,7 @@ mod tests {
 
             let tree = repo.find_tree(id).unwrap();
             let sig = repo.signature().unwrap();
-            repo.new_commit(Some("HEAD"), &sig, &sig, "second", &tree, &[head])
+            repo.commit_new(Some("HEAD"), &sig, &sig, "second", &tree, &[head])
                 .unwrap();
         }
         (_td, repo)
@@ -3583,7 +3583,7 @@ mod tests {
         let id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(id_a).unwrap();
         let oid2 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3605,7 +3605,7 @@ mod tests {
         let id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(id_b).unwrap();
         let oid3 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_b"),
                 &sig,
                 &sig,
@@ -3627,7 +3627,7 @@ mod tests {
         let id_c = index.write_tree().unwrap();
         let tree_c = repo.find_tree(id_c).unwrap();
         let oid4 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_c"),
                 &sig,
                 &sig,
@@ -3675,7 +3675,7 @@ mod tests {
         let id_a = index.write_tree().unwrap();
         let tree_a = repo.find_tree(id_a).unwrap();
         let oid2 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3697,7 +3697,7 @@ mod tests {
         let id_b = index.write_tree().unwrap();
         let tree_b = repo.find_tree(id_b).unwrap();
         let oid3 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_b"),
                 &sig,
                 &sig,
@@ -3713,7 +3713,7 @@ mod tests {
         repo.set_head("refs/heads/branch_a").unwrap();
         repo.checkout_head(None).unwrap();
         let oid4 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3729,7 +3729,7 @@ mod tests {
         repo.set_head("refs/heads/branch_b").unwrap();
         repo.checkout_head(None).unwrap();
         let oid5 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_b"),
                 &sig,
                 &sig,
@@ -3837,7 +3837,7 @@ mod tests {
         let id = index.write_tree().unwrap();
         let tree_c = repo.find_tree(id).unwrap();
         let oid2 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3857,7 +3857,7 @@ mod tests {
         let id = index.write_tree().unwrap();
         let tree_d = repo.find_tree(id).unwrap();
         let oid3 = repo
-            .new_commit(
+            .commit_new(
                 Some("refs/heads/branch_a"),
                 &sig,
                 &sig,
@@ -3880,7 +3880,7 @@ mod tests {
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree_d = repo.find_tree(id).unwrap();
         let oid4 = repo
-            .new_commit(Some("HEAD"), &sig, &sig, "commit 4", &tree_d, &[&commit1])
+            .commit_new(Some("HEAD"), &sig, &sig, "commit 4", &tree_d, &[&commit1])
             .unwrap();
         let commit4 = repo.find_commit(oid4).unwrap();
         // should have file from commit3, but not the file from commit2
@@ -3904,7 +3904,7 @@ mod tests {
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree2 = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
-        repo.new_commit(Some("HEAD"), &sig, &sig, "commit 1", &tree2, &[&commit1])
+        repo.commit_new(Some("HEAD"), &sig, &sig, "commit 1", &tree2, &[&commit1])
             .unwrap();
         // reverting once removes `foo` file
         assert!(!foo_file.exists());
@@ -3914,7 +3914,7 @@ mod tests {
         repo.revert(&commit2, None).unwrap();
         let id = repo.index().unwrap().write_tree().unwrap();
         let tree3 = repo.find_tree(id).unwrap();
-        repo.new_commit(Some("HEAD"), &sig, &sig, "commit 2", &tree3, &[&commit2])
+        repo.commit_new(Some("HEAD"), &sig, &sig, "commit 2", &tree3, &[&commit2])
             .unwrap();
         // reverting twice restores `foo` file
         assert!(foo_file.exists());
@@ -4068,7 +4068,7 @@ Committer Name <committer.proper@email> <committer@email>"#,
             let id_mailmap = t!(index.write_tree());
             let tree_mailmap = t!(repo.find_tree(id_mailmap));
 
-            let head = t!(repo.new_commit(
+            let head = t!(repo.commit_new(
                 Some("HEAD"),
                 &author,
                 t!(&Signature::now("committer", "committer@email")),
