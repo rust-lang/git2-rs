@@ -1,7 +1,9 @@
 //! Bindings to libgit2's git_libgit2_opts function.
 
 use std::ffi::CString;
+use std::ptr;
 
+use crate::string_array::StringArray;
 use crate::util::Binding;
 use crate::{raw, Buf, ConfigLevel, Error, IntoCString};
 
@@ -119,6 +121,56 @@ pub fn strict_hash_verification(enabled: bool) {
     debug_assert!(error >= 0);
 }
 
+/// Returns the list of git extensions that are supported. This is the list of
+/// built-in extensions supported by libgit2 and custom extensions that have
+/// been added with [`set_extensions`]. Extensions that have been negated will
+/// not be returned.
+pub fn get_extensions() -> Result<StringArray, Error> {
+    crate::init();
+
+    let mut extensions = raw::git_strarray {
+        strings: ptr::null_mut(),
+        count: 0,
+    };
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_GET_EXTENSIONS as libc::c_int,
+            &mut extensions
+        ));
+        Ok(StringArray::from_raw(extensions))
+    }
+}
+
+/// Set that the given git extensions are supported by the caller. Extensions
+/// supported by libgit2 may be negated by prefixing them with a `!`.
+/// For example: setting extensions to `[ "!noop", "newext" ]` indicates that
+/// the caller does not want to support repositories with the `noop` extension
+/// but does want to support repositories with the `newext` extension.
+pub fn set_extensions<E>(extensions: &[E]) -> Result<(), Error>
+where
+    for<'x> &'x E: IntoCString,
+{
+    crate::init();
+
+    let extensions = extensions
+        .iter()
+        .map(|e| e.into_c_string())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let extension_ptrs = extensions.iter().map(|e| e.as_ptr()).collect::<Vec<_>>();
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_SET_EXTENSIONS as libc::c_int,
+            extension_ptrs.as_ptr(),
+            extension_ptrs.len() as libc::size_t
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -126,5 +178,37 @@ mod test {
     #[test]
     fn smoke() {
         strict_hash_verification(false);
+    }
+
+    #[test]
+    fn test_get_extensions() -> Result<(), Error> {
+        let extensions = get_extensions()?;
+
+        assert_eq!(extensions.len(), 1);
+        assert_eq!(extensions.get(0), Some("noop"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_add_extensions() -> Result<(), Error> {
+        set_extensions(&["custom"])?;
+        let extensions = get_extensions()?;
+
+        assert_eq!(extensions.len(), 2);
+        assert_eq!(extensions.get(0), Some("noop"));
+        assert_eq!(extensions.get(1), Some("custom"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_remove_extensions() -> Result<(), Error> {
+        set_extensions(&["custom", "!ignore", "!noop", "other"])?;
+        let extensions = get_extensions()?;
+
+        assert_eq!(extensions.len(), 2);
+        assert_eq!(extensions.get(0), Some("custom"));
+        assert_eq!(extensions.get(1), Some("other"));
+        Ok(())
     }
 }
