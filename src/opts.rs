@@ -125,7 +125,12 @@ pub fn strict_hash_verification(enabled: bool) {
 /// built-in extensions supported by libgit2 and custom extensions that have
 /// been added with [`set_extensions`]. Extensions that have been negated will
 /// not be returned.
-pub fn get_extensions() -> Result<StringArray, Error> {
+///
+/// # Safety
+///
+/// libgit2 stores user extensions in a static variable.
+/// This function is effectively reading a `static mut` and should be treated as such
+pub unsafe fn get_extensions() -> Result<StringArray, Error> {
     crate::init();
 
     let mut extensions = raw::git_strarray {
@@ -133,13 +138,12 @@ pub fn get_extensions() -> Result<StringArray, Error> {
         count: 0,
     };
 
-    unsafe {
-        try_call!(raw::git_libgit2_opts(
-            raw::GIT_OPT_GET_EXTENSIONS as libc::c_int,
-            &mut extensions
-        ));
-        Ok(StringArray::from_raw(extensions))
-    }
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_GET_EXTENSIONS as libc::c_int,
+        &mut extensions
+    ));
+
+    Ok(StringArray::from_raw(extensions))
 }
 
 /// Set that the given git extensions are supported by the caller. Extensions
@@ -147,7 +151,12 @@ pub fn get_extensions() -> Result<StringArray, Error> {
 /// For example: setting extensions to `[ "!noop", "newext" ]` indicates that
 /// the caller does not want to support repositories with the `noop` extension
 /// but does want to support repositories with the `newext` extension.
-pub fn set_extensions<E>(extensions: &[E]) -> Result<(), Error>
+///
+/// # Safety
+///
+/// libgit2 stores user extensions in a static variable.
+/// This function is effectively modifying a `static mut` and should be treated as such
+pub unsafe fn set_extensions<E>(extensions: &[E]) -> Result<(), Error>
 where
     for<'x> &'x E: IntoCString,
 {
@@ -160,13 +169,11 @@ where
 
     let extension_ptrs = extensions.iter().map(|e| e.as_ptr()).collect::<Vec<_>>();
 
-    unsafe {
-        try_call!(raw::git_libgit2_opts(
-            raw::GIT_OPT_SET_EXTENSIONS as libc::c_int,
-            extension_ptrs.as_ptr(),
-            extension_ptrs.len() as libc::size_t
-        ));
-    }
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_EXTENSIONS as libc::c_int,
+        extension_ptrs.as_ptr(),
+        extension_ptrs.len() as libc::size_t
+    ));
 
     Ok(())
 }
@@ -174,41 +181,88 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]
     fn smoke() {
         strict_hash_verification(false);
     }
 
+    // since tests are run in parallel, we must force the extensions test to run
+    // serialized to avoid UB
+
+    static LOCKED: AtomicBool = AtomicBool::new(false);
+
+    struct LockGuard {}
+    impl Drop for LockGuard {
+        fn drop(&mut self) {
+            LOCKED.store(false, Ordering::SeqCst);
+        }
+    }
+
+    fn lock() -> LockGuard {
+        while LOCKED
+            .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_err()
+        {}
+
+        LockGuard {}
+    }
+
     #[test]
     fn test_get_extensions() -> Result<(), Error> {
-        let extensions = get_extensions()?;
+        let _lock = lock();
 
-        assert_eq!(extensions.len(), 1);
-        assert_eq!(extensions.get(0), Some("noop"));
+        let extensions = unsafe { get_extensions() }?;
+
+        let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
+        extensions.sort_unstable();
+        assert_eq!(extensions, vec!["noop"]);
 
         Ok(())
     }
 
     #[test]
     fn test_add_extensions() -> Result<(), Error> {
-        set_extensions(&["custom"])?;
-        let extensions = get_extensions()?;
+        let _lock = lock();
 
-        assert_eq!(extensions.len(), 2);
-        assert_eq!(extensions.get(0), Some("noop"));
-        assert_eq!(extensions.get(1), Some("custom"));
+        unsafe {
+            set_extensions(&["custom"])?;
+        }
+
+        let extensions = unsafe { get_extensions() }?;
+
+        let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
+        extensions.sort_unstable();
+        assert_eq!(extensions, vec!["custom", "noop"]);
+
+        // reset extensions since they are a shared state
+        unsafe {
+            set_extensions(&["!custom"])?;
+        }
+
         Ok(())
     }
 
     #[test]
     fn test_remove_extensions() -> Result<(), Error> {
-        set_extensions(&["custom", "!ignore", "!noop", "other"])?;
-        let extensions = get_extensions()?;
+        let _lock = lock();
 
-        assert_eq!(extensions.len(), 2);
-        assert_eq!(extensions.get(0), Some("custom"));
-        assert_eq!(extensions.get(1), Some("other"));
+        unsafe {
+            set_extensions(&["custom", "!ignore", "!noop", "other"])?;
+        }
+
+        let extensions = unsafe { get_extensions() }?;
+
+        let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
+        extensions.sort_unstable();
+        assert_eq!(extensions, vec!["custom", "other"]);
+
+        // reset extensions since they are a shared state
+        unsafe {
+            set_extensions(&["!custom", "!other"])?;
+        }
+
         Ok(())
     }
 }
