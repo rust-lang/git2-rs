@@ -28,7 +28,7 @@ use crate::{CheckoutNotificationType, DiffFile, FileMode, Remote};
 ///     Cred::ssh_key(
 ///       username_from_url.unwrap(),
 ///       None,
-///       std::path::Path::new(&format!("{}/.ssh/id_rsa", env::var("HOME").unwrap())),
+///       Path::new(&format!("{}/.ssh/id_rsa", env::var("HOME").unwrap())),
 ///       None,
 ///     )
 ///   });
