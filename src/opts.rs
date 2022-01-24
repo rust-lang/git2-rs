@@ -181,7 +181,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use serial_test::serial;
 
     #[test]
     fn smoke() {
@@ -191,28 +191,9 @@ mod test {
     // since tests are run in parallel, we must force the extensions test to run
     // serialized to avoid UB
 
-    static LOCKED: AtomicBool = AtomicBool::new(false);
-
-    struct LockGuard {}
-    impl Drop for LockGuard {
-        fn drop(&mut self) {
-            LOCKED.store(false, Ordering::SeqCst);
-        }
-    }
-
-    fn lock() -> LockGuard {
-        while LOCKED
-            .compare_exchange_weak(false, true, Ordering::SeqCst, Ordering::SeqCst)
-            .is_err()
-        {}
-
-        LockGuard {}
-    }
-
     #[test]
+    #[serial]
     fn test_get_extensions() -> Result<(), Error> {
-        let _lock = lock();
-
         let extensions = unsafe { get_extensions() }?;
 
         let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
@@ -223,9 +204,8 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_add_extensions() -> Result<(), Error> {
-        let _lock = lock();
-
         unsafe {
             set_extensions(&["custom"])?;
         }
@@ -245,9 +225,8 @@ mod test {
     }
 
     #[test]
+    #[serial]
     fn test_remove_extensions() -> Result<(), Error> {
-        let _lock = lock();
-
         unsafe {
             set_extensions(&["custom", "!ignore", "!noop", "other"])?;
         }
