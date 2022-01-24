@@ -181,67 +181,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use serial_test::serial;
 
     #[test]
     fn smoke() {
         strict_hash_verification(false);
-    }
-
-    // since tests are run in parallel, we must force the extensions test to run
-    // serialized to avoid UB
-
-    #[test]
-    #[serial]
-    fn test_get_extensions() -> Result<(), Error> {
-        let extensions = unsafe { get_extensions() }?;
-
-        let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
-        extensions.sort_unstable();
-        assert_eq!(extensions, vec!["noop"]);
-
-        Ok(())
-    }
-
-    #[test]
-    #[serial]
-    fn test_add_extensions() -> Result<(), Error> {
-        unsafe {
-            set_extensions(&["custom"])?;
-        }
-
-        let extensions = unsafe { get_extensions() }?;
-
-        let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
-        extensions.sort_unstable();
-        assert_eq!(extensions, vec!["custom", "noop"]);
-
-        // reset extensions since they are a shared state
-        unsafe {
-            set_extensions(&["!custom"])?;
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    #[serial]
-    fn test_remove_extensions() -> Result<(), Error> {
-        unsafe {
-            set_extensions(&["custom", "!ignore", "!noop", "other"])?;
-        }
-
-        let extensions = unsafe { get_extensions() }?;
-
-        let mut extensions = extensions.iter().flatten().collect::<Vec<_>>();
-        extensions.sort_unstable();
-        assert_eq!(extensions, vec!["custom", "other"]);
-
-        // reset extensions since they are a shared state
-        unsafe {
-            set_extensions(&["!custom", "!other"])?;
-        }
-
-        Ok(())
     }
 }
