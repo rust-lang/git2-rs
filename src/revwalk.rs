@@ -81,7 +81,7 @@ impl<'repo> Revwalk<'repo> {
 
     /// Mark a commit to start traversal from.
     ///
-    /// The given OID must belong to a committish on the walked repository.
+    /// The given OID must belong to a commitish on the walked repository.
     ///
     /// The given commit will be used as one of the roots when starting the
     /// revision walk. At least one commit must be pushed onto the walker before
@@ -111,7 +111,7 @@ impl<'repo> Revwalk<'repo> {
     /// A leading 'refs/' is implied if not present as well as a trailing `/ \
     /// *` if the glob lacks '?', ' \ *' or '['.
     ///
-    /// Any references matching this glob which do not point to a committish
+    /// Any references matching this glob which do not point to a commitish
     /// will be ignored.
     pub fn push_glob(&mut self, glob: &str) -> Result<(), Error> {
         let glob = CString::new(glob)?;
@@ -136,7 +136,7 @@ impl<'repo> Revwalk<'repo> {
 
     /// Push the OID pointed to by a reference
     ///
-    /// The reference must point to a committish.
+    /// The reference must point to a commitish.
     pub fn push_ref(&mut self, reference: &str) -> Result<(), Error> {
         let reference = CString::new(reference)?;
         unsafe {
@@ -194,7 +194,7 @@ impl<'repo> Revwalk<'repo> {
     /// A leading 'refs/' is implied if not present as well as a trailing `/ \
     /// *` if the glob lacks '?', ' \ *' or '['.
     ///
-    /// Any references matching this glob which do not point to a committish
+    /// Any references matching this glob which do not point to a commitish
     /// will be ignored.
     pub fn hide_glob(&mut self, glob: &str) -> Result<(), Error> {
         let glob = CString::new(glob)?;
@@ -206,7 +206,7 @@ impl<'repo> Revwalk<'repo> {
 
     /// Hide the OID pointed to by a reference.
     ///
-    /// The reference must point to a committish.
+    /// The reference must point to a commitish.
     pub fn hide_ref(&mut self, reference: &str) -> Result<(), Error> {
         let reference = CString::new(reference)?;
         unsafe {

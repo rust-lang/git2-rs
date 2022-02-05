@@ -811,7 +811,7 @@ impl Repository {
 
     /// Make the repository HEAD directly point to the commit.
     ///
-    /// If the provided committish cannot be found in the repository, the HEAD
+    /// If the provided commitish cannot be found in the repository, the HEAD
     /// is unaltered and an error is returned.
     ///
     /// If the provided commitish cannot be peeled into a commit, the HEAD is
@@ -831,7 +831,7 @@ impl Repository {
 
     /// Make the repository HEAD directly point to the commit.
     ///
-    /// If the provided committish cannot be found in the repository, the HEAD
+    /// If the provided commitish cannot be found in the repository, the HEAD
     /// is unaltered and an error is returned.
     /// If the provided commitish cannot be peeled into a commit, the HEAD is
     /// unaltered and an error is returned.
