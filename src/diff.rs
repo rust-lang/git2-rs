@@ -1452,7 +1452,7 @@ impl DiffFindOptions {
         self
     }
 
-    /// Similarity of modified to be glegible rename source (default 50)
+    /// Similarity of modified to be eligible rename source (default 50)
     pub fn rename_from_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
         self.raw.rename_from_rewrite_threshold = thresh;
         self
