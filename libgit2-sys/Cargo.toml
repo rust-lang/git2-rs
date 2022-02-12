@@ -5,7 +5,7 @@ authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcri
 links = "git2"
 build = "build.rs"
 repository = "https://github.com/rust-lang/git2-rs"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "Native bindings to the libgit2 library"
 exclude = [
     "libgit2/ci/*",
