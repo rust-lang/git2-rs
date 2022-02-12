@@ -2,7 +2,7 @@
 name = "git2-curl"
 version = "0.15.0"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/git2-rs"
 documentation = "https://docs.rs/git2-curl"
 description = """
