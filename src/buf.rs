@@ -28,7 +28,7 @@ impl Buf {
             Binding::from_raw(&mut raw::git_buf {
                 ptr: ptr::null_mut(),
                 size: 0,
-                asize: 0,
+                reserved: 0,
             } as *mut _)
         }
     }

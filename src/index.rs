@@ -850,9 +850,6 @@ mod tests {
     #[test]
     fn add_then_read() {
         let mut index = Index::new().unwrap();
-        assert!(index.add(&entry()).is_err());
-
-        let mut index = Index::new().unwrap();
         let mut e = entry();
         e.path = b"foobar".to_vec();
         index.add(&e).unwrap();

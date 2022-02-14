@@ -383,6 +383,7 @@ pub struct git_fetch_options {
     pub update_fetchhead: c_int,
     pub download_tags: git_remote_autotag_option_t,
     pub proxy_opts: git_proxy_options,
+    pub follow_redirects: git_remote_redirect_t,
     pub custom_headers: git_strarray,
 }
 
@@ -609,6 +610,7 @@ pub struct git_status_options {
     pub flags: c_uint,
     pub pathspec: git_strarray,
     pub baseline: *mut git_tree,
+    pub rename_threshold: u16,
 }
 
 #[repr(C)]
@@ -728,7 +730,7 @@ pub struct git_tree_update {
 #[derive(Copy, Clone)]
 pub struct git_buf {
     pub ptr: *mut c_char,
-    pub asize: size_t,
+    pub reserved: size_t,
     pub size: size_t,
 }
 
@@ -951,6 +953,7 @@ pub struct git_push_options {
     pub pb_parallelism: c_uint,
     pub callbacks: git_remote_callbacks,
     pub proxy_opts: git_proxy_options,
+    pub follow_redirects: git_remote_redirect_t,
     pub custom_headers: git_strarray,
 }
 
@@ -1356,55 +1359,66 @@ pub type git_transport_cb = Option<
 #[repr(C)]
 pub struct git_transport {
     pub version: c_uint,
-    pub set_callbacks: Option<
-        extern "C" fn(
-            *mut git_transport,
-            git_transport_message_cb,
-            git_transport_message_cb,
-            git_transport_certificate_check_cb,
-            *mut c_void,
-        ) -> c_int,
-    >,
-    pub set_custom_headers: Option<extern "C" fn(*mut git_transport, *const git_strarray) -> c_int>,
     pub connect: Option<
         extern "C" fn(
-            *mut git_transport,
-            *const c_char,
-            git_cred_acquire_cb,
-            *mut c_void,
-            *const git_proxy_options,
-            c_int,
-            c_int,
+            transport: *mut git_transport,
+            url: *const c_char,
+            direction: c_int,
+            connect_opts: *const git_remote_connect_options,
         ) -> c_int,
     >,
+    pub set_connect_opts: Option<
+        extern "C" fn(
+            transport: *mut git_transport,
+            connect_opts: *const git_remote_connect_options,
+        ) -> c_int,
+    >,
+    pub capabilities:
+        Option<extern "C" fn(capabilities: *mut c_uint, transport: *mut git_transport) -> c_int>,
     pub ls: Option<
-        extern "C" fn(*mut *mut *const git_remote_head, *mut size_t, *mut git_transport) -> c_int,
+        extern "C" fn(
+            out: *mut *mut *const git_remote_head,
+            size: *mut size_t,
+            transport: *mut git_transport,
+        ) -> c_int,
     >,
-    pub push: Option<
-        extern "C" fn(*mut git_transport, *mut git_push, *const git_remote_callbacks) -> c_int,
-    >,
+    pub push: Option<extern "C" fn(transport: *mut git_transport, push: *mut git_push) -> c_int>,
     pub negotiate_fetch: Option<
         extern "C" fn(
-            *mut git_transport,
-            *mut git_repository,
-            *const *const git_remote_head,
-            size_t,
+            transport: *mut git_transport,
+            repo: *mut git_repository,
+            refs: *const *const git_remote_head,
+            count: size_t,
         ) -> c_int,
     >,
     pub download_pack: Option<
         extern "C" fn(
-            *mut git_transport,
-            *mut git_repository,
-            *mut git_indexer_progress,
-            git_indexer_progress_cb,
-            *mut c_void,
+            transport: *mut git_transport,
+            repo: *mut git_repository,
+            stats: *mut git_indexer_progress,
         ) -> c_int,
     >,
-    pub is_connected: Option<extern "C" fn(*mut git_transport) -> c_int>,
-    pub read_flags: Option<extern "C" fn(*mut git_transport, *mut c_int) -> c_int>,
-    pub cancel: Option<extern "C" fn(*mut git_transport)>,
-    pub close: Option<extern "C" fn(*mut git_transport) -> c_int>,
-    pub free: Option<extern "C" fn(*mut git_transport)>,
+    pub is_connected: Option<extern "C" fn(transport: *mut git_transport) -> c_int>,
+    pub cancel: Option<extern "C" fn(transport: *mut git_transport)>,
+    pub close: Option<extern "C" fn(transport: *mut git_transport) -> c_int>,
+    pub free: Option<extern "C" fn(transport: *mut git_transport)>,
+}
+
+#[repr(C)]
+pub struct git_remote_connect_options {
+    pub version: c_uint,
+    pub callbacks: git_remote_callbacks,
+    pub proxy_opts: git_proxy_options,
+    pub follow_redirects: git_remote_redirect_t,
+    pub custom_headers: git_strarray,
+}
+
+git_enum! {
+    pub enum git_remote_redirect_t {
+        GIT_REMOTE_REDIRECT_NONE = 1 << 0,
+        GIT_REMOTE_REDIRECT_INITIAL = 1 << 1,
+        GIT_REMOTE_REDIRECT_ALL = 1 << 2,
+    }
 }
 
 #[repr(C)]
@@ -1891,6 +1905,7 @@ pub struct git_worktree_add_options {
     pub version: c_uint,
     pub lock: c_int,
     pub reference: *mut git_reference,
+    pub checkout_options: git_checkout_options,
 }
 
 pub const GIT_WORKTREE_ADD_OPTIONS_VERSION: c_uint = 1;
@@ -3727,7 +3742,9 @@ extern "C" {
         progress_cb: git_indexer_progress_cb,
         progress_cb_payload: *mut c_void,
     ) -> c_int;
+    #[deprecated = "use `git_packbuilder_name` to retrieve the filename"]
     pub fn git_packbuilder_hash(pb: *mut git_packbuilder) -> *const git_oid;
+    pub fn git_packbuilder_name(pb: *mut git_packbuilder) -> *const c_char;
     pub fn git_packbuilder_foreach(
         pb: *mut git_packbuilder,
         cb: git_packbuilder_foreach_cb,
