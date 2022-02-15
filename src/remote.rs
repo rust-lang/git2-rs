@@ -44,6 +44,7 @@ pub struct FetchOptions<'cb> {
     prune: FetchPrune,
     update_fetchhead: bool,
     download_tags: AutotagOption,
+    follow_redirects: RemoteRedirect,
     custom_headers: Vec<CString>,
     custom_headers_ptrs: Vec<*const c_char>,
 }
@@ -53,6 +54,7 @@ pub struct PushOptions<'cb> {
     callbacks: Option<RemoteCallbacks<'cb>>,
     proxy: Option<ProxyOptions<'cb>>,
     pb_parallelism: u32,
+    follow_redirects: RemoteRedirect,
     custom_headers: Vec<CString>,
     custom_headers_ptrs: Vec<*const c_char>,
 }
@@ -62,6 +64,21 @@ pub struct RemoteConnection<'repo, 'connection, 'cb> {
     _callbacks: Box<RemoteCallbacks<'cb>>,
     _proxy: ProxyOptions<'cb>,
     remote: &'connection mut Remote<'repo>,
+}
+
+/// Remote redirection settings; whether redirects to another host are
+/// permitted.
+///
+/// By default, git will follow a redirect on the initial request
+/// (`/info/refs`), but not subsequent requests.
+pub enum RemoteRedirect {
+    /// Do not follow any off-site redirects at any stage of the fetch or push.
+    None,
+    /// Allow off-site redirects only upon the initial request. This is the
+    /// default.
+    Initial,
+    /// Allow redirects at any stage in the fetch or push.
+    All,
 }
 
 pub fn remote_into_raw(remote: Remote<'_>) -> *mut raw::git_remote {
@@ -479,6 +496,7 @@ impl<'cb> FetchOptions<'cb> {
             prune: FetchPrune::Unspecified,
             update_fetchhead: true,
             download_tags: AutotagOption::Unspecified,
+            follow_redirects: RemoteRedirect::Initial,
             custom_headers: Vec::new(),
             custom_headers_ptrs: Vec::new(),
         }
@@ -519,6 +537,16 @@ impl<'cb> FetchOptions<'cb> {
         self
     }
 
+    /// Set remote redirection settings; whether redirects to another host are
+    /// permitted.
+    ///
+    /// By default, git will follow a redirect on the initial request
+    /// (`/info/refs`), but not subsequent requests.
+    pub fn follow_redirects(&mut self, redirect: RemoteRedirect) -> &mut Self {
+        self.follow_redirects = redirect;
+        self
+    }
+
     /// Set extra headers for this fetch operation.
     pub fn custom_headers(&mut self, custom_headers: &[&str]) -> &mut Self {
         self.custom_headers = custom_headers
@@ -552,6 +580,7 @@ impl<'cb> Binding for FetchOptions<'cb> {
             prune: crate::call::convert(&self.prune),
             update_fetchhead: crate::call::convert(&self.update_fetchhead),
             download_tags: crate::call::convert(&self.download_tags),
+            follow_redirects: self.follow_redirects.raw(),
             custom_headers: git_strarray {
                 count: self.custom_headers_ptrs.len(),
                 strings: self.custom_headers_ptrs.as_ptr() as *mut _,
@@ -573,6 +602,7 @@ impl<'cb> PushOptions<'cb> {
             callbacks: None,
             proxy: None,
             pb_parallelism: 1,
+            follow_redirects: RemoteRedirect::Initial,
             custom_headers: Vec::new(),
             custom_headers_ptrs: Vec::new(),
         }
@@ -598,6 +628,16 @@ impl<'cb> PushOptions<'cb> {
     /// create, and the default value is 1.
     pub fn packbuilder_parallelism(&mut self, parallel: u32) -> &mut Self {
         self.pb_parallelism = parallel;
+        self
+    }
+
+    /// Set remote redirection settings; whether redirects to another host are
+    /// permitted.
+    ///
+    /// By default, git will follow a redirect on the initial request
+    /// (`/info/refs`), but not subsequent requests.
+    pub fn follow_redirects(&mut self, redirect: RemoteRedirect) -> &mut Self {
+        self.follow_redirects = redirect;
         self
     }
 
@@ -632,6 +672,7 @@ impl<'cb> Binding for PushOptions<'cb> {
                 .map(|m| m.raw())
                 .unwrap_or_else(|| ProxyOptions::new().raw()),
             pb_parallelism: self.pb_parallelism as libc::c_uint,
+            follow_redirects: self.follow_redirects.raw(),
             custom_headers: git_strarray {
                 count: self.custom_headers_ptrs.len(),
                 strings: self.custom_headers_ptrs.as_ptr() as *mut _,
@@ -671,6 +712,22 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
 impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
     fn drop(&mut self) {
         drop(self.remote.disconnect());
+    }
+}
+
+impl Default for RemoteRedirect {
+    fn default() -> Self {
+        RemoteRedirect::Initial
+    }
+}
+
+impl RemoteRedirect {
+    fn raw(&self) -> raw::git_remote_redirect_t {
+        match self {
+            RemoteRedirect::None => raw::GIT_REMOTE_REDIRECT_NONE,
+            RemoteRedirect::Initial => raw::GIT_REMOTE_REDIRECT_INITIAL,
+            RemoteRedirect::All => raw::GIT_REMOTE_REDIRECT_ALL,
+        }
     }
 }
 

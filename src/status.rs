@@ -216,6 +216,14 @@ impl StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
 
+    /// Set threshold above which similar files will be considered renames.
+    ///
+    /// This is equivalent to the `-M` option. Defaults to 50.
+    pub fn rename_threshold(&mut self, threshold: u16) -> &mut StatusOptions {
+        self.raw.rename_threshold = threshold;
+        self
+    }
+
     /// Get a pointer to the inner list of status options.
     ///
     /// This function is unsafe as the returned structure has interior pointers
