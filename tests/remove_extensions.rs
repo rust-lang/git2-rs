@@ -11,9 +11,10 @@ fn test_remove_extensions() -> Result<(), Error> {
 
     let extensions = unsafe { get_extensions() }?;
 
-    assert_eq!(extensions.len(), 2);
+    assert_eq!(extensions.len(), 3);
     assert_eq!(extensions.get(0), Some("custom"));
     assert_eq!(extensions.get(1), Some("other"));
+    assert_eq!(extensions.get(2), Some("worktreeconfig"));
 
     Ok(())
 }
