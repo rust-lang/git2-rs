@@ -637,6 +637,17 @@ impl MergePreference {
     is_bit_set!(is_fastforward_only, MergePreference::FASTFORWARD_ONLY);
 }
 
+bitflags! {
+    /// Flags controlling the behavior of ODB lookup operations
+    pub struct OdbLookupFlags: u32 {
+        /// Don't call `git_odb_refresh` if the lookup fails. Useful when doing
+        /// a batch of lookup operations for objects that may legitimately not
+        /// exist. When using this flag, you may wish to manually call
+        /// `git_odb_refresh` before processing a batch of objects.
+        const NO_REFRESH = raw::GIT_ODB_LOOKUP_NO_REFRESH as u32;
+    }
+}
+
 #[cfg(test)]
 #[macro_use]
 mod test;

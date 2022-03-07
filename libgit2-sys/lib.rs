@@ -1511,6 +1511,12 @@ pub struct git_odb_backend {
     pub free: Option<extern "C" fn(*mut git_odb_backend)>,
 }
 
+git_enum! {
+    pub enum git_odb_lookup_flags_t {
+        GIT_ODB_LOOKUP_NO_REFRESH = 1 << 0,
+    }
+}
+
 #[repr(C)]
 pub struct git_odb_writepack {
     pub backend: *mut git_odb_backend,
@@ -3836,6 +3842,7 @@ extern "C" {
     ) -> c_int;
 
     pub fn git_odb_exists(odb: *mut git_odb, oid: *const git_oid) -> c_int;
+    pub fn git_odb_exists_ext(odb: *mut git_odb, oid: *const git_oid, flags: c_uint) -> c_int;
 
     pub fn git_odb_refresh(odb: *mut git_odb) -> c_int;
 
