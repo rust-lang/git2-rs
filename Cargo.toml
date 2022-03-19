@@ -43,4 +43,4 @@ ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 
 [workspace]
-members = ["systest", "git2-curl"]
+members = ["systest", "git2-curl", "libgit2-sys"]
