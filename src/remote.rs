@@ -101,7 +101,7 @@ impl<'repo> Remote<'repo> {
     /// when you have a URL instead of a remote's name.
     /// Contrasted with an anonymous remote, a detached remote will not
     /// consider any repo configuration values.
-    pub fn create_detached(url: &str) -> Result<Remote<'_>, Error> {
+    pub fn create_detached<S: Into<Vec<u8>>>(url: S) -> Result<Remote<'repo>, Error> {
         crate::init();
         let mut ret = ptr::null_mut();
         let url = CString::new(url)?;
