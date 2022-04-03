@@ -233,7 +233,7 @@ impl<'repo> Remote<'repo> {
     pub fn download<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
         specs: &[Str],
-        opts: Option<&mut FetchOptions<'_>>,
+        opts: Option<FetchOptions<'_>>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(specs.iter())?;
         let raw = opts.map(|o| o.raw());
@@ -293,7 +293,7 @@ impl<'repo> Remote<'repo> {
     pub fn fetch<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
         refspecs: &[Str],
-        opts: Option<&mut FetchOptions<'_>>,
+        opts: Option<FetchOptions<'_>>,
         reflog_msg: Option<&str>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
