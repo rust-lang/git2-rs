@@ -57,7 +57,7 @@ fn do_fetch<'a>(
     // Perform a download and also update tips
     fo.download_tags(git2::AutotagOption::All);
     println!("Fetching {} for repo", remote.name().unwrap());
-    remote.fetch(refs, Some(&mut fo), None)?;
+    remote.fetch(refs, Some(&fo), None)?;
 
     // If there are local objects (we got a thin pack), then tell the user
     // how many objects we saved from having to cross the network.

@@ -233,7 +233,7 @@ impl<'repo> Remote<'repo> {
     pub fn download<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
         specs: &[Str],
-        opts: Option<&mut FetchOptions<'_>>,
+        opts: Option<&FetchOptions<'_>>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(specs.iter())?;
         let raw = opts.map(|o| o.raw());
@@ -293,7 +293,7 @@ impl<'repo> Remote<'repo> {
     pub fn fetch<Str: AsRef<str> + crate::IntoCString + Clone>(
         &mut self,
         refspecs: &[Str],
-        opts: Option<&mut FetchOptions<'_>>,
+        opts: Option<&FetchOptions<'_>>,
         reflog_msg: Option<&str>,
     ) -> Result<(), Error> {
         let (_a, _b, arr) = crate::util::iter2cstrs(refspecs.iter())?;
@@ -872,13 +872,9 @@ mod tests {
                 progress_hit.set(true);
                 true
             });
-            origin
-                .fetch(
-                    &[] as &[&str],
-                    Some(FetchOptions::new().remote_callbacks(callbacks)),
-                    None,
-                )
-                .unwrap();
+            let mut fo = FetchOptions::new();
+            fo.remote_callbacks(callbacks);
+            origin.fetch(&[] as &[&str], Some(&fo), None).unwrap();
 
             let list = t!(origin.list());
             assert_eq!(list.len(), 2);
