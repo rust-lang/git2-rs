@@ -38,9 +38,4 @@ https = ["openssl-sys"]
 ssh_key_from_memory = []
 vendored = []
 vendored-openssl = ["openssl-sys/vendored"]
-# Cargo does not support requiring features on an optional dependency without
-# requiring the dependency. Rather than introduce additional complexity, we
-# just require libssh2 when using zlib-ng-compat. This will require building
-# libssh2, but it will not add code to the final binary without the "ssh"
-# feature enabled.
-zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys/zlib-ng-compat"]
+zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]
