@@ -2,7 +2,7 @@
 
 [Documentation](https://docs.rs/git2)
 
-libgit2 bindings for Rust
+libgit2 bindings for Rust.
 
 ```toml
 [dependencies]
@@ -37,23 +37,22 @@ pre-commit hook found [here][pre-commit-hook] and place it into the
 `.git/hooks/` with the name `pre-commit`.  You may need to add execution
 permissions with `chmod +x`.
 
-
 To skip tests on a simple commit or doc-fixes, use `git commit --no-verify`.
 
-## Building on OSX 10.10+
+## Building on macOS 10.10+
 
 If the `ssh` feature is enabled (and it is by default) then this library depends
 on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
-[`openssl` crate's instructions](https://github.com/sfackler/rust-openssl#macos).
+[`openssl` crate's instructions](https://github.com/sfackler/rust-openssl/blob/master/openssl/src/lib.rs#L31).
 
 # License
 
 This project is licensed under either of
 
  * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
-   http://www.apache.org/licenses/LICENSE-2.0)
+   https://www.apache.org/licenses/LICENSE-2.0)
  * MIT license ([LICENSE-MIT](LICENSE-MIT) or
-   http://opensource.org/licenses/MIT)
+   https://opensource.org/licenses/MIT)
 
 at your option.
 
