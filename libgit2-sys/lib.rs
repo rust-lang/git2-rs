@@ -2747,6 +2747,7 @@ extern "C" {
     pub fn git_commit_parentcount(commit: *const git_commit) -> c_uint;
     pub fn git_commit_raw_header(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_summary(commit: *mut git_commit) -> *const c_char;
+    pub fn git_commit_body(commit: *mut git_commit) -> *const c_char;
     pub fn git_commit_time(commit: *const git_commit) -> git_time_t;
     pub fn git_commit_time_offset(commit: *const git_commit) -> c_int;
     pub fn git_commit_tree(tree_out: *mut *mut git_tree, commit: *const git_commit) -> c_int;

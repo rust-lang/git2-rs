@@ -145,6 +145,29 @@ impl<'repo> Commit<'repo> {
         unsafe { crate::opt_bytes(self, raw::git_commit_summary(self.raw)) }
     }
 
+    /// Get the long "body" of the git commit message.
+    ///
+    /// The returned message is the body of the commit, comprising everything
+    /// but the first paragraph of the message. Leading and trailing whitespaces
+    /// are trimmed.
+    ///
+    /// `None` may be returned if an error occurs or if the summary is not valid
+    /// utf-8.
+    pub fn body(&self) -> Option<&str> {
+        self.body_bytes().and_then(|s| str::from_utf8(s).ok())
+    }
+
+    /// Get the long "body" of the git commit message.
+    ///
+    /// The returned message is the body of the commit, comprising everything
+    /// but the first paragraph of the message. Leading and trailing whitespaces
+    /// are trimmed.
+    ///
+    /// `None` may be returned if an error occurs.
+    pub fn body_bytes(&self) -> Option<&[u8]> {
+        unsafe { crate::opt_bytes(self, raw::git_commit_body(self.raw)) }
+    }
+
     /// Get the commit time (i.e. committer time) of a commit.
     ///
     /// The first element of the tuple is the time, in seconds, since the epoch.
@@ -399,12 +422,14 @@ mod tests {
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();
-        assert_eq!(commit.message(), Some("initial"));
+        assert_eq!(commit.message(), Some("initial\n\nbody"));
+        assert_eq!(commit.body(), Some("body"));
         assert_eq!(commit.id(), target);
         commit.message_raw().unwrap();
         commit.raw_header().unwrap();
         commit.message_encoding();
         commit.summary().unwrap();
+        commit.body().unwrap();
         commit.tree_id();
         commit.tree().unwrap();
         assert_eq!(commit.parents().count(), 0);
