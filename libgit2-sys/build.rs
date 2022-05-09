@@ -14,11 +14,7 @@ fn main() {
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
     if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg
-            .range_version("1.4.0".."1.5.0")
-            .print_system_libs(false)
-            .probe("libgit2")
-        {
+        if let Ok(lib) = cfg.range_version("1.4.4".."1.5.0").probe("libgit2") {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
@@ -162,9 +158,26 @@ fn main() {
     cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
-    cfg.file("libgit2/src/util/hash/sha1/collisiondetect.c");
-    cfg.file("libgit2/src/util/hash/sha1/sha1dc/sha1.c");
-    cfg.file("libgit2/src/util/hash/sha1/sha1dc/ubc_check.c");
+    cfg.file("libgit2/src/util/hash/collisiondetect.c");
+    cfg.file("libgit2/src/util/hash/sha1dc/sha1.c");
+    cfg.file("libgit2/src/util/hash/sha1dc/ubc_check.c");
+
+    if https {
+        if windows {
+            features.push_str("#define GIT_SHA256_WIN32 1\n");
+            cfg.file("libgit2/src/util/hash/win32.c");
+        } else if target.contains("apple") {
+            features.push_str("#define GIT_SHA256_COMMON_CRYPTO 1\n");
+            cfg.file("libgit2/src/util/hash/common_crypto.c");
+        } else {
+            features.push_str("#define GIT_SHA256_OPENSSL 1\n");
+            cfg.file("libgit2/src/util/hash/openssl.c");
+        }
+    } else {
+        features.push_str("#define GIT_SHA256_BUILTIN 1\n");
+        cfg.file("libgit2/src/util/hash/builtin.c");
+        cfg.file("libgit2/src/util/hash/rfc6234/sha224-256.c");
+    }
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);

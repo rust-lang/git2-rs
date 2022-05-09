@@ -16,7 +16,7 @@ edition = "2018"
 curl = "0.4.33"
 url = "2.0"
 log = "0.4"
-git2 = { path = "..", version = "0.14", default-features = false }
+git2 = { path = "..", version = "0.15", default-features = false }
 
 [dev-dependencies]
 civet = "0.11"

@@ -127,6 +127,7 @@ impl Error {
             raw::GIT_EMISMATCH => super::ErrorCode::HashsumMismatch,
             raw::GIT_EINDEXDIRTY => super::ErrorCode::IndexDirty,
             raw::GIT_EAPPLYFAIL => super::ErrorCode::ApplyFail,
+            raw::GIT_EOWNER => super::ErrorCode::Owner,
             _ => super::ErrorCode::GenericError,
         }
     }
@@ -163,6 +164,7 @@ impl Error {
             ErrorCode::HashsumMismatch => raw::GIT_EMISMATCH,
             ErrorCode::IndexDirty => raw::GIT_EINDEXDIRTY,
             ErrorCode::ApplyFail => raw::GIT_EAPPLYFAIL,
+            ErrorCode::Owner => raw::GIT_EOWNER,
         };
     }
 
@@ -293,6 +295,7 @@ impl Error {
             GIT_EMISMATCH,
             GIT_EINDEXDIRTY,
             GIT_EAPPLYFAIL,
+            GIT_EOWNER,
         )
     }
 

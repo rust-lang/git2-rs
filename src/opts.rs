@@ -178,6 +178,19 @@ where
     Ok(())
 }
 
+/// Set wheter or not to verify ownership before performing a repository.
+/// Enabled by default, but disabling this can lead to code execution vulnerabilities.
+pub unsafe fn set_verify_owner_validation(enabled: bool) -> Result<(), Error> {
+    let error = raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_OWNER_VALIDATION as libc::c_int,
+        enabled as libc::c_int,
+    );
+    // This function cannot actually fail, but the function has an error return
+    // for other options that can.
+    debug_assert!(error >= 0);
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
