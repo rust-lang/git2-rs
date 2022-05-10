@@ -165,15 +165,7 @@ impl<'repo> Tree<'repo> {
 
     /// Lookup a tree entry by its filename
     pub fn get_name(&self, filename: &str) -> Option<TreeEntry<'_>> {
-        let filename = CString::new(filename).unwrap();
-        unsafe {
-            let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
-            if ptr.is_null() {
-                None
-            } else {
-                Some(entry_from_raw_const(ptr))
-            }
-        }
+        self.get_name_bytes(filename.as_bytes())
     }
 
     /// Lookup a tree entry by its filename, specified as bytes.
