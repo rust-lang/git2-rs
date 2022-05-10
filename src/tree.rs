@@ -176,6 +176,21 @@ impl<'repo> Tree<'repo> {
         }
     }
 
+    /// Lookup a tree entry by its filename, specified as bytes.
+    ///
+    /// This allows for non-UTF-8 filenames.
+    pub fn get_name_bytes(&self, filename: &[u8]) -> Option<TreeEntry<'_>> {
+        let filename = CString::new(filename).unwrap();
+        unsafe {
+            let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
+            if ptr.is_null() {
+                None
+            } else {
+                Some(entry_from_raw_const(ptr))
+            }
+        }
+    }
+
     /// Retrieve a tree entry contained in a tree or in any of its subtrees,
     /// given its relative path.
     pub fn get_path(&self, path: &Path) -> Result<TreeEntry<'static>, Error> {
@@ -510,6 +525,7 @@ mod tests {
             let e1 = tree.get(0).unwrap();
             assert!(e1 == tree.get_id(e1.id()).unwrap());
             assert!(e1 == tree.get_name("foo").unwrap());
+            assert!(e1 == tree.get_name_bytes(b"foo").unwrap());
             assert!(e1 == tree.get_path(Path::new("foo")).unwrap());
             assert_eq!(e1.name(), Some("foo"));
             e1.to_object(&repo).unwrap();
