@@ -199,7 +199,7 @@ impl<'repo> Tree<'repo> {
         unsafe { &*(self as *const _ as *const Object<'repo>) }
     }
 
-    /// Consumes Commit to be returned as an `Object`
+    /// Consumes this Tree to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
         assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
         unsafe { mem::transmute(self) }
