@@ -61,11 +61,11 @@
 //!
 //! ## Working with a `Repository`
 //!
-//! All deriviative objects, references, etc are attached to the lifetime of the
+//! All derivative objects, references, etc are attached to the lifetime of the
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![doc(html_root_url = "https://docs.rs/git2/0.13")]
+#![doc(html_root_url = "https://docs.rs/git2/0.14")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -80,6 +80,7 @@ use std::str;
 use std::sync::Once;
 
 pub use crate::apply::{ApplyLocation, ApplyOptions};
+pub use crate::attr::AttrValue;
 pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use crate::blob::{Blob, BlobWriter};
 pub use crate::branch::{Branch, Branches};
@@ -91,17 +92,22 @@ pub use crate::cred::{Cred, CredentialHelper};
 pub use crate::describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use crate::diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use crate::diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
-pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffStats};
+pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffLineType, DiffStats};
 pub use crate::error::Error;
 pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
 };
 pub use crate::indexer::{IndexerProgress, Progress};
+pub use crate::mailmap::Mailmap;
 pub use crate::mempack::Mempack;
 pub use crate::merge::{
     AnnotatedCommit, MergeFileInput, MergeFileOptions, MergeFileResult, MergeOptions,
 };
-pub use crate::message::{message_prettify, DEFAULT_COMMENT_CHAR};
+pub use crate::message::{
+    message_prettify, message_trailers_bytes, message_trailers_strs, MessageTrailersBytes,
+    MessageTrailersBytesIterator, MessageTrailersStrs, MessageTrailersStrsIterator,
+    DEFAULT_COMMENT_CHAR,
+};
 pub use crate::note::{Note, Notes};
 pub use crate::object::Object;
 pub use crate::odb::{Odb, OdbObject, OdbPackwriter, OdbReader, OdbWriter};
@@ -116,7 +122,7 @@ pub use crate::reference::{Reference, ReferenceNames, References};
 pub use crate::reflog::{Reflog, ReflogEntry, ReflogIter};
 pub use crate::refspec::Refspec;
 pub use crate::remote::{
-    FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead,
+    FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead, RemoteRedirect,
 };
 pub use crate::remote_callbacks::{Credentials, RemoteCallbacks};
 pub use crate::remote_callbacks::{TransportMessage, UpdateTips};
@@ -130,9 +136,12 @@ pub use crate::status::{StatusEntry, StatusIter, StatusOptions, StatusShow, Stat
 pub use crate::submodule::{Submodule, SubmoduleUpdateOptions};
 pub use crate::tag::Tag;
 pub use crate::time::{IndexTime, Time};
+pub use crate::tracing::{trace_set, TraceLevel};
+pub use crate::transaction::Transaction;
 pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use crate::treebuilder::TreeBuilder;
 pub use crate::util::IntoCString;
+pub use crate::version::Version;
 pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions};
 
 // Create a convinience method on bitflag struct which checks the given flag
@@ -304,7 +313,7 @@ pub enum RepositoryState {
 }
 
 /// An enumeration of the possible directions for a remote.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Direction {
     /// Data will be fetched (read) from this remote.
     Fetch,
@@ -314,7 +323,7 @@ pub enum Direction {
 
 /// An enumeration of the operations that can be performed for the `reset`
 /// method on a `Repository`.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ResetType {
     /// Move the head to the given commit.
     Soft,
@@ -365,7 +374,7 @@ pub enum BranchType {
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
     /// System-wide on Windows, for compatibility with portable git
-    ProgramData,
+    ProgramData = 1,
     /// System-wide configuration file, e.g. /etc/gitconfig
     System,
     /// XDG-compatible configuration file, e.g. ~/.config/git/config
@@ -377,7 +386,7 @@ pub enum ConfigLevel {
     /// Application specific configuration file
     App,
     /// Highest level available
-    Highest,
+    Highest = -1,
 }
 
 /// Merge file favor options for `MergeOptions` instruct the file-level
@@ -630,11 +639,23 @@ impl MergePreference {
     is_bit_set!(is_fastforward_only, MergePreference::FASTFORWARD_ONLY);
 }
 
+bitflags! {
+    /// Flags controlling the behavior of ODB lookup operations
+    pub struct OdbLookupFlags: u32 {
+        /// Don't call `git_odb_refresh` if the lookup fails. Useful when doing
+        /// a batch of lookup operations for objects that may legitimately not
+        /// exist. When using this flag, you may wish to manually call
+        /// `git_odb_refresh` before processing a batch of objects.
+        const NO_REFRESH = raw::GIT_ODB_LOOKUP_NO_REFRESH as u32;
+    }
+}
+
 #[cfg(test)]
 #[macro_use]
 mod test;
 #[macro_use]
 mod panic;
+mod attr;
 mod call;
 mod util;
 
@@ -659,6 +680,7 @@ mod diff;
 mod error;
 mod index;
 mod indexer;
+mod mailmap;
 mod mempack;
 mod merge;
 mod message;
@@ -687,8 +709,11 @@ mod submodule;
 mod tag;
 mod tagforeach;
 mod time;
+mod tracing;
+mod transaction;
 mod tree;
 mod treebuilder;
+mod version;
 mod worktree;
 
 fn init() {
@@ -931,6 +956,34 @@ impl ConfigLevel {
     }
 }
 
+impl SubmoduleIgnore {
+    /// Converts a [`raw::git_submodule_ignore_t`] to a [`SubmoduleIgnore`]
+    pub fn from_raw(raw: raw::git_submodule_ignore_t) -> Self {
+        match raw {
+            raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED => SubmoduleIgnore::Unspecified,
+            raw::GIT_SUBMODULE_IGNORE_NONE => SubmoduleIgnore::None,
+            raw::GIT_SUBMODULE_IGNORE_UNTRACKED => SubmoduleIgnore::Untracked,
+            raw::GIT_SUBMODULE_IGNORE_DIRTY => SubmoduleIgnore::Dirty,
+            raw::GIT_SUBMODULE_IGNORE_ALL => SubmoduleIgnore::All,
+            n => panic!("unknown submodule ignore rule: {}", n),
+        }
+    }
+}
+
+impl SubmoduleUpdate {
+    /// Converts a [`raw::git_submodule_update_t`] to a [`SubmoduleUpdate`]
+    pub fn from_raw(raw: raw::git_submodule_update_t) -> Self {
+        match raw {
+            raw::GIT_SUBMODULE_UPDATE_CHECKOUT => SubmoduleUpdate::Checkout,
+            raw::GIT_SUBMODULE_UPDATE_REBASE => SubmoduleUpdate::Rebase,
+            raw::GIT_SUBMODULE_UPDATE_MERGE => SubmoduleUpdate::Merge,
+            raw::GIT_SUBMODULE_UPDATE_NONE => SubmoduleUpdate::None,
+            raw::GIT_SUBMODULE_UPDATE_DEFAULT => SubmoduleUpdate::Default,
+            n => panic!("unknown submodule update strategy: {}", n),
+        }
+    }
+}
+
 bitflags! {
     /// Status flags for a single file
     ///
@@ -1079,6 +1132,32 @@ impl FileMode {
     }
 }
 
+impl From<FileMode> for i32 {
+    fn from(mode: FileMode) -> i32 {
+        match mode {
+            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as i32,
+            FileMode::Tree => raw::GIT_FILEMODE_TREE as i32,
+            FileMode::Blob => raw::GIT_FILEMODE_BLOB as i32,
+            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as i32,
+            FileMode::Link => raw::GIT_FILEMODE_LINK as i32,
+            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as i32,
+        }
+    }
+}
+
+impl From<FileMode> for u32 {
+    fn from(mode: FileMode) -> u32 {
+        match mode {
+            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as u32,
+            FileMode::Tree => raw::GIT_FILEMODE_TREE as u32,
+            FileMode::Blob => raw::GIT_FILEMODE_BLOB as u32,
+            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as u32,
+            FileMode::Link => raw::GIT_FILEMODE_LINK as u32,
+            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as u32,
+        }
+    }
+}
+
 bitflags! {
     /// Return codes for submodule status.
     ///
@@ -1175,6 +1254,7 @@ impl SubmoduleStatus {
 /// These values represent settings for the `submodule.$name.ignore`
 /// configuration value which says how deeply to look at the working
 /// directory when getting the submodule status.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SubmoduleIgnore {
     /// Use the submodule's configuration
     Unspecified,
@@ -1186,6 +1266,31 @@ pub enum SubmoduleIgnore {
     Dirty,
     /// Never dirty
     All,
+}
+
+/// Submodule update values
+///
+/// These values represent settings for the `submodule.$name.update`
+/// configuration value which says how to handle `git submodule update`
+/// for this submodule. The value is usually set in the ".gitmodules"
+/// file and copied to ".git/config" when the submodule is initialized.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SubmoduleUpdate {
+    /// The default; when a submodule is updated, checkout the new detached
+    /// HEAD to the submodule directory.
+    Checkout,
+    /// Update by rebasing the current checked out branch onto the commit from
+    /// the superproject.
+    Rebase,
+    /// Update by merging the commit in the superproject into the current
+    /// checkout out branch of the submodule.
+    Merge,
+    /// Do not update this submodule even when the commit in the superproject
+    /// is updated.
+    None,
+    /// Not used except as static initializer when we don't want any particular
+    /// update rule to be specified.
+    Default,
 }
 
 bitflags! {
@@ -1258,7 +1363,7 @@ impl CheckoutNotificationType {
 }
 
 /// Possible output formats for diff data
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DiffFormat {
     /// full git diff
     Patch,
@@ -1322,7 +1427,7 @@ pub enum FetchPrune {
 }
 
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StashApplyProgress {
     /// None
     None,
@@ -1471,12 +1576,20 @@ impl Default for ReferenceFormat {
 
 #[cfg(test)]
 mod tests {
-    use super::ObjectType;
+    use super::{FileMode, ObjectType};
 
     #[test]
     fn convert() {
         assert_eq!(ObjectType::Blob.str(), "blob");
         assert_eq!(ObjectType::from_str("blob"), Some(ObjectType::Blob));
         assert!(ObjectType::Blob.is_loose());
+    }
+
+    #[test]
+    fn convert_filemode() {
+        assert_eq!(i32::from(FileMode::Blob), 0o100644);
+        assert_eq!(i32::from(FileMode::BlobExecutable), 0o100755);
+        assert_eq!(u32::from(FileMode::Blob), 0o100644);
+        assert_eq!(u32::from(FileMode::BlobExecutable), 0o100755);
     }
 }

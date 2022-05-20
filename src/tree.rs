@@ -165,6 +165,13 @@ impl<'repo> Tree<'repo> {
 
     /// Lookup a tree entry by its filename
     pub fn get_name(&self, filename: &str) -> Option<TreeEntry<'_>> {
+        self.get_name_bytes(filename.as_bytes())
+    }
+
+    /// Lookup a tree entry by its filename, specified as bytes.
+    ///
+    /// This allows for non-UTF-8 filenames.
+    pub fn get_name_bytes(&self, filename: &[u8]) -> Option<TreeEntry<'_>> {
         let filename = CString::new(filename).unwrap();
         unsafe {
             let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
@@ -192,7 +199,7 @@ impl<'repo> Tree<'repo> {
         unsafe { &*(self as *const _ as *const Object<'repo>) }
     }
 
-    /// Consumes Commit to be returned as an `Object`
+    /// Consumes this Tree to be returned as an `Object`
     pub fn into_object(self) -> Object<'repo> {
         assert_eq!(mem::size_of_val(&self), mem::size_of::<Object<'_>>());
         unsafe { mem::transmute(self) }
@@ -225,7 +232,7 @@ impl<'repo> Binding for Tree<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
         Tree {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -334,7 +341,7 @@ impl<'a> Binding for TreeEntry<'a> {
     type Raw = *mut raw::git_tree_entry;
     unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'a> {
         TreeEntry {
-            raw: raw,
+            raw,
             owned: true,
             _marker: marker::PhantomData,
         }
@@ -510,6 +517,7 @@ mod tests {
             let e1 = tree.get(0).unwrap();
             assert!(e1 == tree.get_id(e1.id()).unwrap());
             assert!(e1 == tree.get_name("foo").unwrap());
+            assert!(e1 == tree.get_name_bytes(b"foo").unwrap());
             assert!(e1 == tree.get_path(Path::new("foo")).unwrap());
             assert_eq!(e1.name(), Some("foo"));
             e1.to_object(&repo).unwrap();

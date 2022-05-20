@@ -58,6 +58,11 @@ pub struct DiffFormatEmailOptions {
     raw: raw::git_diff_format_email_options,
 }
 
+/// Control behavior of formatting emails
+pub struct DiffPatchidOptions {
+    raw: raw::git_diff_patchid_options,
+}
+
 /// An iterator over the diffs in a delta
 pub struct Deltas<'diff> {
     range: Range<usize>,
@@ -278,6 +283,21 @@ impl<'repo> Diff<'repo> {
         Ok(buf)
     }
 
+    /// Create an patchid from a diff.
+    pub fn patchid(&self, opts: Option<&mut DiffPatchidOptions>) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+        unsafe {
+            try_call!(raw::git_diff_patchid(
+                &mut raw,
+                self.raw,
+                opts.map(|o| &mut o.raw)
+            ));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
     // TODO: num_deltas_of_type, find_similar
 }
 impl Diff<'static> {
@@ -289,6 +309,7 @@ impl Diff<'static> {
     /// a patch file likely contains abbreviated object IDs, so the
     /// object IDs parsed by this function will also be abreviated.
     pub fn from_buffer(buffer: &[u8]) -> Result<Diff<'static>, Error> {
+        crate::init();
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
         unsafe {
             // NOTE: Doesn't depend on repo, so lifetime can be 'static
@@ -318,9 +339,9 @@ pub extern "C" fn print_cb(
             (*data)(delta, hunk, line)
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -341,9 +362,9 @@ pub extern "C" fn file_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -365,9 +386,9 @@ pub extern "C" fn binary_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -389,9 +410,9 @@ pub extern "C" fn hunk_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -415,9 +436,9 @@ pub extern "C" fn line_cb_c(
             }
         });
         if r == Some(true) {
-            0
+            raw::GIT_OK
         } else {
-            -1
+            raw::GIT_EUSER
         }
     }
 }
@@ -426,7 +447,7 @@ impl<'repo> Binding for Diff<'repo> {
     type Raw = *mut raw::git_diff;
     unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff<'repo> {
         Diff {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -524,7 +545,7 @@ impl<'a> Binding for DiffDelta<'a> {
     type Raw = *mut raw::git_diff_delta;
     unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
         DiffDelta {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -609,7 +630,7 @@ impl<'a> Binding for DiffFile<'a> {
     type Raw = *const raw::git_diff_file;
     unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
         DiffFile {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -685,7 +706,7 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNTRACKED, include)
     }
 
-    /// Flag indicating whether untracked directories are deeply traversed or
+    /// Flag indicating whether untracked directories are traversed deeply or
     /// not.
     pub fn recurse_untracked_dirs(&mut self, recurse: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_RECURSE_UNTRACKED_DIRS, recurse)
@@ -696,13 +717,13 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNMODIFIED, include)
     }
 
-    /// If entrabled, then Typechange delta records are generated.
+    /// If enabled, then Typechange delta records are generated.
     pub fn include_typechange(&mut self, include: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_TYPECHANGE, include)
     }
 
-    /// Event with `include_typechange`, the tree treturned generally shows a
-    /// deleted blow. This flag correctly labels the tree transitions as a
+    /// Event with `include_typechange`, the tree returned generally shows a
+    /// deleted blob. This flag correctly labels the tree transitions as a
     /// typechange record with the `new_file`'s mode set to tree.
     ///
     /// Note that the tree SHA will not be available.
@@ -763,7 +784,7 @@ impl DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE, include)
     }
 
-    /// Include unreadable files in the diff
+    /// Include unreadable files in the diff as untracked files
     pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
@@ -775,7 +796,7 @@ impl DiffOptions {
 
     /// Treat all files as binary, disabling text diffs
     pub fn force_binary(&mut self, force: bool) -> &mut DiffOptions {
-        self.flag(raw::GIT_DIFF_FORCE_TEXT, force)
+        self.flag(raw::GIT_DIFF_FORCE_BINARY, force)
     }
 
     /// Ignore all whitespace
@@ -791,6 +812,11 @@ impl DiffOptions {
     /// Ignore whitespace at the end of line
     pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut DiffOptions {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_EOL, ignore)
+    }
+
+    /// Ignore blank lines
+    pub fn ignore_blank_lines(&mut self, ignore: bool) -> &mut DiffOptions {
+        self.flag(raw::GIT_DIFF_IGNORE_BLANK_LINES, ignore)
     }
 
     /// When generating patch text, include the content of untracked files.
@@ -931,6 +957,61 @@ impl<'diff> DoubleEndedIterator for Deltas<'diff> {
 }
 impl<'diff> ExactSizeIterator for Deltas<'diff> {}
 
+/// Line origin constants.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum DiffLineType {
+    /// These values will be sent to `git_diff_line_cb` along with the line
+    Context,
+    ///
+    Addition,
+    ///
+    Deletion,
+    /// Both files have no LF at end
+    ContextEOFNL,
+    /// Old has no LF at end, new does
+    AddEOFNL,
+    /// Old has LF at end, new does not
+    DeleteEOFNL,
+    /// The following values will only be sent to a `git_diff_line_cb` when
+    /// the content of a diff is being formatted through `git_diff_print`.
+    FileHeader,
+    ///
+    HunkHeader,
+    /// For "Binary files x and y differ"
+    Binary,
+}
+
+impl Binding for DiffLineType {
+    type Raw = raw::git_diff_line_t;
+    unsafe fn from_raw(raw: raw::git_diff_line_t) -> Self {
+        match raw {
+            raw::GIT_DIFF_LINE_CONTEXT => DiffLineType::Context,
+            raw::GIT_DIFF_LINE_ADDITION => DiffLineType::Addition,
+            raw::GIT_DIFF_LINE_DELETION => DiffLineType::Deletion,
+            raw::GIT_DIFF_LINE_CONTEXT_EOFNL => DiffLineType::ContextEOFNL,
+            raw::GIT_DIFF_LINE_ADD_EOFNL => DiffLineType::AddEOFNL,
+            raw::GIT_DIFF_LINE_DEL_EOFNL => DiffLineType::DeleteEOFNL,
+            raw::GIT_DIFF_LINE_FILE_HDR => DiffLineType::FileHeader,
+            raw::GIT_DIFF_LINE_HUNK_HDR => DiffLineType::HunkHeader,
+            raw::GIT_DIFF_LINE_BINARY => DiffLineType::Binary,
+            _ => panic!("Unknown git diff line type"),
+        }
+    }
+    fn raw(&self) -> raw::git_diff_line_t {
+        match *self {
+            DiffLineType::Context => raw::GIT_DIFF_LINE_CONTEXT,
+            DiffLineType::Addition => raw::GIT_DIFF_LINE_ADDITION,
+            DiffLineType::Deletion => raw::GIT_DIFF_LINE_DELETION,
+            DiffLineType::ContextEOFNL => raw::GIT_DIFF_LINE_CONTEXT_EOFNL,
+            DiffLineType::AddEOFNL => raw::GIT_DIFF_LINE_ADD_EOFNL,
+            DiffLineType::DeleteEOFNL => raw::GIT_DIFF_LINE_DEL_EOFNL,
+            DiffLineType::FileHeader => raw::GIT_DIFF_LINE_FILE_HDR,
+            DiffLineType::HunkHeader => raw::GIT_DIFF_LINE_HUNK_HDR,
+            DiffLineType::Binary => raw::GIT_DIFF_LINE_BINARY,
+        }
+    }
+}
+
 impl<'a> DiffLine<'a> {
     /// Line number in old file or `None` for added line
     pub fn old_lineno(&self) -> Option<u32> {
@@ -968,6 +1049,12 @@ impl<'a> DiffLine<'a> {
         }
     }
 
+    /// origin of this `DiffLine`.
+    ///
+    pub fn origin_value(&self) -> DiffLineType {
+        unsafe { Binding::from_raw((*self.raw).origin as raw::git_diff_line_t) }
+    }
+
     /// Sigil showing the origin of this `DiffLine`.
     ///
     ///  * ` ` - Line context
@@ -999,7 +1086,7 @@ impl<'a> Binding for DiffLine<'a> {
     type Raw = *const raw::git_diff_line;
     unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
         DiffLine {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -1061,7 +1148,7 @@ impl<'a> Binding for DiffHunk<'a> {
     type Raw = *const raw::git_diff_hunk;
     unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
         DiffHunk {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -1083,7 +1170,7 @@ impl<'a> std::fmt::Debug for DiffHunk<'a> {
 }
 
 impl DiffStats {
-    /// Get the total number of files chaned in a diff.
+    /// Get the total number of files changed in a diff.
     pub fn files_changed(&self) -> usize {
         unsafe { raw::git_diff_stats_files_changed(&*self.raw) as usize }
     }
@@ -1117,7 +1204,7 @@ impl Binding for DiffStats {
     type Raw = *mut raw::git_diff_stats;
 
     unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
-        DiffStats { raw: raw }
+        DiffStats { raw }
     }
     fn raw(&self) -> *mut raw::git_diff_stats {
         self.raw
@@ -1166,7 +1253,7 @@ impl<'a> Binding for DiffBinary<'a> {
     type Raw = *const raw::git_diff_binary;
     unsafe fn from_raw(raw: *const raw::git_diff_binary) -> DiffBinary<'a> {
         DiffBinary {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -1198,7 +1285,7 @@ impl<'a> Binding for DiffBinaryFile<'a> {
     type Raw = *const raw::git_diff_binary_file;
     unsafe fn from_raw(raw: *const raw::git_diff_binary_file) -> DiffBinaryFile<'a> {
         DiffBinaryFile {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -1365,7 +1452,7 @@ impl DiffFindOptions {
         self
     }
 
-    /// Similarity of modified to be glegible rename source (default 50)
+    /// Similarity of modified to be eligible rename source (default 50)
     pub fn rename_from_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
         self.raw.rename_from_rewrite_threshold = thresh;
         self
@@ -1433,9 +1520,29 @@ impl DiffFormatEmailOptions {
     }
 }
 
+impl DiffPatchidOptions {
+    /// Creates a new set of patchid options,
+    /// initialized to the default values
+    pub fn new() -> Self {
+        let mut opts = DiffPatchidOptions {
+            raw: unsafe { mem::zeroed() },
+        };
+        assert_eq!(
+            unsafe {
+                raw::git_diff_patchid_options_init(
+                    &mut opts.raw,
+                    raw::GIT_DIFF_PATCHID_OPTIONS_VERSION,
+                )
+            },
+            0
+        );
+        opts
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{DiffOptions, Signature, Time};
+    use crate::{DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -1450,6 +1557,8 @@ mod tests {
         assert_eq!(stats.insertions(), 0);
         assert_eq!(stats.deletions(), 0);
         assert_eq!(stats.files_changed(), 0);
+        let patchid = diff.patchid(None).unwrap();
+        assert_ne!(patchid, Oid::zero());
     }
 
     #[test]
@@ -1683,5 +1792,59 @@ mod tests {
         while let Some(line) = remaining_lines.next() {
             assert_eq!(line.trim(), "")
         }
+    }
+
+    #[test]
+    fn foreach_diff_line_origin_value() {
+        let foo_path = Path::new("foo");
+        let (td, repo) = crate::test::repo_init();
+        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+        let mut index = t!(repo.index());
+        t!(index.add_path(foo_path));
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(&mut opts)));
+        let mut origin_values: Vec<DiffLineType> = Vec::new();
+        t!(diff.foreach(
+            &mut |_file, _progress| { true },
+            None,
+            None,
+            Some(&mut |_file, _hunk, line| {
+                origin_values.push(line.origin_value());
+                true
+            })
+        ));
+        assert_eq!(origin_values.len(), 1);
+        assert_eq!(origin_values[0], DiffLineType::Addition);
+    }
+
+    #[test]
+    fn foreach_exits_with_euser() {
+        let foo_path = Path::new("foo");
+        let bar_path = Path::new("foo");
+
+        let (td, repo) = crate::test::repo_init();
+        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+
+        let mut index = t!(repo.index());
+        t!(index.add_path(foo_path));
+        t!(index.add_path(bar_path));
+
+        let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        let diff = t!(repo.diff_tree_to_index(None, Some(&index), Some(&mut opts)));
+
+        let mut calls = 0;
+        let result = diff.foreach(
+            &mut |_file, _progress| {
+                calls += 1;
+                false
+            },
+            None,
+            None,
+            None,
+        );
+
+        assert_eq!(result.unwrap_err().code(), crate::ErrorCode::User);
     }
 }

@@ -6,7 +6,7 @@ use std::ptr;
 use std::str;
 
 use crate::util::Binding;
-use crate::{raw, signature, Error, Object, Oid, Signature, Time, Tree};
+use crate::{raw, signature, Buf, Error, IntoCString, Mailmap, Object, Oid, Signature, Time, Tree};
 
 /// A structure to represent a git [commit][1]
 ///
@@ -105,6 +105,20 @@ impl<'repo> Commit<'repo> {
         str::from_utf8(self.raw_header_bytes()).ok()
     }
 
+    /// Get an arbitrary header field.
+    pub fn header_field_bytes<T: IntoCString>(&self, field: T) -> Result<Buf, Error> {
+        let buf = Buf::new();
+        let raw_field = field.into_c_string()?;
+        unsafe {
+            try_call!(raw::git_commit_header_field(
+                buf.raw(),
+                &*self.raw,
+                raw_field
+            ));
+        }
+        Ok(buf)
+    }
+
     /// Get the full raw text of the commit header.
     pub fn raw_header_bytes(&self) -> &[u8] {
         unsafe { crate::opt_bytes(self, raw::git_commit_raw_header(&*self.raw)).unwrap() }
@@ -129,6 +143,29 @@ impl<'repo> Commit<'repo> {
     /// `None` may be returned if an error occurs
     pub fn summary_bytes(&self) -> Option<&[u8]> {
         unsafe { crate::opt_bytes(self, raw::git_commit_summary(self.raw)) }
+    }
+
+    /// Get the long "body" of the git commit message.
+    ///
+    /// The returned message is the body of the commit, comprising everything
+    /// but the first paragraph of the message. Leading and trailing whitespaces
+    /// are trimmed.
+    ///
+    /// `None` may be returned if an error occurs or if the summary is not valid
+    /// utf-8.
+    pub fn body(&self) -> Option<&str> {
+        self.body_bytes().and_then(|s| str::from_utf8(s).ok())
+    }
+
+    /// Get the long "body" of the git commit message.
+    ///
+    /// The returned message is the body of the commit, comprising everything
+    /// but the first paragraph of the message. Leading and trailing whitespaces
+    /// are trimmed.
+    ///
+    /// `None` may be returned if an error occurs.
+    pub fn body_bytes(&self) -> Option<&[u8]> {
+        unsafe { crate::opt_bytes(self, raw::git_commit_body(self.raw)) }
     }
 
     /// Get the commit time (i.e. committer time) of a commit.
@@ -169,11 +206,39 @@ impl<'repo> Commit<'repo> {
         }
     }
 
+    /// Get the author of this commit, using the mailmap to map names and email
+    /// addresses to canonical real names and email addresses.
+    pub fn author_with_mailmap(&self, mailmap: &Mailmap) -> Result<Signature<'static>, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_commit_author_with_mailmap(
+                &mut ret,
+                &*self.raw,
+                &*mailmap.raw()
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Get the committer of this commit.
     pub fn committer(&self) -> Signature<'_> {
         unsafe {
             let ptr = raw::git_commit_committer(&*self.raw);
             signature::from_raw_const(self, ptr)
+        }
+    }
+
+    /// Get the committer of this commit, using the mailmap to map names and email
+    /// addresses to canonical real names and email addresses.
+    pub fn committer_with_mailmap(&self, mailmap: &Mailmap) -> Result<Signature<'static>, Error> {
+        let mut ret = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_commit_committer_with_mailmap(
+                &mut ret,
+                &*self.raw,
+                &*mailmap.raw()
+            ));
+            Ok(Binding::from_raw(ret))
         }
     }
 
@@ -271,7 +336,7 @@ impl<'repo> Binding for Commit<'repo> {
     type Raw = *mut raw::git_commit;
     unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
         Commit {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -357,16 +422,23 @@ mod tests {
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();
-        assert_eq!(commit.message(), Some("initial"));
+        assert_eq!(commit.message(), Some("initial\n\nbody"));
+        assert_eq!(commit.body(), Some("body"));
         assert_eq!(commit.id(), target);
         commit.message_raw().unwrap();
         commit.raw_header().unwrap();
         commit.message_encoding();
         commit.summary().unwrap();
+        commit.body().unwrap();
         commit.tree_id();
         commit.tree().unwrap();
         assert_eq!(commit.parents().count(), 0);
 
+        let tree_header_bytes = commit.header_field_bytes("tree").unwrap();
+        assert_eq!(
+            crate::Oid::from_str(tree_header_bytes.as_str().unwrap()).unwrap(),
+            commit.tree_id()
+        );
         assert_eq!(commit.author().name(), Some("name"));
         assert_eq!(commit.author().email(), Some("email"));
         assert_eq!(commit.committer().name(), Some("name"));

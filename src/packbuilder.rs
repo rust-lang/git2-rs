@@ -2,6 +2,7 @@ use libc::{c_int, c_uint, c_void, size_t};
 use std::marker;
 use std::ptr;
 use std::slice;
+use std::str;
 
 use crate::util::Binding;
 use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
@@ -21,7 +22,7 @@ pub type ForEachCb<'a> = dyn FnMut(&[u8]) -> bool + 'a;
 /// A builder for creating a packfile
 pub struct PackBuilder<'repo> {
     raw: *mut raw::git_packbuilder,
-    progress: Option<Box<Box<ProgressCb<'repo>>>>,
+    _progress: Option<Box<Box<ProgressCb<'repo>>>>,
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
@@ -122,7 +123,7 @@ impl<'repo> PackBuilder<'repo> {
                 ptr as *mut _
             ));
         }
-        self.progress = Some(progress);
+        self._progress = Some(progress);
         Ok(())
     }
 
@@ -135,7 +136,7 @@ impl<'repo> PackBuilder<'repo> {
                 None,
                 ptr::null_mut()
             ));
-            self.progress = None;
+            self._progress = None;
         }
         Ok(())
     }
@@ -160,12 +161,33 @@ impl<'repo> PackBuilder<'repo> {
     /// Get the packfile's hash. A packfile's name is derived from the sorted
     /// hashing of all object names. This is only correct after the packfile
     /// has been written.
+    #[deprecated = "use `name()` to retrieve the filename"]
+    #[allow(deprecated)]
     pub fn hash(&self) -> Option<Oid> {
         if self.object_count() == 0 {
             unsafe { Some(Binding::from_raw(raw::git_packbuilder_hash(self.raw))) }
         } else {
             None
         }
+    }
+
+    /// Get the unique name for the resulting packfile.
+    ///
+    /// The packfile's name is derived from the packfile's content. This is only
+    /// correct after the packfile has been written.
+    ///
+    /// Returns `None` if the packfile has not been written or if the name is
+    /// not valid utf-8.
+    pub fn name(&self) -> Option<&str> {
+        self.name_bytes().and_then(|s| str::from_utf8(s).ok())
+    }
+
+    /// Get the unique name for the resulting packfile, in bytes.
+    ///
+    /// The packfile's name is derived from the packfile's content. This is only
+    /// correct after the packfile has been written.
+    pub fn name_bytes(&self) -> Option<&[u8]> {
+        unsafe { crate::opt_bytes(self, raw::git_packbuilder_name(self.raw)) }
     }
 }
 
@@ -174,7 +196,7 @@ impl<'repo> Binding for PackBuilder<'repo> {
     unsafe fn from_raw(ptr: *mut raw::git_packbuilder) -> PackBuilder<'repo> {
         PackBuilder {
             raw: ptr,
-            progress: None,
+            _progress: None,
             _marker: marker::PhantomData,
         }
     }
@@ -284,7 +306,11 @@ mod tests {
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         t!(builder.write_buf(&mut buf));
-        assert!(builder.hash().unwrap().is_zero());
+        #[allow(deprecated)]
+        {
+            assert!(builder.hash().unwrap().is_zero());
+        }
+        assert!(builder.name().is_none());
         assert_eq!(&*buf, &*empty_pack_header());
     }
 

@@ -1,13 +1,17 @@
 [package]
 name = "libgit2-sys"
-version = "0.12.14+1.1.0"
+version = "0.13.4+1.4.2"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
 repository = "https://github.com/rust-lang/git2-rs"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "Native bindings to the libgit2 library"
 exclude = [
+    "libgit2/ci/*",
+    "libgit2/docs/*",
+    "libgit2/examples/*",
+    "libgit2/fuzzers/*",
     "libgit2/tests/*",
 ]
 edition = "2018"
@@ -32,9 +36,6 @@ openssl-sys = { version = "0.9", optional = true }
 ssh = ["libssh2-sys"]
 https = ["openssl-sys"]
 ssh_key_from_memory = []
-# Cargo does not support requiring features on an optional dependency without
-# requiring the dependency. Rather than introduce additional complexity, we
-# just require libssh2 when using zlib-ng-compat. This will require building
-# libssh2, but it will not add code to the final binary without the "ssh"
-# feature enabled.
-zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys/zlib-ng-compat"]
+vendored = []
+vendored-openssl = ["openssl-sys/vendored"]
+zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]

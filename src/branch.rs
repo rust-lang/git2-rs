@@ -28,6 +28,17 @@ impl<'repo> Branch<'repo> {
         Branch { inner: reference }
     }
 
+    /// Ensure the branch name is well-formed.
+    pub fn name_is_valid(name: &str) -> Result<bool, Error> {
+        crate::init();
+        let name = CString::new(name)?;
+        let mut valid: libc::c_int = 0;
+        unsafe {
+            try_call!(raw::git_branch_name_is_valid(&mut valid, name.as_ptr()));
+        }
+        Ok(valid == 1)
+    }
+
     /// Gain access to the reference that is this branch
     pub fn get(&self) -> &Reference<'repo> {
         &self.inner
@@ -120,7 +131,7 @@ impl<'repo> Branches<'repo> {
     /// pointer.
     pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Branches<'repo> {
         Branches {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -151,7 +162,7 @@ impl<'repo> Drop for Branches<'repo> {
 
 #[cfg(test)]
 mod tests {
-    use crate::BranchType;
+    use crate::{Branch, BranchType};
 
     #[test]
     fn smoke() {
@@ -174,5 +185,13 @@ mod tests {
         b1.set_upstream(None).unwrap();
 
         b1.delete().unwrap();
+    }
+
+    #[test]
+    fn name_is_valid() {
+        assert!(Branch::name_is_valid("foo").unwrap());
+        assert!(!Branch::name_is_valid("").unwrap());
+        assert!(!Branch::name_is_valid("with spaces").unwrap());
+        assert!(!Branch::name_is_valid("~tilde").unwrap());
     }
 }

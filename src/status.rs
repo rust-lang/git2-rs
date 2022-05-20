@@ -72,7 +72,7 @@ impl StatusOptions {
             let r = raw::git_status_init_options(&mut raw, raw::GIT_STATUS_OPTIONS_VERSION);
             assert_eq!(r, 0);
             StatusOptions {
-                raw: raw,
+                raw,
                 pathspec: Vec::new(),
                 ptrs: Vec::new(),
             }
@@ -216,6 +216,14 @@ impl StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
 
+    /// Set threshold above which similar files will be considered renames.
+    ///
+    /// This is equivalent to the `-M` option. Defaults to 50.
+    pub fn rename_threshold(&mut self, threshold: u16) -> &mut StatusOptions {
+        self.raw.rename_threshold = threshold;
+        self
+    }
+
     /// Get a pointer to the inner list of status options.
     ///
     /// This function is unsafe as the returned structure has interior pointers
@@ -264,7 +272,7 @@ impl<'repo> Binding for Statuses<'repo> {
     type Raw = *mut raw::git_status_list;
     unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
         Statuses {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -340,7 +348,7 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 
     unsafe fn from_raw(raw: *const raw::git_status_entry) -> StatusEntry<'statuses> {
         StatusEntry {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

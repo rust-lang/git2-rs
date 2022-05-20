@@ -5,8 +5,8 @@ use std::path::Path;
 use std::ptr;
 use std::str;
 
-use crate::build::CheckoutBuilder;
 use crate::util::{self, Binding};
+use crate::{build::CheckoutBuilder, SubmoduleIgnore, SubmoduleUpdate};
 use crate::{raw, Error, FetchOptions, Oid, Repository};
 
 /// A structure to represent a git [submodule][1]
@@ -111,6 +111,16 @@ impl<'repo> Submodule<'repo> {
     /// anything else, this won't notice that.
     pub fn workdir_id(&self) -> Option<Oid> {
         unsafe { Binding::from_raw_opt(raw::git_submodule_wd_id(self.raw)) }
+    }
+
+    /// Get the ignore rule that will be used for the submodule.
+    pub fn ignore_rule(&self) -> SubmoduleIgnore {
+        SubmoduleIgnore::from_raw(unsafe { raw::git_submodule_ignore(self.raw) })
+    }
+
+    /// Get the update rule that will be used for the submodule.
+    pub fn update_strategy(&self) -> SubmoduleUpdate {
+        SubmoduleUpdate::from_raw(unsafe { raw::git_submodule_update_strategy(self.raw) })
     }
 
     /// Copy submodule info into ".git/config" file.
@@ -223,7 +233,7 @@ impl<'repo> Binding for Submodule<'repo> {
     type Raw = *mut raw::git_submodule;
     unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
         Submodule {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

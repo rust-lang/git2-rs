@@ -24,7 +24,7 @@ pub fn wrap<T, F: FnOnce() -> T + std::panic::UnwindSafe>(f: F) -> Option<T> {
 pub fn check() {
     let err = LAST_ERROR.with(|slot| slot.borrow_mut().take());
     if let Some(err) = err {
-        panic!(err)
+        std::panic::resume_unwind(err);
     }
 }
 

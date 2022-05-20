@@ -149,6 +149,8 @@ impl Config {
 
     /// Remove multivar config variables in the config file with the highest level (usually the
     /// local one).
+    ///
+    /// The regular expression is applied case-sensitively on the value.
     pub fn remove_multivar(&mut self, name: &str, regexp: &str) -> Result<(), Error> {
         let name = CString::new(name)?;
         let regexp = CString::new(regexp)?;
@@ -204,6 +206,8 @@ impl Config {
     ///
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
+    ///
+    /// This method will return an error if this `Config` is not a snapshot.
     pub fn get_str(&self, name: &str) -> Result<&str, Error> {
         str::from_utf8(self.get_bytes(name)?)
             .map_err(|_| Error::from_str("configuration value is not valid utf8"))
@@ -223,6 +227,10 @@ impl Config {
 
     /// Get the value of a string config variable as an owned string.
     ///
+    /// All config files will be looked into, in the order of their
+    /// defined level. A higher level means a higher priority. The
+    /// first occurrence of the variable will be returned here.
+    ///
     /// An error will be returned if the config value is not valid utf-8.
     pub fn get_string(&self, name: &str) -> Result<String, Error> {
         let ret = Buf::new();
@@ -235,7 +243,15 @@ impl Config {
             .map_err(|_| Error::from_str("configuration value is not valid utf8"))
     }
 
-    /// Get the value of a path config variable as an owned .
+    /// Get the value of a path config variable as an owned `PathBuf`.
+    ///
+    /// A leading '~' will be expanded to the global search path (which
+    /// defaults to the user's home directory but can be overridden via
+    /// [`raw::git_libgit2_opts`].
+    ///
+    /// All config files will be looked into, in the order of their
+    /// defined level. A higher level means a higher priority. The
+    /// first occurrence of the variable will be returned here.
     pub fn get_path(&self, name: &str) -> Result<PathBuf, Error> {
         let ret = Buf::new();
         let name = CString::new(name)?;
@@ -259,6 +275,10 @@ impl Config {
     ///
     /// If `glob` is `Some`, then the iterator will only iterate over all
     /// variables whose name matches the pattern.
+    ///
+    /// The regular expression is applied case-sensitively on the normalized form of
+    /// the variable name: the section and variable parts are lower-cased. The
+    /// subsection is left unchanged.
     ///
     /// # Example
     ///
@@ -293,6 +313,10 @@ impl Config {
     ///
     /// If `regexp` is `Some`, then the iterator will only iterate over all
     /// values which match the pattern.
+    ///
+    /// The regular expression is applied case-sensitively on the normalized form of
+    /// the variable name: the section and variable parts are lower-cased. The
+    /// subsection is left unchanged.
     pub fn multivar(&self, name: &str, regexp: Option<&str>) -> Result<ConfigEntries<'_>, Error> {
         let mut ret = ptr::null_mut();
         let name = CString::new(name)?;
@@ -363,6 +387,8 @@ impl Config {
 
     /// Set the value of an multivar config variable in the config file with the
     /// highest level (usually the local one).
+    ///
+    /// The regular expression is applied case-sensitively on the value.
     pub fn set_multivar(&mut self, name: &str, regexp: &str, value: &str) -> Result<(), Error> {
         let name = CString::new(name)?;
         let regexp = CString::new(regexp)?;
@@ -398,6 +424,7 @@ impl Config {
     }
 
     /// Parse a string as a bool.
+    ///
     /// Interprets "true", "yes", "on", 1, or any non-zero number as true.
     /// Interprets "false", "no", "off", 0, or an empty string as false.
     pub fn parse_bool<S: IntoCString>(s: S) -> Result<bool, Error> {
@@ -438,7 +465,7 @@ impl Config {
 impl Binding for Config {
     type Raw = *mut raw::git_config;
     unsafe fn from_raw(raw: *mut raw::git_config) -> Config {
-        Config { raw: raw }
+        Config { raw }
     }
     fn raw(&self) -> *mut raw::git_config {
         self.raw
@@ -507,7 +534,7 @@ impl<'cfg> Binding for ConfigEntry<'cfg> {
 
     unsafe fn from_raw(raw: *mut raw::git_config_entry) -> ConfigEntry<'cfg> {
         ConfigEntry {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
             owned: true,
         }
@@ -522,7 +549,7 @@ impl<'cfg> Binding for ConfigEntries<'cfg> {
 
     unsafe fn from_raw(raw: *mut raw::git_config_iterator) -> ConfigEntries<'cfg> {
         ConfigEntries {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -544,7 +571,7 @@ impl<'cfg, 'b> Iterator for &'b ConfigEntries<'cfg> {
             try_call_iter!(raw::git_config_next(&mut raw, self.raw));
             Some(Ok(ConfigEntry {
                 owned: false,
-                raw: raw,
+                raw,
                 _marker: marker::PhantomData,
             }))
         }

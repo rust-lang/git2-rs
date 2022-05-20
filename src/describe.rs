@@ -44,7 +44,7 @@ impl<'repo> Binding for Describe<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_describe_result) -> Describe<'repo> {
         Describe {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

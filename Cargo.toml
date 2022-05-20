@@ -1,8 +1,8 @@
 [package]
 name = "git2"
-version = "0.13.12"
+version = "0.14.4"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 keywords = ["git"]
 repository = "https://github.com/rust-lang/git2-rs"
@@ -20,7 +20,7 @@ url = "2.0"
 bitflags = "1.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.12.14" }
+libgit2-sys = { path = "libgit2-sys", version = "0.13.4" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.0", optional = true }
@@ -30,15 +30,15 @@ openssl-probe = { version = "0.1", optional = true }
 structopt = "0.3"
 time = "0.1.39"
 tempfile = "3.1.0"
-thread-id = "3.3.0" # remove when we work with minimal-versions without it
-paste = "0.1.12"
+paste = "1"
 
 [features]
 unstable = []
 default = ["ssh", "https", "ssh_key_from_memory"]
 ssh = ["libgit2-sys/ssh"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe"]
-vendored-openssl = ["openssl-sys/vendored"]
+vendored-libgit2 = ["libgit2-sys/vendored"]
+vendored-openssl = ["openssl-sys/vendored", "libgit2-sys/vendored-openssl"]
 ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 

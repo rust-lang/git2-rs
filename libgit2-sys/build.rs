@@ -7,12 +7,18 @@ use std::process::Command;
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
+    let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
 
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
-    if !zlib_ng_compat {
+    let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
+    if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.atleast_version("1.1.0").probe("libgit2") {
+        if let Ok(lib) = cfg
+            .range_version("1.4.0".."1.5.0")
+            .print_system_libs(false)
+            .probe("libgit2")
+        {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
@@ -20,7 +26,9 @@ fn main() {
         }
     }
 
-    if !Path::new("libgit2/.git").exists() {
+    println!("cargo:rustc-cfg=libgit2_vendored");
+
+    if !Path::new("libgit2/src").exists() {
         let _ = Command::new("git")
             .args(&["submodule", "update", "--init", "libgit2"])
             .status();
@@ -37,19 +45,21 @@ fn main() {
     cp_r("libgit2/include", &include);
 
     cfg.include(&include)
-        .include("libgit2/src")
+        .include("libgit2/src/libgit2")
+        .include("libgit2/src/util")
         .out_dir(dst.join("build"))
         .warnings(false);
 
     // Include all cross-platform C files
-    add_c_files(&mut cfg, "libgit2/src");
-    add_c_files(&mut cfg, "libgit2/src/xdiff");
+    add_c_files(&mut cfg, "libgit2/src/libgit2");
+    add_c_files(&mut cfg, "libgit2/src/util");
+    add_c_files(&mut cfg, "libgit2/src/libgit2/xdiff");
 
     // These are activated by features, but they're all unconditionally always
     // compiled apparently and have internal #define's to make sure they're
     // compiled correctly.
-    add_c_files(&mut cfg, "libgit2/src/transports");
-    add_c_files(&mut cfg, "libgit2/src/streams");
+    add_c_files(&mut cfg, "libgit2/src/libgit2/transports");
+    add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
 
     // Always use bundled http-parser for now
     cfg.include("libgit2/deps/http-parser")
@@ -78,10 +88,11 @@ fn main() {
     // when when COMPILE_PCRE8 is not defined, which is the default.
     add_c_files(&mut cfg, "libgit2/deps/pcre");
 
-    cfg.file("libgit2/src/allocators/stdalloc.c");
+    cfg.file("libgit2/src/util/allocators/failalloc.c");
+    cfg.file("libgit2/src/util/allocators/stdalloc.c");
 
     if windows {
-        add_c_files(&mut cfg, "libgit2/src/win32");
+        add_c_files(&mut cfg, "libgit2/src/util/win32");
         cfg.define("STRSAFE_NO_DEPRECATE", None);
         cfg.define("WIN32", None);
         cfg.define("_WIN32_WINNT", Some("0x0600"));
@@ -93,7 +104,7 @@ fn main() {
             cfg.define("__USE_MINGW_ANSI_STDIO", "1");
         }
     } else {
-        add_c_files(&mut cfg, "libgit2/src/unix");
+        add_c_files(&mut cfg, "libgit2/src/util/unix");
         cfg.flag("-fvisibility=hidden");
     }
     if target.contains("solaris") || target.contains("illumos") {
@@ -106,6 +117,7 @@ fn main() {
     features.push_str("#ifndef INCLUDE_features_h\n");
     features.push_str("#define INCLUDE_features_h\n");
     features.push_str("#define GIT_THREADS 1\n");
+    features.push_str("#define GIT_TRACE 1\n");
 
     if !target.contains("android") {
         features.push_str("#define GIT_USE_NSEC 1\n");
@@ -150,9 +162,9 @@ fn main() {
     cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
-    cfg.file("libgit2/src/hash/sha1/collisiondetect.c");
-    cfg.file("libgit2/src/hash/sha1/sha1dc/sha1.c");
-    cfg.file("libgit2/src/hash/sha1/sha1dc/ubc_check.c");
+    cfg.file("libgit2/src/util/hash/sha1/collisiondetect.c");
+    cfg.file("libgit2/src/util/hash/sha1/sha1dc/sha1.c");
+    cfg.file("libgit2/src/util/hash/sha1/sha1dc/ubc_check.c");
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
@@ -182,6 +194,10 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=Security");
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
     }
+
+    rerun_if(Path::new("libgit2/include"));
+    rerun_if(Path::new("libgit2/src"));
+    rerun_if(Path::new("libgit2/deps"));
 }
 
 fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
@@ -200,8 +216,12 @@ fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
 }
 
 fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
+    let path = path.as_ref();
+    if !path.exists() {
+        panic!("Path {} does not exist", path.display());
+    }
     // sort the C files to ensure a deterministic build for reproducible builds
-    let dir = path.as_ref().read_dir().unwrap();
+    let dir = path.read_dir().unwrap();
     let mut paths = dir.collect::<io::Result<Vec<_>>>().unwrap();
     paths.sort_by_key(|e| e.path());
 
@@ -212,5 +232,15 @@ fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
         } else if path.extension().and_then(|s| s.to_str()) == Some("c") {
             build.file(&path);
         }
+    }
+}
+
+fn rerun_if(path: &Path) {
+    if path.is_dir() {
+        for entry in fs::read_dir(path).expect("read_dir") {
+            rerun_if(&entry.expect("entry").path());
+        }
+    } else {
+        println!("cargo:rerun-if-changed={}", path.display());
     }
 }

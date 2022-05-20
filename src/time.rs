@@ -6,13 +6,13 @@ use crate::raw;
 use crate::util::Binding;
 
 /// Time in a signature
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Time {
     raw: raw::git_time,
 }
 
 /// Time structure used in a git index entry.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct IndexTime {
     raw: raw::git_index_time,
 }
@@ -42,7 +42,7 @@ impl Time {
     /// Return whether the offset was positive or negative. Primarily useful
     /// in case the offset is specified as a negative zero.
     pub fn sign(&self) -> char {
-        self.raw.offset as u8 as char
+        self.raw.sign as u8 as char
     }
 }
 
@@ -61,7 +61,7 @@ impl Ord for Time {
 impl Binding for Time {
     type Raw = raw::git_time;
     unsafe fn from_raw(raw: raw::git_time) -> Time {
-        Time { raw: raw }
+        Time { raw }
     }
     fn raw(&self) -> raw::git_time {
         self.raw
@@ -73,8 +73,8 @@ impl IndexTime {
     pub fn new(seconds: i32, nanoseconds: u32) -> IndexTime {
         unsafe {
             Binding::from_raw(raw::git_index_time {
-                seconds: seconds,
-                nanoseconds: nanoseconds,
+                seconds,
+                nanoseconds,
             })
         }
     }
@@ -92,7 +92,7 @@ impl IndexTime {
 impl Binding for IndexTime {
     type Raw = raw::git_index_time;
     unsafe fn from_raw(raw: raw::git_index_time) -> IndexTime {
-        IndexTime { raw: raw }
+        IndexTime { raw }
     }
     fn raw(&self) -> raw::git_index_time {
         self.raw
@@ -110,5 +110,18 @@ impl Ord for IndexTime {
         let me = (self.raw.seconds, self.raw.nanoseconds);
         let other = (other.raw.seconds, other.raw.nanoseconds);
         me.cmp(&other)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Time;
+
+    #[test]
+    fn smoke() {
+        assert_eq!(Time::new(1608839587, -300).seconds(), 1608839587);
+        assert_eq!(Time::new(1608839587, -300).offset_minutes(), -300);
+        assert_eq!(Time::new(1608839587, -300).sign(), '-');
+        assert_eq!(Time::new(1608839587, 300).sign(), '+');
     }
 }

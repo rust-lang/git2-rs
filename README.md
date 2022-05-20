@@ -2,22 +2,21 @@
 
 [Documentation](https://docs.rs/git2)
 
-libgit2 bindings for Rust
+libgit2 bindings for Rust.
 
 ```toml
 [dependencies]
-git2 = "0.13"
+git2 = "0.14"
 ```
 
 ## Rust version requirements
 
 git2-rs works with stable Rust, and typically works with the most recent prior
-stable release as well. Check the MSRV job of [the CI script](.github/workflows/main.yml) to see the oldest
-version of Rust known to pass tests.
+stable release as well.
 
 ## Version of libgit2
 
-Currently this library requires libgit2 1.1.0. The source for libgit2 is
+Currently this library requires libgit2 1.4. The source for libgit2 is
 included in the libgit2-sys crate so there's no need to pre-install the libgit2
 library, the libgit2-sys crate will figure that and/or build that for you.
 
@@ -38,23 +37,22 @@ pre-commit hook found [here][pre-commit-hook] and place it into the
 `.git/hooks/` with the name `pre-commit`.  You may need to add execution
 permissions with `chmod +x`.
 
-
 To skip tests on a simple commit or doc-fixes, use `git commit --no-verify`.
 
-## Building on OSX 10.10+
+## Building on macOS 10.10+
 
 If the `ssh` feature is enabled (and it is by default) then this library depends
 on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
-[`openssl` crate's instructions](https://github.com/sfackler/rust-openssl#macos).
+[`openssl` crate's instructions](https://github.com/sfackler/rust-openssl/blob/master/openssl/src/lib.rs#L31).
 
 # License
 
 This project is licensed under either of
 
  * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
-   http://www.apache.org/licenses/LICENSE-2.0)
+   https://www.apache.org/licenses/LICENSE-2.0)
  * MIT license ([LICENSE-MIT](LICENSE-MIT) or
-   http://opensource.org/licenses/MIT)
+   https://opensource.org/licenses/MIT)
 
 at your option.
 

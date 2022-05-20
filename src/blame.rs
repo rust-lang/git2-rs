@@ -121,7 +121,7 @@ impl<'blame> BlameHunk<'blame> {
 
     /// Returns path to the file where this hunk originated.
     ///
-    /// Note: `None` could be returned for non-unicode paths on Widnows.
+    /// Note: `None` could be returned for non-unicode paths on Windows.
     pub fn path(&self) -> Option<&Path> {
         unsafe {
             if let Some(bytes) = crate::opt_bytes(self, (*self.raw).orig_path) {
@@ -228,6 +228,18 @@ impl BlameOptions {
         }
         self
     }
+
+    /// The first line in the file to blame.
+    pub fn min_line(&mut self, lineno: usize) -> &mut BlameOptions {
+        self.raw.min_line = lineno;
+        self
+    }
+
+    /// The last line in the file to blame.
+    pub fn max_line(&mut self, lineno: usize) -> &mut BlameOptions {
+        self.raw.max_line = lineno;
+        self
+    }
 }
 
 impl<'repo> Binding for Blame<'repo> {
@@ -235,7 +247,7 @@ impl<'repo> Binding for Blame<'repo> {
 
     unsafe fn from_raw(raw: *mut raw::git_blame) -> Blame<'repo> {
         Blame {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }
@@ -256,7 +268,7 @@ impl<'blame> Binding for BlameHunk<'blame> {
 
     unsafe fn from_raw(raw: *mut raw::git_blame_hunk) -> BlameHunk<'blame> {
         BlameHunk {
-            raw: raw,
+            raw,
             _marker: marker::PhantomData,
         }
     }

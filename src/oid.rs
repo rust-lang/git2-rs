@@ -35,7 +35,7 @@ impl Oid {
                 s.len() as libc::size_t
             ));
         }
-        Ok(Oid { raw: raw })
+        Ok(Oid { raw })
     }
 
     /// Parse a raw object id into an Oid structure.
@@ -52,7 +52,7 @@ impl Oid {
             unsafe {
                 try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
             }
-            Ok(Oid { raw: raw })
+            Ok(Oid { raw })
         }
     }
 
