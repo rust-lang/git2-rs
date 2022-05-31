@@ -1818,6 +1818,38 @@ impl Repository {
         }
     }
 
+    /// Create a new tag in the repository from an object without creating a reference.
+    ///
+    /// The message will not be cleaned up.
+    ///
+    /// The tag name will be checked for validity. You must avoid the characters
+    /// '~', '^', ':', ' \ ', '?', '[', and '*', and the sequences ".." and " @
+    /// {" which have special meaning to revparse.
+    pub fn tag_annotation_create(
+        &self,
+        name: &str,
+        target: &Object<'_>,
+        tagger: &Signature<'_>,
+        message: &str,
+    ) -> Result<Oid, Error> {
+        let name = CString::new(name)?;
+        let message = CString::new(message)?;
+        let mut raw_oid = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+        unsafe {
+            try_call!(raw::git_tag_annotation_create(
+                &mut raw_oid,
+                self.raw,
+                name,
+                target.raw(),
+                tagger.raw(),
+                message
+            ));
+            Ok(Binding::from_raw(&raw_oid as *const _))
+        }
+    }
+
     /// Create a new lightweight tag pointing at a target object
     ///
     /// A new direct reference will be created pointing to this target object.
