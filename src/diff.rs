@@ -254,6 +254,8 @@ impl<'repo> Diff<'repo> {
     /// Create an e-mail ready patch from a diff.
     ///
     /// Matches the format created by `git format-patch`
+    #[doc(hidden)]
+    #[deprecated(note = "refactored to `Email::from_diff` to match upstream")]
     pub fn format_email(
         &mut self,
         patch_no: usize,
@@ -277,6 +279,7 @@ impl<'repo> Diff<'repo> {
         raw_opts.body = message.as_ptr() as *const _;
         raw_opts.author = commit.author().raw();
         let buf = Buf::new();
+        #[allow(deprecated)]
         unsafe {
             try_call!(raw::git_diff_format_email(buf.raw(), self.raw, &*raw_opts));
         }
@@ -1480,6 +1483,11 @@ impl DiffFindOptions {
     }
 
     // TODO: expose git_diff_similarity_metric
+
+    /// Acquire a pointer to the underlying raw options.
+    pub unsafe fn raw(&mut self) -> *const raw::git_diff_find_options {
+        &self.raw
+    }
 }
 
 impl Default for DiffFormatEmailOptions {
@@ -1775,6 +1783,7 @@ mod tests {
                 None,
             )
             .unwrap();
+        #[allow(deprecated)]
         let actual_email = diff.format_email(1, 1, &updated_commit, None).unwrap();
         let actual_email = actual_email.as_str().unwrap();
         assert!(

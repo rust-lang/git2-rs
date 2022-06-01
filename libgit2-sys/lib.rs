@@ -1992,6 +1992,28 @@ pub struct git_message_trailer_array {
     pub _trailer_block: *mut c_char,
 }
 
+#[repr(C)]
+pub struct git_email_create_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub diff_opts: git_diff_options,
+    pub diff_find_opts: git_diff_find_options,
+    pub subject_prefix: *const c_char,
+    pub start_number: usize,
+    pub reroll_number: usize,
+}
+
+pub const GIT_EMAIL_CREATE_OPTIONS_VERSION: c_uint = 1;
+
+git_enum! {
+    pub enum git_email_create_flags_t {
+        GIT_EMAIL_CREATE_DEFAULT = 0,
+        GIT_EMAIL_CREATE_OMIT_NUMBERS = 1 << 0,
+        GIT_EMAIL_CREATE_ALWAYS_NUMBER = 1 << 1,
+        GIT_EMAIL_CREATE_NO_RENAMES = 1 << 2,
+    }
+}
+
 extern "C" {
     // threads
     pub fn git_libgit2_init() -> c_int;
@@ -4104,6 +4126,25 @@ extern "C" {
         real_email: *const c_char,
         replace_name: *const c_char,
         replace_email: *const c_char,
+    ) -> c_int;
+
+    // email
+    pub fn git_email_create_from_diff(
+        out: *mut git_buf,
+        diff: *mut git_diff,
+        patch_idx: usize,
+        patch_count: usize,
+        commit_id: *const git_oid,
+        summary: *const c_char,
+        body: *const c_char,
+        author: *const git_signature,
+        given_opts: *const git_email_create_options,
+    ) -> c_int;
+
+    pub fn git_email_create_from_commit(
+        out: *mut git_buf,
+        commit: *mut git_commit,
+        given_opts: *const git_email_create_options,
     ) -> c_int;
 
     pub fn git_trace_set(level: git_trace_level_t, cb: git_trace_cb) -> c_int;
