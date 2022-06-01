@@ -608,13 +608,13 @@ impl<'cb> PushOptions<'cb> {
         }
     }
 
-    /// Set the callbacks to use for the fetch operation.
+    /// Set the callbacks to use for the push operation.
     pub fn remote_callbacks(&mut self, cbs: RemoteCallbacks<'cb>) -> &mut Self {
         self.callbacks = Some(cbs);
         self
     }
 
-    /// Set the proxy options to use for the fetch operation.
+    /// Set the proxy options to use for the push operation.
     pub fn proxy_options(&mut self, opts: ProxyOptions<'cb>) -> &mut Self {
         self.proxy = Some(opts);
         self
