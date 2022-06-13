@@ -93,6 +93,7 @@ pub use crate::describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use crate::diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use crate::diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind};
 pub use crate::diff::{DiffFindOptions, DiffHunk, DiffLine, DiffLineType, DiffStats};
+pub use crate::email::{Email, EmailCreateOptions};
 pub use crate::error::Error;
 pub use crate::index::{
     Index, IndexConflict, IndexConflicts, IndexEntries, IndexEntry, IndexMatchedPath,
@@ -675,6 +676,7 @@ mod config;
 mod cred;
 mod describe;
 mod diff;
+mod email;
 mod error;
 mod index;
 mod indexer;
