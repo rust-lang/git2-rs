@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.13")]
+#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.14")]
 #![allow(non_camel_case_types, unused_extern_crates)]
 
 // This is required to link libz when libssh2-sys is not included.
@@ -195,6 +195,7 @@ git_enum! {
         GIT_EMISMATCH = -33,
         GIT_EINDEXDIRTY = -34,
         GIT_EAPPLYFAIL = -35,
+        GIT_EOWNER = -36,
     }
 }
 
@@ -1894,6 +1895,8 @@ git_enum! {
         GIT_OPT_SET_ODB_LOOSE_PRIORITY,
         GIT_OPT_GET_EXTENSIONS,
         GIT_OPT_SET_EXTENSIONS,
+        GIT_OPT_GET_OWNER_VALIDATION,
+        GIT_OPT_SET_OWNER_VALIDATION,
     }
 }
 
