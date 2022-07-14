@@ -14,7 +14,7 @@ fn main() {
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
     if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.range_version("1.4.4".."1.5.0").probe("libgit2") {
+        if let Ok(lib) = cfg.range_version("1.4.4".."1.6.0").probe("libgit2") {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
