@@ -1,6 +1,6 @@
 [package]
 name = "git2"
-version = "0.15.0"
+version = "0.15.0" # update version in README.md!
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
