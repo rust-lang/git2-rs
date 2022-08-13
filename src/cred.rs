@@ -1,5 +1,4 @@
 use log::{debug, trace};
-use std::borrow::Cow;
 use std::ffi::CString;
 use std::io::Write;
 use std::mem;
@@ -13,7 +12,11 @@ use crate::{raw, Config, Error, IntoCString};
 
 pub enum CredInner {
     Cred(*mut raw::git_cred),
-    Interactive { username: String },
+
+    #[cfg(feature = "ssh")]
+    Interactive {
+        username: String,
+    },
 }
 
 /// A structure to represent git credentials in libgit2.
@@ -163,7 +166,9 @@ impl Cred {
     ///
     /// The first argument to the callback is the name of the authentication type
     /// (eg. "One-time password"); the second argument is the instruction text.
-    #[cfg(feature = "ssh")]
+    ///
+    /// The callback can be set using [`RemoteCallbacks::ssh_interactive()`](crate::RemoteCallbacks::ssh_interactive())
+    #[cfg(any(doc, feature = "ssh"))]
     pub fn ssh_interactive(username: String) -> Cred {
         Cred(CredInner::Interactive { username })
     }
@@ -172,6 +177,8 @@ impl Cred {
     pub fn has_username(&self) -> bool {
         match self.0 {
             CredInner::Cred(inner) => unsafe { raw::git_cred_has_username(inner) == 1 },
+
+            #[cfg(feature = "ssh")]
             CredInner::Interactive { .. } => true,
         }
     }
@@ -180,15 +187,20 @@ impl Cred {
     pub fn credtype(&self) -> raw::git_credtype_t {
         match self.0 {
             CredInner::Cred(inner) => unsafe { (*inner).credtype },
+
+            #[cfg(feature = "ssh")]
             CredInner::Interactive { .. } => raw::GIT_CREDTYPE_SSH_INTERACTIVE,
         }
     }
 
     /// Unwrap access to the underlying raw pointer, canceling the destructor
+    ///
     /// Panics if this was created using [`Self::ssh_interactive()`]
     pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
         match &mut self.0 {
             CredInner::Cred(cred) => mem::replace(cred, ptr::null_mut()),
+
+            #[cfg(feature = "ssh")]
             CredInner::Interactive { .. } => panic!("git2 cred is not a real libgit2 cred"),
         }
     }
@@ -197,6 +209,8 @@ impl Cred {
     pub(crate) unsafe fn unwrap_inner(mut self) -> CredInner {
         match &mut self.0 {
             CredInner::Cred(cred) => CredInner::Cred(mem::replace(cred, ptr::null_mut())),
+
+            #[cfg(feature = "ssh")]
             CredInner::Interactive { username } => CredInner::Interactive {
                 username: mem::replace(username, String::new()),
             },
@@ -206,6 +220,7 @@ impl Cred {
 
 impl Drop for Cred {
     fn drop(&mut self) {
+        #[allow(irrefutable_let_patterns)]
         if let CredInner::Cred(raw) = self.0 {
             if !raw.is_null() {
                 unsafe {
@@ -218,8 +233,14 @@ impl Drop for Cred {
     }
 }
 
+#[cfg(any(doc, feature = "ssh"))]
+/// A server-sent prompt for SSH interactive authentication
 pub struct SshInteractivePrompt<'a> {
-    pub text: Cow<'a, str>,
+    /// The prompt's name or instruction (human-readable)
+    pub text: std::borrow::Cow<'a, str>,
+
+    /// Whether the user's display should be visible or hidden
+    /// (usually for passwords)
     pub echo: bool,
 }
 

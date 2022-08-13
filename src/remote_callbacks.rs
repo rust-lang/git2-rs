@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_void, malloc, size_t};
+use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
@@ -6,7 +6,7 @@ use std::slice;
 use std::str;
 
 use crate::cert::Cert;
-use crate::cred::{CredInner, SshInteractivePrompt};
+use crate::cred::CredInner;
 use crate::util::Binding;
 use crate::{
     panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, PackBuilderStage, Progress,
@@ -26,6 +26,8 @@ pub struct RemoteCallbacks<'a> {
     update_tips: Option<Box<UpdateTips<'a>>>,
     certificate_check: Option<Box<CertificateCheck<'a>>>,
     push_update_reference: Option<Box<PushUpdateReference<'a>>>,
+
+    #[cfg(feature = "ssh")]
     ssh_interactive: Option<Box<SshInteractiveCallback<'a>>>,
 }
 
@@ -78,6 +80,7 @@ pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
 ///     * total
 pub type PackProgress<'a> = dyn FnMut(PackBuilderStage, usize, usize) + 'a;
 
+#[cfg(feature = "ssh")]
 /// Callback for push transfer progress
 ///
 /// Parameters:
@@ -86,7 +89,7 @@ pub type PackProgress<'a> = dyn FnMut(PackBuilderStage, usize, usize) + 'a;
 ///     * prompts
 ///     * responses
 pub type SshInteractiveCallback<'a> =
-    dyn FnMut(&str, &str, &[SshInteractivePrompt<'a>], &mut [String]) + 'static;
+    dyn FnMut(&str, &str, &[crate::cred::SshInteractivePrompt<'a>], &mut [String]) + 'a;
 
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {
@@ -106,6 +109,8 @@ impl<'a> RemoteCallbacks<'a> {
             certificate_check: None,
             push_update_reference: None,
             push_progress: None,
+
+            #[cfg(feature = "ssh")]
             ssh_interactive: None,
         }
     }
@@ -213,6 +218,23 @@ impl<'a> RemoteCallbacks<'a> {
         self.pack_progress = Some(Box::new(cb) as Box<PackProgress<'a>>);
         self
     }
+
+    #[cfg(any(doc, feature = "ssh"))]
+    /// Function to call with SSH interactive prompts to write the responses
+    /// into the given mutable [String] slice
+    ///
+    /// Callback parameters:
+    /// - name
+    /// - instruction
+    /// - prompts
+    /// - responses
+    pub fn ssh_interactive<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    where
+        F: FnMut(&str, &str, &[crate::cred::SshInteractivePrompt<'a>], &mut [String]) + 'a,
+    {
+        self.ssh_interactive = Some(Box::new(cb) as Box<SshInteractiveCallback<'a>>);
+        self
+    }
 }
 
 impl<'a> Binding for RemoteCallbacks<'a> {
@@ -294,6 +316,7 @@ extern "C" fn credentials_cb(
                 .and_then(|cred| match cred.unwrap_inner() {
                     CredInner::Cred(raw) => Ok(Cred::from_raw(raw)),
 
+                    #[cfg(feature = "ssh")]
                     CredInner::Interactive { username } => {
                         let username = CString::new(username)?;
                         let mut out = ptr::null_mut();
@@ -492,6 +515,8 @@ extern "C" fn ssh_interactive_cb(
     responses: *mut raw::LIBSSH2_USERAUTH_KBDINT_RESPONSE,
     payload: *mut *mut c_void,
 ) {
+    use libc::malloc;
+
     panic::wrap(|| unsafe {
         let prompts = prompts as *const libssh2_sys::LIBSSH2_USERAUTH_KBDINT_PROMPT;
         let responses = responses as *mut libssh2_sys::LIBSSH2_USERAUTH_KBDINT_RESPONSE;
@@ -506,7 +531,7 @@ extern "C" fn ssh_interactive_cb(
         let mut wrapped_prompts = Vec::with_capacity(num_prompts as usize);
         for i in 0..num_prompts {
             let prompt = &*prompts.offset(i as isize);
-            wrapped_prompts.push(SshInteractivePrompt {
+            wrapped_prompts.push(crate::cred::SshInteractivePrompt {
                 text: String::from_utf8_lossy(slice::from_raw_parts(
                     prompt.text as *const u8,
                     prompt.length as usize,
