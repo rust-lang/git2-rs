@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_uint, c_void, size_t};
+use libc::{c_char, c_int, c_uint, c_void, malloc, size_t};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
@@ -6,6 +6,7 @@ use std::slice;
 use std::str;
 
 use crate::cert::Cert;
+use crate::cred::{CredInner, SshInteractivePrompt};
 use crate::util::Binding;
 use crate::{
     panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, PackBuilderStage, Progress,
@@ -25,6 +26,7 @@ pub struct RemoteCallbacks<'a> {
     update_tips: Option<Box<UpdateTips<'a>>>,
     certificate_check: Option<Box<CertificateCheck<'a>>>,
     push_update_reference: Option<Box<PushUpdateReference<'a>>>,
+    ssh_interactive: Option<Box<SshInteractiveCallback<'a>>>,
 }
 
 /// Callback used to acquire credentials for when a remote is fetched.
@@ -76,6 +78,16 @@ pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
 ///     * total
 pub type PackProgress<'a> = dyn FnMut(PackBuilderStage, usize, usize) + 'a;
 
+/// Callback for push transfer progress
+///
+/// Parameters:
+///     * name
+///     * instruction
+///     * prompts
+///     * responses
+pub type SshInteractiveCallback<'a> =
+    dyn FnMut(&str, &str, &[SshInteractivePrompt<'a>], &mut [String]) + 'static;
+
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {
         Self::new()
@@ -94,6 +106,7 @@ impl<'a> RemoteCallbacks<'a> {
             certificate_check: None,
             push_update_reference: None,
             push_progress: None,
+            ssh_interactive: None,
         }
     }
 
@@ -256,11 +269,11 @@ extern "C" fn credentials_cb(
     url: *const c_char,
     username_from_url: *const c_char,
     allowed_types: c_uint,
-    payload: *mut c_void,
+    c_payload: *mut c_void,
 ) -> c_int {
     unsafe {
         let ok = panic::wrap(|| {
-            let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+            let payload = &mut *(c_payload as *mut RemoteCallbacks<'_>);
             let callback = payload
                 .credentials
                 .as_mut()
@@ -277,11 +290,28 @@ extern "C" fn credentials_cb(
 
             let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
 
-            callback(url, username_from_url, cred_type).map_err(|e| {
-                let s = CString::new(e.to_string()).unwrap();
-                raw::git_error_set_str(e.raw_code() as c_int, s.as_ptr());
-                e.raw_code() as c_int
-            })
+            callback(url, username_from_url, cred_type)
+                .and_then(|cred| match cred.unwrap_inner() {
+                    CredInner::Cred(raw) => Ok(Cred::from_raw(raw)),
+
+                    CredInner::Interactive { username } => {
+                        let username = CString::new(username)?;
+                        let mut out = ptr::null_mut();
+                        try_call!(raw::git_cred_ssh_interactive_new(
+                            &mut out,
+                            username,
+                            Some(ssh_interactive_cb as _),
+                            c_payload
+                        ));
+
+                        Ok(Cred::from_raw(out))
+                    }
+                })
+                .map_err(|e| {
+                    let s = CString::new(e.to_string()).unwrap();
+                    raw::git_error_set_str(e.raw_code() as c_int, s.as_ptr());
+                    e.raw_code() as c_int
+                })
         });
         match ok {
             Some(Ok(cred)) => {
@@ -449,4 +479,62 @@ extern "C" fn pack_progress_cb(
         0
     })
     .unwrap_or(-1)
+}
+
+#[cfg(feature = "ssh")]
+extern "C" fn ssh_interactive_cb(
+    name: *const c_char,
+    name_len: c_int,
+    instruction: *const c_char,
+    instruction_len: c_int,
+    num_prompts: c_int,
+    prompts: *const raw::LIBSSH2_USERAUTH_KBDINT_PROMPT,
+    responses: *mut raw::LIBSSH2_USERAUTH_KBDINT_RESPONSE,
+    payload: *mut *mut c_void,
+) {
+    panic::wrap(|| unsafe {
+        let prompts = prompts as *const libssh2_sys::LIBSSH2_USERAUTH_KBDINT_PROMPT;
+        let responses = responses as *mut libssh2_sys::LIBSSH2_USERAUTH_KBDINT_RESPONSE;
+
+        let name =
+            String::from_utf8_lossy(slice::from_raw_parts(name as *const u8, name_len as usize));
+        let instruction = String::from_utf8_lossy(slice::from_raw_parts(
+            instruction as *const u8,
+            instruction_len as usize,
+        ));
+
+        let mut wrapped_prompts = Vec::with_capacity(num_prompts as usize);
+        for i in 0..num_prompts {
+            let prompt = &*prompts.offset(i as isize);
+            wrapped_prompts.push(SshInteractivePrompt {
+                text: String::from_utf8_lossy(slice::from_raw_parts(
+                    prompt.text as *const u8,
+                    prompt.length as usize,
+                )),
+                echo: prompt.echo != 0,
+            });
+        }
+
+        let mut wrapped_responses = vec![String::new(); num_prompts as usize];
+
+        let payload = &mut *(payload as *mut Box<RemoteCallbacks<'_>>);
+        if let Some(callback) = &mut payload.ssh_interactive {
+            callback(
+                name.as_ref(),
+                instruction.as_ref(),
+                &wrapped_prompts[..],
+                &mut wrapped_responses[..],
+            );
+        }
+
+        for i in 0..num_prompts {
+            let response = &mut *responses.offset(i as isize);
+            let response_bytes = wrapped_responses[i as usize].as_bytes();
+
+            // libgit2 frees returned strings
+            let text = malloc(response_bytes.len());
+            response.text = text as *mut c_char;
+            response.length = response_bytes.len() as u32;
+        }
+    });
 }
