@@ -305,6 +305,14 @@ impl<'a> DoubleEndedIterator for StatusIter<'a> {
 }
 impl<'a> ExactSizeIterator for StatusIter<'a> {}
 
+impl<'a> IntoIterator for &'a Statuses<'a> {
+    type Item = StatusEntry<'a>;
+    type IntoIter = StatusIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 impl<'statuses> StatusEntry<'statuses> {
     /// Access the bytes for this entry's corresponding pathname
     pub fn path_bytes(&self) -> &[u8] {
