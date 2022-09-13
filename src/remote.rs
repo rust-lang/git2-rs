@@ -10,7 +10,7 @@ use std::{ffi::CString, os::raw::c_char};
 
 use crate::string_array::StringArray;
 use crate::util::Binding;
-use crate::{raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
+use crate::{call, raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
 use crate::{AutotagOption, Progress, RemoteCallbacks, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -92,7 +92,15 @@ impl<'repo> Remote<'repo> {
     pub fn is_valid_name(remote_name: &str) -> bool {
         crate::init();
         let remote_name = CString::new(remote_name).unwrap();
-        unsafe { raw::git_remote_is_valid_name(remote_name.as_ptr()) == 1 }
+        let mut valid: libc::c_int = 0;
+        unsafe {
+            call::c_try(raw::git_remote_name_is_valid(
+                &mut valid,
+                remote_name.as_ptr(),
+            ))
+            .unwrap();
+        }
+        valid == 1
     }
 
     /// Create a detached remote
@@ -851,9 +859,15 @@ mod tests {
     }
 
     #[test]
-    fn is_valid() {
+    fn is_valid_name() {
         assert!(Remote::is_valid_name("foobar"));
         assert!(!Remote::is_valid_name("\x01"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn is_valid_name_for_invalid_remote() {
+        Remote::is_valid_name("ab\012");
     }
 
     #[test]

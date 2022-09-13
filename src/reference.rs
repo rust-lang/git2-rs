@@ -8,8 +8,8 @@ use std::str;
 use crate::object::CastOrPanic;
 use crate::util::{c_cmp_to_ordering, Binding};
 use crate::{
-    raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceFormat, ReferenceType, Repository,
-    Tag, Tree,
+    call, raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceFormat, ReferenceType,
+    Repository, Tag, Tree,
 };
 
 // Not in the public header files (yet?), but a hard limit used by libgit2
@@ -62,7 +62,15 @@ impl<'repo> Reference<'repo> {
     pub fn is_valid_name(refname: &str) -> bool {
         crate::init();
         let refname = CString::new(refname).unwrap();
-        unsafe { raw::git_reference_is_valid_name(refname.as_ptr()) == 1 }
+        let mut valid: libc::c_int = 0;
+        unsafe {
+            call::c_try(raw::git_reference_name_is_valid(
+                &mut valid,
+                refname.as_ptr(),
+            ))
+            .unwrap();
+        }
+        valid == 1
     }
 
     /// Normalize reference name and check validity.
@@ -463,13 +471,23 @@ mod tests {
     use crate::{ObjectType, Reference, ReferenceType};
 
     #[test]
-    fn smoke() {
+    fn is_valid_name() {
         assert!(Reference::is_valid_name("refs/foo"));
         assert!(!Reference::is_valid_name("foo"));
+        assert!(Reference::is_valid_name("FOO_BAR"));
+
+        assert!(!Reference::is_valid_name("foo"));
+        assert!(!Reference::is_valid_name("_FOO_BAR"));
     }
 
     #[test]
-    fn smoke2() {
+    #[should_panic]
+    fn is_valid_name_for_invalid_ref() {
+        Reference::is_valid_name("ab\012");
+    }
+
+    #[test]
+    fn smoke() {
         let (_td, repo) = crate::test::repo_init();
         let mut head = repo.head().unwrap();
         assert!(head.is_branch());
