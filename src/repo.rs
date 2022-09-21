@@ -3,7 +3,7 @@ use std::env;
 use std::ffi::{CStr, CString, OsStr};
 use std::iter::IntoIterator;
 use std::mem;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::ptr;
 use std::str;
 
@@ -257,6 +257,33 @@ impl Repository {
             ));
         }
         Repository::open(util::bytes2path(&*buf))
+    }
+
+    /// Attempt to find the path to a git repo for a given path
+    ///
+    /// This starts at `path` and looks up the filesystem hierarchy
+    /// until it finds a repository, stopping if it finds a member of ceiling_dirs
+    pub fn discover_path<P: AsRef<Path>, I, O>(path: P, ceiling_dirs: I) -> Result<PathBuf, Error>
+    where
+        O: AsRef<OsStr>,
+        I: IntoIterator<Item = O>,
+    {
+        crate::init();
+        let buf = Buf::new();
+        // Normal file path OK (does not need Windows conversion).
+        let path = path.as_ref().into_c_string()?;
+        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
+        unsafe {
+            try_call!(raw::git_repository_discover(
+                buf.raw(),
+                path,
+                1,
+                ceiling_dirs
+            ));
+        }
+
+        Ok(util::bytes2path(&*buf).to_path_buf())
     }
 
     /// Creates a new repository in the specified folder.
@@ -3410,6 +3437,34 @@ mod tests {
             crate::test::realpath(&repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
+    }
+
+    #[test]
+    fn smoke_discover_path() {
+        let td = TempDir::new().unwrap();
+        let subdir = td.path().join("subdi");
+        fs::create_dir(&subdir).unwrap();
+        Repository::init_bare(td.path()).unwrap();
+        let path = Repository::discover_path(&subdir, &[] as &[&OsStr]).unwrap();
+        assert_eq!(
+            crate::test::realpath(&path).unwrap(),
+            crate::test::realpath(&td.path().join("")).unwrap()
+        );
+    }
+
+    #[test]
+    fn smoke_discover_path_ceiling_dir() {
+        let td = TempDir::new().unwrap();
+        let subdir = td.path().join("subdi");
+        fs::create_dir(&subdir).unwrap();
+        let ceilingdir = subdir.join("ceiling");
+        fs::create_dir(&ceilingdir).unwrap();
+        let testdir = ceilingdir.join("testdi");
+        fs::create_dir(&testdir).unwrap();
+        Repository::init_bare(td.path()).unwrap();
+        let path = Repository::discover_path(&testdir, &[ceilingdir.as_os_str()]);
+
+        assert!(path.is_err());
     }
 
     #[test]
