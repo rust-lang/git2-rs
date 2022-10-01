@@ -2418,6 +2418,9 @@ impl Repository {
     }
 
     /// Determine if a commit is the descendant of another commit
+    ///
+    /// Note that a commit is not considered a descendant of itself, in contrast
+    /// to `git merge-base --is-ancestor`.
     pub fn graph_descendant_of(&self, commit: Oid, ancestor: Oid) -> Result<bool, Error> {
         unsafe {
             let rv = try_call!(raw::git_graph_descendant_of(
