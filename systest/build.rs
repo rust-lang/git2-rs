@@ -39,6 +39,9 @@ fn main() {
         }
     });
 
+    // GIT_FILEMODE_BLOB_GROUP_WRITABLE is not a public const in libgit2
+    cfg.define("GIT_FILEMODE_BLOB_GROUP_WRITABLE", Some("0100664"));
+
     // not entirely sure why this is failing...
     cfg.skip_roundtrip(|t| t == "git_clone_options" || t == "git_submodule_update_options");
 
