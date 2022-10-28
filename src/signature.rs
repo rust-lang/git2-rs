@@ -158,6 +158,16 @@ impl<'a> fmt::Display for Signature<'a> {
     }
 }
 
+impl PartialEq for Signature<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.when() == other.when()
+            && self.email_bytes() == other.email_bytes()
+            && self.name_bytes() == other.name_bytes()
+    }
+}
+
+impl Eq for Signature<'_> {}
+
 #[cfg(test)]
 mod tests {
     use crate::{Signature, Time};
