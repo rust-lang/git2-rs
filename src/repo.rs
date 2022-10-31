@@ -155,7 +155,7 @@ impl Repository {
 
     /// Find and open an existing repository, respecting git environment
     /// variables.  This acts like `open_ext` with the
-    /// `REPOSITORY_OPEN_FROM_ENV` flag, but additionally respects `$GIT_DIR`.
+    /// [FROM_ENV](RepositoryOpenFlags::FROM_ENV) flag, but additionally respects `$GIT_DIR`.
     /// With `$GIT_DIR` unset, this will search for a repository starting in
     /// the current directory.
     pub fn open_from_env() -> Result<Repository, Error> {
@@ -175,23 +175,23 @@ impl Repository {
 
     /// Find and open an existing repository, with additional options.
     ///
-    /// If flags contains REPOSITORY_OPEN_NO_SEARCH, the path must point
+    /// If flags contains [NO_SEARCH](RepositoryOpenFlags::NO_SEARCH), the path must point
     /// directly to a repository; otherwise, this may point to a subdirectory
     /// of a repository, and `open_ext` will search up through parent
     /// directories.
     ///
-    /// If flags contains REPOSITORY_OPEN_CROSS_FS, the search through parent
+    /// If flags contains [CROSS_FS](RepositoryOpenFlags::CROSS_FS), the search through parent
     /// directories will not cross a filesystem boundary (detected when the
     /// stat st_dev field changes).
     ///
-    /// If flags contains REPOSITORY_OPEN_BARE, force opening the repository as
+    /// If flags contains [BARE](RepositoryOpenFlags::BARE), force opening the repository as
     /// bare even if it isn't, ignoring any working directory, and defer
     /// loading the repository configuration for performance.
     ///
-    /// If flags contains REPOSITORY_OPEN_NO_DOTGIT, don't try appending
+    /// If flags contains [NO_DOTGIT](RepositoryOpenFlags::NO_DOTGIT), don't try appending
     /// `/.git` to `path`.
     ///
-    /// If flags contains REPOSITORY_OPEN_FROM_ENV, `open_ext` will ignore
+    /// If flags contains [FROM_ENV](RepositoryOpenFlags::FROM_ENV), `open_ext` will ignore
     /// other flags and `ceiling_dirs`, and respect the same environment
     /// variables git does. Note, however, that `path` overrides `$GIT_DIR`; to
     /// respect `$GIT_DIR` as well, use `open_from_env`.
