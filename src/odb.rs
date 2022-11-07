@@ -1,6 +1,7 @@
 use std::io;
 use std::marker;
 use std::mem::MaybeUninit;
+
 use std::ptr;
 use std::slice;
 
@@ -10,6 +11,7 @@ use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
+
 use crate::{
     raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
 };
@@ -438,8 +440,8 @@ impl<'repo> io::Write for OdbWriter<'repo> {
     }
 }
 
-struct OdbPackwriterCb<'repo> {
-    cb: Option<Box<IndexerProgress<'repo>>>,
+pub(crate) struct OdbPackwriterCb<'repo> {
+    pub(crate) cb: Option<Box<IndexerProgress<'repo>>>,
 }
 
 /// A stream to write a packfile to the ODB
@@ -542,7 +544,7 @@ extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int
     .unwrap_or(1)
 }
 
-extern "C" fn write_pack_progress_cb(
+pub(crate) extern "C" fn write_pack_progress_cb(
     stats: *const raw::git_indexer_progress,
     payload: *mut c_void,
 ) -> c_int {
