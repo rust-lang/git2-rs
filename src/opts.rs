@@ -77,6 +77,7 @@ pub unsafe fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
 /// Disabling this will cause repository objects to clear their caches when next
 /// accessed.
 pub fn enable_caching(enabled: bool) {
+    crate::init();
     let error = unsafe {
         raw::git_libgit2_opts(
             raw::GIT_OPT_ENABLE_CACHING as libc::c_int,
@@ -94,6 +95,7 @@ pub fn enable_caching(enabled: bool) {
 /// creation of objects that reference invalid objects (due to programming
 /// error or repository corruption).
 pub fn strict_object_creation(enabled: bool) {
+    crate::init();
     let error = unsafe {
         raw::git_libgit2_opts(
             raw::GIT_OPT_ENABLE_STRICT_OBJECT_CREATION as libc::c_int,
@@ -110,6 +112,7 @@ pub fn strict_object_creation(enabled: bool) {
 /// improve performance, at the cost of relying on repository integrity
 /// without checking it.
 pub fn strict_hash_verification(enabled: bool) {
+    crate::init();
     let error = unsafe {
         raw::git_libgit2_opts(
             raw::GIT_OPT_ENABLE_STRICT_HASH_VERIFICATION as libc::c_int,
@@ -181,6 +184,7 @@ where
 /// Set wheter or not to verify ownership before performing a repository.
 /// Enabled by default, but disabling this can lead to code execution vulnerabilities.
 pub unsafe fn set_verify_owner_validation(enabled: bool) -> Result<(), Error> {
+    crate::init();
     let error = raw::git_libgit2_opts(
         raw::GIT_OPT_SET_OWNER_VALIDATION as libc::c_int,
         enabled as libc::c_int,
