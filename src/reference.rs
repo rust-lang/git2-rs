@@ -361,6 +361,35 @@ impl<'repo> Reference<'repo> {
             Ok(Binding::from_raw(raw))
         }
     }
+
+    /// Create a new reference with the same name as the given reference but a
+    /// different symbolic target. The reference must be a symbolic reference,
+    /// otherwise this will fail.
+    ///
+    /// The new reference will be written to disk, overwriting the given
+    /// reference.
+    ///
+    /// The target name will be checked for validity. See
+    /// [`Repository::reference_symbolic`] for rules about valid names.
+    ///
+    /// The message for the reflog will be ignored if the reference does not
+    /// belong in the standard set (HEAD, branches and remote-tracking
+    /// branches) and it does not have a reflog.
+    pub fn symbolic_set_target(
+        &mut self,
+        target: &str,
+        reflog_msg: &str,
+    ) -> Result<Reference<'repo>, Error> {
+        let mut raw = ptr::null_mut();
+        let target = CString::new(target)?;
+        let msg = CString::new(reflog_msg)?;
+        unsafe {
+            try_call!(raw::git_reference_symbolic_set_target(
+                &mut raw, self.raw, target, msg
+            ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
 }
 
 impl<'repo> PartialOrd for Reference<'repo> {
@@ -512,6 +541,14 @@ mod tests {
             .reference_symbolic("refs/tags/tag1", "refs/heads/main", false, "test")
             .unwrap();
         assert_eq!(sym1.kind().unwrap(), ReferenceType::Symbolic);
+        let mut sym2 = repo
+            .reference_symbolic("refs/tags/tag2", "refs/heads/main", false, "test")
+            .unwrap()
+            .symbolic_set_target("refs/tags/tag1", "test")
+            .unwrap();
+        assert_eq!(sym2.kind().unwrap(), ReferenceType::Symbolic);
+        assert_eq!(sym2.symbolic_target().unwrap(), "refs/tags/tag1");
+        sym2.delete().unwrap();
         sym1.delete().unwrap();
 
         {

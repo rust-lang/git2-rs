@@ -2437,6 +2437,12 @@ extern "C" {
         id: *const git_oid,
         log_message: *const c_char,
     ) -> c_int;
+    pub fn git_reference_symbolic_set_target(
+        out: *mut *mut git_reference,
+        r: *mut git_reference,
+        target: *const c_char,
+        log_message: *const c_char,
+    ) -> c_int;
     pub fn git_reference_type(r: *const git_reference) -> git_reference_t;
     pub fn git_reference_iterator_new(
         out: *mut *mut git_reference_iterator,

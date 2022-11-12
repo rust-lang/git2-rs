@@ -1480,6 +1480,19 @@ impl Repository {
 
     /// Create a new symbolic reference.
     ///
+    /// A symbolic reference is a reference name that refers to another
+    /// reference name.  If the other name moves, the symbolic name will move,
+    /// too.  As a simple example, the "HEAD" reference might refer to
+    /// "refs/heads/master" while on the "master" branch of a repository.
+    ///
+    /// Valid reference names must follow one of two patterns:
+    ///
+    /// 1. Top-level names must contain only capital letters and underscores,
+    ///    and must begin and end with a letter. (e.g. "HEAD", "ORIG_HEAD").
+    /// 2. Names prefixed with "refs/" can be almost anything.  You must avoid
+    ///    the characters '~', '^', ':', '\\', '?', '[', and '*', and the
+    ///    sequences ".." and "@{" which have special meaning to revparse.
+    ///
     /// This function will return an error if a reference already exists with
     /// the given name unless force is true, in which case it will be
     /// overwritten.
