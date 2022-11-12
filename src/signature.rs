@@ -65,25 +65,25 @@ impl<'a> Signature<'a> {
     /// Gets the name on the signature.
     ///
     /// Returns `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> {
+    pub fn name(&self) -> Option<&'a str> {
         str::from_utf8(self.name_bytes()).ok()
     }
 
     /// Gets the name on the signature as a byte slice.
-    pub fn name_bytes(&self) -> &[u8] {
-        unsafe { crate::opt_bytes(self, (*self.raw).name).unwrap() }
+    pub fn name_bytes(&self) -> &'a [u8] {
+        unsafe { crate::opt_bytes_very_unsafe((*self.raw).name).unwrap() }
     }
 
     /// Gets the email on the signature.
     ///
     /// Returns `None` if the email is not valid utf-8
-    pub fn email(&self) -> Option<&str> {
+    pub fn email(&self) -> Option<&'a str> {
         str::from_utf8(self.email_bytes()).ok()
     }
 
     /// Gets the email on the signature as a byte slice.
-    pub fn email_bytes(&self) -> &[u8] {
-        unsafe { crate::opt_bytes(self, (*self.raw).email).unwrap() }
+    pub fn email_bytes(&self) -> &'a [u8] {
+        unsafe { crate::opt_bytes_very_unsafe((*self.raw).email).unwrap() }
     }
 
     /// Get the `when` of this signature.
@@ -121,6 +121,19 @@ impl<'a> Binding for Signature<'a> {
 /// This function is unsafe as there is no guarantee that `raw` is valid for
 /// `'a` nor if it's a valid pointer.
 pub unsafe fn from_raw_const<'b, T>(_lt: &'b T, raw: *const raw::git_signature) -> Signature<'b> {
+    Signature {
+        raw: raw as *mut raw::git_signature,
+        _marker: marker::PhantomData,
+        owned: false,
+    }
+}
+
+/// Creates a new signature from the give raw pointer, tied to whatever lifetime
+/// the caller chooses
+///
+/// This function is very unsafe as there is no guarantee that `raw` is valid
+/// for `'a` nor if it's a valid pointer.
+pub unsafe fn from_raw_const_very_unsafe<'a>(raw: *const raw::git_signature) -> Signature<'a> {
     Signature {
         raw: raw as *mut raw::git_signature,
         _marker: marker::PhantomData,

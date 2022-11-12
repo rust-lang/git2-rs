@@ -857,11 +857,29 @@ fn openssl_env_init() {
 ))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<'a, T>(_anchor: &'a T, c: *const libc::c_char) -> Option<&'a [u8]> {
-    if c.is_null() {
+/// Creates a new byte slice from the give raw pointer, tied to the lifetime
+/// of the given object. If the pointer is null, `None` is returned
+///
+/// This function is unsafe as there is no guarantee that `raw` is valid for
+/// `'a` nor if it's a valid pointer.
+unsafe fn opt_bytes<'a, T>(_anchor: &'a T, raw: *const libc::c_char) -> Option<&'a [u8]> {
+    if raw.is_null() {
         None
     } else {
-        Some(CStr::from_ptr(c).to_bytes())
+        Some(CStr::from_ptr(raw).to_bytes())
+    }
+}
+
+/// Creates a new byte slice from the give raw pointer, tied to whatever lifetime
+/// the caller chooses. If the pointer is null, `None` is returned
+///
+/// This function is very unsafe as there is no guarantee that `raw` is valid
+/// for `'a` nor if it's a valid pointer.
+unsafe fn opt_bytes_very_unsafe<'a>(raw: *const libc::c_char) -> Option<&'a [u8]> {
+    if raw.is_null() {
+        None
+    } else {
+        Some(CStr::from_ptr(raw).to_bytes())
     }
 }
 

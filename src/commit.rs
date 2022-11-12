@@ -65,7 +65,7 @@ impl<'repo> Commit<'repo> {
     /// potential leading newlines.
     ///
     /// `None` will be returned if the message is not valid utf-8
-    pub fn message(&self) -> Option<&str> {
+    pub fn message(&self) -> Option<&'repo str> {
         str::from_utf8(self.message_bytes()).ok()
     }
 
@@ -73,35 +73,36 @@ impl<'repo> Commit<'repo> {
     ///
     /// The returned message will be slightly prettified by removing any
     /// potential leading newlines.
-    pub fn message_bytes(&self) -> &[u8] {
-        unsafe { crate::opt_bytes(self, raw::git_commit_message(&*self.raw)).unwrap() }
+    pub fn message_bytes(&self) -> &'repo [u8] {
+        unsafe { crate::opt_bytes_very_unsafe(raw::git_commit_message(&*self.raw)).unwrap() }
     }
 
     /// Get the encoding for the message of a commit, as a string representing a
     /// standard encoding name.
     ///
     /// `None` will be returned if the encoding is not known
-    pub fn message_encoding(&self) -> Option<&str> {
-        let bytes = unsafe { crate::opt_bytes(self, raw::git_commit_message_encoding(&*self.raw)) };
+    pub fn message_encoding(&self) -> Option<&'repo str> {
+        let bytes =
+            unsafe { crate::opt_bytes_very_unsafe(raw::git_commit_message_encoding(&*self.raw)) };
         bytes.and_then(|b| str::from_utf8(b).ok())
     }
 
     /// Get the full raw message of a commit.
     ///
     /// `None` will be returned if the message is not valid utf-8
-    pub fn message_raw(&self) -> Option<&str> {
+    pub fn message_raw(&self) -> Option<&'repo str> {
         str::from_utf8(self.message_raw_bytes()).ok()
     }
 
     /// Get the full raw message of a commit.
-    pub fn message_raw_bytes(&self) -> &[u8] {
-        unsafe { crate::opt_bytes(self, raw::git_commit_message_raw(&*self.raw)).unwrap() }
+    pub fn message_raw_bytes(&self) -> &'repo [u8] {
+        unsafe { crate::opt_bytes_very_unsafe(raw::git_commit_message_raw(&*self.raw)).unwrap() }
     }
 
     /// Get the full raw text of the commit header.
     ///
     /// `None` will be returned if the message is not valid utf-8
-    pub fn raw_header(&self) -> Option<&str> {
+    pub fn raw_header(&self) -> Option<&'repo str> {
         str::from_utf8(self.raw_header_bytes()).ok()
     }
 
@@ -120,8 +121,8 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the full raw text of the commit header.
-    pub fn raw_header_bytes(&self) -> &[u8] {
-        unsafe { crate::opt_bytes(self, raw::git_commit_raw_header(&*self.raw)).unwrap() }
+    pub fn raw_header_bytes(&self) -> &'repo [u8] {
+        unsafe { crate::opt_bytes_very_unsafe(raw::git_commit_raw_header(&*self.raw)).unwrap() }
     }
 
     /// Get the short "summary" of the git commit message.
@@ -131,7 +132,7 @@ impl<'repo> Commit<'repo> {
     ///
     /// `None` may be returned if an error occurs or if the summary is not valid
     /// utf-8.
-    pub fn summary(&self) -> Option<&str> {
+    pub fn summary(&self) -> Option<&'repo str> {
         self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
@@ -141,8 +142,8 @@ impl<'repo> Commit<'repo> {
     /// paragraph of the message with whitespace trimmed and squashed.
     ///
     /// `None` may be returned if an error occurs
-    pub fn summary_bytes(&self) -> Option<&[u8]> {
-        unsafe { crate::opt_bytes(self, raw::git_commit_summary(self.raw)) }
+    pub fn summary_bytes(&self) -> Option<&'repo [u8]> {
+        unsafe { crate::opt_bytes_very_unsafe(raw::git_commit_summary(self.raw)) }
     }
 
     /// Get the long "body" of the git commit message.
@@ -153,7 +154,7 @@ impl<'repo> Commit<'repo> {
     ///
     /// `None` may be returned if an error occurs or if the summary is not valid
     /// utf-8.
-    pub fn body(&self) -> Option<&str> {
+    pub fn body(&self) -> Option<&'repo str> {
         self.body_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
@@ -164,8 +165,8 @@ impl<'repo> Commit<'repo> {
     /// are trimmed.
     ///
     /// `None` may be returned if an error occurs.
-    pub fn body_bytes(&self) -> Option<&[u8]> {
-        unsafe { crate::opt_bytes(self, raw::git_commit_body(self.raw)) }
+    pub fn body_bytes(&self) -> Option<&'repo [u8]> {
+        unsafe { crate::opt_bytes_very_unsafe(raw::git_commit_body(self.raw)) }
     }
 
     /// Get the commit time (i.e. committer time) of a commit.
@@ -199,10 +200,10 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the author of this commit.
-    pub fn author(&self) -> Signature<'_> {
+    pub fn author(&self) -> Signature<'repo> {
         unsafe {
             let ptr = raw::git_commit_author(&*self.raw);
-            signature::from_raw_const(self, ptr)
+            signature::from_raw_const_very_unsafe(ptr)
         }
     }
 
@@ -221,10 +222,10 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the committer of this commit.
-    pub fn committer(&self) -> Signature<'_> {
+    pub fn committer(&self) -> Signature<'repo> {
         unsafe {
             let ptr = raw::git_commit_committer(&*self.raw);
-            signature::from_raw_const(self, ptr)
+            signature::from_raw_const_very_unsafe(ptr)
         }
     }
 
