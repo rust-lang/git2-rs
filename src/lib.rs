@@ -1379,6 +1379,7 @@ impl DiffStatsFormat {
 }
 
 /// Automatic tag following options.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AutotagOption {
     /// Use the setting from the remote's configuration
     Unspecified,
@@ -1391,6 +1392,7 @@ pub enum AutotagOption {
 }
 
 /// Configuration for how pruning is done on a fetch
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FetchPrune {
     /// Use the setting from the configuration
     Unspecified,
