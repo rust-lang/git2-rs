@@ -123,7 +123,7 @@ pub use crate::refspec::Refspec;
 pub use crate::remote::{
     FetchOptions, PushOptions, Refspecs, Remote, RemoteConnection, RemoteHead, RemoteRedirect,
 };
-pub use crate::remote_callbacks::{Credentials, RemoteCallbacks};
+pub use crate::remote_callbacks::{CertificateCheckStatus, Credentials, RemoteCallbacks};
 pub use crate::remote_callbacks::{TransportMessage, UpdateTips};
 pub use crate::repo::{Repository, RepositoryInitOptions};
 pub use crate::revert::RevertOptions;

@@ -51,7 +51,18 @@ pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 ///
 /// The second argument is the hostname for the connection is passed as the last
 /// argument.
-pub type CertificateCheck<'a> = dyn FnMut(&Cert<'_>, &str) -> bool + 'a;
+pub type CertificateCheck<'a> =
+    dyn FnMut(&Cert<'_>, &str) -> Result<CertificateCheckStatus, Error> + 'a;
+
+/// The return value for the [`CertificateCheck`] callback.
+pub enum CertificateCheckStatus {
+    /// Indicates that the certificate should be accepted.
+    CertificateOk,
+    /// Indicates that the certificate callback is neither accepting nor
+    /// rejecting the certificate. The result of the certificate checks
+    /// built-in to libgit2 will be used instead.
+    CertificatePassthrough,
+}
 
 /// Callback for each updated reference on push.
 ///
@@ -162,7 +173,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// connection to proceed.
     pub fn certificate_check<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
-        F: FnMut(&Cert<'_>, &str) -> bool + 'a,
+        F: FnMut(&Cert<'_>, &str) -> Result<CertificateCheckStatus, Error> + 'a,
     {
         self.certificate_check = Some(Box::new(cb) as Box<CertificateCheck<'a>>);
         self
@@ -371,16 +382,26 @@ extern "C" fn certificate_check_cb(
         let payload = &mut *(data as *mut RemoteCallbacks<'_>);
         let callback = match payload.certificate_check {
             Some(ref mut c) => c,
-            None => return true,
+            None => return Ok(CertificateCheckStatus::CertificatePassthrough),
         };
         let cert = Binding::from_raw(cert);
         let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes()).unwrap();
         callback(&cert, hostname)
     });
-    if ok == Some(true) {
-        0
-    } else {
-        -1
+    match ok {
+        Some(Ok(CertificateCheckStatus::CertificateOk)) => 0,
+        Some(Ok(CertificateCheckStatus::CertificatePassthrough)) => raw::GIT_PASSTHROUGH as c_int,
+        Some(Err(e)) => {
+            let s = CString::new(e.message()).unwrap();
+            unsafe {
+                raw::git_error_set_str(e.class() as c_int, s.as_ptr());
+            }
+            e.raw_code() as c_int
+        }
+        None => {
+            // Panic. The *should* get resumed by some future call to check().
+            -1
+        }
     }
 }
 
