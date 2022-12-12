@@ -2953,6 +2953,11 @@ extern "C" {
     pub fn git_index_entrycount(entry: *const git_index) -> size_t;
     pub fn git_index_find(at_pos: *mut size_t, index: *mut git_index, path: *const c_char)
         -> c_int;
+    pub fn git_index_find_prefix(
+        at_pos: *mut size_t,
+        index: *mut git_index,
+        prefix: *const c_char,
+    ) -> c_int;
     pub fn git_index_free(index: *mut git_index);
     pub fn git_index_get_byindex(index: *mut git_index, n: size_t) -> *const git_index_entry;
     pub fn git_index_get_bypath(
