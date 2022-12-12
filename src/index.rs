@@ -596,6 +596,26 @@ impl Index {
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
+
+    /// Find the first position of any entries matching a prefix.
+    ///
+    /// To find the first position of a path inside a given folder, suffix the prefix with a '/'.
+    pub fn find_prefix(&self, path: &Path) -> Result<Option<usize>, Error> {
+        unsafe {
+            let mut at_pos: size_t = 0;
+            let entry_path = path.into_c_string()?;
+            let result = call!(raw::git_index_find_prefix(
+                &mut at_pos,
+                self.raw,
+                entry_path
+            ));
+            if result == 0 {
+                Ok(Some(at_pos))
+            } else {
+                Ok(None)
+            }
+        }
+    }
 }
 
 impl Binding for Index {
@@ -855,6 +875,21 @@ mod tests {
         index.add(&e).unwrap();
         let e = index.get(0).unwrap();
         assert_eq!(e.path.len(), 6);
+    }
+
+    #[test]
+    fn add_then_find() {
+        let mut index = Index::new().unwrap();
+        let mut e = entry();
+        e.path = b"foo/bar".to_vec();
+        index.add(&e).unwrap();
+        assert_eq!(index.get(0).unwrap().path, b"foo/bar");
+        assert_eq!(
+            index.get_path(Path::new("foo/bar"), 0).unwrap().path,
+            b"foo/bar"
+        );
+        assert_eq!(index.find_prefix(Path::new("foo/")).unwrap(), Some(0));
+        assert_eq!(index.find_prefix(Path::new("empty/")).unwrap(), None);
     }
 
     #[test]
