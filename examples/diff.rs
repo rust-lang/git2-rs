@@ -96,7 +96,7 @@ struct Args {
     /// output condensed summary of header info
     flag_summary: bool,
     #[structopt(name = "find-renames", short = "M", long)]
-    /// set threshold for findind renames (default 50)
+    /// set threshold for finding renames (default 50)
     flag_find_renames: Option<u16>,
     #[structopt(name = "find-copies", short = "C", long)]
     /// set threshold for finding copies (default 50)
@@ -120,7 +120,7 @@ struct Args {
     /// show given source prefix instead of 'a/'
     flag_src_prefix: Option<String>,
     #[structopt(name = "dst-prefix", long)]
-    /// show given destinction prefix instead of 'b/'
+    /// show given destination prefix instead of 'b/'
     flag_dst_prefix: Option<String>,
     #[structopt(name = "path", long = "git-dir")]
     /// path to git repository to use
