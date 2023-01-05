@@ -143,6 +143,9 @@ pub use crate::util::IntoCString;
 pub use crate::version::Version;
 pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions};
 
+#[cfg(any(doc, feature = "ssh"))]
+pub use crate::cred::SshInteractivePrompt;
+
 // Create a convinience method on bitflag struct which checks the given flag
 macro_rules! is_bit_set {
     ($name:ident, $flag:expr) => {
