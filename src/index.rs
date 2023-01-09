@@ -600,20 +600,16 @@ impl Index {
     /// Find the first position of any entries matching a prefix.
     ///
     /// To find the first position of a path inside a given folder, suffix the prefix with a '/'.
-    pub fn find_prefix<T: IntoCString>(&self, prefix: T) -> Result<Option<usize>, Error> {
+    pub fn find_prefix<T: IntoCString>(&self, prefix: T) -> Result<usize, Error> {
+        let mut at_pos: size_t = 0;
+        let entry_path = prefix.into_c_string()?;
         unsafe {
-            let mut at_pos: size_t = 0;
-            let entry_path = prefix.into_c_string()?;
-            let result = call!(raw::git_index_find_prefix(
+            try_call!(raw::git_index_find_prefix(
                 &mut at_pos,
                 self.raw,
                 entry_path
             ));
-            if result == 0 {
-                Ok(Some(at_pos))
-            } else {
-                Ok(None)
-            }
+            Ok(at_pos)
         }
     }
 }
@@ -766,7 +762,7 @@ mod tests {
     use std::path::Path;
     use tempfile::TempDir;
 
-    use crate::{Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
+    use crate::{ErrorCode, Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
 
     #[test]
     fn smoke() {
@@ -891,8 +887,11 @@ mod tests {
             index.get_path(Path::new("foo/bar"), 0).unwrap().path,
             b"foo/bar"
         );
-        assert_eq!(index.find_prefix(Path::new("foo2/")).unwrap(), Some(1));
-        assert_eq!(index.find_prefix(Path::new("empty/")).unwrap(), None);
+        assert_eq!(index.find_prefix(Path::new("foo2/")), Ok(1));
+        assert_eq!(
+            index.find_prefix(Path::new("empty/")).unwrap_err().code(),
+            ErrorCode::NotFound
+        );
     }
 
     #[test]
