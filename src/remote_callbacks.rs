@@ -171,6 +171,10 @@ impl<'a> RemoteCallbacks<'a> {
     /// If certificate verification fails, then this callback will be invoked to
     /// let the caller make the final decision of whether to allow the
     /// connection to proceed.
+    ///
+    /// A failure to handle this callback will most likely result in a security
+    /// problem, as that will open the connection up to MITM attacks. As can
+    /// be seen in this CVE: <https://blog.rust-lang.org/2023/01/10/cve-2022-46176.html>
     pub fn certificate_check<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
         F: FnMut(&Cert<'_>, &str) -> Result<CertificateCheckStatus, Error> + 'a,
