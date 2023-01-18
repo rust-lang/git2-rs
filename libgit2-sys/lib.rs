@@ -2569,6 +2569,11 @@ extern "C" {
     pub fn git_submodule_ignore(submodule: *mut git_submodule) -> git_submodule_ignore_t;
     pub fn git_submodule_index_id(submodule: *mut git_submodule) -> *const git_oid;
     pub fn git_submodule_init(submodule: *mut git_submodule, overwrite: c_int) -> c_int;
+    pub fn git_submodule_repo_init(
+        repo: *mut *mut git_repository,
+        submodule: *const git_submodule,
+        use_gitlink: c_int,
+    ) -> c_int;
     pub fn git_submodule_location(status: *mut c_uint, submodule: *mut git_submodule) -> c_int;
     pub fn git_submodule_lookup(
         out: *mut *mut git_submodule,

@@ -139,6 +139,25 @@ impl<'repo> Submodule<'repo> {
         Ok(())
     }
 
+    /// Set up the subrepository for a submodule in preparation for clone.
+    ///
+    /// This function can be called to init and set up a submodule repository
+    /// from a submodule in preparation to clone it from its remote.
+
+    /// use_gitlink: Should the workdir contain a gitlink to the repo in
+    /// .git/modules vs. repo directly in workdir.
+    pub fn repo_init(&mut self, use_gitlink: bool) -> Result<Repository, Error> {
+        unsafe {
+            let mut raw_repo = ptr::null_mut();
+            try_call!(raw::git_submodule_repo_init(
+                &mut raw_repo,
+                self.raw,
+                use_gitlink
+            ));
+            Ok(Binding::from_raw(raw_repo))
+        }
+    }
+
     /// Open the repository for a submodule.
     ///
     /// This will only work if the submodule is checked out into the working
@@ -399,16 +418,54 @@ mod tests {
         let (_td, parent) = crate::test::repo_init();
 
         let url1 = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
-        let url3 = Url::from_file_path(&repo2.workdir().unwrap()).unwrap();
+        let url2 = Url::from_file_path(&repo2.workdir().unwrap()).unwrap();
         let mut s1 = parent
             .submodule(&url1.to_string(), Path::new("bar"), true)
             .unwrap();
         let mut s2 = parent
-            .submodule(&url3.to_string(), Path::new("bar2"), true)
+            .submodule(&url2.to_string(), Path::new("bar2"), true)
             .unwrap();
         // -----------------------------------
 
         t!(s1.clone(Some(&mut SubmoduleUpdateOptions::default())));
         t!(s2.clone(None));
+    }
+
+    #[test]
+    fn repo_init_submodule() {
+        // -----------------------------------
+        // Same as `clone_submodule()`
+        let (_td, child) = crate::test::repo_init();
+        let (_td, parent) = crate::test::repo_init();
+
+        let url_child = Url::from_file_path(&child.workdir().unwrap()).unwrap();
+        let url_parent = Url::from_file_path(&parent.workdir().unwrap()).unwrap();
+        let mut sub = parent
+            .submodule(&url_child.to_string(), Path::new("bar"), true)
+            .unwrap();
+
+        // -----------------------------------
+        // Let's commit the submodule for later clone
+        t!(sub.clone(None));
+        t!(sub.add_to_index(true));
+        t!(sub.add_finalize());
+
+        crate::test::commit(&parent);
+
+        // Clone the parent to init its submodules
+        let td = TempDir::new().unwrap();
+        let new_parent = Repository::clone(&url_parent.to_string(), &td).unwrap();
+
+        let mut submodules = new_parent.submodules().unwrap();
+        let child = submodules.first_mut().unwrap();
+
+        // First init child
+        t!(child.init(false));
+        assert_eq!(child.url().unwrap(), url_child.as_str());
+
+        // open() is not possible before initializing the repo
+        assert!(child.open().is_err());
+        t!(child.repo_init(true));
+        assert!(child.open().is_ok());
     }
 }
