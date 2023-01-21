@@ -290,7 +290,7 @@ extern "C" fn credentials_cb(
 
             callback(url, username_from_url, cred_type).map_err(|e| {
                 let s = CString::new(e.to_string()).unwrap();
-                raw::git_error_set_str(e.raw_code() as c_int, s.as_ptr());
+                raw::git_error_set_str(e.class() as c_int, s.as_ptr());
                 e.raw_code() as c_int
             })
         });
