@@ -54,7 +54,7 @@ pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 pub type CertificateCheck<'a> =
     dyn FnMut(&Cert<'_>, &str) -> Result<CertificateCheckStatus, Error> + 'a;
 
-/// The return value for the [`CertificateCheck`] callback.
+/// The return value for the [`RemoteCallbacks::certificate_check`] callback.
 pub enum CertificateCheckStatus {
     /// Indicates that the certificate should be accepted.
     CertificateOk,
