@@ -108,7 +108,7 @@ impl Config {
     /// exists. The returned path may be used on any method call to load
     /// the global configuration file.
     ///
-    /// This method will not guess the path to the xdg compatible config file
+    /// This method will not guess the path to the XDG compatible config file
     /// (`.config/git/config`).
     pub fn find_global() -> Result<PathBuf, Error> {
         crate::init();
@@ -121,7 +121,7 @@ impl Config {
 
     /// Locate the path to the system configuration file
     ///
-    /// If /etc/gitconfig doesn't exist, it will look for %PROGRAMFILES%
+    /// If /etc/gitconfig doesn't exist, it will look for `%PROGRAMFILES%`
     pub fn find_system() -> Result<PathBuf, Error> {
         crate::init();
         let buf = Buf::new();
@@ -131,9 +131,9 @@ impl Config {
         Ok(util::bytes2path(&buf).to_path_buf())
     }
 
-    /// Locate the path to the global xdg compatible configuration file
+    /// Locate the path to the global XDG compatible configuration file
     ///
-    /// The xdg compatible configuration file is usually located in
+    /// The XDG compatible configuration file is usually located in
     /// `$HOME/.config/git/config`.
     pub fn find_xdg() -> Result<PathBuf, Error> {
         crate::init();
@@ -369,7 +369,7 @@ impl Config {
     /// Open the global/XDG configuration file according to git's rules
     ///
     /// Git allows you to store your global configuration at `$HOME/.config` or
-    /// `$XDG_CONFIG_HOME/git/config`. For backwards compatability, the XDG file
+    /// `$XDG_CONFIG_HOME/git/config`. For backwards compatibility, the XDG file
     /// shouldn't be used unless the use has created it explicitly. With this
     /// function you'll open the correct one to write to.
     pub fn open_global(&mut self) -> Result<Config, Error> {

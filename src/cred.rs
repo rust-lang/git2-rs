@@ -113,7 +113,7 @@ impl Cred {
     ///
     /// This function will attempt to parse the user's `credential.helper`
     /// configuration, invoke the necessary processes, and read off what the
-    /// username/password should be for a particular url.
+    /// username/password should be for a particular URL.
     ///
     /// The returned credential type will be a username/password credential if
     /// successful.
@@ -140,7 +140,7 @@ impl Cred {
     /// Create a credential to specify a username.
     ///
     /// This is used with ssh authentication to query for the username if none is
-    /// specified in the url.
+    /// specified in the URL.
     pub fn username(username: &str) -> Result<Cred, Error> {
         crate::init();
         let username = CString::new(username)?;
@@ -194,8 +194,8 @@ impl CredentialHelper {
     /// Create a new credential helper object which will be used to probe git's
     /// local credential configuration.
     ///
-    /// The url specified is the namespace on which this will query credentials.
-    /// Invalid urls are currently ignored.
+    /// The URL specified is the namespace on which this will query credentials.
+    /// Invalid URLs are currently ignored.
     pub fn new(url: &str) -> CredentialHelper {
         let mut ret = CredentialHelper {
             protocol: None,

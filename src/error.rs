@@ -18,7 +18,7 @@ pub struct Error {
 impl Error {
     /// Creates a new error.
     ///
-    /// This is mainly intended for implementors of custom transports or
+    /// This is mainly intended for implementers of custom transports or
     /// database backends, where it is desirable to propagate an [`Error`]
     /// through `libgit2`.
     pub fn new<S: AsRef<str>>(code: ErrorCode, class: ErrorClass, message: S) -> Self {
@@ -134,7 +134,7 @@ impl Error {
 
     /// Modify the error code associated with this error.
     ///
-    /// This is mainly intended to be used by implementors of custom transports
+    /// This is mainly intended to be used by implementers of custom transports
     /// or database backends, and should be used with care.
     pub fn set_code(&mut self, code: ErrorCode) {
         self.code = match code {
@@ -216,7 +216,7 @@ impl Error {
 
     /// Modify the error class associated with this error.
     ///
-    /// This is mainly intended to be used by implementors of custom transports
+    /// This is mainly intended to be used by implementers of custom transports
     /// or database backends, and should be used with care.
     pub fn set_class(&mut self, class: ErrorClass) {
         self.klass = match class {

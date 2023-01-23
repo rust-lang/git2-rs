@@ -8,7 +8,7 @@ use crate::util::Binding;
 
 /// A string array structure used by libgit2
 ///
-/// Some apis return arrays of strings which originate from libgit2. This
+/// Some APIs return arrays of strings which originate from libgit2. This
 /// wrapper type behaves a little like `Vec<&str>` but does so without copying
 /// the underlying strings until necessary.
 pub struct StringArray {

@@ -626,7 +626,7 @@ impl Repository {
 
     /// Create an anonymous remote
     ///
-    /// Create a remote with the given url and refspec in memory. You can use
+    /// Create a remote with the given URL and refspec in memory. You can use
     /// this when you have a URL instead of a remote's name. Note that anonymous
     /// remotes cannot be converted to persisted remotes.
     pub fn remote_anonymous(&self, url: &str) -> Result<Remote<'_>, Error> {
@@ -707,7 +707,7 @@ impl Repository {
         Ok(())
     }
 
-    /// Set the remote's url in the configuration
+    /// Set the remote's URL in the configuration
     ///
     /// Remote objects already in memory will not be affected. This assumes
     /// the common case of a single-url remote and will otherwise return an
@@ -721,7 +721,7 @@ impl Repository {
         Ok(())
     }
 
-    /// Set the remote's url for pushing in the configuration.
+    /// Set the remote's URL for pushing in the configuration.
     ///
     /// Remote objects already in memory will not be affected. This assumes
     /// the common case of a single-url remote and will otherwise return an
@@ -1211,7 +1211,7 @@ impl Repository {
     ///
     /// This behaves like `Repository::branch()` but takes
     /// an annotated commit, which lets you specify which
-    /// extended sha syntax string was specified by a user,
+    /// extended SHA syntax string was specified by a user,
     /// allowing for more exact reflog messages.
     ///
     /// See the documentation for `Repository::branch()`
@@ -3154,7 +3154,7 @@ impl Repository {
     /// `callback` will be called with with following arguments:
     ///
     /// - `&str`: the reference name
-    /// - `&[u8]`: the remote url
+    /// - `&[u8]`: the remote URL
     /// - `&Oid`: the reference target OID
     /// - `bool`: was the reference the result of a merge
     pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
@@ -3283,7 +3283,7 @@ impl RepositoryInitOptions {
 
     /// The path to the working directory.
     ///
-    /// If this is a relative path it will be evaulated relative to the repo
+    /// If this is a relative path it will be evaluated relative to the repo
     /// path. If this is not the "natural" working directory, a .git gitlink
     /// file will be created here linking to the repo path.
     pub fn workdir_path(&mut self, path: &Path) -> &mut RepositoryInitOptions {

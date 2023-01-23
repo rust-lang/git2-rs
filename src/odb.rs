@@ -240,7 +240,7 @@ impl<'repo> Odb<'repo> {
     /// deletion of the mempack backend.
     ///
     /// Here is an example that fails to compile because it tries to hold the
-    /// mempack reference beyond the odb's lifetime:
+    /// mempack reference beyond the Odb's lifetime:
     ///
     /// ```compile_fail
     /// use git2::Odb;
@@ -388,7 +388,7 @@ impl<'repo> OdbWriter<'repo> {
     /// This method can be used to finalize writing object to the database and get an identifier.
     /// The object will take its final name and will be available to the odb.
     /// This method will fail if the total number of received bytes differs from the size declared with odb_writer()
-    /// Attepting write after finishing will be ignored.
+    /// Attempting write after finishing will be ignored.
     pub fn finalize(&mut self) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
