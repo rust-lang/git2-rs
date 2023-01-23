@@ -199,7 +199,7 @@ pub fn c_cmp_to_ordering(cmp: c_int) -> Ordering {
 ///
 /// Checks if it is a relative path.
 ///
-/// On Windows, this also requires the path to be valid unicode, and translates
+/// On Windows, this also requires the path to be valid Unicode, and translates
 /// back slashes to forward slashes.
 pub fn path_to_repo_path(path: &Path) -> Result<CString, Error> {
     macro_rules! err {

@@ -30,9 +30,9 @@ pub struct RemoteCallbacks<'a> {
 /// Callback used to acquire credentials for when a remote is fetched.
 ///
 /// * `url` - the resource for which the credentials are required.
-/// * `username_from_url` - the username that was embedded in the url, or `None`
+/// * `username_from_url` - the username that was embedded in the URL, or `None`
 ///                         if it was not included.
-/// * `allowed_types` - a bitmask stating which cred types are ok to return.
+/// * `allowed_types` - a bitmask stating which cred types are OK to return.
 pub type Credentials<'a> =
     dyn FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a;
 
@@ -46,7 +46,7 @@ pub type UpdateTips<'a> = dyn FnMut(&str, Oid, Oid) -> bool + 'a;
 
 /// Callback for a custom certificate check.
 ///
-/// The first argument is the certificate receved on the connection.
+/// The first argument is the certificate received on the connection.
 /// Certificates are typically either an SSH or X509 certificate.
 ///
 /// The second argument is the hostname for the connection is passed as the last

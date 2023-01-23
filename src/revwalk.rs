@@ -12,7 +12,7 @@ pub struct Revwalk<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
-/// A `Revwalk` with an assiciated "hide callback", see `with_hide_callback`
+/// A `Revwalk` with an associated "hide callback", see `with_hide_callback`
 pub struct RevwalkWithHideCb<'repo, 'cb, C>
 where
     C: FnMut(Oid) -> bool,

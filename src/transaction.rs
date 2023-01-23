@@ -7,7 +7,7 @@ use crate::{raw, util::Binding, Error, Oid, Reflog, Repository, Signature};
 ///
 /// Transactions work by locking loose refs for as long as the [`Transaction`]
 /// is held, and committing all changes to disk when [`Transaction::commit`] is
-/// called. Note that comitting is not atomic: if an operation fails, the
+/// called. Note that committing is not atomic: if an operation fails, the
 /// transaction aborts, but previous successful operations are not rolled back.
 pub struct Transaction<'repo> {
     raw: *mut raw::git_transaction,
@@ -106,11 +106,11 @@ impl<'repo> Transaction<'repo> {
     /// Add a [`Reflog`] to the transaction.
     ///
     /// This commit the in-memory [`Reflog`] to disk when the transaction commits.
-    /// Note that atomicty is **not* guaranteed: if the transaction fails to
-    /// modify `refname`, the reflog may still have been comitted to disk.
+    /// Note that atomicity is **not* guaranteed: if the transaction fails to
+    /// modify `refname`, the reflog may still have been committed to disk.
     ///
     /// If this is combined with setting the target, that update won't be
-    /// written to the log (ie. the `reflog_signature` and `reflog_message`
+    /// written to the log (i.e. the `reflog_signature` and `reflog_message`
     /// parameters will be ignored).
     pub fn set_reflog(&mut self, refname: &str, reflog: Reflog) -> Result<(), Error> {
         let refname = CString::new(refname).unwrap();

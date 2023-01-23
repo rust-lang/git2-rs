@@ -249,7 +249,7 @@ pub enum ErrorClass {
     Object,
     /// Network error
     Net,
-    /// Error manpulating a tag
+    /// Error manipulating a tag
     Tag,
     /// Invalid value in tree
     Tree,
@@ -257,7 +257,7 @@ pub enum ErrorClass {
     Indexer,
     /// Error from SSL
     Ssl,
-    /// Error involing submodules
+    /// Error involving submodules
     Submodule,
     /// Threading error
     Thread,
@@ -349,7 +349,7 @@ pub enum ObjectType {
     Tag,
 }
 
-/// An enumeration of all possile kinds of references.
+/// An enumeration of all possible kinds of references.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ReferenceType {
     /// A reference which points at an object id.
@@ -1172,7 +1172,7 @@ bitflags! {
     ///
     /// Lastly, the following will only be returned for ignore "NONE".
     ///
-    /// * WD_UNTRACKED      - wd contains untracked files
+    /// * WD_UNTRACKED      - workdir contains untracked files
     pub struct SubmoduleStatus: u32 {
         #[allow(missing_docs)]
         const IN_HEAD = raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32;
@@ -1273,7 +1273,7 @@ bitflags! {
         /// Use the default pathspec matching configuration.
         const DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32;
         /// Force matching to ignore case, otherwise matching will use native
-        /// case sensitivity fo the platform filesystem.
+        /// case sensitivity of the platform filesystem.
         const IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32;
         /// Force case sensitive matches, otherwise match will use the native
         /// case sensitivity of the platform filesystem.
@@ -1521,7 +1521,7 @@ bitflags! {
     pub struct ReferenceFormat: u32 {
         /// No particular normalization.
         const NORMAL = raw::GIT_REFERENCE_FORMAT_NORMAL as u32;
-        /// Constrol whether one-level refname are accepted (i.e., refnames that
+        /// Control whether one-level refname are accepted (i.e., refnames that
         /// do not contain multiple `/`-separated components). Those are
         /// expected to be written only using uppercase letters and underscore
         /// (e.g. `HEAD`, `FETCH_HEAD`).

@@ -52,21 +52,21 @@ impl<'repo> Submodule<'repo> {
         }
     }
 
-    /// Get the submodule's url.
+    /// Get the submodule's URL.
     ///
-    /// Returns `None` if the url is not valid utf-8 or if the URL isn't present
+    /// Returns `None` if the URL is not valid utf-8 or if the URL isn't present
     pub fn url(&self) -> Option<&str> {
         self.opt_url_bytes().and_then(|b| str::from_utf8(b).ok())
     }
 
-    /// Get the url for the submodule.
+    /// Get the URL for the submodule.
     #[doc(hidden)]
     #[deprecated(note = "renamed to `opt_url_bytes`")]
     pub fn url_bytes(&self) -> &[u8] {
         self.opt_url_bytes().unwrap()
     }
 
-    /// Get the url for the submodule.
+    /// Get the URL for the submodule.
     ///
     /// Returns `None` if the URL isn't present
     // TODO: delete this method and fix the signature of `url_bytes` on next

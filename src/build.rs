@@ -60,7 +60,7 @@ pub struct RepoBuilder<'cb> {
 
 /// Type of callback passed to `RepoBuilder::remote_create`.
 ///
-/// The second and third arguments are the remote's name and the remote's url.
+/// The second and third arguments are the remote's name and the remote's URL.
 pub type RemoteCreate<'cb> =
     dyn for<'a> FnMut(&'a Repository, &str, &str) -> Result<Remote<'a>, Error> + 'cb;
 
@@ -89,7 +89,7 @@ pub struct CheckoutBuilder<'cb> {
 
 /// Checkout progress notification callback.
 ///
-/// The first argument is the path for the notification, the next is the numver
+/// The first argument is the path for the notification, the next is the number
 /// of completed steps so far, and the final is the total number of steps.
 pub type Progress<'a> = dyn FnMut(Option<&Path>, usize, usize) + 'a;
 
@@ -121,10 +121,10 @@ pub enum CloneLocal {
     /// Auto-detect (default)
     ///
     /// Here libgit2 will bypass the git-aware transport for local paths, but
-    /// use a normal fetch for `file://` urls.
+    /// use a normal fetch for `file://` URLs.
     Auto = raw::GIT_CLONE_LOCAL_AUTO as isize,
 
-    /// Bypass the git-aware transport even for `file://` urls.
+    /// Bypass the git-aware transport even for `file://` URLs.
     Local = raw::GIT_CLONE_LOCAL as isize,
 
     /// Never bypass the git-aware transport
@@ -230,7 +230,7 @@ impl<'cb> RepoBuilder<'cb> {
 
     /// Clone a remote repository.
     ///
-    /// This will use the options configured so far to clone the specified url
+    /// This will use the options configured so far to clone the specified URL
     /// into the specified local path.
     pub fn clone(&mut self, url: &str, into: &Path) -> Result<Repository, Error> {
         let mut opts: raw::git_clone_options = unsafe { mem::zeroed() };
@@ -354,7 +354,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     }
 
     /// Indicate that the checkout should be performed safely, allowing new
-    /// files to be created but not overwriting extisting files or changes.
+    /// files to be created but not overwriting existing files or changes.
     ///
     /// This is the default.
     pub fn safe(&mut self) -> &mut CheckoutBuilder<'cb> {

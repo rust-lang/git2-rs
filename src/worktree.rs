@@ -218,7 +218,7 @@ impl WorktreePruneOptions {
         self.flag(raw::GIT_WORKTREE_PRUNE_LOCKED, locked)
     }
 
-    /// Controls whether the actual working tree on the fs is recursively removed
+    /// Controls whether the actual working tree on the filesystem is recursively removed
     ///
     /// Defaults to false
     pub fn working_tree(&mut self, working_tree: bool) -> &mut WorktreePruneOptions {

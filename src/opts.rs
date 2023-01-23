@@ -181,7 +181,7 @@ where
     Ok(())
 }
 
-/// Set wheter or not to verify ownership before performing a repository.
+/// Set whether or not to verify ownership before performing a repository.
 /// Enabled by default, but disabling this can lead to code execution vulnerabilities.
 pub unsafe fn set_verify_owner_validation(enabled: bool) -> Result<(), Error> {
     crate::init();

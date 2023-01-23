@@ -97,7 +97,7 @@ impl<'repo> Remote<'repo> {
 
     /// Create a detached remote
     ///
-    /// Create a remote with the given url in-memory. You can use this
+    /// Create a remote with the given URL in-memory. You can use this
     /// when you have a URL instead of a remote's name.
     /// Contrasted with an anonymous remote, a detached remote will not
     /// consider any repo configuration values.
@@ -126,14 +126,14 @@ impl<'repo> Remote<'repo> {
         unsafe { crate::opt_bytes(self, raw::git_remote_name(&*self.raw)) }
     }
 
-    /// Get the remote's url.
+    /// Get the remote's URL.
     ///
-    /// Returns `None` if the url is not valid utf-8
+    /// Returns `None` if the URL is not valid utf-8
     pub fn url(&self) -> Option<&str> {
         str::from_utf8(self.url_bytes()).ok()
     }
 
-    /// Get the remote's url as a byte array.
+    /// Get the remote's URL as a byte array.
     pub fn url_bytes(&self) -> &[u8] {
         unsafe { crate::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap() }
     }
@@ -246,7 +246,7 @@ impl<'repo> Remote<'repo> {
     /// Cancel the operation
     ///
     /// At certain points in its operation, the network code checks whether the
-    /// operation has been cancelled and if so stops the operation.
+    /// operation has been canceled and if so stops the operation.
     pub fn stop(&mut self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_remote_stop(self.raw));

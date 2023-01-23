@@ -59,7 +59,7 @@ impl Binding for TraceLevel {
 
 //TODO: pass raw &[u8] and leave conversion to consumer (breaking API)
 /// Callback type used to pass tracing events to the subscriber.
-/// see `trace_set` to register a scubscriber.
+/// see `trace_set` to register a subscriber.
 pub type TracingCb = fn(TraceLevel, &str);
 
 static CALLBACK: AtomicUsize = AtomicUsize::new(0);

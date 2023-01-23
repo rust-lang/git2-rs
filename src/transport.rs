@@ -25,7 +25,7 @@ pub struct Transport {
 
 /// Interface used by smart transports.
 ///
-/// The full-fledged definiton of transports has to deal with lots of
+/// The full-fledged definition of transports has to deal with lots of
 /// nitty-gritty details of the git protocol, but "smart transports" largely
 /// only need to deal with read() and write() of data over a channel.
 ///
