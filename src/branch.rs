@@ -22,6 +22,8 @@ pub struct Branches<'repo> {
     _marker: marker::PhantomData<References<'repo>>,
 }
 
+unsafe impl<'repo> Send for Branches<'repo> {}
+
 impl<'repo> Branch<'repo> {
     /// Creates Branch type from a Reference
     pub fn wrap(reference: Reference<'_>) -> Branch<'_> {

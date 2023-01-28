@@ -14,11 +14,15 @@ pub struct Pathspec {
     raw: *mut raw::git_pathspec,
 }
 
+unsafe impl Send for Pathspec {}
+
 /// List of filenames matching a pathspec.
 pub struct PathspecMatchList<'ps> {
     raw: *mut raw::git_pathspec_match_list,
     _marker: marker::PhantomData<&'ps Pathspec>,
 }
+
+unsafe impl<'ps> Send for PathspecMatchList<'ps> {}
 
 /// Iterator over the matched paths in a pathspec.
 pub struct PathspecEntries<'list> {

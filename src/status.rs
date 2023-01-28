@@ -44,6 +44,8 @@ pub struct Statuses<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Statuses<'repo> {}
+
 /// An iterator over the statuses in a `Statuses` instance.
 pub struct StatusIter<'statuses> {
     statuses: &'statuses Statuses<'statuses>,

@@ -13,6 +13,8 @@ pub struct Config {
     raw: *mut raw::git_config,
 }
 
+unsafe impl Send for Config {}
+
 /// A struct representing a certain entry owned by a `Config` instance.
 ///
 /// An entry has a name, a value, and a level it applies to.
@@ -58,6 +60,8 @@ pub struct ConfigEntries<'cfg> {
     current: Option<ConfigEntry<'cfg>>,
     _marker: marker::PhantomData<&'cfg Config>,
 }
+
+unsafe impl<'cfg> Send for ConfigEntries<'cfg> {}
 
 impl Config {
     /// Allocate a new configuration object

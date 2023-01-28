@@ -14,6 +14,8 @@ pub struct Tag<'repo> {
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
+unsafe impl<'repo> Send for Tag<'repo> {}
+
 impl<'repo> Tag<'repo> {
     /// Get the id (SHA1) of a repository tag
     pub fn id(&self) -> Oid {

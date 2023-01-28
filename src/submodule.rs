@@ -17,6 +17,8 @@ pub struct Submodule<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Submodule<'repo> {}
+
 impl<'repo> Submodule<'repo> {
     /// Get the submodule's branch.
     ///

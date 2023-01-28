@@ -14,6 +14,8 @@ pub struct Buf {
     raw: raw::git_buf,
 }
 
+unsafe impl<'repo> Send for Buf {}
+
 impl Default for Buf {
     fn default() -> Self {
         Self::new()

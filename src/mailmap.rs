@@ -11,6 +11,8 @@ pub struct Mailmap {
     raw: *mut raw::git_mailmap,
 }
 
+unsafe impl Send for Mailmap {}
+
 impl Binding for Mailmap {
     type Raw = *mut raw::git_mailmap;
 

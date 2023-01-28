@@ -86,6 +86,8 @@ pub struct DiffStats {
     raw: *mut raw::git_diff_stats,
 }
 
+unsafe impl Send for DiffStats {}
+
 /// Structure describing the binary contents of a diff.
 pub struct DiffBinary<'a> {
     raw: *const raw::git_diff_binary,

@@ -12,6 +12,8 @@ pub struct Revwalk<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Revwalk<'repo> {}
+
 /// A `Revwalk` with an associated "hide callback", see `with_hide_callback`
 pub struct RevwalkWithHideCb<'repo, 'cb, C>
 where

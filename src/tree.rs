@@ -27,6 +27,8 @@ pub struct TreeEntry<'tree> {
     _marker: marker::PhantomData<&'tree raw::git_tree_entry>,
 }
 
+unsafe impl<'tree> Send for TreeEntry<'tree> {}
+
 /// An iterator over the entries in a tree.
 pub struct TreeIter<'tree> {
     range: Range<usize>,

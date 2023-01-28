@@ -18,6 +18,8 @@ pub struct Index {
     raw: *mut raw::git_index,
 }
 
+unsafe impl Send for Index {}
+
 /// An iterator over the entries in an index
 pub struct IndexEntries<'index> {
     range: Range<usize>,
@@ -29,6 +31,8 @@ pub struct IndexConflicts<'index> {
     conflict_iter: *mut raw::git_index_conflict_iterator,
     _marker: marker::PhantomData<&'index Index>,
 }
+
+unsafe impl<'index> Send for IndexConflicts<'index> {}
 
 /// A structure to represent the information returned when a conflict is detected in an index entry
 pub struct IndexConflict {

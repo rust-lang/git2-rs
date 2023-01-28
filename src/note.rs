@@ -16,11 +16,15 @@ pub struct Note<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Note<'repo> {}
+
 /// An iterator over all of the notes within a repository.
 pub struct Notes<'repo> {
     raw: *mut raw::git_note_iterator,
     _marker: marker::PhantomData<&'repo Repository>,
 }
+
+unsafe impl<'repo> Send for Notes<'repo> {}
 
 impl<'repo> Note<'repo> {
     /// Get the note author

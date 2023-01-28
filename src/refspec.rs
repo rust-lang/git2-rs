@@ -15,6 +15,8 @@ pub struct Refspec<'remote> {
     _marker: marker::PhantomData<&'remote raw::git_remote>,
 }
 
+unsafe impl<'remote> Send for Refspec<'remote> {}
+
 impl<'remote> Refspec<'remote> {
     /// Get the refspec's direction.
     pub fn direction(&self) -> Direction {

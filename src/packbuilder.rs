@@ -26,6 +26,8 @@ pub struct PackBuilder<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for PackBuilder<'repo> {}
+
 impl<'repo> PackBuilder<'repo> {
     /// Insert a single object. For an optimal pack it's mandatory to insert
     /// objects in recency order, commits followed by trees and blobs.

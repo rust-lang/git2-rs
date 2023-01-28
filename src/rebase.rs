@@ -106,6 +106,8 @@ pub struct Rebase<'repo> {
     _marker: marker::PhantomData<&'repo raw::git_rebase>,
 }
 
+unsafe impl<'repo> Send for Rebase<'repo> {}
+
 impl<'repo> Rebase<'repo> {
     /// Gets the count of rebase operations that are to be applied.
     pub fn len(&self) -> usize {
