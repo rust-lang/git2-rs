@@ -1014,4 +1014,94 @@ mod tests {
         remote.prune(Some(callbacks)).unwrap();
         assert_branch_count(&repo, 0);
     }
+
+    #[test]
+    fn push_negotiation() {
+        let (_td, repo) = crate::test::repo_init();
+        let oid = repo.head().unwrap().target().unwrap();
+
+        let td2 = TempDir::new().unwrap();
+        let url = crate::test::path2url(td2.path());
+        let mut opts = crate::RepositoryInitOptions::new();
+        opts.bare(true);
+        opts.initial_head("main");
+        let remote_repo = Repository::init_opts(td2.path(), &opts).unwrap();
+
+        // reject pushing a branch
+        let mut remote = repo.remote("origin", &url).unwrap();
+        let mut updated = false;
+        {
+            let mut callbacks = RemoteCallbacks::new();
+            callbacks.push_negotiation(|updates| {
+                assert!(!updated);
+                updated = true;
+                assert_eq!(updates.len(), 1);
+                let u = &updates[0];
+                assert_eq!(u.src_refname().unwrap(), "refs/heads/main");
+                assert!(u.src().is_zero());
+                assert_eq!(u.dst_refname().unwrap(), "refs/heads/main");
+                assert_eq!(u.dst(), oid);
+                Err(crate::Error::from_str("rejected"))
+            });
+            let mut options = PushOptions::new();
+            options.remote_callbacks(callbacks);
+            assert!(remote
+                .push(&["refs/heads/main"], Some(&mut options))
+                .is_err());
+        }
+        assert!(updated);
+        assert_eq!(remote_repo.branches(None).unwrap().count(), 0);
+
+        // push 3 branches
+        let commit = repo.find_commit(oid).unwrap();
+        repo.branch("new1", &commit, true).unwrap();
+        repo.branch("new2", &commit, true).unwrap();
+        let mut flag = 0;
+        updated = false;
+        {
+            let mut callbacks = RemoteCallbacks::new();
+            callbacks.push_negotiation(|updates| {
+                assert!(!updated);
+                updated = true;
+                assert_eq!(updates.len(), 3);
+                for u in updates {
+                    assert!(u.src().is_zero());
+                    assert_eq!(u.dst(), oid);
+                    let src_name = u.src_refname().unwrap();
+                    let dst_name = u.dst_refname().unwrap();
+                    match src_name {
+                        "refs/heads/main" => {
+                            assert_eq!(dst_name, src_name);
+                            flag |= 1;
+                        }
+                        "refs/heads/new1" => {
+                            assert_eq!(dst_name, "refs/heads/dev1");
+                            flag |= 2;
+                        }
+                        "refs/heads/new2" => {
+                            assert_eq!(dst_name, "refs/heads/dev2");
+                            flag |= 4;
+                        }
+                        _ => panic!("unexpected refname: {}", src_name),
+                    }
+                }
+                Ok(())
+            });
+            let mut options = PushOptions::new();
+            options.remote_callbacks(callbacks);
+            remote
+                .push(
+                    &[
+                        "refs/heads/main",
+                        "refs/heads/new1:refs/heads/dev1",
+                        "refs/heads/new2:refs/heads/dev2",
+                    ],
+                    Some(&mut options),
+                )
+                .unwrap();
+        }
+        assert!(updated);
+        assert_eq!(flag, 7);
+        assert_eq!(remote_repo.branches(None).unwrap().count(), 3);
+    }
 }
