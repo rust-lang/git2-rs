@@ -1,7 +1,6 @@
 use std::io;
 use std::marker;
 use std::mem::MaybeUninit;
-
 use std::ptr;
 use std::slice;
 
@@ -11,7 +10,6 @@ use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
-
 use crate::{
     raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
 };
