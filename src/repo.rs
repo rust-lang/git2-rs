@@ -1012,6 +1012,11 @@ impl Repository {
     ///
     /// If a custom index has not been set, the default index for the repository
     /// will be returned (the one located in .git/index).
+    ///
+    /// **Caution**: If the [`Repository`] of this index is dropped, then this
+    /// [`Index`] will become detached, and most methods on it will fail. See
+    /// [`Index::open`]. Be sure the repository has a binding such as a local
+    /// variable to keep it alive at least as long as the index.
     pub fn index(&self) -> Result<Index, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
