@@ -336,7 +336,7 @@ pub struct git_checkout_perfdata {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct git_indexer_progress {
     pub total_objects: c_uint,
     pub indexed_objects: c_uint,

@@ -1,5 +1,4 @@
 use std::ffi::CStr;
-use std::mem::MaybeUninit;
 use std::path::Path;
 use std::{io, marker, mem, ptr};
 
@@ -108,7 +107,7 @@ pub type TransportProgress<'a> = IndexerProgress<'a>;
 /// database if, and only if, the pack file is self-contained (i.e. not "thin").
 pub struct Indexer<'odb> {
     raw: *mut raw::git_indexer,
-    progress: MaybeUninit<raw::git_indexer_progress>,
+    progress: raw::git_indexer_progress,
     progress_payload_ptr: *mut OdbPackwriterCb<'odb>,
 }
 
@@ -128,7 +127,6 @@ impl<'a> Indexer<'a> {
         let odb = odb.map(Binding::raw).unwrap_or_else(ptr::null_mut);
 
         let mut out = ptr::null_mut();
-        let progress = MaybeUninit::uninit();
         let progress_cb: raw::git_indexer_progress_cb = Some(write_pack_progress_cb);
         let progress_payload = Box::new(OdbPackwriterCb { cb: None });
         let progress_payload_ptr = Box::into_raw(progress_payload);
@@ -148,7 +146,7 @@ impl<'a> Indexer<'a> {
 
         Ok(Self {
             raw: out,
-            progress,
+            progress: Default::default(),
             progress_payload_ptr,
         })
     }
@@ -161,10 +159,7 @@ impl<'a> Indexer<'a> {
     /// `pack-<checksum>.idx` respectively).
     pub fn commit(mut self) -> Result<String, Error> {
         unsafe {
-            try_call!(raw::git_indexer_commit(
-                self.raw,
-                self.progress.as_mut_ptr()
-            ));
+            try_call!(raw::git_indexer_commit(self.raw, &mut self.progress));
 
             let name = CStr::from_ptr(raw::git_indexer_name(self.raw));
             Ok(name.to_str().expect("pack name not utf8").to_owned())
@@ -191,7 +186,7 @@ impl io::Write for Indexer<'_> {
             let ptr = buf.as_ptr() as *mut c_void;
             let len = buf.len();
 
-            let res = raw::git_indexer_append(self.raw, ptr, len, self.progress.as_mut_ptr());
+            let res = raw::git_indexer_append(self.raw, ptr, len, &mut self.progress);
             if res < 0 {
                 Err(io::Error::new(
                     io::ErrorKind::Other,
