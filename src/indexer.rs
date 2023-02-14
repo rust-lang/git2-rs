@@ -192,9 +192,11 @@ impl io::Write for Indexer<'_> {
             let len = buf.len();
 
             let res = raw::git_indexer_append(self.raw, ptr, len, self.progress.as_mut_ptr());
-
             if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    Error::last_error(res).unwrap(),
+                ))
             } else {
                 Ok(buf.len())
             }
