@@ -2251,6 +2251,7 @@ extern "C" {
     ) -> c_int;
     pub fn git_remote_get_refspec(remote: *const git_remote, n: size_t) -> *const git_refspec;
     pub fn git_remote_is_valid_name(remote_name: *const c_char) -> c_int;
+    pub fn git_remote_name_is_valid(valid: *mut c_int, remote_name: *const c_char) -> c_int;
     pub fn git_remote_list(out: *mut git_strarray, repo: *mut git_repository) -> c_int;
     pub fn git_remote_rename(
         problems: *mut git_strarray,
@@ -2402,6 +2403,7 @@ extern "C" {
     pub fn git_reference_is_remote(r: *const git_reference) -> c_int;
     pub fn git_reference_is_tag(r: *const git_reference) -> c_int;
     pub fn git_reference_is_valid_name(name: *const c_char) -> c_int;
+    pub fn git_reference_name_is_valid(valid: *mut c_int, refname: *const c_char) -> c_int;
     pub fn git_reference_lookup(
         out: *mut *mut git_reference,
         repo: *mut git_repository,
@@ -3224,6 +3226,7 @@ extern "C" {
     pub fn git_tag_target(target_out: *mut *mut git_object, tag: *const git_tag) -> c_int;
     pub fn git_tag_target_id(tag: *const git_tag) -> *const git_oid;
     pub fn git_tag_target_type(tag: *const git_tag) -> git_object_t;
+    pub fn git_tag_name_is_valid(valid: *mut c_int, tag_name: *const c_char) -> c_int;
 
     // checkout
     pub fn git_checkout_head(repo: *mut git_repository, opts: *const git_checkout_options)
