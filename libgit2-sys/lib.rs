@@ -1731,6 +1731,7 @@ git_enum! {
         GIT_STASH_KEEP_INDEX = 1 << 0,
         GIT_STASH_INCLUDE_UNTRACKED = 1 << 1,
         GIT_STASH_INCLUDE_IGNORED = 1 << 2,
+        GIT_STASH_KEEP_ALL = 1 << 3,
     }
 }
 
@@ -1753,6 +1754,17 @@ git_enum! {
         GIT_STASH_APPLY_PROGRESS_DONE,
     }
 }
+
+#[repr(C)]
+pub struct git_stash_save_options {
+    pub version: c_uint,
+    pub flags: c_uint,
+    pub stasher: *const git_signature,
+    pub message: *const c_char,
+    pub paths: git_strarray,
+}
+
+pub const GIT_STASH_SAVE_OPTIONS_VERSION: c_uint = 1;
 
 #[repr(C)]
 pub struct git_stash_apply_options {
@@ -2532,6 +2544,15 @@ extern "C" {
         stasher: *const git_signature,
         message: *const c_char,
         flags: c_uint,
+    ) -> c_int;
+
+    pub fn git_stash_save_options_init(opts: *mut git_stash_save_options, version: c_uint)
+        -> c_int;
+
+    pub fn git_stash_save_with_opts(
+        out: *mut git_oid,
+        repo: *mut git_repository,
+        options: *const git_stash_save_options,
     ) -> c_int;
 
     pub fn git_stash_apply_init_options(

@@ -1,9 +1,72 @@
 use crate::build::CheckoutBuilder;
-use crate::util::Binding;
-use crate::{panic, raw, Oid, StashApplyProgress};
+use crate::util::{self, Binding};
+use crate::{panic, raw, IntoCString, Oid, Signature, StashApplyProgress, StashFlags};
 use libc::{c_char, c_int, c_void, size_t};
-use std::ffi::CStr;
+use std::ffi::{c_uint, CStr, CString};
 use std::mem;
+
+#[allow(unused)]
+/// Stash application options structure
+pub struct StashSaveOptions<'a> {
+    message: Option<CString>,
+    flags: Option<StashFlags>,
+    stasher: Signature<'a>,
+    pathspec: Vec<CString>,
+    pathspec_ptrs: Vec<*const c_char>,
+    raw_opts: raw::git_stash_save_options,
+}
+
+impl<'a> StashSaveOptions<'a> {
+    /// Creates a default
+    pub fn new(stasher: Signature<'a>) -> Self {
+        let mut opts = Self {
+            message: None,
+            flags: None,
+            stasher,
+            pathspec: Vec::new(),
+            pathspec_ptrs: Vec::new(),
+            raw_opts: unsafe { mem::zeroed() },
+        };
+        assert_eq!(
+            unsafe {
+                raw::git_stash_save_options_init(
+                    &mut opts.raw_opts,
+                    raw::GIT_STASH_SAVE_OPTIONS_VERSION,
+                )
+            },
+            0
+        );
+        opts
+    }
+
+    ///
+    pub fn flags(&mut self, flags: Option<StashFlags>) -> &mut Self {
+        self.flags = flags;
+        self
+    }
+
+    /// Add to the array of paths patterns to build the stash.
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut Self {
+        let s = util::cstring_to_repo_path(pathspec).unwrap();
+        self.pathspec_ptrs.push(s.as_ptr());
+        self.pathspec.push(s);
+        self
+    }
+
+    /// Acquire a pointer to the underlying raw options.
+    ///
+    /// This function is unsafe as the pointer is only valid so long as this
+    /// structure is not moved, modified, or used elsewhere.
+    pub unsafe fn raw(&mut self) -> *const raw::git_stash_save_options {
+        self.raw_opts.flags = self.flags.unwrap_or_else(StashFlags::empty).bits as c_uint;
+        self.raw_opts.message = crate::call::convert(&self.message);
+        self.raw_opts.paths.count = self.pathspec_ptrs.len() as size_t;
+        self.raw_opts.paths.strings = self.pathspec_ptrs.as_ptr() as *mut _;
+        self.raw_opts.stasher = self.stasher.raw();
+
+        &self.raw_opts as *const _
+    }
+}
 
 /// Stash application progress notification function.
 ///
@@ -151,12 +214,12 @@ extern "C" fn stash_apply_progress_cb(
 
 #[cfg(test)]
 mod tests {
-    use crate::stash::StashApplyOptions;
+    use crate::stash::{StashApplyOptions, StashSaveOptions};
     use crate::test::repo_init;
-    use crate::{Repository, StashFlags, Status};
+    use crate::{IndexAddOption, Repository, StashFlags, Status};
     use std::fs;
     use std::io::Write;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     fn make_stash<C>(next: C)
     where
@@ -257,5 +320,41 @@ mod tests {
         .unwrap();
 
         assert!(stash_name.starts_with("WIP on main:"));
+    }
+
+    fn create_file(r: &Repository, name: &str, data: &str) -> PathBuf {
+        let p = Path::new(r.workdir().unwrap()).join(name);
+        fs::File::create(&p)
+            .unwrap()
+            .write(data.as_bytes())
+            .unwrap();
+        p
+    }
+
+    #[test]
+    fn test_stash_save_ext() {
+        let (_td, mut repo) = repo_init();
+        let signature = repo.signature().unwrap();
+
+        create_file(&repo, "file_a", "foo");
+        create_file(&repo, "file_b", "foo");
+
+        let mut index = repo.index().unwrap();
+        index
+            .add_all(["*"].iter(), IndexAddOption::DEFAULT, None)
+            .unwrap();
+        index.write().unwrap();
+
+        assert_eq!(repo.statuses(None).unwrap().len(), 2);
+
+        let mut opt = StashSaveOptions::new(signature);
+        opt.pathspec("file_a");
+        repo.stash_save_ext(Some(&mut opt)).unwrap();
+
+        assert_eq!(repo.statuses(None).unwrap().len(), 0);
+
+        repo.stash_pop(0, None).unwrap();
+
+        assert_eq!(repo.statuses(None).unwrap().len(), 1);
     }
 }
