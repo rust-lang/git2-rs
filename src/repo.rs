@@ -817,6 +817,22 @@ impl Repository {
     /// Otherwise, the HEAD will be detached and will directly point to the
     /// commit.
     pub fn set_head(&self, refname: &str) -> Result<(), Error> {
+        self.set_head_bytes(refname.as_bytes())
+    }
+
+    /// Make the repository HEAD point to the specified reference as a byte array.
+    ///
+    /// If the provided reference points to a tree or a blob, the HEAD is
+    /// unaltered and an error is returned.
+    ///
+    /// If the provided reference points to a branch, the HEAD will point to
+    /// that branch, staying attached, or become attached if it isn't yet. If
+    /// the branch doesn't exist yet, no error will be returned. The HEAD will
+    /// then be attached to an unborn branch.
+    ///
+    /// Otherwise, the HEAD will be detached and will directly point to the
+    /// commit.
+    pub fn set_head_bytes(&self, refname: &[u8]) -> Result<(), Error> {
         let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_repository_set_head(self.raw, refname));
@@ -3600,6 +3616,19 @@ mod tests {
         assert!(repo.head().is_ok());
 
         assert!(repo.set_head("*").is_err());
+    }
+
+    #[test]
+    fn smoke_set_head_bytes() {
+        let (_td, repo) = crate::test::repo_init();
+
+        assert!(repo.set_head_bytes(b"refs/heads/does-not-exist").is_ok());
+        assert!(repo.head().is_err());
+
+        assert!(repo.set_head_bytes(b"refs/heads/main").is_ok());
+        assert!(repo.head().is_ok());
+
+        assert!(repo.set_head_bytes(b"*").is_err());
     }
 
     #[test]
