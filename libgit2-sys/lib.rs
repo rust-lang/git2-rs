@@ -25,6 +25,7 @@ pub const GIT_REFDB_BACKEND_VERSION: c_uint = 1;
 pub const GIT_CHERRYPICK_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_APPLY_OPTIONS_VERSION: c_uint = 1;
 pub const GIT_REVERT_OPTIONS_VERSION: c_uint = 1;
+pub const GIT_INDEXER_OPTIONS_VERSION: c_uint = 1;
 
 macro_rules! git_enum {
     (pub enum $name:ident { $($variants:tt)* }) => {
@@ -91,6 +92,7 @@ pub enum git_odb_object {}
 pub enum git_worktree {}
 pub enum git_transaction {}
 pub enum git_mailmap {}
+pub enum git_indexer {}
 
 #[repr(C)]
 pub struct git_revspec {
@@ -334,7 +336,7 @@ pub struct git_checkout_perfdata {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct git_indexer_progress {
     pub total_objects: c_uint,
     pub indexed_objects: c_uint,
@@ -353,6 +355,14 @@ pub type git_indexer_progress_cb =
     note = "renamed to `git_indexer_progress` to match upstream"
 )]
 pub type git_transfer_progress = git_indexer_progress;
+
+#[repr(C)]
+pub struct git_indexer_options {
+    pub version: c_uint,
+    pub progress_cb: git_indexer_progress_cb,
+    pub progress_cb_payload: *mut c_void,
+    pub verify: c_uchar,
+}
 
 pub type git_remote_ready_cb = Option<extern "C" fn(*mut git_remote, c_int, *mut c_void) -> c_int>;
 
@@ -3808,6 +3818,28 @@ extern "C" {
         progress_cb_payload: *mut c_void,
     ) -> c_int;
     pub fn git_packbuilder_free(pb: *mut git_packbuilder);
+
+    // indexer
+    pub fn git_indexer_new(
+        out: *mut *mut git_indexer,
+        path: *const c_char,
+        mode: c_uint,
+        odb: *mut git_odb,
+        opts: *mut git_indexer_options,
+    ) -> c_int;
+    pub fn git_indexer_append(
+        idx: *mut git_indexer,
+        data: *const c_void,
+        size: size_t,
+        stats: *mut git_indexer_progress,
+    ) -> c_int;
+    pub fn git_indexer_commit(idx: *mut git_indexer, stats: *mut git_indexer_progress) -> c_int;
+    #[deprecated = "use `git_indexer_name` to retrieve the filename"]
+    pub fn git_indexer_hash(idx: *const git_indexer) -> *const git_oid;
+    pub fn git_indexer_name(idx: *const git_indexer) -> *const c_char;
+    pub fn git_indexer_free(idx: *mut git_indexer);
+
+    pub fn git_indexer_options_init(opts: *mut git_indexer_options, version: c_uint) -> c_int;
 
     // odb
     pub fn git_repository_odb(out: *mut *mut git_odb, repo: *mut git_repository) -> c_int;

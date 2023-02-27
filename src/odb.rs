@@ -1,6 +1,5 @@
 use std::io;
 use std::marker;
-use std::mem::MaybeUninit;
 use std::ptr;
 use std::slice;
 
@@ -162,7 +161,6 @@ impl<'repo> Odb<'repo> {
     /// Create stream for writing a pack file to the ODB
     pub fn packwriter(&self) -> Result<OdbPackwriter<'_>, Error> {
         let mut out = ptr::null_mut();
-        let progress = MaybeUninit::uninit();
         let progress_cb: raw::git_indexer_progress_cb = Some(write_pack_progress_cb);
         let progress_payload = Box::new(OdbPackwriterCb { cb: None });
         let progress_payload_ptr = Box::into_raw(progress_payload);
@@ -178,7 +176,7 @@ impl<'repo> Odb<'repo> {
 
         Ok(OdbPackwriter {
             raw: out,
-            progress,
+            progress: Default::default(),
             progress_payload_ptr,
         })
     }
@@ -438,14 +436,14 @@ impl<'repo> io::Write for OdbWriter<'repo> {
     }
 }
 
-struct OdbPackwriterCb<'repo> {
-    cb: Option<Box<IndexerProgress<'repo>>>,
+pub(crate) struct OdbPackwriterCb<'repo> {
+    pub(crate) cb: Option<Box<IndexerProgress<'repo>>>,
 }
 
 /// A stream to write a packfile to the ODB
 pub struct OdbPackwriter<'repo> {
     raw: *mut raw::git_odb_writepack,
-    progress: MaybeUninit<raw::git_indexer_progress>,
+    progress: raw::git_indexer_progress,
     progress_payload_ptr: *mut OdbPackwriterCb<'repo>,
 }
 
@@ -455,7 +453,7 @@ impl<'repo> OdbPackwriter<'repo> {
         unsafe {
             let writepack = &*self.raw;
             let res = match writepack.commit {
-                Some(commit) => commit(self.raw, self.progress.as_mut_ptr()),
+                Some(commit) => commit(self.raw, &mut self.progress),
                 None => -1,
             };
 
@@ -489,7 +487,7 @@ impl<'repo> io::Write for OdbPackwriter<'repo> {
 
             let writepack = &*self.raw;
             let res = match writepack.append {
-                Some(append) => append(self.raw, ptr, len, self.progress.as_mut_ptr()),
+                Some(append) => append(self.raw, ptr, len, &mut self.progress),
                 None => -1,
             };
 
@@ -542,7 +540,7 @@ extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int
     .unwrap_or(1)
 }
 
-extern "C" fn write_pack_progress_cb(
+pub(crate) extern "C" fn write_pack_progress_cb(
     stats: *const raw::git_indexer_progress,
     payload: *mut c_void,
 ) -> c_int {
