@@ -596,6 +596,22 @@ impl Index {
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
+
+    /// Find the first position of any entries matching a prefix.
+    ///
+    /// To find the first position of a path inside a given folder, suffix the prefix with a '/'.
+    pub fn find_prefix<T: IntoCString>(&self, prefix: T) -> Result<usize, Error> {
+        let mut at_pos: size_t = 0;
+        let entry_path = prefix.into_c_string()?;
+        unsafe {
+            try_call!(raw::git_index_find_prefix(
+                &mut at_pos,
+                self.raw,
+                entry_path
+            ));
+            Ok(at_pos)
+        }
+    }
 }
 
 impl Binding for Index {
@@ -746,7 +762,7 @@ mod tests {
     use std::path::Path;
     use tempfile::TempDir;
 
-    use crate::{Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
+    use crate::{ErrorCode, Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
 
     #[test]
     fn smoke() {
@@ -855,6 +871,27 @@ mod tests {
         index.add(&e).unwrap();
         let e = index.get(0).unwrap();
         assert_eq!(e.path.len(), 6);
+    }
+
+    #[test]
+    fn add_then_find() {
+        let mut index = Index::new().unwrap();
+        let mut e = entry();
+        e.path = b"foo/bar".to_vec();
+        index.add(&e).unwrap();
+        let mut e = entry();
+        e.path = b"foo2/bar".to_vec();
+        index.add(&e).unwrap();
+        assert_eq!(index.get(0).unwrap().path, b"foo/bar");
+        assert_eq!(
+            index.get_path(Path::new("foo/bar"), 0).unwrap().path,
+            b"foo/bar"
+        );
+        assert_eq!(index.find_prefix(Path::new("foo2/")), Ok(1));
+        assert_eq!(
+            index.find_prefix(Path::new("empty/")).unwrap_err().code(),
+            ErrorCode::NotFound
+        );
     }
 
     #[test]
