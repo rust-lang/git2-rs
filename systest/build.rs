@@ -26,17 +26,11 @@ fn main() {
         // the real name of this field is ref but that is a reserved keyword
         (struct_ == "git_worktree_add_options" && f == "reference")
     });
-    cfg.skip_signededness(|s| {
-        match s {
-            s if s.ends_with("_cb") => true,
-            s if s.ends_with("_callback") => true,
-            "git_push_transfer_progress" | "git_push_negotiation" | "git_packbuilder_progress" => {
-                true
-            }
-            // TODO: fix this on the next major update of libgit2-sys
-            "git_diff_option_t" => true,
-            _ => false,
-        }
+    cfg.skip_signededness(|s| match s {
+        s if s.ends_with("_cb") => true,
+        s if s.ends_with("_callback") => true,
+        "git_push_transfer_progress" | "git_push_negotiation" | "git_packbuilder_progress" => true,
+        _ => false,
     });
 
     // not entirely sure why this is failing...
