@@ -1,32 +1,59 @@
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+fn env_var(name: &str) -> Option<OsString> {
+    let var = env::var_os(name);
+    println!("cargo:rerun-if-env-changed={}", name);
+    var
+}
+
+fn use_system_libgit2() -> Result<(), ()> {
+    let mut cfg = pkg_config::Config::new();
+    if let Ok(lib) = cfg.range_version("1.6.4".."1.7.0").probe("libgit2") {
+        for include in &lib.include_paths {
+            println!("cargo:root={}", include.display());
+        }
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
 fn main() {
-    let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
-    let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
-    let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
-    let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
+    let https = env_var("CARGO_FEATURE_HTTPS").is_some();
+    let ssh = env_var("CARGO_FEATURE_SSH").is_some();
+    let vendored = env_var("CARGO_FEATURE_VENDORED").is_some();
+    let zlib_ng_compat = env_var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_some();
+    let no_vendor = env_var("LIBGIT2_NO_VENDOR").map_or(false, |s| s != "0");
+
+    if no_vendor {
+        if use_system_libgit2().is_err() {
+            panic!("
+
+The environment variable LIBGIT2_NO_VENDOR has been set but no compatible system libgit2 could be found.
+The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VENDOR=0`.
+
+");
+        }
+        return;
+    }
 
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
-    if try_to_use_system_libgit2 {
-        let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.range_version("1.6.4".."1.7.0").probe("libgit2") {
-            for include in &lib.include_paths {
-                println!("cargo:root={}", include.display());
-            }
-            return;
-        }
+    if try_to_use_system_libgit2 && use_system_libgit2().is_ok() {
+        // using system libgit2 has worked
+        return;
     }
 
     println!("cargo:rustc-cfg=libgit2_vendored");
 
     if !Path::new("libgit2/src").exists() {
         let _ = Command::new("git")
-            .args(&["submodule", "update", "--init", "libgit2"])
+            .args(["submodule", "update", "--init", "libgit2"])
             .status();
     }
 
