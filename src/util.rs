@@ -20,13 +20,27 @@ impl<T> IsNull for *mut T {
     }
 }
 
-#[doc(hidden)]
+/// Provides access to the raw libgit2 pointer to be able to interact with libgit2-sys.
+///
+/// If you are going to depend on this trait on your code, do consider contributing to the git2
+/// project to add the missing capabilities to git2.
 pub trait Binding: Sized {
+    /// The raw type that allows you to interact with libgit2-sys.
     type Raw;
 
+    /// Build a git2 struct from its [Binding::Raw] value.
     unsafe fn from_raw(raw: Self::Raw) -> Self;
+
+    /// Access the [Binding::Raw] value for a struct.
+    ///
+    /// The returned value is only safe to use while its associated git2 struct is in scope.
+    /// Once the associated git2 struct is destroyed, the raw value can point to an invalid memory address.
     fn raw(&self) -> Self::Raw;
 
+    /// A null-handling version of [Binding::from_raw].
+    ///
+    /// If the input parameter is null, then the funtion returns None. Otherwise, it
+    /// calls [Binding::from_raw].
     unsafe fn from_raw_opt<T>(raw: T) -> Option<Self>
     where
         T: Copy + IsNull,
