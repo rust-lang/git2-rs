@@ -1098,6 +1098,8 @@ pub enum FileMode {
     Tree,
     /// Blob
     Blob,
+    /// Group writable blob. Obsolete mode kept for compatibility reasons
+    BlobGroupWritable,
     /// Blob executable
     BlobExecutable,
     /// Link
@@ -1112,6 +1114,7 @@ impl From<FileMode> for i32 {
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as i32,
             FileMode::Tree => raw::GIT_FILEMODE_TREE as i32,
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as i32,
+            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as i32,
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as i32,
             FileMode::Link => raw::GIT_FILEMODE_LINK as i32,
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as i32,
@@ -1125,6 +1128,7 @@ impl From<FileMode> for u32 {
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as u32,
             FileMode::Tree => raw::GIT_FILEMODE_TREE as u32,
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as u32,
+            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as u32,
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as u32,
             FileMode::Link => raw::GIT_FILEMODE_LINK as u32,
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as u32,
@@ -1564,8 +1568,10 @@ mod tests {
     #[test]
     fn convert_filemode() {
         assert_eq!(i32::from(FileMode::Blob), 0o100644);
+        assert_eq!(i32::from(FileMode::BlobGroupWritable), 0o100664);
         assert_eq!(i32::from(FileMode::BlobExecutable), 0o100755);
         assert_eq!(u32::from(FileMode::Blob), 0o100644);
+        assert_eq!(u32::from(FileMode::BlobGroupWritable), 0o100664);
         assert_eq!(u32::from(FileMode::BlobExecutable), 0o100755);
     }
 }

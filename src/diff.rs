@@ -621,6 +621,7 @@ impl<'a> DiffFile<'a> {
             raw::GIT_FILEMODE_UNREADABLE => FileMode::Unreadable,
             raw::GIT_FILEMODE_TREE => FileMode::Tree,
             raw::GIT_FILEMODE_BLOB => FileMode::Blob,
+            raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE => FileMode::BlobGroupWritable,
             raw::GIT_FILEMODE_BLOB_EXECUTABLE => FileMode::BlobExecutable,
             raw::GIT_FILEMODE_LINK => FileMode::Link,
             raw::GIT_FILEMODE_COMMIT => FileMode::Commit,
