@@ -198,7 +198,9 @@ impl Repository {
     ///
     /// ceiling_dirs specifies a list of paths that the search through parent
     /// directories will stop before entering.  Use the functions in std::env
-    /// to construct or manipulate such a path list.
+    /// to construct or manipulate such a path list. (You can use `&[] as
+    /// &[&std::ffi::OsStr]` as an argument if there are no ceiling
+    /// directories.)
     pub fn open_ext<P, O, I>(
         path: P,
         flags: RepositoryOpenFlags,
