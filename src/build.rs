@@ -64,7 +64,15 @@ pub struct RepoBuilder<'cb> {
 pub type RemoteCreate<'cb> =
     dyn for<'a> FnMut(&'a Repository, &str, &str) -> Result<Remote<'a>, Error> + 'cb;
 
-/// A builder struct for git tree updates, for use with `git_tree_create_updated`.
+/// A builder struct for git tree updates.
+///
+/// Paths passed to `remove` and `upsert` can be multi-component paths, i.e. they
+/// may contain slashes.
+///
+/// This is a higher-level tree update facility.  There is also [`TreeBuilder`]
+/// which is lower-level (and operates only on one level of the tree at a time).
+///
+/// [`TreeBuilder`]: crate::TreeBuilder
 pub struct TreeUpdateBuilder {
     updates: Vec<raw::git_tree_update>,
     paths: Vec<CString>,
