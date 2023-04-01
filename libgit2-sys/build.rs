@@ -14,13 +14,7 @@ fn main() {
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
     if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
-        // These version ranges specifically request a version that includes
-        // the SSH fixes for CVE-2023-22742 (1.5.1+ or 1.4.5+).
-        if let Ok(lib) = cfg
-            .range_version("1.5.1".."1.6.0")
-            .probe("libgit2")
-            .or_else(|_| cfg.range_version("1.4.5".."1.5.0").probe("libgit2"))
-        {
+        if let Ok(lib) = cfg.range_version("1.6.3".."1.7.0").probe("libgit2") {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
@@ -194,7 +188,7 @@ fn main() {
     }
 
     features.push_str("#endif\n");
-    fs::write(include.join("git2/sys/features.h"), features).unwrap();
+    fs::write(include.join("git2_features.h"), features).unwrap();
 
     cfg.compile("git2");
 

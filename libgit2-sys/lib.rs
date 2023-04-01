@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.14")]
+#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.15")]
 #![allow(non_camel_case_types, unused_extern_crates)]
 
 // This is required to link libz when libssh2-sys is not included.
@@ -1170,37 +1170,40 @@ pub type git_diff_notify_cb = Option<
 pub type git_diff_progress_cb =
     Option<extern "C" fn(*const git_diff, *const c_char, *const c_char, *mut c_void) -> c_int>;
 
-pub type git_diff_option_t = i32;
-pub const GIT_DIFF_NORMAL: git_diff_option_t = 0;
-pub const GIT_DIFF_REVERSE: git_diff_option_t = 1 << 0;
-pub const GIT_DIFF_INCLUDE_IGNORED: git_diff_option_t = 1 << 1;
-pub const GIT_DIFF_RECURSE_IGNORED_DIRS: git_diff_option_t = 1 << 2;
-pub const GIT_DIFF_INCLUDE_UNTRACKED: git_diff_option_t = 1 << 3;
-pub const GIT_DIFF_RECURSE_UNTRACKED_DIRS: git_diff_option_t = 1 << 4;
-pub const GIT_DIFF_INCLUDE_UNMODIFIED: git_diff_option_t = 1 << 5;
-pub const GIT_DIFF_INCLUDE_TYPECHANGE: git_diff_option_t = 1 << 6;
-pub const GIT_DIFF_INCLUDE_TYPECHANGE_TREES: git_diff_option_t = 1 << 7;
-pub const GIT_DIFF_IGNORE_FILEMODE: git_diff_option_t = 1 << 8;
-pub const GIT_DIFF_IGNORE_SUBMODULES: git_diff_option_t = 1 << 9;
-pub const GIT_DIFF_IGNORE_CASE: git_diff_option_t = 1 << 10;
-pub const GIT_DIFF_DISABLE_PATHSPEC_MATCH: git_diff_option_t = 1 << 12;
-pub const GIT_DIFF_SKIP_BINARY_CHECK: git_diff_option_t = 1 << 13;
-pub const GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS: git_diff_option_t = 1 << 14;
-pub const GIT_DIFF_UPDATE_INDEX: git_diff_option_t = 1 << 15;
-pub const GIT_DIFF_INCLUDE_UNREADABLE: git_diff_option_t = 1 << 16;
-pub const GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED: git_diff_option_t = 1 << 17;
-pub const GIT_DIFF_INDENT_HEURISTIC: git_diff_option_t = 1 << 18;
-pub const GIT_DIFF_IGNORE_BLANK_LINES: git_diff_option_t = 1 << 19;
-pub const GIT_DIFF_FORCE_TEXT: git_diff_option_t = 1 << 20;
-pub const GIT_DIFF_FORCE_BINARY: git_diff_option_t = 1 << 21;
-pub const GIT_DIFF_IGNORE_WHITESPACE: git_diff_option_t = 1 << 22;
-pub const GIT_DIFF_IGNORE_WHITESPACE_CHANGE: git_diff_option_t = 1 << 23;
-pub const GIT_DIFF_IGNORE_WHITESPACE_EOL: git_diff_option_t = 1 << 24;
-pub const GIT_DIFF_SHOW_UNTRACKED_CONTENT: git_diff_option_t = 1 << 25;
-pub const GIT_DIFF_SHOW_UNMODIFIED: git_diff_option_t = 1 << 26;
-pub const GIT_DIFF_PATIENCE: git_diff_option_t = 1 << 28;
-pub const GIT_DIFF_MINIMAL: git_diff_option_t = 1 << 29;
-pub const GIT_DIFF_SHOW_BINARY: git_diff_option_t = 1 << 30;
+git_enum! {
+    pub enum git_diff_option_t {
+        GIT_DIFF_NORMAL = 0,
+        GIT_DIFF_REVERSE = 1 << 0,
+        GIT_DIFF_INCLUDE_IGNORED = 1 << 1,
+        GIT_DIFF_RECURSE_IGNORED_DIRS = 1 << 2,
+        GIT_DIFF_INCLUDE_UNTRACKED = 1 << 3,
+        GIT_DIFF_RECURSE_UNTRACKED_DIRS = 1 << 4,
+        GIT_DIFF_INCLUDE_UNMODIFIED = 1 << 5,
+        GIT_DIFF_INCLUDE_TYPECHANGE = 1 << 6,
+        GIT_DIFF_INCLUDE_TYPECHANGE_TREES = 1 << 7,
+        GIT_DIFF_IGNORE_FILEMODE = 1 << 8,
+        GIT_DIFF_IGNORE_SUBMODULES = 1 << 9,
+        GIT_DIFF_IGNORE_CASE = 1 << 10,
+        GIT_DIFF_DISABLE_PATHSPEC_MATCH = 1 << 12,
+        GIT_DIFF_SKIP_BINARY_CHECK = 1 << 13,
+        GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS = 1 << 14,
+        GIT_DIFF_UPDATE_INDEX = 1 << 15,
+        GIT_DIFF_INCLUDE_UNREADABLE = 1 << 16,
+        GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED = 1 << 17,
+        GIT_DIFF_INDENT_HEURISTIC = 1 << 18,
+        GIT_DIFF_IGNORE_BLANK_LINES = 1 << 19,
+        GIT_DIFF_FORCE_TEXT = 1 << 20,
+        GIT_DIFF_FORCE_BINARY = 1 << 21,
+        GIT_DIFF_IGNORE_WHITESPACE = 1 << 22,
+        GIT_DIFF_IGNORE_WHITESPACE_CHANGE = 1 << 23,
+        GIT_DIFF_IGNORE_WHITESPACE_EOL = 1 << 24,
+        GIT_DIFF_SHOW_UNTRACKED_CONTENT = 1 << 25,
+        GIT_DIFF_SHOW_UNMODIFIED = 1 << 26,
+        GIT_DIFF_PATIENCE = 1 << 28,
+        GIT_DIFF_MINIMAL = 1 << 29,
+        GIT_DIFF_SHOW_BINARY = 1 << 30,
+    }
+}
 
 #[repr(C)]
 pub struct git_diff_find_options {

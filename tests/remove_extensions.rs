@@ -6,7 +6,7 @@ use git2::Error;
 #[test]
 fn test_remove_extensions() -> Result<(), Error> {
     unsafe {
-        set_extensions(&["custom", "!ignore", "!noop", "other"])?;
+        set_extensions(&["custom", "!ignore", "!noop", "!objectformat", "other"])?;
     }
 
     let extensions = unsafe { get_extensions() }?;
