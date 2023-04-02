@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.0 - 2023-04-02
+[0.17.0...0.18.0](https://github.com/rust-lang/git2-rs/compare/git2-curl-0.17.0...git2-curl-0.18.0)
+
+- Updated to [git2 0.17.0](../CHANGELOG.md#0170---2023-04-02)
+
 ## 0.17.0 - 2023-01-10
 [0.16.0...0.17.0](https://github.com/rust-lang/git2-rs/compare/git2-curl-0.16.0...git2-curl-0.17.0)
 

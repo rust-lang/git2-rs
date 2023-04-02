@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.15.0+1.6.3 - 2023-04-02
+[0.14.2...0.15.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.14.2+1.5.1...libgit2-sys-0.15.0+1.6.3)
+
+### Added
+
+- Added bindings for `git_remote_name_is_valid`, `git_reference_name_is_valid`, and `git_tag_name_is_valid`.
+  [#882](https://github.com/rust-lang/git2-rs/pull/882)
+- Added bindings for `git_indexer` support.
+  [#911](https://github.com/rust-lang/git2-rs/pull/911)
+- Added bindings for `git_index_find_prefix`.
+  [#903](https://github.com/rust-lang/git2-rs/pull/903)
+- Added support for the deprecated group-writeable blob file mode.
+  [#887](https://github.com/rust-lang/git2-rs/pull/887)
+
+### Changed
+
+- Updated libssh2-sys from 0.2 to 0.3.
+  This brings in numerous changes, including SHA2 algorithm support with RSA.
+  [#919](https://github.com/rust-lang/git2-rs/pull/919)
+- Updated to libgit2 [1.6.3](https://github.com/libgit2/libgit2/blob/main/docs/changelog.md#v163).
+  This brings in many changes, including better SSH host key support on Windows and better SSH host key algorithm negotiation.
+  1.6.3 is now the minimum supported version.
+  [#935](https://github.com/rust-lang/git2-rs/pull/935)
+- The `GIT_DIFF_` constants have been changed to be a `git_diff_option_t` type.
+  [#935](https://github.com/rust-lang/git2-rs/pull/935)
+
+### Fixed
+
+- Fixed the rerun-if-changed build script support on Windows. This is only relevant for those working within the git2-rs source tree.
+  [#916](https://github.com/rust-lang/git2-rs/pull/916)
+
 ## 0.14.2+1.5.1 - 2023-01-20
 [0.14.1...0.14.2](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.14.1+1.5.0...libgit2-sys-0.14.2+1.5.1)
 
