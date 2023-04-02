@@ -9,6 +9,7 @@ use crate::cert::Cert;
 use crate::util::Binding;
 use crate::{
     panic, raw, Cred, CredentialType, Error, IndexerProgress, Oid, PackBuilderStage, Progress,
+    PushUpdate,
 };
 
 /// A structure to contain the callbacks which are invoked when a repository is
@@ -25,6 +26,7 @@ pub struct RemoteCallbacks<'a> {
     update_tips: Option<Box<UpdateTips<'a>>>,
     certificate_check: Option<Box<CertificateCheck<'a>>>,
     push_update_reference: Option<Box<PushUpdateReference<'a>>>,
+    push_negotiation: Option<Box<PushNegotiation<'a>>>,
 }
 
 /// Callback used to acquire credentials for when a remote is fetched.
@@ -87,6 +89,14 @@ pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
 ///     * total
 pub type PackProgress<'a> = dyn FnMut(PackBuilderStage, usize, usize) + 'a;
 
+/// Callback used to inform of upcoming updates.
+///
+/// The argument is a slice containing the updates which will be sent as
+/// commands to the destination.
+///
+/// The push is cancelled if an error is returned.
+pub type PushNegotiation<'a> = dyn FnMut(&[PushUpdate<'_>]) -> Result<(), Error> + 'a;
+
 impl<'a> Default for RemoteCallbacks<'a> {
     fn default() -> Self {
         Self::new()
@@ -105,6 +115,7 @@ impl<'a> RemoteCallbacks<'a> {
             certificate_check: None,
             push_update_reference: None,
             push_progress: None,
+            push_negotiation: None,
         }
     }
 
@@ -211,6 +222,16 @@ impl<'a> RemoteCallbacks<'a> {
         self.pack_progress = Some(Box::new(cb) as Box<PackProgress<'a>>);
         self
     }
+
+    /// The callback is called once between the negotiation step and the upload.
+    /// It provides information about what updates will be performed.
+    pub fn push_negotiation<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    where
+        F: FnMut(&[PushUpdate<'_>]) -> Result<(), Error> + 'a,
+    {
+        self.push_negotiation = Some(Box::new(cb) as Box<PushNegotiation<'a>>);
+        self
+    }
 }
 
 impl<'a> Binding for RemoteCallbacks<'a> {
@@ -255,6 +276,9 @@ impl<'a> Binding for RemoteCallbacks<'a> {
                     *mut c_void,
                 ) -> c_int = update_tips_cb;
                 callbacks.update_tips = Some(f);
+            }
+            if self.push_negotiation.is_some() {
+                callbacks.push_negotiation = Some(push_negotiation_cb);
             }
             callbacks.payload = self as *const _ as *mut _;
             callbacks
@@ -468,6 +492,27 @@ extern "C" fn pack_progress_cb(
         callback(stage, current as usize, total as usize);
 
         0
+    })
+    .unwrap_or(-1)
+}
+
+extern "C" fn push_negotiation_cb(
+    updates: *mut *const raw::git_push_update,
+    len: size_t,
+    payload: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+        let callback = match payload.push_negotiation {
+            Some(ref mut c) => c,
+            None => return 0,
+        };
+
+        let updates = slice::from_raw_parts(updates as *mut PushUpdate<'_>, len);
+        match callback(updates) {
+            Ok(()) => 0,
+            Err(e) => e.raw_code(),
+        }
     })
     .unwrap_or(-1)
 }
