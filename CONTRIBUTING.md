@@ -18,6 +18,7 @@ The following steps can be used to update libgit2:
     * Update the dependency version in [`Cargo.toml`](https://github.com/rust-lang/git2-rs/blob/master/Cargo.toml) to match the version in the last step (do not include the `+` metadata).
       Also update the version of the `git2` crate itself so it will pick up the change to `libgit2-sys` (also keeping in mind if it is a SemVer breaking release).
     * Update the version in [`README.md`](https://github.com/rust-lang/git2-rs/blob/master/README.md) if needed.
+      There are two places, the `Cargo.toml` example and the description of the libgit2 version it binds with.
     * If there was a SemVer-breaking version bump for either library, also update the `html_root_url` attribute in the `lib.rs` of each library.
 3. Run tests.
    `cargo test -p git2 -p git2-curl` is a good starting point.
