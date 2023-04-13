@@ -6,7 +6,7 @@
 ### Changed
 
 - Updated to libgit2 [1.6.4](https://github.com/libgit2/libgit2/releases/tag/v1.6.4).
-  [#935](TODO)
+  [#948](https://github.com/rust-lang/git2-rs/pull/948)
 
 ## 0.17.0 - 2023-04-02
 [0.16.1...0.17.0](https://github.com/rust-lang/git2-rs/compare/0.16.1...0.17.0)
