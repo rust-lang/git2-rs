@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.1+1.6.4 - 2023-04-13
+[0.15.0...0.15.1](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.15.0+1.6.3...libgit2-sys-0.15.1+1.6.4)
+
+### Changed
+
+- Updated to libgit2 [1.6.4](https://github.com/libgit2/libgit2/releases/tag/v1.6.4).
+  This brings in many changes, including better SSH host key support on Windows and better SSH host key algorithm negotiation.
+  1.6.3 is now the minimum supported version.
+  [#935](TODO)
+
 ## 0.15.0+1.6.3 - 2023-04-02
 [0.14.2...0.15.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.14.2+1.5.1...libgit2-sys-0.15.0+1.6.3)
 
