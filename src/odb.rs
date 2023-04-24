@@ -453,7 +453,7 @@ impl<'repo> Drop for OdbPackwriter<'repo> {
                 None => (),
             };
 
-            Box::from_raw(self.progress_payload_ptr);
+            drop(Box::from_raw(self.progress_payload_ptr));
         }
     }
 }
