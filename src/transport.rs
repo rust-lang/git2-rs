@@ -251,7 +251,7 @@ extern "C" fn subtransport_action(
             n => panic!("unknown action: {}", n),
         };
 
-        let mut transport = &mut *(raw_transport as *mut RawSmartSubtransport);
+        let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
         // Note: we only need to generate if rpc is on. Else, for receive-pack and upload-pack
         // libgit2 reuses the stream generated for receive-pack-ls or upload-pack-ls.
         let generate_stream =
