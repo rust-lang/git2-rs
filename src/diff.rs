@@ -266,7 +266,7 @@ impl<'repo> Diff<'repo> {
         assert!(patch_no > 0);
         assert!(patch_no <= total_patches);
         let mut default = DiffFormatEmailOptions::default();
-        let mut raw_opts = opts.map_or(&mut default.raw, |opts| &mut opts.raw);
+        let raw_opts = opts.map_or(&mut default.raw, |opts| &mut opts.raw);
         let summary = commit.summary_bytes().unwrap();
         let mut message = commit.message_bytes();
         assert!(message.starts_with(summary));
