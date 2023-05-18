@@ -1758,7 +1758,7 @@ git_enum! {
 #[repr(C)]
 pub struct git_stash_save_options {
     pub version: c_uint,
-    pub flags: c_uint,
+    pub flags: u32,
     pub stasher: *const git_signature,
     pub message: *const c_char,
     pub paths: git_strarray,
