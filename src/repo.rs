@@ -12,7 +12,7 @@ use crate::diff::{
     binary_cb_c, file_cb_c, hunk_cb_c, line_cb_c, BinaryCb, DiffCallbacks, FileCb, HunkCb, LineCb,
 };
 use crate::oid_array::OidArray;
-use crate::stash::{stash_cb, StashApplyOptions, StashCbData};
+use crate::stash::{stash_cb, StashApplyOptions, StashCbData, StashSaveOptions};
 use crate::string_array::StringArray;
 use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
@@ -2839,6 +2839,25 @@ impl Repository {
                 stasher.raw(),
                 message,
                 flags.bits() as c_uint
+            ));
+            Ok(Binding::from_raw(&raw_oid as *const _))
+        }
+    }
+
+    /// Like `stash_save` but with more options like selective statshing via path patterns.
+    pub fn stash_save_ext(
+        &mut self,
+        opts: Option<&mut StashSaveOptions<'_>>,
+    ) -> Result<Oid, Error> {
+        unsafe {
+            let mut raw_oid = raw::git_oid {
+                id: [0; raw::GIT_OID_RAWSZ],
+            };
+            let opts = opts.map(|opts| opts.raw());
+            try_call!(raw::git_stash_save_with_opts(
+                &mut raw_oid,
+                self.raw(),
+                opts
             ));
             Ok(Binding::from_raw(&raw_oid as *const _))
         }

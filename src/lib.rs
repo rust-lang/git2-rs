@@ -1465,6 +1465,8 @@ bitflags! {
         /// All ignored files are also stashed and then cleaned up from
         /// the working directory
         const INCLUDE_IGNORED = raw::GIT_STASH_INCLUDE_IGNORED as u32;
+        /// All changes in the index and working directory are left intact
+        const KEEP_ALL = raw::GIT_STASH_KEEP_ALL as u32;
     }
 }
 
