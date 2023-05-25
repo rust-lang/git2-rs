@@ -39,7 +39,7 @@ impl<'a> StashSaveOptions<'a> {
         opts
     }
 
-    ///
+    /// Customize optional `flags` field
     pub fn flags(&mut self, flags: Option<StashFlags>) -> &mut Self {
         self.flags = flags;
         self
@@ -218,7 +218,6 @@ mod tests {
     use crate::test::repo_init;
     use crate::{IndexAddOption, Repository, StashFlags, Status};
     use std::fs;
-    use std::io::Write;
     use std::path::{Path, PathBuf};
 
     fn make_stash<C>(next: C)
@@ -230,10 +229,8 @@ mod tests {
 
         let p = Path::new(repo.workdir().unwrap()).join("file_b.txt");
         println!("using path {:?}", p);
-        fs::File::create(&p)
-            .unwrap()
-            .write("data".as_bytes())
-            .unwrap();
+
+        fs::write(&p, "data".as_bytes()).unwrap();
 
         let rel_p = Path::new("file_b.txt");
         assert!(repo.status_file(&rel_p).unwrap() == Status::WT_NEW);
@@ -303,10 +300,7 @@ mod tests {
 
         let p = Path::new(repo.workdir().unwrap()).join("file_b.txt");
 
-        fs::File::create(&p)
-            .unwrap()
-            .write("data".as_bytes())
-            .unwrap();
+        fs::write(&p, "data".as_bytes()).unwrap();
 
         repo.stash_save2(&signature, None, Some(StashFlags::INCLUDE_UNTRACKED))
             .unwrap();
@@ -324,10 +318,7 @@ mod tests {
 
     fn create_file(r: &Repository, name: &str, data: &str) -> PathBuf {
         let p = Path::new(r.workdir().unwrap()).join(name);
-        fs::File::create(&p)
-            .unwrap()
-            .write(data.as_bytes())
-            .unwrap();
+        fs::write(&p, data).unwrap();
         p
     }
 
