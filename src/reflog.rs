@@ -1,4 +1,5 @@
 use libc::size_t;
+use std::iter::FusedIterator;
 use std::marker;
 use std::ops::Range;
 use std::str;
@@ -174,6 +175,7 @@ impl<'reflog> DoubleEndedIterator for ReflogIter<'reflog> {
         self.range.next_back().and_then(|i| self.reflog.get(i))
     }
 }
+impl<'reflog> FusedIterator for ReflogIter<'reflog> {}
 impl<'reflog> ExactSizeIterator for ReflogIter<'reflog> {}
 
 #[cfg(test)]

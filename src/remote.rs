@@ -1,5 +1,6 @@
 use libc;
 use raw::git_strarray;
+use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
@@ -462,6 +463,7 @@ impl<'repo> DoubleEndedIterator for Refspecs<'repo> {
             .and_then(|i| self.remote.get_refspec(i))
     }
 }
+impl<'repo> FusedIterator for Refspecs<'repo> {}
 impl<'repo> ExactSizeIterator for Refspecs<'repo> {}
 
 #[allow(missing_docs)] // not documented in libgit2 :(
