@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.2 - 2023-05-27
+[0.17.1...0.17.2](https://github.com/rust-lang/git2-rs/compare/0.17.1...0.17.2)
+
+### Added
+- Added support for stashing with options (which can support partial stashing).
+  [#930](https://github.com/rust-lang/git2-rs/pull/930)
+
 ## 0.17.1 - 2023-04-13
 [0.17.0...0.17.1](https://github.com/rust-lang/git2-rs/compare/0.17.0...0.17.1)
 

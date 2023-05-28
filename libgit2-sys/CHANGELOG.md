@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.2+1.6.4 - 2023-05-27
+[0.15.1...0.15.2](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.15.1+1.6.4...libgit2-sys-0.15.2+1.6.4)
+
+### Added
+
+- Added bindings for stash options.
+  [#930](https://github.com/rust-lang/git2-rs/pull/930)
+
 ## 0.15.1+1.6.4 - 2023-04-13
 [0.15.0...0.15.1](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.15.0+1.6.3...libgit2-sys-0.15.1+1.6.4)
 
