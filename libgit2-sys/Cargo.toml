@@ -26,11 +26,11 @@ libssh2-sys = { version = "0.3.0", optional = true }
 libz-sys = { version = "1.1.0", default-features = false, features = ["libc"] }
 
 [build-dependencies]
-pkg-config = "0.3.7"
+pkg-config = "0.3.15"
 cc = { version = "1.0.43", features = ['parallel'] }
 
 [target.'cfg(unix)'.dependencies]
-openssl-sys = { version = "0.9", optional = true }
+openssl-sys = { version = "0.9.45", optional = true }
 
 [features]
 ssh = ["libssh2-sys"]
