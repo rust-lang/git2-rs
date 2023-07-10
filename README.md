@@ -21,6 +21,11 @@ source for libgit2 is included in the libgit2-sys crate so there's no need to
 pre-install the libgit2 library, the libgit2-sys crate will figure that and/or
 build that for you.
 
+You can enable the Cargo feature `vendored-libgit2` to always compile and
+statically link to a copy of libgit2. Sometimes the libgit2 on the system is
+required to be found and used even when `vendored-libgit2` is activated. In
+this case, you shall set the environment variable `LIBGIT2_NO_VENDOR=1`.
+
 ## Building git2-rs
 
 ```sh

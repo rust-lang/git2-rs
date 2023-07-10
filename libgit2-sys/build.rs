@@ -4,22 +4,55 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Tries to use system libgit2 and emits necessary build script instructions.
+fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
+    let mut cfg = pkg_config::Config::new();
+    match cfg.range_version("1.7.0".."1.8.0").probe("libgit2") {
+        Ok(lib) => {
+            for include in &lib.include_paths {
+                println!("cargo:root={}", include.display());
+            }
+            Ok(lib)
+        }
+        Err(e) => {
+            println!("cargo:warning=failed to probe system libgit2: {e}");
+            Err(e)
+        }
+    }
+}
+
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
     let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
 
+    // Specify `LIBGIT2_NO_VENDOR` to force to use system libgit2.
+    // Due to the additive nature of Cargo features, if some crate in the
+    // dependency graph activates `vendored` feature, there is no way to revert
+    // it back. This env var serves as a workaround for this purpose.
+    println!("cargo:rerun-if-env-changed=LIBGIT2_NO_VENDOR");
+    let forced_no_vendor = env::var_os("LIBGIT2_NO_VENDOR").map_or(false, |s| s != "0");
+
+    if forced_no_vendor {
+        if try_system_libgit2().is_err() {
+            panic!(
+                "\
+The environment variable `LIBGIT2_NO_VENDOR` has been set but no compatible system libgit2 could be found.
+The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VENDOR=0`.
+",
+            );
+        }
+
+        // We've reached here, implying we're using system libgit2.
+        return;
+    }
+
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
-    if try_to_use_system_libgit2 {
-        let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.range_version("1.7.0".."1.8.0").probe("libgit2") {
-            for include in &lib.include_paths {
-                println!("cargo:root={}", include.display());
-            }
-            return;
-        }
+    if try_to_use_system_libgit2 && try_system_libgit2().is_ok() {
+        // using system libgit2 has worked
+        return;
     }
 
     println!("cargo:rustc-cfg=libgit2_vendored");
