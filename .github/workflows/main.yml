@@ -31,8 +31,8 @@ jobs:
       shell: bash
     - run: cargo test --no-default-features
     - run: cargo test
-    - run: cargo run --manifest-path systest/Cargo.toml
-    - run: cargo test --manifest-path git2-curl/Cargo.toml
+    - run: cargo run -p systest
+    - run: cargo test -p git2-curl
 
   rustfmt:
     name: Rustfmt
