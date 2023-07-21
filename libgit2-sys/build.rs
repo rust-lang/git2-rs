@@ -122,6 +122,14 @@ fn main() {
         features.push_str("#define GIT_USE_NSEC 1\n");
     }
 
+    if windows {
+        features.push_str("#define GIT_IO_WSAPOLL 1\n");
+    } else {
+        // Should we fallback to `select` as more systems have that?
+        features.push_str("#define GIT_IO_POLL 1\n");
+        features.push_str("#define GIT_IO_SELECT 1\n");
+    }
+
     if target.contains("apple") {
         features.push_str("#define GIT_USE_STAT_MTIMESPEC 1\n");
     } else {
