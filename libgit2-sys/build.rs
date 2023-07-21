@@ -210,6 +210,7 @@ fn main() {
         println!("cargo:rustc-link-lib=rpcrt4");
         println!("cargo:rustc-link-lib=ole32");
         println!("cargo:rustc-link-lib=crypt32");
+        println!("cargo:rustc-link-lib=secur32");
     }
 
     if target.contains("apple") {
