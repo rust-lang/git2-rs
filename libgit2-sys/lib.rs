@@ -1147,10 +1147,19 @@ pub struct git_diff_options {
     pub payload: *mut c_void,
     pub context_lines: u32,
     pub interhunk_lines: u32,
+    pub oid_type: git_oid_t,
     pub id_abbrev: u16,
     pub max_size: git_off_t,
     pub old_prefix: *const c_char,
     pub new_prefix: *const c_char,
+}
+
+git_enum! {
+    pub enum git_oid_t {
+        GIT_OID_SHA1 = 1,
+        // SHA256 is still experimental so we are not going to enable it.
+        /* GIT_OID_SHA256 = 2, */
+    }
 }
 
 git_enum! {
