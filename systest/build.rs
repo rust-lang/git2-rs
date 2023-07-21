@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let mut cfg = ctest::TestGenerator::new();
+    let mut cfg = ctest2::TestGenerator::new();
     if let Some(root) = env::var_os("DEP_GIT2_ROOT") {
         cfg.include(PathBuf::from(root).join("include"));
     }

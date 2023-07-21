@@ -10,4 +10,4 @@ libgit2-sys = { path = "../libgit2-sys", features = ['https', 'ssh'] }
 libc = "0.2"
 
 [build-dependencies]
-ctest = "0.2.17"
+ctest2 = "0.4"
