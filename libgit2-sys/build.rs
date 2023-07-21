@@ -49,7 +49,6 @@ fn main() {
     // Include all cross-platform C files
     add_c_files(&mut cfg, "libgit2/src/libgit2");
     add_c_files(&mut cfg, "libgit2/src/util");
-    add_c_files(&mut cfg, "libgit2/src/libgit2/xdiff");
 
     // These are activated by features, but they're all unconditionally always
     // compiled apparently and have internal #define's to make sure they're
@@ -60,6 +59,10 @@ fn main() {
     // Always use bundled http-parser for now
     cfg.include("libgit2/deps/http-parser")
         .file("libgit2/deps/http-parser/http_parser.c");
+
+    // external/system xdiff is not yet supported
+    cfg.include("libgit2/deps/xdiff");
+    add_c_files(&mut cfg, "libgit2/deps/xdiff");
 
     // Use the included PCRE regex backend.
     //
