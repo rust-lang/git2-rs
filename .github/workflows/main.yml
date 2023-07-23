@@ -31,10 +31,8 @@ jobs:
       shell: bash
     - run: cargo test --no-default-features
     - run: cargo test
-    # skip systest on nightly because it requires the extprim crate which fails to compile on nightly rust
-    - run: if [[ "${{ matrix.rust }}" != "nightly" ]]; then cargo run --manifest-path systest/Cargo.toml; fi
-      shell: bash
-    - run: cargo test --manifest-path git2-curl/Cargo.toml
+    - run: cargo run -p systest
+    - run: cargo test -p git2-curl
 
   rustfmt:
     name: Rustfmt
