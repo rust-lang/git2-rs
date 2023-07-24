@@ -157,7 +157,7 @@ impl<'repo> Revwalk<'repo> {
     /// the walk.
     pub fn with_hide_callback<'cb, C>(
         self,
-        callback: &'cb C,
+        callback: &'cb mut C,
     ) -> Result<RevwalkWithHideCb<'repo, 'cb, C>, Error>
     where
         C: FnMut(Oid) -> bool,
@@ -170,7 +170,7 @@ impl<'repo> Revwalk<'repo> {
             raw::git_revwalk_add_hide_cb(
                 r.revwalk.raw(),
                 Some(revwalk_hide_cb::<C>),
-                callback as *const _ as *mut c_void,
+                callback as *mut _ as *mut c_void,
             );
         };
         Ok(r)
@@ -304,8 +304,8 @@ mod tests {
         walk.reset().unwrap();
         walk.push_head().unwrap();
 
-        let hide_cb = |oid| oid == target;
-        let mut walk = walk.with_hide_callback(&hide_cb).unwrap();
+        let mut hide_cb = |oid| oid == target;
+        let mut walk = walk.with_hide_callback(&mut hide_cb).unwrap();
 
         assert_eq!(walk.by_ref().count(), 0);
 
