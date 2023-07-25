@@ -14,7 +14,7 @@ fn main() {
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
     if try_to_use_system_libgit2 {
         let mut cfg = pkg_config::Config::new();
-        if let Ok(lib) = cfg.range_version("1.6.4".."1.7.0").probe("libgit2") {
+        if let Ok(lib) = cfg.range_version("1.7.0".."1.8.0").probe("libgit2") {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
             }
@@ -49,7 +49,6 @@ fn main() {
     // Include all cross-platform C files
     add_c_files(&mut cfg, "libgit2/src/libgit2");
     add_c_files(&mut cfg, "libgit2/src/util");
-    add_c_files(&mut cfg, "libgit2/src/libgit2/xdiff");
 
     // These are activated by features, but they're all unconditionally always
     // compiled apparently and have internal #define's to make sure they're
@@ -60,6 +59,10 @@ fn main() {
     // Always use bundled http-parser for now
     cfg.include("libgit2/deps/http-parser")
         .file("libgit2/deps/http-parser/http_parser.c");
+
+    // external/system xdiff is not yet supported
+    cfg.include("libgit2/deps/xdiff");
+    add_c_files(&mut cfg, "libgit2/deps/xdiff");
 
     // Use the included PCRE regex backend.
     //
@@ -117,6 +120,14 @@ fn main() {
 
     if !target.contains("android") {
         features.push_str("#define GIT_USE_NSEC 1\n");
+    }
+
+    if windows {
+        features.push_str("#define GIT_IO_WSAPOLL 1\n");
+    } else {
+        // Should we fallback to `select` as more systems have that?
+        features.push_str("#define GIT_IO_POLL 1\n");
+        features.push_str("#define GIT_IO_SELECT 1\n");
     }
 
     if target.contains("apple") {
@@ -199,6 +210,7 @@ fn main() {
         println!("cargo:rustc-link-lib=rpcrt4");
         println!("cargo:rustc-link-lib=ole32");
         println!("cargo:rustc-link-lib=crypt32");
+        println!("cargo:rustc-link-lib=secur32");
     }
 
     if target.contains("apple") {

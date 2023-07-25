@@ -6,7 +6,7 @@ libgit2 bindings for Rust.
 
 ```toml
 [dependencies]
-git2 = "0.17.2"
+git2 = "0.18.0"
 ```
 
 ## Rust version requirements
@@ -16,7 +16,7 @@ stable release as well.
 
 ## Version of libgit2
 
-Currently this library requires libgit2 1.6.4 (or newer patch versions). The
+Currently this library requires libgit2 1.7.0 (or newer patch versions). The
 source for libgit2 is included in the libgit2-sys crate so there's no need to
 pre-install the libgit2 library, the libgit2-sys crate will figure that and/or
 build that for you.

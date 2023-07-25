@@ -588,6 +588,7 @@ impl<'cb> Binding for FetchOptions<'cb> {
             prune: crate::call::convert(&self.prune),
             update_fetchhead: crate::call::convert(&self.update_fetchhead),
             download_tags: crate::call::convert(&self.download_tags),
+            depth: 0, // GIT_FETCH_DEPTH_FULL.
             follow_redirects: self.follow_redirects.raw(),
             custom_headers: git_strarray {
                 count: self.custom_headers_ptrs.len(),

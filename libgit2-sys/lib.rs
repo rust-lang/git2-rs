@@ -394,8 +394,18 @@ pub struct git_fetch_options {
     pub update_fetchhead: c_int,
     pub download_tags: git_remote_autotag_option_t,
     pub proxy_opts: git_proxy_options,
+    pub depth: c_int,
     pub follow_redirects: git_remote_redirect_t,
     pub custom_headers: git_strarray,
+}
+
+#[repr(C)]
+pub struct git_fetch_negotiation {
+    refs: *const *const git_remote_head,
+    refs_len: size_t,
+    shallow_roots: *mut git_oid,
+    shallow_roots_len: size_t,
+    depth: c_int,
 }
 
 git_enum! {
@@ -1137,10 +1147,19 @@ pub struct git_diff_options {
     pub payload: *mut c_void,
     pub context_lines: u32,
     pub interhunk_lines: u32,
+    pub oid_type: git_oid_t,
     pub id_abbrev: u16,
     pub max_size: git_off_t,
     pub old_prefix: *const c_char,
     pub new_prefix: *const c_char,
+}
+
+git_enum! {
+    pub enum git_oid_t {
+        GIT_OID_SHA1 = 1,
+        // SHA256 is still experimental so we are not going to enable it.
+        /* GIT_OID_SHA256 = 2, */
+    }
 }
 
 git_enum! {
@@ -1406,10 +1425,11 @@ pub struct git_transport {
         extern "C" fn(
             transport: *mut git_transport,
             repo: *mut git_repository,
-            refs: *const *const git_remote_head,
-            count: size_t,
+            fetch_data: *const git_fetch_negotiation,
         ) -> c_int,
     >,
+    pub shallow_roots:
+        Option<extern "C" fn(out: *mut git_oidarray, transport: *mut git_transport) -> c_int>,
     pub download_pack: Option<
         extern "C" fn(
             transport: *mut git_transport,
