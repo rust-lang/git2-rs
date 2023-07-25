@@ -20,6 +20,8 @@ pub struct TreeBuilder<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for TreeBuilder<'repo> {}
+
 impl<'repo> TreeBuilder<'repo> {
     /// Clear all the entries in the builder
     pub fn clear(&mut self) -> Result<(), Error> {

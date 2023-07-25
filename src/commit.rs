@@ -16,6 +16,8 @@ pub struct Commit<'repo> {
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
+unsafe impl<'repo> Send for Commit<'repo> {}
+
 /// An iterator over the parent commits of a commit.
 ///
 /// Aborts iteration when a commit cannot be found

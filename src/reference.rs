@@ -26,11 +26,15 @@ pub struct Reference<'repo> {
     _marker: marker::PhantomData<Refdb<'repo>>,
 }
 
+unsafe impl<'repo> Send for Reference<'repo> {}
+
 /// An iterator over the references in a repository.
 pub struct References<'repo> {
     raw: *mut raw::git_reference_iterator,
     _marker: marker::PhantomData<Refdb<'repo>>,
 }
+
+unsafe impl<'repo> Send for References<'repo> {}
 
 /// An iterator over the names of references in a repository.
 pub struct ReferenceNames<'repo, 'references> {

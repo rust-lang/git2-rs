@@ -11,11 +11,15 @@ pub struct Reflog {
     raw: *mut raw::git_reflog,
 }
 
+unsafe impl Send for Reflog {}
+
 /// An entry inside the reflog of a repository
 pub struct ReflogEntry<'reflog> {
     raw: *const raw::git_reflog_entry,
     _marker: marker::PhantomData<&'reflog Reflog>,
 }
+
+unsafe impl<'reflog> Send for ReflogEntry<'reflog> {}
 
 /// An iterator over the entries inside of a reflog.
 pub struct ReflogIter<'reflog> {

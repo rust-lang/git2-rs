@@ -11,6 +11,8 @@ pub struct Blame<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Blame<'repo> {}
+
 /// Structure that represents a blame hunk.
 pub struct BlameHunk<'blame> {
     raw: *mut raw::git_blame_hunk,

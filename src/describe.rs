@@ -15,6 +15,8 @@ pub struct Describe<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Describe<'repo> {}
+
 /// Options which indicate how a `Describe` is created.
 pub struct DescribeOptions {
     raw: raw::git_describe_options,

@@ -14,6 +14,8 @@ pub struct Transaction<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Transaction<'repo> {}
+
 impl Drop for Transaction<'_> {
     fn drop(&mut self) {
         unsafe { raw::git_transaction_free(self.raw) }

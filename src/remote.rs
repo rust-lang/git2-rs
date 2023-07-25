@@ -24,6 +24,8 @@ pub struct Remote<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
+unsafe impl<'repo> Send for Remote<'repo> {}
+
 /// An iterator over the refspecs that a remote contains.
 pub struct Refspecs<'remote> {
     range: Range<usize>,

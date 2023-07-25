@@ -17,6 +17,8 @@ pub struct AnnotatedCommit<'repo> {
     _marker: marker::PhantomData<Commit<'repo>>,
 }
 
+unsafe impl<'repo> Send for AnnotatedCommit<'repo> {}
+
 /// Options to specify when merging.
 pub struct MergeOptions {
     raw: raw::git_merge_options,

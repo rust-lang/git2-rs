@@ -15,6 +15,8 @@ pub struct Tag<'repo> {
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
+unsafe impl<'repo> Send for Tag<'repo> {}
+
 impl<'repo> Tag<'repo> {
     /// Determine whether a tag name is valid, meaning that (when prefixed with refs/tags/) that
     /// it is a valid reference name, and that any additional tag name restrictions are imposed
