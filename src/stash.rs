@@ -58,7 +58,7 @@ impl<'a> StashSaveOptions<'a> {
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.
     pub unsafe fn raw(&mut self) -> *const raw::git_stash_save_options {
-        self.raw_opts.flags = self.flags.unwrap_or_else(StashFlags::empty).bits as c_uint;
+        self.raw_opts.flags = self.flags.unwrap_or_else(StashFlags::empty).bits() as c_uint;
         self.raw_opts.message = crate::call::convert(&self.message);
         self.raw_opts.paths.count = self.pathspec_ptrs.len() as size_t;
         self.raw_opts.paths.strings = self.pathspec_ptrs.as_ptr() as *mut _;
