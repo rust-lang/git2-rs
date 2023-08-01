@@ -52,15 +52,12 @@ Checklist for preparing for a release:
     - [`libgit2-sys/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/master/libgit2-sys/CHANGELOG.md)
     - [`git2-curl/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/master/git2-curl/CHANGELOG.md)
 
-To publish the new release:
+There is a GitHub workflow to handle publishing to crates.io and tagging the release. There are two different ways to run it:
 
-- In a fresh clone, make sure you run `git submodule update`.
-- For each updated package, run `cargo publish` (`libgit2-sys` then `git2` then `git2-curl`).
-- Set tags for each package that was update:
-    - `git tag 0.16.1`
-    - `git tag libgit2-sys-0.14.2+1.5.1`
-    - `git tag git2-curl-0.17.0`
-- Push the tags (substitute the "origin" remote name if you are using a different name):
-    - `git push origin 0.16.1`
-    - `git push origin libgit2-sys-0.14.2+1.5.1`
-    - `git push origin git2-curl-0.17.0`
+- In the GitHub web UI:
+    1. Go to <https://github.com/rust-lang/git2-rs/actions/workflows/publish.yml> (you can navigate here via the "Actions" tab at the top).
+    2. Click the "Run workflow" drop-down on the right.
+    3. Choose which crates to publish. It's OK to leave everything checked, it will skip if it is already published. Uncheck a crate if the version has been bumped in git, but you don't want to publish that particular one, yet.
+    4. Click "Run workflow"
+- In the CLI:
+    1. Run `gh workflow run publish.yml -R rust-lang/git2-rs`

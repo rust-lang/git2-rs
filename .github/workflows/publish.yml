@@ -1,0 +1,33 @@
+name: Publish
+on:
+  workflow_dispatch:
+    inputs:
+      git2:
+        description: "Publish git2"
+        type: boolean
+        default: true
+      git2_curl:
+        description: "Publish git2-curl"
+        type: boolean
+        default: true
+      libgit2_sys:
+        description: "Publish libgit2-sys"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          PUBLISH_GIT2: ${{ inputs.git2 }}
+          PUBLISH_GIT2_CURL: ${{ inputs.git2_curl }}
+          PUBLISH_LIBGIT2_SYS: ${{ inputs.libgit2_sys }}
+        run: ./ci/publish.sh
