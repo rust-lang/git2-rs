@@ -1,5 +1,5 @@
 use libc::size_t;
-use std::iter::IntoIterator;
+use std::iter::{FusedIterator, IntoIterator};
 use std::marker;
 use std::ops::Range;
 use std::path::Path;
@@ -297,6 +297,7 @@ impl<'list> DoubleEndedIterator for PathspecEntries<'list> {
         self.range.next_back().and_then(|i| self.list.entry(i))
     }
 }
+impl<'list> FusedIterator for PathspecEntries<'list> {}
 impl<'list> ExactSizeIterator for PathspecEntries<'list> {}
 
 impl<'list> Iterator for PathspecDiffEntries<'list> {
@@ -313,6 +314,7 @@ impl<'list> DoubleEndedIterator for PathspecDiffEntries<'list> {
         self.range.next_back().and_then(|i| self.list.diff_entry(i))
     }
 }
+impl<'list> FusedIterator for PathspecDiffEntries<'list> {}
 impl<'list> ExactSizeIterator for PathspecDiffEntries<'list> {}
 
 impl<'list> Iterator for PathspecFailedEntries<'list> {
@@ -331,6 +333,7 @@ impl<'list> DoubleEndedIterator for PathspecFailedEntries<'list> {
             .and_then(|i| self.list.failed_entry(i))
     }
 }
+impl<'list> FusedIterator for PathspecFailedEntries<'list> {}
 impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 
 #[cfg(test)]

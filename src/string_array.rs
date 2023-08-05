@@ -1,5 +1,6 @@
 //! Bindings to libgit2's raw `git_strarray` type
 
+use std::iter::FusedIterator;
 use std::ops::Range;
 use std::str;
 
@@ -108,6 +109,7 @@ impl<'a> DoubleEndedIterator for Iter<'a> {
         self.range.next_back().map(|i| self.arr.get(i))
     }
 }
+impl<'a> FusedIterator for Iter<'a> {}
 impl<'a> ExactSizeIterator for Iter<'a> {}
 
 impl<'a> Iterator for IterBytes<'a> {
@@ -124,6 +126,7 @@ impl<'a> DoubleEndedIterator for IterBytes<'a> {
         self.range.next_back().and_then(|i| self.arr.get_bytes(i))
     }
 }
+impl<'a> FusedIterator for IterBytes<'a> {}
 impl<'a> ExactSizeIterator for IterBytes<'a> {}
 
 impl Drop for StringArray {

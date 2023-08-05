@@ -1,6 +1,7 @@
 use libc::{self, c_char, c_int, c_void};
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
+use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
@@ -401,6 +402,7 @@ impl<'tree> DoubleEndedIterator for TreeIter<'tree> {
         self.range.next_back().and_then(|i| self.tree.get(i))
     }
 }
+impl<'tree> FusedIterator for TreeIter<'tree> {}
 impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]

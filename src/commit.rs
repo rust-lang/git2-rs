@@ -1,4 +1,5 @@
 use libc;
+use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
@@ -376,6 +377,8 @@ impl<'repo, 'commit> DoubleEndedIterator for Parents<'commit, 'repo> {
     }
 }
 
+impl<'repo, 'commit> FusedIterator for Parents<'commit, 'repo> {}
+
 impl<'repo, 'commit> ExactSizeIterator for Parents<'commit, 'repo> {}
 
 /// Aborts iteration when a commit cannot be found
@@ -399,6 +402,8 @@ impl<'commit> DoubleEndedIterator for ParentIds<'commit> {
             .and_then(|i| self.commit.parent_id(i).ok())
     }
 }
+
+impl<'commit> FusedIterator for ParentIds<'commit> {}
 
 impl<'commit> ExactSizeIterator for ParentIds<'commit> {}
 

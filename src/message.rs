@@ -1,6 +1,7 @@
 use core::ops::Range;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::iter::FusedIterator;
 use std::ptr;
 
 use libc::{c_char, c_int};
@@ -171,6 +172,8 @@ impl<'pair> Iterator for MessageTrailersStrsIterator<'pair> {
     }
 }
 
+impl FusedIterator for MessageTrailersStrsIterator<'_> {}
+
 impl ExactSizeIterator for MessageTrailersStrsIterator<'_> {
     fn len(&self) -> usize {
         self.0.range.len()
@@ -212,6 +215,8 @@ impl<'pair> Iterator for MessageTrailersBytesIterator<'pair> {
         self.0.range.size_hint()
     }
 }
+
+impl FusedIterator for MessageTrailersBytesIterator<'_> {}
 
 impl ExactSizeIterator for MessageTrailersBytesIterator<'_> {
     fn len(&self) -> usize {

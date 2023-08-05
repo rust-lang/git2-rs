@@ -1,5 +1,6 @@
 use crate::util::{self, Binding};
 use crate::{raw, signature, Oid, Repository, Signature};
+use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
@@ -306,6 +307,8 @@ impl<'blame> DoubleEndedIterator for BlameIter<'blame> {
         self.range.next_back().and_then(|i| self.blame.get_index(i))
     }
 }
+
+impl<'blame> FusedIterator for BlameIter<'blame> {}
 
 impl<'blame> ExactSizeIterator for BlameIter<'blame> {}
 
