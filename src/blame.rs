@@ -1,10 +1,11 @@
 use crate::util::{self, Binding};
-use crate::{raw, signature, Oid, Repository, Signature};
+use crate::{raw, signature, Error, Oid, Repository, Signature};
+use libc::c_char;
 use std::iter::FusedIterator;
-use std::marker;
 use std::mem;
 use std::ops::Range;
 use std::path::Path;
+use std::{marker, ptr};
 
 /// Opaque structure to hold blame results.
 pub struct Blame<'repo> {
@@ -30,6 +31,24 @@ pub struct BlameIter<'blame> {
 }
 
 impl<'repo> Blame<'repo> {
+    /// Get blame data for a file that has been modified in memory.
+    ///
+    /// Lines that differ between the buffer and the committed version are
+    /// marked as having a zero OID for their final_commit_id.
+    pub fn blame_buffer(&self, buffer: &[u8]) -> Result<Blame<'_>, Error> {
+        let mut raw = ptr::null_mut();
+
+        unsafe {
+            try_call!(raw::git_blame_buffer(
+                &mut raw,
+                self.raw,
+                buffer.as_ptr() as *const c_char,
+                buffer.len()
+            ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Gets the number of hunks that exist in the blame structure.
     pub fn len(&self) -> usize {
         unsafe { raw::git_blame_get_hunk_count(self.raw) as usize }
@@ -348,6 +367,13 @@ mod tests {
         assert_eq!(hunk.final_start_line(), 1);
         assert_eq!(hunk.path(), Some(Path::new("foo/bar")));
         assert_eq!(hunk.lines_in_hunk(), 0);
-        assert!(!hunk.is_boundary())
+        assert!(!hunk.is_boundary());
+
+        let blame_buffer = blame.blame_buffer("\n".as_bytes()).unwrap();
+        let line = blame_buffer.get_line(1).unwrap();
+
+        assert_eq!(blame_buffer.len(), 2);
+        assert_eq!(blame_buffer.iter().count(), 2);
+        assert!(line.final_commit_id().is_zero());
     }
 }
