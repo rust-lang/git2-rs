@@ -16,7 +16,7 @@ stable release as well.
 
 ## Version of libgit2
 
-Currently this library requires libgit2 1.7.0 (or newer patch versions). The
+Currently this library requires libgit2 1.7.1 (or newer patch versions). The
 source for libgit2 is included in the libgit2-sys crate so there's no need to
 pre-install the libgit2 library, the libgit2-sys crate will figure that and/or
 build that for you.
