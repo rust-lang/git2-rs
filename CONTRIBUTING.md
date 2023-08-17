@@ -24,9 +24,8 @@ The following steps can be used to update libgit2:
    `cargo test -p git2 -p git2-curl` is a good starting point.
 4. Run `systest`.
    This will validate for any C-level API problems.
-   Unfortunately `systest` does not work on nightly, so you'll need to use stable.
 
-   `cargo +stable run -p systest`
+   `cargo run -p systest`
 
    The changelog at <https://github.com/libgit2/libgit2/blob/main/docs/changelog.md>
    can be helpful for seeing what has changed.
