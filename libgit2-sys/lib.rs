@@ -3406,6 +3406,12 @@ extern "C" {
     ) -> c_int;
 
     // blame
+    pub fn git_blame_buffer(
+        out: *mut *mut git_blame,
+        reference: *mut git_blame,
+        buffer: *const c_char,
+        buffer_len: size_t,
+    ) -> c_int;
     pub fn git_blame_file(
         out: *mut *mut git_blame,
         repo: *mut git_repository,
