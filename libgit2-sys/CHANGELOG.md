@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.1+1.7.1 - 2023-08-28
+[0.16.0...0.16.1](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.16.0+1.7.1...libgit2-sys-0.16.1+1.7.1)
+
+### Fixed
+
+- Fixed publish of 0.16.0 missing the libgit2 submodule.
+
 ## 0.16.0+1.7.1 - 2023-08-28
 [0.15.2...0.16.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.15.2+1.6.4...libgit2-sys-0.16.0+1.7.1)
 
