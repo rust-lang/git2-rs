@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.16.0+1.7.1 - 2023-08-28
+[0.15.2...0.16.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.15.2+1.6.4...libgit2-sys-0.16.0+1.7.1)
+
+### Added
+
+- Added LIBGIT2_NO_VENDOR environment variable to force using the system libgit2.
+  [#966](https://github.com/rust-lang/git2-rs/pull/966)
+- Added binding for `git_blame_buffer`.
+  [#981](https://github.com/rust-lang/git2-rs/pull/981)
+
+### Changed
+
+- Updated to libgit2 [1.7.0](https://github.com/libgit2/libgit2/releases/tag/v1.7.0).
+  [#968](https://github.com/rust-lang/git2-rs/pull/968)
+- Updated to libgit2 [1.7.1](https://github.com/libgit2/libgit2/releases/tag/v1.7.1).
+  [#982](https://github.com/rust-lang/git2-rs/pull/982)
+
+### Fixed
+
+- Fixed builds with cargo's `-Zminimal-versions`.
+  [#960](https://github.com/rust-lang/git2-rs/pull/960)
+
+
 ## 0.15.2+1.6.4 - 2023-05-27
 [0.15.1...0.15.2](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.15.1+1.6.4...libgit2-sys-0.15.2+1.6.4)
 
