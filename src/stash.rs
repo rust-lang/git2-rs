@@ -5,7 +5,6 @@ use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::{c_uint, CStr, CString};
 use std::mem;
 
-#[allow(unused)]
 /// Stash application options structure
 pub struct StashSaveOptions<'a> {
     message: Option<CString>,
@@ -72,13 +71,14 @@ impl<'a> StashSaveOptions<'a> {
 ///
 /// Return `true` to continue processing, or `false` to
 /// abort the stash application.
+// FIXME: This probably should have been pub(crate) since it is not used anywhere.
 pub type StashApplyProgressCb<'a> = dyn FnMut(StashApplyProgress) -> bool + 'a;
 
 /// This is a callback function you can provide to iterate over all the
 /// stashed states that will be invoked per entry.
+// FIXME: This probably should have been pub(crate) since it is not used anywhere.
 pub type StashCb<'a> = dyn FnMut(usize, &str, &Oid) -> bool + 'a;
 
-#[allow(unused)]
 /// Stash application options structure
 pub struct StashApplyOptions<'cb> {
     progress: Option<Box<StashApplyProgressCb<'cb>>>,
@@ -144,22 +144,20 @@ impl<'cb> StashApplyOptions<'cb> {
     }
 }
 
-#[allow(unused)]
-pub struct StashCbData<'a> {
+pub(crate) struct StashCbData<'a> {
     pub callback: &'a mut StashCb<'a>,
 }
 
-#[allow(unused)]
-pub extern "C" fn stash_cb(
+pub(crate) extern "C" fn stash_cb(
     index: size_t,
     message: *const c_char,
     stash_id: *const raw::git_oid,
     payload: *mut c_void,
 ) -> c_int {
     panic::wrap(|| unsafe {
-        let mut data = &mut *(payload as *mut StashCbData<'_>);
+        let data = &mut *(payload as *mut StashCbData<'_>);
         let res = {
-            let mut callback = &mut data.callback;
+            let callback = &mut data.callback;
             callback(
                 index,
                 CStr::from_ptr(message).to_str().unwrap(),
@@ -191,15 +189,14 @@ fn convert_progress(progress: raw::git_stash_apply_progress_t) -> StashApplyProg
     }
 }
 
-#[allow(unused)]
 extern "C" fn stash_apply_progress_cb(
     progress: raw::git_stash_apply_progress_t,
     payload: *mut c_void,
 ) -> c_int {
     panic::wrap(|| unsafe {
-        let mut options = &mut *(payload as *mut StashApplyOptions<'_>);
+        let options = &mut *(payload as *mut StashApplyOptions<'_>);
         let res = {
-            let mut callback = options.progress.as_mut().unwrap();
+            let callback = options.progress.as_mut().unwrap();
             callback(convert_progress(progress))
         };
 
