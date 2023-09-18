@@ -122,10 +122,6 @@ impl<'repo> Tree<'repo> {
         C: FnMut(&str, &TreeEntry<'_>) -> T,
         T: Into<i32>,
     {
-        #[allow(unused)]
-        struct TreeWalkCbData<'a, T> {
-            pub callback: &'a mut TreeWalkCb<'a, T>,
-        }
         unsafe {
             let mut data = TreeWalkCbData {
                 callback: &mut callback,
@@ -209,6 +205,10 @@ impl<'repo> Tree<'repo> {
 
 type TreeWalkCb<'a, T> = dyn FnMut(&str, &TreeEntry<'_>) -> T + 'a;
 
+struct TreeWalkCbData<'a, T> {
+    callback: &'a mut TreeWalkCb<'a, T>,
+}
+
 extern "C" fn treewalk_cb<T: Into<i32>>(
     root: *const c_char,
     entry: *const raw::git_tree_entry,
@@ -220,8 +220,9 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
             _ => return -1,
         };
         let entry = entry_from_raw_const(entry);
-        let payload = payload as *mut &mut TreeWalkCb<'_, T>;
-        (*payload)(root, &entry).into()
+        let payload = &mut *(payload as *mut TreeWalkCbData<'_, T>);
+        let callback = &mut payload.callback;
+        callback(root, &entry).into()
     }) {
         Some(value) => value,
         None => -1,
