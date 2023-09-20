@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.1 - 2023-09-20
+[0.18.0...0.18.1](https://github.com/rust-lang/git2-rs/compare/git2-0.18.0...git2-0.18.1)
+
+### Added
+
+- Added `FetchOptions::depth` to set the depth of a fetch or clone, adding support for shallow clones.
+  [#979](https://github.com/rust-lang/git2-rs/pull/979)
+
+### Fixed
+
+- Fixed an internal data type (`TreeWalkCbData`) to not assume it is a transparent type while casting.
+  [#989](https://github.com/rust-lang/git2-rs/pull/989)
+- Fixed so that `DiffPatchidOptions` and `StashSaveOptions` are publicly exported allowing the corresponding APIs to actually be used.
+  [#988](https://github.com/rust-lang/git2-rs/pull/988)
+
 ## 0.18.0 - 2023-08-28
 [0.17.2...0.18.0](https://github.com/rust-lang/git2-rs/compare/0.17.2...git2-0.18.0)
 
