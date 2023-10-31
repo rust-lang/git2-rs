@@ -195,6 +195,28 @@ pub unsafe fn set_verify_owner_validation(enabled: bool) -> Result<(), Error> {
     Ok(())
 }
 
+/// Set the SSL certificate-authority locations. `file` is the location of a file containing
+/// several certificates concatenated together. `path` is the location of a directory holding
+/// several certificates, one per file. Either parameter may be `None`, but not both.
+pub unsafe fn set_ssl_cert_locations<P>(file: Option<P>, path: Option<P>) -> Result<(), Error>
+where
+    P: IntoCString,
+{
+    crate::init();
+    let file = crate::opt_cstr(file)?;
+    let path = crate::opt_cstr(path)?;
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_SET_SSL_CERT_LOCATIONS as libc::c_int,
+            file,
+            path
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
