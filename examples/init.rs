@@ -1,5 +1,5 @@
 /*
- * libgit2 "init" example - shows how to initialize a new repo
+ * libgit2 "init" example - shows how to initialize a new repo (also includes how to do an initial commit)
  *
  * Written by the libgit2 contributors
  *
