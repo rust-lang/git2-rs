@@ -521,7 +521,7 @@ mod test {
         let td = TempDir::new().unwrap();
         let mut cfg = Config::new().unwrap();
         cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
-        $(cfg.set_str($k, $v).unwrap();)*
+        $(cfg.set_multivar($k, "DO_NO_MATCH_ANYTHING", $v).unwrap();)*
         cfg
     }) );
 
@@ -694,6 +694,36 @@ echo password=$2
             .unwrap();
         assert_eq!(u, "a");
         assert_eq!(p, "b");
+    }
+
+    #[test]
+    fn credential_helper10() {
+        let cache_file = tempfile::NamedTempFile::new().unwrap();
+        let cache_cmd = format!(
+            "!f() {{ if [ \"$1\" = store ]; then cat > \"{}\"; fi; }}; f",
+            cache_file.path().display()
+        );
+        let cfg = test_cfg!(
+            // The output will be ignored in the store phase
+            "credential.helper" => "!f() { echo username=a; echo password=b; }; f",
+            "credential.helper" => &cache_cmd
+        );
+        let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
+            .config(&cfg)
+            .execute()
+            .unwrap();
+        assert_eq!(u, "a");
+        assert_eq!(p, "b");
+
+        let mut cache_content = String::new();
+        cache_file
+            .as_file()
+            .read_to_string(&mut cache_content)
+            .unwrap();
+        assert!(cache_content.contains("protocol=https\n"));
+        assert!(cache_content.contains("host=example.com\n"));
+        assert!(cache_content.contains("username=a\n"));
+        assert!(cache_content.contains("password=b\n"));
     }
 
     #[test]
