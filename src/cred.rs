@@ -255,14 +255,22 @@ impl CredentialHelper {
 
     // Discover all `helper` directives from `config`
     fn config_helper(&mut self, config: &Config) {
-        let exact = config.get_string(&self.exact_key("helper"));
-        self.add_command(exact.as_ref().ok().map(|s| &s[..]));
+        self.config_helper_multivar(config, &self.exact_key("helper"));
         if let Some(key) = self.url_key("helper") {
-            let url = config.get_string(&key);
-            self.add_command(url.as_ref().ok().map(|s| &s[..]));
+            self.config_helper_multivar(config, key.as_ref());
         }
-        let global = config.get_string("credential.helper");
-        self.add_command(global.as_ref().ok().map(|s| &s[..]));
+        self.config_helper_multivar(config, "credential.helper");
+    }
+
+    // Add all helper commands from the passed configuration entries.
+    fn config_helper_multivar(&mut self, config: &Config, key: &str) {
+        if let Ok(v) = config.multivar(key, None) {
+            let _ = v.for_each(|v| {
+                if let Some(value) = v.value() {
+                    self.add_command(value);
+                }
+            });
+        }
     }
 
     // Discover `useHttpPath` from `config`
@@ -292,11 +300,10 @@ impl CredentialHelper {
     //
     // see https://www.kernel.org/pub/software/scm/git/docs/technical
     //                           /api-credentials.html#_credential_helpers
-    fn add_command(&mut self, cmd: Option<&str>) {
-        let cmd = match cmd {
-            Some("") | None => return,
-            Some(s) => s,
-        };
+    fn add_command(&mut self, cmd: &str) {
+        if cmd.is_empty() {
+            return;
+        }
 
         if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
