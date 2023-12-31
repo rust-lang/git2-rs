@@ -397,6 +397,9 @@ impl<'tree> Iterator for TreeIter<'tree> {
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.range.size_hint()
     }
+    fn nth(&mut self, n: usize) -> Option<TreeEntry<'tree>> {
+        self.range.nth(n).and_then(|i| self.tree.get(i))
+    }
 }
 impl<'tree> DoubleEndedIterator for TreeIter<'tree> {
     fn next_back(&mut self) -> Option<TreeEntry<'tree>> {
