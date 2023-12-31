@@ -482,6 +482,24 @@ mod tests {
         }
     }
 
+    #[test]
+    fn smoke_tree_nth() {
+        let (td, repo) = crate::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        assert_eq!(tree.id(), commit.tree_id());
+        assert_eq!(tree.len(), 8);
+        let mut it = tree.iter();
+        let e = it.nth(4).unwrap();
+        assert_eq!(e.name(), Some("f4"));
+    }
+
     fn setup_repo(td: &TempDir, repo: &Repository) {
         let mut index = repo.index().unwrap();
         for n in 0..8 {
