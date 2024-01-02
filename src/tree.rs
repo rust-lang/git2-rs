@@ -397,6 +397,9 @@ impl<'tree> Iterator for TreeIter<'tree> {
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.range.size_hint()
     }
+    fn nth(&mut self, n: usize) -> Option<TreeEntry<'tree>> {
+        self.range.nth(n).and_then(|i| self.tree.get(i))
+    }
 }
 impl<'tree> DoubleEndedIterator for TreeIter<'tree> {
     fn next_back(&mut self) -> Option<TreeEntry<'tree>> {
@@ -472,20 +475,41 @@ mod tests {
 
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         assert_eq!(tree.id(), commit.tree_id());
-        assert_eq!(tree.len(), 1);
+        assert_eq!(tree.len(), 8);
 
         for entry in tree_iter(&tree, &repo) {
             println!("iter entry {:?}", entry.name());
         }
     }
 
+    #[test]
+    fn smoke_tree_nth() {
+        let (td, repo) = crate::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        assert_eq!(tree.id(), commit.tree_id());
+        assert_eq!(tree.len(), 8);
+        let mut it = tree.iter();
+        let e = it.nth(4).unwrap();
+        assert_eq!(e.name(), Some("f4"));
+    }
+
     fn setup_repo(td: &TempDir, repo: &Repository) {
         let mut index = repo.index().unwrap();
-        File::create(&td.path().join("foo"))
-            .unwrap()
-            .write_all(b"foo")
-            .unwrap();
-        index.add_path(Path::new("foo")).unwrap();
+        for n in 0..8 {
+            let name = format!("f{n}");
+            File::create(&td.path().join(&name))
+                .unwrap()
+                .write_all(name.as_bytes())
+                .unwrap();
+            index.add_path(Path::new(&name)).unwrap();
+        }
         let id = index.write_tree().unwrap();
         let sig = repo.signature().unwrap();
         let tree = repo.find_tree(id).unwrap();
@@ -515,14 +539,22 @@ mod tests {
 
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         assert_eq!(tree.id(), commit.tree_id());
-        assert_eq!(tree.len(), 1);
+        assert_eq!(tree.len(), 8);
         {
-            let e1 = tree.get(0).unwrap();
+            let e0 = tree.get(0).unwrap();
+            assert!(e0 == tree.get_id(e0.id()).unwrap());
+            assert!(e0 == tree.get_name("f0").unwrap());
+            assert!(e0 == tree.get_name_bytes(b"f0").unwrap());
+            assert!(e0 == tree.get_path(Path::new("f0")).unwrap());
+            assert_eq!(e0.name(), Some("f0"));
+            e0.to_object(&repo).unwrap();
+
+            let e1 = tree.get(1).unwrap();
             assert!(e1 == tree.get_id(e1.id()).unwrap());
-            assert!(e1 == tree.get_name("foo").unwrap());
-            assert!(e1 == tree.get_name_bytes(b"foo").unwrap());
-            assert!(e1 == tree.get_path(Path::new("foo")).unwrap());
-            assert_eq!(e1.name(), Some("foo"));
+            assert!(e1 == tree.get_name("f1").unwrap());
+            assert!(e1 == tree.get_name_bytes(b"f1").unwrap());
+            assert!(e1 == tree.get_path(Path::new("f1")).unwrap());
+            assert_eq!(e1.name(), Some("f1"));
             e1.to_object(&repo).unwrap();
         }
         tree.into_object();
@@ -551,20 +583,20 @@ mod tests {
 
         let mut ct = 0;
         tree.walk(TreeWalkMode::PreOrder, |_, entry| {
-            assert_eq!(entry.name(), Some("foo"));
+            assert_eq!(entry.name(), Some(format!("f{ct}").as_str()));
             ct += 1;
             0
         })
         .unwrap();
-        assert_eq!(ct, 1);
+        assert_eq!(ct, 8);
 
         let mut ct = 0;
         tree.walk(TreeWalkMode::PreOrder, |_, entry| {
-            assert_eq!(entry.name(), Some("foo"));
+            assert_eq!(entry.name(), Some(format!("f{ct}").as_str()));
             ct += 1;
             TreeWalkResult::Ok
         })
         .unwrap();
-        assert_eq!(ct, 1);
+        assert_eq!(ct, 8);
     }
 }
