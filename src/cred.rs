@@ -303,7 +303,7 @@ impl CredentialHelper {
         } else if cmd.contains("/") || cmd.contains("\\") {
             self.commands.push(cmd.to_string());
         } else {
-            self.commands.push(format!("git credential-{}", cmd));
+            self.commands.push(format!("git credential-{} get", cmd));
         }
     }
 
@@ -374,7 +374,7 @@ impl CredentialHelper {
         // sure it works.
         let mut c = Command::new("sh");
         c.arg("-c")
-            .arg(&format!("{} get", cmd))
+            .arg(cmd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
