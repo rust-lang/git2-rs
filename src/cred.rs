@@ -263,6 +263,9 @@ impl CredentialHelper {
         }
         let global = config.get_string("credential.helper");
         self.add_command(global.as_ref().ok().map(|s| &s[..]));
+
+        // add the "fill" command
+        self.add_command(Some("!git credential fill"));
     }
 
     // Discover `useHttpPath` from `config`
