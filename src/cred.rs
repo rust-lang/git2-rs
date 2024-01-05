@@ -332,8 +332,11 @@ impl CredentialHelper {
         let mut password = None;
         for cmd in &self.commands {
             let (u, p) = self.execute_cmd(cmd, &username);
-            if u.is_some() && username.is_none() {
-                username = u;
+            #[allow(clippy::collapsible_if)]
+            if let Some(u) = u {
+                if !u.is_empty() && username.is_none() {
+                    username = Some(u);
+                }
             }
             if p.is_some() && password.is_none() {
                 password = p;
