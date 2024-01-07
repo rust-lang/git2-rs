@@ -16,7 +16,7 @@ use crate::{
 // internally
 const GIT_REFNAME_MAX: usize = 1024;
 
-struct Refdb<'repo>(&'repo Repository);
+struct Refdb<'repo>(#[allow(dead_code)] &'repo Repository);
 
 /// A structure to represent a git [reference][1].
 ///
