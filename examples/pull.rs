@@ -12,12 +12,12 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+use clap::Parser;
 use git2::Repository;
 use std::io::{self, Write};
 use std::str;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     arg_remote: Option<String>,
     arg_branch: Option<String>,
@@ -200,7 +200,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

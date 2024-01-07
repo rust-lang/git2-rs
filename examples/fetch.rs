@@ -14,12 +14,12 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{AutotagOption, FetchOptions, RemoteCallbacks, Repository};
 use std::io::{self, Write};
 use std::str;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     #[structopt(name = "remote")]
     arg_remote: Option<String>,
@@ -119,7 +119,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

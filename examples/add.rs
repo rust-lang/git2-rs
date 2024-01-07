@@ -15,15 +15,15 @@
 #![deny(warnings)]
 #![allow(trivial_casts)]
 
+use clap::Parser;
 use git2::Repository;
 use std::path::Path;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     #[structopt(name = "spec")]
     arg_spec: Vec<String>,
-    #[structopt(name = "dry_run", short = "n", long)]
+    #[structopt(name = "dry_run", short = 'n', long)]
     /// dry run
     flag_dry_run: bool,
     #[structopt(name = "verbose", short, long)]
@@ -73,7 +73,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

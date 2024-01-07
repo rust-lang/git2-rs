@@ -14,12 +14,12 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{Blob, Diff, DiffOptions, Error, Object, ObjectType, Oid, Repository};
 use git2::{DiffDelta, DiffFindOptions, DiffFormat, DiffHunk, DiffLine};
 use std::str;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 #[allow(non_snake_case)]
 struct Args {
     #[structopt(name = "from_oid")]
@@ -56,19 +56,19 @@ struct Args {
     #[structopt(name = "no-color", long)]
     /// never use color output
     flag_no_color: bool,
-    #[structopt(short = "R")]
+    #[structopt(short = 'R')]
     /// swap two inputs
     flag_R: bool,
-    #[structopt(name = "text", short = "a", long)]
+    #[structopt(name = "text", short = 'a', long)]
     /// treat all files as text
     flag_text: bool,
     #[structopt(name = "ignore-space-at-eol", long)]
     /// ignore changes in whitespace at EOL
     flag_ignore_space_at_eol: bool,
-    #[structopt(name = "ignore-space-change", short = "b", long)]
+    #[structopt(name = "ignore-space-change", short = 'b', long)]
     /// ignore changes in amount of whitespace
     flag_ignore_space_change: bool,
-    #[structopt(name = "ignore-all-space", short = "w", long)]
+    #[structopt(name = "ignore-all-space", short = 'w', long)]
     /// ignore whitespace when comparing lines
     flag_ignore_all_space: bool,
     #[structopt(name = "ignored", long)]
@@ -95,19 +95,19 @@ struct Args {
     #[structopt(name = "summary", long)]
     /// output condensed summary of header info
     flag_summary: bool,
-    #[structopt(name = "find-renames", short = "M", long)]
+    #[structopt(name = "find-renames", short = 'M', long)]
     /// set threshold for finding renames (default 50)
     flag_find_renames: Option<u16>,
-    #[structopt(name = "find-copies", short = "C", long)]
+    #[structopt(name = "find-copies", short = 'C', long)]
     /// set threshold for finding copies (default 50)
     flag_find_copies: Option<u16>,
     #[structopt(name = "find-copies-harder", long)]
     /// inspect unmodified files for sources of copies
     flag_find_copies_harder: bool,
-    #[structopt(name = "break_rewrites", short = "B", long)]
+    #[structopt(name = "break_rewrites", short = 'B', long)]
     /// break complete rewrite changes into pairs
     flag_break_rewrites: bool,
-    #[structopt(name = "unified", short = "U", long)]
+    #[structopt(name = "unified", short = 'U', long)]
     /// lints of context to show
     flag_unified: Option<u32>,
     #[structopt(name = "inter-hunk-context", long)]
@@ -360,7 +360,7 @@ impl Args {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

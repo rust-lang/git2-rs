@@ -14,25 +14,25 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{BlameOptions, Repository};
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 #[allow(non_snake_case)]
 struct Args {
     #[structopt(name = "path")]
     arg_path: String,
     #[structopt(name = "spec")]
     arg_spec: Option<String>,
-    #[structopt(short = "M")]
+    #[structopt(short = 'M')]
     /// find line moves within and across files
     flag_M: bool,
-    #[structopt(short = "C")]
+    #[structopt(short = 'C')]
     /// find line copies within and across files
     flag_C: bool,
-    #[structopt(short = "F")]
+    #[structopt(short = 'F')]
     /// follow only the first parent commits
     flag_F: bool,
 }
@@ -96,7 +96,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),
