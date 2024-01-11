@@ -16,7 +16,13 @@ use crate::{
 // internally
 const GIT_REFNAME_MAX: usize = 1024;
 
-struct Refdb<'repo>(&'repo Repository);
+/// This is used to logically indicate that a [`raw::git_reference`] or
+/// [`raw::git_reference_iterator`] holds a reference to [`raw::git_refdb`].
+/// It is not necessary to have a wrapper like this in the
+/// [`marker::PhantomData`], since all that matters is that it is tied to the
+/// lifetime of the [`Repository`], but this helps distinguish the actual
+/// references involved.
+struct Refdb<'repo>(#[allow(dead_code)] &'repo Repository);
 
 /// A structure to represent a git [reference][1].
 ///
