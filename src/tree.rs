@@ -102,7 +102,7 @@ impl<'repo> Tree<'repo> {
     ///
     /// libgit2 requires that the callback be an integer, where 0 indicates a
     /// successful visit, 1 skips the node, and -1 aborts the traversal completely.
-    /// You may opt to use the enum [`TreeWalkResult`](TreeWalkResult) instead.
+    /// You may opt to use the enum [`TreeWalkResult`] instead.
     ///
     /// ```ignore
     /// let mut ct = 0;
