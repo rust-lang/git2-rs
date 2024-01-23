@@ -2827,6 +2827,12 @@ extern "C" {
         repo: *mut git_repository,
         id: *const git_oid,
     ) -> c_int;
+    pub fn git_commit_lookup_prefix(
+        commit: *mut *mut git_commit,
+        repo: *mut git_repository,
+        id: *const git_oid,
+        len: size_t,
+    ) -> c_int;
     pub fn git_commit_message(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_message_encoding(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_message_raw(commit: *const git_commit) -> *const c_char;
