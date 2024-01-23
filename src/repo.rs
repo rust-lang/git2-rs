@@ -1418,6 +1418,20 @@ impl Repository {
         }
     }
 
+    /// Lookup a reference to one of the commits in a repository by short hash.
+    pub fn find_commit_by_prefix(&self, prefix_hash: &str) -> Result<Commit<'_>, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_commit_lookup_prefix(
+                &mut raw,
+                self.raw(),
+                Oid::from_str(prefix_hash)?.raw(),
+                prefix_hash.len()
+            ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Creates an `AnnotatedCommit` from the given commit id.
     pub fn find_annotated_commit(&self, id: Oid) -> Result<AnnotatedCommit<'_>, Error> {
         unsafe {
