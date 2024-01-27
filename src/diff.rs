@@ -287,7 +287,7 @@ impl<'repo> Diff<'repo> {
         Ok(buf)
     }
 
-    /// Create an patch ID from a diff.
+    /// Create a patch ID from a diff.
     pub fn patchid(&self, opts: Option<&mut DiffPatchidOptions>) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
