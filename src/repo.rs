@@ -1963,6 +1963,20 @@ impl Repository {
         }
     }
 
+    /// Lookup a tag object by prefix hash from the repository.
+    pub fn find_tag_by_prefix(&self, prefix_hash: &str) -> Result<Tag<'_>, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_tag_lookup_prefix(
+                &mut raw,
+                self.raw,
+                Oid::from_str(prefix_hash)?.raw(),
+                prefix_hash.len()
+            ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Delete an existing tag reference.
     ///
     /// The tag name will be checked for validity, see `tag` for some rules
@@ -4236,5 +4250,27 @@ Committer Name <committer.proper@email> <committer@email>"#,
         // resolve_signature() works
         assert_eq!(mm_resolve_author.email(), mailmapped_author.email());
         assert_eq!(mm_resolve_committer.email(), mailmapped_committer.email());
+    }
+
+    #[test]
+    fn smoke_find_tag_by_prefix() {
+        let (_td, repo) = crate::test::repo_init();
+        let head = repo.head().unwrap();
+        let tag_oid = repo
+            .tag(
+                "tag",
+                &repo
+                    .find_object(head.peel_to_commit().unwrap().id(), None)
+                    .unwrap(),
+                &repo.signature().unwrap(),
+                "message",
+                false,
+            )
+            .unwrap();
+        let tag = repo.find_tag(tag_oid).unwrap();
+        let found_tag = repo
+            .find_tag_by_prefix(&tag.id().to_string()[0..7])
+            .unwrap();
+        assert_eq!(tag.id(), found_tag.id());
     }
 }
