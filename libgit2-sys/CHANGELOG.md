@@ -3,7 +3,17 @@
 ## 0.16.2+1.7.2 - 2024-02-06
 [0.16.1...0.16.2](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.16.1+1.7.1...libgit2-sys-0.16.2+1.7.2)
 
-- Updated to libgit2 [1.7.2](https://github.com/libgit2/libgit2/releases/tag/v1.7.2).
+### Added
+
+- Added binding for `git_commit_lookup_prefix`.
+  [#1011](https://github.com/rust-lang/git2-rs/pull/1011)
+- Added binding for `git_object_lookup_prefix`.
+  [#1014](https://github.com/rust-lang/git2-rs/pull/1014)
+
+### Changed
+
+- ❗ Updated to libgit2 [1.7.2](https://github.com/libgit2/libgit2/releases/tag/v1.7.2).
+  This fixes [CVE-2024-24575](https://github.com/libgit2/libgit2/security/advisories/GHSA-54mf-x2rh-hq9v) and [CVE-2024-24577](https://github.com/libgit2/libgit2/security/advisories/GHSA-j2v7-4f6v-gpg8).
   [#1017](https://github.com/rust-lang/git2-rs/pull/1017)
 
 ## 0.16.1+1.7.1 - 2023-08-28

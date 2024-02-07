@@ -3,9 +3,23 @@
 ## 0.18.2 - 2024-02-06
 [0.18.1...0.18.2](https://github.com/rust-lang/git2-rs/compare/git2-0.18.1...git2-0.18.2)
 
+### Added
+
+- Added `opts::set_ssl_cert_file` and `opts::set_ssl_cert_dir` for setting Certificate Authority file locations.
+  [#997](https://github.com/rust-lang/git2-rs/pull/997)
+- Added `TreeIter::nth` which makes jumping ahead in the iterator more efficient.
+  [#1004](https://github.com/rust-lang/git2-rs/pull/1004)
+- Added `Repository::find_commit_by_prefix` to find a commit by a shortened hash.
+  [#1011](https://github.com/rust-lang/git2-rs/pull/1011)
+- Added `Repository::find_tag_by_prefix` to find a tag by a shortened hash.
+  [#1015](https://github.com/rust-lang/git2-rs/pull/1015)
+- Added `Repository::find_object_by_prefix` to find an object by a shortened hash.
+  [#1014](https://github.com/rust-lang/git2-rs/pull/1014)
+
 ### Changed
 
-- Updated to libgit2 [1.7.2](https://github.com/libgit2/libgit2/releases/tag/v1.7.2).
+- ❗ Updated to libgit2 [1.7.2](https://github.com/libgit2/libgit2/releases/tag/v1.7.2).
+  This fixes [CVE-2024-24575](https://github.com/libgit2/libgit2/security/advisories/GHSA-54mf-x2rh-hq9v) and [CVE-2024-24577](https://github.com/libgit2/libgit2/security/advisories/GHSA-j2v7-4f6v-gpg8).
   [#1017](https://github.com/rust-lang/git2-rs/pull/1017)
 
 ## 0.18.1 - 2023-09-20
