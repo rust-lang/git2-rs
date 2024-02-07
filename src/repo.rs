@@ -1459,6 +1459,25 @@ impl Repository {
         }
     }
 
+    /// Lookup a reference to one of the objects by id prefix in a repository.
+    pub fn find_object_by_prefix(
+        &self,
+        prefix_hash: &str,
+        kind: Option<ObjectType>,
+    ) -> Result<Object<'_>, Error> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_object_lookup_prefix(
+                &mut raw,
+                self.raw(),
+                Oid::from_str(prefix_hash)?.raw(),
+                prefix_hash.len(),
+                kind
+            ));
+            Ok(Binding::from_raw(raw))
+        }
+    }
+
     /// Create a new direct reference.
     ///
     /// This function will return an error if a reference already exists with
@@ -3690,6 +3709,17 @@ mod tests {
         let main_oid = repo.revparse_single("main").unwrap().id();
         assert!(repo.set_head_detached(main_oid).is_ok());
         assert_eq!(repo.head().unwrap().target().unwrap(), main_oid);
+    }
+
+    #[test]
+    fn smoke_find_object_by_prefix() {
+        let (_td, repo) = crate::test::repo_init();
+        let head = repo.head().unwrap().target().unwrap();
+        let head = repo.find_commit(head).unwrap();
+        let head_id = head.id();
+        let head_prefix = &head_id.to_string()[..7];
+        let obj = repo.find_object_by_prefix(head_prefix, None).unwrap();
+        assert_eq!(obj.id(), head_id);
     }
 
     /// create the following:
