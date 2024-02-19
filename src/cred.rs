@@ -5,7 +5,6 @@ use std::mem;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::ptr;
-use url;
 
 use crate::util::Binding;
 use crate::{raw, Config, Error, IntoCString};

@@ -1,4 +1,3 @@
-use libc;
 use raw::git_strarray;
 use std::iter::FusedIterator;
 use std::marker;

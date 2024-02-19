@@ -1,4 +1,4 @@
-use libc::{self, c_char, c_int, c_void};
+use libc::{c_char, c_int, c_void};
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
 use std::iter::FusedIterator;
