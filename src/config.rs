@@ -1,4 +1,3 @@
-use libc;
 use std::ffi::CString;
 use std::marker;
 use std::path::{Path, PathBuf};

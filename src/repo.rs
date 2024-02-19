@@ -1,7 +1,6 @@
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::env;
 use std::ffi::{CStr, CString, OsStr};
-use std::iter::IntoIterator;
 use std::mem;
 use std::path::{Path, PathBuf};
 use std::ptr;

@@ -1,5 +1,5 @@
 use libc::size_t;
-use std::iter::{FusedIterator, IntoIterator};
+use std::iter::FusedIterator;
 use std::marker;
 use std::ops::Range;
 use std::path::Path;

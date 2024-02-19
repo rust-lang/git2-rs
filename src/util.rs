@@ -1,7 +1,6 @@
 use libc::{c_char, c_int, size_t};
 use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};
-use std::iter::IntoIterator;
 use std::path::{Component, Path, PathBuf};
 
 use crate::{raw, Error};

@@ -1,4 +1,3 @@
-use libc;
 use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
