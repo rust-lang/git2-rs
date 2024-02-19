@@ -35,11 +35,7 @@ jobs:
       shell: bash
     - run: cargo test --no-default-features
     - run: cargo test
-    # NOTE: ctest2 is currently failing on 1.78 nightly. Pinning the toolchain
-    # for now, but we'll need either a new release of ctest2 or some other
-    # solution soon.
     - run: cargo run -p systest
-      if: matrix.rust == 'stable'
     - run: cargo test -p git2-curl
 
   rustfmt:
