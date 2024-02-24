@@ -959,7 +959,8 @@ impl fmt::Display for ReferenceType {
 impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
     pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
-        match raw {
+        match raw >> 12 {
+            // TODO: why!?
             raw::GIT_CONFIG_LEVEL_PROGRAMDATA => ConfigLevel::ProgramData,
             raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
             raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
