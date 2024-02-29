@@ -37,6 +37,7 @@ impl<'a> StashSaveOptions<'a> {
         );
         opts
     }
+    
     /// Customize optional `message` field
     pub fn message(&mut self, message: Option<&str>) -> &mut Self {
         let message = crate::opt_cstr(message).unwrap_or_default();
