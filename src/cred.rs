@@ -671,7 +671,7 @@ echo password=$2
     }
 
     #[test]
-    #[cfg(feature = "ssh")]
+    #[cfg(feature = "ssh-libssh2")]
     fn ssh_key_from_memory() {
         let cred = Cred::ssh_key_from_memory(
             "test",
