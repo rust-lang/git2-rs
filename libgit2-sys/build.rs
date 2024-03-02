@@ -180,7 +180,8 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
             cfg.include(path);
         }
         features.push_str("#define GIT_SSH 1\n");
-        features.push_str("#define GIT_SSH_MEMORY_CREDENTIALS 1\n");
+        features.push_str("#define GIT_SSH_LIBSSH2 1\n");
+        features.push_str("#define GIT_SSH_LIBSSH2_MEMORY_CREDENTIALS 1\n");
     }
     if https {
         features.push_str("#define GIT_HTTPS 1\n");
