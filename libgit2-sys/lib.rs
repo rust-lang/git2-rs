@@ -366,6 +366,13 @@ pub struct git_indexer_options {
 
 pub type git_remote_ready_cb = Option<extern "C" fn(*mut git_remote, c_int, *mut c_void) -> c_int>;
 
+git_enum! {
+    pub enum git_remote_update_flags {
+        GIT_REMOTE_UPDATE_FETCHHEAD = 1 << 0,
+        GIT_REMOTE_UPDATE_REPORT_UNCHANGED = 1 << 1,
+    }
+}
+
 #[repr(C)]
 pub struct git_remote_callbacks {
     pub version: c_uint,
