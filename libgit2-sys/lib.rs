@@ -5,7 +5,7 @@
 extern crate libz_sys as libz;
 
 use libc::{c_char, c_int, c_uchar, c_uint, c_void, size_t};
-#[cfg(feature = "ssh")]
+#[cfg(feature = "ssh-libssh2")]
 use libssh2_sys as libssh2;
 use std::ffi::CStr;
 
@@ -4326,12 +4326,12 @@ pub fn openssl_init() {
 #[doc(hidden)]
 pub fn openssl_init() {}
 
-#[cfg(feature = "ssh")]
+#[cfg(feature = "ssh-libssh2")]
 fn ssh_init() {
     libssh2::init();
 }
 
-#[cfg(not(feature = "ssh"))]
+#[cfg(not(feature = "ssh-libssh2"))]
 fn ssh_init() {}
 
 #[doc(hidden)]
