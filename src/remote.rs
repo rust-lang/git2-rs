@@ -58,6 +58,8 @@ pub struct PushOptions<'cb> {
     follow_redirects: RemoteRedirect,
     custom_headers: Vec<CString>,
     custom_headers_ptrs: Vec<*const c_char>,
+    remote_push_options: Vec<CString>,
+    remote_push_options_ptrs: Vec<*const c_char>,
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
@@ -628,6 +630,8 @@ impl<'cb> PushOptions<'cb> {
             follow_redirects: RemoteRedirect::Initial,
             custom_headers: Vec::new(),
             custom_headers_ptrs: Vec::new(),
+            remote_push_options: Vec::new(),
+            remote_push_options_ptrs: Vec::new(),
         }
     }
 
@@ -673,6 +677,20 @@ impl<'cb> PushOptions<'cb> {
         self.custom_headers_ptrs = self.custom_headers.iter().map(|s| s.as_ptr()).collect();
         self
     }
+
+    /// Set "push options" to deliver to the remote.
+    pub fn remote_push_options(&mut self, remote_push_options: &[&str]) -> &mut Self {
+        self.remote_push_options = remote_push_options
+            .iter()
+            .map(|&s| CString::new(s).unwrap())
+            .collect();
+        self.remote_push_options_ptrs = self
+            .remote_push_options
+            .iter()
+            .map(|s| s.as_ptr())
+            .collect();
+        self
+    }
 }
 
 impl<'cb> Binding for PushOptions<'cb> {
@@ -699,6 +717,10 @@ impl<'cb> Binding for PushOptions<'cb> {
             custom_headers: git_strarray {
                 count: self.custom_headers_ptrs.len(),
                 strings: self.custom_headers_ptrs.as_ptr() as *mut _,
+            },
+            remote_push_options: git_strarray {
+                count: self.remote_push_options.len(),
+                strings: self.remote_push_options_ptrs.as_ptr() as *mut _,
             },
         }
     }

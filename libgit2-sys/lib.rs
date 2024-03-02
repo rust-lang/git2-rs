@@ -981,6 +981,7 @@ pub struct git_push_options {
     pub proxy_opts: git_proxy_options,
     pub follow_redirects: git_remote_redirect_t,
     pub custom_headers: git_strarray,
+    pub remote_push_options: git_strarray,
 }
 
 pub type git_tag_foreach_cb =
