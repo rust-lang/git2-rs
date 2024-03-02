@@ -1290,9 +1290,9 @@ impl Repository {
         parents: &[&Commit<'_>],
     ) -> Result<Oid, Error> {
         let update_ref = crate::opt_cstr(update_ref)?;
-        let mut parent_ptrs = parents
+        let parent_ptrs = parents
             .iter()
-            .map(|p| p.raw() as *const raw::git_commit)
+            .map(|p| p.raw() as *mut raw::git_commit)
             .collect::<Vec<_>>();
         let message = CString::new(message)?;
         let mut raw = raw::git_oid {
@@ -1309,7 +1309,7 @@ impl Repository {
                 message,
                 tree.raw(),
                 parents.len() as size_t,
-                parent_ptrs.as_mut_ptr()
+                parent_ptrs.as_ptr()
             ));
             Ok(Binding::from_raw(&raw as *const _))
         }
@@ -1328,9 +1328,9 @@ impl Repository {
         tree: &Tree<'_>,
         parents: &[&Commit<'_>],
     ) -> Result<Buf, Error> {
-        let mut parent_ptrs = parents
+        let parent_ptrs = parents
             .iter()
-            .map(|p| p.raw() as *const raw::git_commit)
+            .map(|p| p.raw() as *mut raw::git_commit)
             .collect::<Vec<_>>();
         let message = CString::new(message)?;
         let buf = Buf::new();
@@ -1344,7 +1344,7 @@ impl Repository {
                 message,
                 tree.raw(),
                 parents.len() as size_t,
-                parent_ptrs.as_mut_ptr()
+                parent_ptrs.as_ptr()
             ));
             Ok(buf)
         }

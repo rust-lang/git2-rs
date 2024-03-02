@@ -2895,7 +2895,7 @@ extern "C" {
         message: *const c_char,
         tree: *const git_tree,
         parent_count: size_t,
-        parents: *mut *const git_commit,
+        parents: *const *mut git_commit,
     ) -> c_int;
     pub fn git_commit_create_buffer(
         out: *mut git_buf,
@@ -2906,7 +2906,7 @@ extern "C" {
         message: *const c_char,
         tree: *const git_tree,
         parent_count: size_t,
-        parents: *mut *const git_commit,
+        parents: *const *mut git_commit,
     ) -> c_int;
     pub fn git_commit_header_field(
         out: *mut git_buf,
