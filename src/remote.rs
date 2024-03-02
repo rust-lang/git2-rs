@@ -44,7 +44,7 @@ pub struct FetchOptions<'cb> {
     depth: i32,
     proxy: Option<ProxyOptions<'cb>>,
     prune: FetchPrune,
-    update_fetchhead: bool,
+    update_flags: RemoteUpdateFlags,
     download_tags: AutotagOption,
     follow_redirects: RemoteRedirect,
     custom_headers: Vec<CString>,
@@ -507,7 +507,7 @@ impl<'cb> FetchOptions<'cb> {
             callbacks: None,
             proxy: None,
             prune: FetchPrune::Unspecified,
-            update_fetchhead: true,
+            update_flags: RemoteUpdateFlags::UPDATE_FETCHHEAD,
             download_tags: AutotagOption::Unspecified,
             follow_redirects: RemoteRedirect::Initial,
             custom_headers: Vec::new(),
@@ -538,7 +538,17 @@ impl<'cb> FetchOptions<'cb> {
     ///
     /// Defaults to `true`.
     pub fn update_fetchhead(&mut self, update: bool) -> &mut Self {
-        self.update_fetchhead = update;
+        self.update_flags
+            .set(RemoteUpdateFlags::UPDATE_FETCHHEAD, update);
+        self
+    }
+
+    /// Set whether to report unchanged tips in the update_tips callback.
+    ///
+    /// Defaults to `false`.
+    pub fn report_unchanged(&mut self, update: bool) -> &mut Self {
+        self.update_flags
+            .set(RemoteUpdateFlags::REPORT_UNCHANGED, update);
         self
     }
 
@@ -603,7 +613,11 @@ impl<'cb> Binding for FetchOptions<'cb> {
                 .map(|m| m.raw())
                 .unwrap_or_else(|| ProxyOptions::new().raw()),
             prune: crate::call::convert(&self.prune),
-            update_fetchhead: crate::call::convert(&self.update_fetchhead),
+            // HACK: `libgit2` uses C bitfields, which do not have a guaranteed memory layout.
+            // Reversing the bits ensures that the bitfields are set whether the bits are laid out
+            // from left to right or right to left, but will not work on other memory layouts.
+            update_flags: (self.update_flags.bits() | self.update_flags.bits().reverse_bits())
+                as c_uint,
             download_tags: crate::call::convert(&self.download_tags),
             depth: self.depth,
             follow_redirects: self.follow_redirects.raw(),
