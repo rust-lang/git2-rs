@@ -2334,7 +2334,7 @@ extern "C" {
     pub fn git_remote_update_tips(
         remote: *mut git_remote,
         callbacks: *const git_remote_callbacks,
-        update_fetchead: c_int,
+        update_flags: c_uint,
         download_tags: git_remote_autotag_option_t,
         reflog_message: *const c_char,
     ) -> c_int;

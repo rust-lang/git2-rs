@@ -3,6 +3,7 @@ use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
+use std::os::raw::c_uint;
 use std::ptr;
 use std::slice;
 use std::str;
@@ -11,7 +12,7 @@ use std::{ffi::CString, os::raw::c_char};
 use crate::string_array::StringArray;
 use crate::util::Binding;
 use crate::{call, raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
-use crate::{AutotagOption, Progress, RemoteCallbacks, Repository};
+use crate::{AutotagOption, Progress, RemoteCallbacks, RemoteUpdateFlags, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -320,7 +321,7 @@ impl<'repo> Remote<'repo> {
     pub fn update_tips(
         &mut self,
         callbacks: Option<&mut RemoteCallbacks<'_>>,
-        update_fetchhead: bool,
+        update_flags: RemoteUpdateFlags,
         download_tags: AutotagOption,
         msg: Option<&str>,
     ) -> Result<(), Error> {
@@ -330,7 +331,7 @@ impl<'repo> Remote<'repo> {
             try_call!(raw::git_remote_update_tips(
                 self.raw,
                 cbs.as_ref(),
-                update_fetchhead,
+                update_flags.bits() as c_uint,
                 download_tags,
                 msg
             ));
@@ -778,7 +779,7 @@ impl RemoteRedirect {
 
 #[cfg(test)]
 mod tests {
-    use crate::{AutotagOption, PushOptions};
+    use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
     use crate::{Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
     use tempfile::TempDir;
@@ -867,10 +868,20 @@ mod tests {
         origin.fetch(&[] as &[&str], None, None).unwrap();
         origin.fetch(&[] as &[&str], None, Some("foo")).unwrap();
         origin
-            .update_tips(None, true, AutotagOption::Unspecified, None)
+            .update_tips(
+                None,
+                RemoteUpdateFlags::UPDATE_FETCHHEAD,
+                AutotagOption::Unspecified,
+                None,
+            )
             .unwrap();
         origin
-            .update_tips(None, true, AutotagOption::All, Some("foo"))
+            .update_tips(
+                None,
+                RemoteUpdateFlags::UPDATE_FETCHHEAD,
+                AutotagOption::All,
+                Some("foo"),
+            )
             .unwrap();
 
         t!(repo.remote_add_fetch("origin", "foo"));
