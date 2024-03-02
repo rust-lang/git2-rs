@@ -198,6 +198,10 @@ git_enum! {
         GIT_EINDEXDIRTY = -34,
         GIT_EAPPLYFAIL = -35,
         GIT_EOWNER = -36,
+        GIT_TIMEOUT = -37,
+        GIT_EUNCHANGED = -38,
+        GIT_ENOTSUPPORTED = -39,
+        GIT_EREADONLY = -40,
     }
 }
 
