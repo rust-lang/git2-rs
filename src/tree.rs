@@ -119,7 +119,7 @@ impl<'repo> Tree<'repo> {
     /// [1]: https://libgit2.org/libgit2/#HEAD/group/tree/git_tree_walk
     pub fn walk<C, T>(&self, mode: TreeWalkMode, mut callback: C) -> Result<(), Error>
     where
-        C: FnMut(&str, &TreeEntry<'_>) -> T,
+        C: FnMut(&[u8], &TreeEntry<'_>) -> T,
         T: Into<i32>,
     {
         unsafe {
@@ -203,7 +203,7 @@ impl<'repo> Tree<'repo> {
     }
 }
 
-type TreeWalkCb<'a, T> = dyn FnMut(&str, &TreeEntry<'_>) -> T + 'a;
+type TreeWalkCb<'a, T> = dyn FnMut(&[u8], &TreeEntry<'_>) -> T + 'a;
 
 struct TreeWalkCbData<'a, T> {
     callback: &'a mut TreeWalkCb<'a, T>,
@@ -215,10 +215,7 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
     payload: *mut c_void,
 ) -> c_int {
     match panic::wrap(|| unsafe {
-        let root = match CStr::from_ptr(root).to_str() {
-            Ok(value) => value,
-            _ => return -1,
-        };
+        let root = CStr::from_ptr(root).to_bytes();
         let entry = entry_from_raw_const(entry);
         let payload = &mut *(payload as *mut TreeWalkCbData<'_, T>);
         let callback = &mut payload.callback;
