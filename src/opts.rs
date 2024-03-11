@@ -233,6 +233,99 @@ where
     Ok(())
 }
 
+/// Get the maximum mmap window size
+pub fn get_mwindow_size() -> Result<usize, Error> {
+    crate::init();
+
+    let mut size = 0;
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_GET_MWINDOW_SIZE as libc::c_int,
+            &mut size
+        ));
+    }
+
+    Ok(size)
+}
+
+/// Set the maximum mmap window size
+pub fn set_mwindow_size(size: usize) -> Result<(), Error> {
+    crate::init();
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_SET_MWINDOW_SIZE as libc::c_int,
+            size
+        ));
+    }
+
+    Ok(())
+}
+
+/// Get the maximum memory that will be mapped in total by the library
+pub fn get_mwindow_mapped_limit() -> Result<usize, Error> {
+    crate::init();
+
+    let mut limit = 0;
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_GET_MWINDOW_MAPPED_LIMIT as libc::c_int,
+            &mut limit
+        ));
+    }
+
+    Ok(limit)
+}
+
+/// Set the maximum amount of memory that can be mapped at any time
+/// by the library.
+pub fn set_mwindow_mapped_limit(limit: usize) -> Result<(), Error> {
+    crate::init();
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_SET_MWINDOW_MAPPED_LIMIT as libc::c_int,
+            limit
+        ));
+    }
+
+    Ok(())
+}
+
+/// Get the maximum number of files that will be mapped at any time by the
+/// library.
+pub fn get_mwindow_file_limit() -> Result<usize, Error> {
+    crate::init();
+
+    let mut limit = 0;
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_GET_MWINDOW_FILE_LIMIT as libc::c_int,
+            &mut limit
+        ));
+    }
+
+    Ok(limit)
+}
+
+/// Set the maximum number of files that can be mapped at any time
+/// by the library. The default (0) is unlimited.
+pub fn set_mwindow_file_limit(limit: usize) -> Result<(), Error> {
+    crate::init();
+
+    unsafe {
+        try_call!(raw::git_libgit2_opts(
+            raw::GIT_OPT_SET_MWINDOW_FILE_LIMIT as libc::c_int,
+            limit
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -240,5 +333,23 @@ mod test {
     #[test]
     fn smoke() {
         strict_hash_verification(false);
+    }
+
+    #[test]
+    fn mwindow_size() {
+        assert!(set_mwindow_size(1024).is_ok());
+        assert!(get_mwindow_size().unwrap() == 1024);
+    }
+
+    #[test]
+    fn mwindow_mapped_limit() {
+        assert!(set_mwindow_mapped_limit(1024).is_ok());
+        assert!(get_mwindow_mapped_limit().unwrap() == 1024);
+    }
+
+    #[test]
+    fn mwindow_file_limit() {
+        assert!(set_mwindow_file_limit(1024).is_ok());
+        assert!(get_mwindow_file_limit().unwrap() == 1024);
     }
 }
