@@ -234,7 +234,7 @@ where
 }
 
 /// Get the maximum mmap window size
-pub fn get_mwindow_size() -> Result<usize, Error> {
+pub fn get_mwindow_size() -> Result<libc::size_t, Error> {
     crate::init();
 
     let mut size = 0;
@@ -250,7 +250,7 @@ pub fn get_mwindow_size() -> Result<usize, Error> {
 }
 
 /// Set the maximum mmap window size
-pub fn set_mwindow_size(size: usize) -> Result<(), Error> {
+pub fn set_mwindow_size(size: libc::size_t) -> Result<(), Error> {
     crate::init();
 
     unsafe {
@@ -264,7 +264,7 @@ pub fn set_mwindow_size(size: usize) -> Result<(), Error> {
 }
 
 /// Get the maximum memory that will be mapped in total by the library
-pub fn get_mwindow_mapped_limit() -> Result<usize, Error> {
+pub fn get_mwindow_mapped_limit() -> Result<libc::size_t, Error> {
     crate::init();
 
     let mut limit = 0;
@@ -281,7 +281,7 @@ pub fn get_mwindow_mapped_limit() -> Result<usize, Error> {
 
 /// Set the maximum amount of memory that can be mapped at any time
 /// by the library.
-pub fn set_mwindow_mapped_limit(limit: usize) -> Result<(), Error> {
+pub fn set_mwindow_mapped_limit(limit: libc::size_t) -> Result<(), Error> {
     crate::init();
 
     unsafe {
@@ -296,7 +296,7 @@ pub fn set_mwindow_mapped_limit(limit: usize) -> Result<(), Error> {
 
 /// Get the maximum number of files that will be mapped at any time by the
 /// library.
-pub fn get_mwindow_file_limit() -> Result<usize, Error> {
+pub fn get_mwindow_file_limit() -> Result<libc::size_t, Error> {
     crate::init();
 
     let mut limit = 0;
@@ -313,7 +313,7 @@ pub fn get_mwindow_file_limit() -> Result<usize, Error> {
 
 /// Set the maximum number of files that can be mapped at any time
 /// by the library. The default (0) is unlimited.
-pub fn set_mwindow_file_limit(limit: usize) -> Result<(), Error> {
+pub fn set_mwindow_file_limit(limit: libc::size_t) -> Result<(), Error> {
     crate::init();
 
     unsafe {
