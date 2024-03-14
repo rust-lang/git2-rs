@@ -14,12 +14,12 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{Commit, DiffOptions, ObjectType, Repository, Signature, Time};
 use git2::{DiffFormat, Error, Pathspec};
 use std::str;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     #[structopt(name = "topo-order", long)]
     /// sort commits in topological order
@@ -45,7 +45,7 @@ struct Args {
     #[structopt(name = "skip", long)]
     /// number of commits to skip
     flag_skip: Option<usize>,
-    #[structopt(name = "max-count", short = "n", long)]
+    #[structopt(name = "max-count", short = 'n', long)]
     /// maximum number of commits to show
     flag_max_count: Option<usize>,
     #[structopt(name = "merges", long)]
@@ -302,7 +302,7 @@ impl Args {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

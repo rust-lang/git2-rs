@@ -14,14 +14,14 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{FetchOptions, Progress, RemoteCallbacks};
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     #[structopt(name = "url")]
     arg_url: String,
@@ -118,7 +118,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

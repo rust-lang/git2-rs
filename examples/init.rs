@@ -14,11 +14,11 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
 use std::path::{Path, PathBuf};
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     #[structopt(name = "directory")]
     arg_directory: String,
@@ -137,7 +137,7 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

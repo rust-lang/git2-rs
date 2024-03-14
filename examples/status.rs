@@ -14,12 +14,12 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{Error, ErrorCode, Repository, StatusOptions, SubmoduleIgnore};
 use std::str;
 use std::time::Duration;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     arg_spec: Vec<String>,
     #[structopt(name = "long", long)]
@@ -433,7 +433,7 @@ impl Args {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

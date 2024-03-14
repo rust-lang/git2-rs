@@ -14,11 +14,11 @@
 
 #![deny(warnings)]
 
+use clap::Parser;
 use git2::{Commit, Error, Repository, Tag};
 use std::str;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     arg_tagname: Option<String>,
     arg_object: Option<String>,
@@ -119,7 +119,7 @@ fn print_list_lines(message: Option<&str>, args: &Args) {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

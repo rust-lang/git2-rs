@@ -16,23 +16,23 @@
 
 use std::io::{self, Write};
 
+use clap::Parser;
 use git2::{Blob, Commit, ObjectType, Repository, Signature, Tag, Tree};
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     #[structopt(name = "object")]
     arg_object: String,
-    #[structopt(short = "t")]
+    #[structopt(short = 't')]
     /// show the object type
     flag_t: bool,
-    #[structopt(short = "s")]
+    #[structopt(short = 's')]
     /// show the object size
     flag_s: bool,
-    #[structopt(short = "e")]
+    #[structopt(short = 'e')]
     /// suppress all output
     flag_e: bool,
-    #[structopt(short = "p")]
+    #[structopt(short = 'p')]
     /// pretty print the contents of the object
     flag_p: bool,
     #[structopt(name = "quiet", short, long)]
@@ -141,7 +141,7 @@ fn show_sig(header: &str, sig: Option<Signature>) {
 }
 
 fn main() {
-    let args = Args::from_args();
+    let args = Args::parse();
     match run(&args) {
         Ok(()) => {}
         Err(e) => println!("error: {}", e),

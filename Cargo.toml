@@ -27,7 +27,7 @@ openssl-sys = { version = "0.9.45", optional = true }
 openssl-probe = { version = "0.1", optional = true }
 
 [dev-dependencies]
-structopt = "0.3"
+clap = { version = "4.4.13", features = ["derive"] }
 time = "0.1.39"
 tempfile = "3.1.0"
 
