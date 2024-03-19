@@ -18,7 +18,7 @@ function publish {
 
     # Check crates.io if it is already published
     set +e
-    output=`curl --fail --silent --head  https://crates.io/api/v1/crates/$crate_name/$version/download`
+    output=`curl --fail --silent --head --location https://static.crates.io/crates/$crate_name/$version/download`
     res="$?"
     set -e
     case $res in
