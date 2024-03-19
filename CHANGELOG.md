@@ -1,5 +1,20 @@
 # Changelog
 
+
+## 0.18.3 - 2024-03-18
+[0.18.2...0.18.3](https://github.com/rust-lang/git2-rs/compare/git2-0.18.2...git2-0.18.3)
+
+### Added
+
+- Added `opts::` functions to get / set libgit2 mwindow options
+  [#1035](https://github.com/rust-lang/git2-rs/pull/1035)
+
+
+### Changed
+
+- Updated examples to use clap instead of structopt
+  [#1007](https://github.com/rust-lang/git2-rs/pull/1007)
+
 ## 0.18.2 - 2024-02-06
 [0.18.1...0.18.2](https://github.com/rust-lang/git2-rs/compare/git2-0.18.1...git2-0.18.2)
 
