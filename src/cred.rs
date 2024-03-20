@@ -254,14 +254,22 @@ impl CredentialHelper {
 
     // Discover all `helper` directives from `config`
     fn config_helper(&mut self, config: &Config) {
-        let exact = config.get_string(&self.exact_key("helper"));
-        self.add_command(exact.as_ref().ok().map(|s| &s[..]));
+        self.config_helper_multivar(config, &self.exact_key("helper"));
         if let Some(key) = self.url_key("helper") {
-            let url = config.get_string(&key);
-            self.add_command(url.as_ref().ok().map(|s| &s[..]));
+            self.config_helper_multivar(config, key.as_ref());
         }
-        let global = config.get_string("credential.helper");
-        self.add_command(global.as_ref().ok().map(|s| &s[..]));
+        self.config_helper_multivar(config, "credential.helper");
+    }
+
+    // Add all helper commands from the passed configuration entries.
+    fn config_helper_multivar(&mut self, config: &Config, key: &str) {
+        if let Ok(v) = config.multivar(key, None) {
+            let _ = v.for_each(|v| {
+                if let Some(value) = v.value() {
+                    self.add_command(value);
+                }
+            });
+        }
     }
 
     // Discover `useHttpPath` from `config`
@@ -291,11 +299,10 @@ impl CredentialHelper {
     //
     // see https://www.kernel.org/pub/software/scm/git/docs/technical
     //                           /api-credentials.html#_credential_helpers
-    fn add_command(&mut self, cmd: Option<&str>) {
-        let cmd = match cmd {
-            Some("") | None => return,
-            Some(s) => s,
-        };
+    fn add_command(&mut self, cmd: &str) {
+        if cmd.is_empty() {
+            return;
+        }
 
         if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
@@ -327,7 +334,7 @@ impl CredentialHelper {
         let mut username = self.username.clone();
         let mut password = None;
         for cmd in &self.commands {
-            let (u, p) = self.execute_cmd(cmd, &username);
+            let (u, p) = self.execute_get_cmd(cmd, &username);
             if u.is_some() && username.is_none() {
                 username = u;
             }
@@ -339,29 +346,53 @@ impl CredentialHelper {
             }
         }
 
-        match (username, password) {
-            (Some(u), Some(p)) => Some((u, p)),
-            _ => None,
+        let (username, password) = match (username, password) {
+            (Some(u), Some(p)) => (u, p),
+            _ => return None,
+        };
+
+        for cmd in &self.commands {
+            self.execute_store_cmd(cmd, &username, &password);
         }
+
+        Some((username, password))
     }
 
-    // Execute the given `cmd`, providing the appropriate variables on stdin and
+    // Execute the given `store` command.
+    fn execute_store_cmd(&self, cmd: &String, username: &String, password: &String) {
+        // According to gitcredentials(7) the output is ignored.
+        let _output = self.execute_cmd(
+            cmd,
+            "store",
+            IntoIterator::into_iter([Some(("username", username)), Some(("password", password))]),
+        );
+    }
+
+    // Execute the given `get` command, providing the appropriate variables on stdin and
     // then afterwards parsing the output into the username/password on stdout.
-    fn execute_cmd(
+    fn execute_get_cmd(
         &self,
         cmd: &str,
         username: &Option<String>,
     ) -> (Option<String>, Option<String>) {
-        macro_rules! my_try( ($e:expr) => (
-            match $e {
-                Ok(e) => e,
-                Err(e) => {
-                    debug!("{} failed with {}", stringify!($e), e);
-                    return (None, None)
-                }
-            }
-        ) );
+        match self.execute_cmd(
+            cmd,
+            "get",
+            IntoIterator::into_iter([username.as_ref().map(|u| ("username", u))]),
+        ) {
+            Some(v) => self.parse_get_output(v),
+            None => (None, None),
+        }
+    }
 
+    // Execute the given `cmd`, providing the appropriate variables on stdin and
+    // returning the output of the command.
+    fn execute_cmd<I, K, V>(&self, cmd: &str, action: &str, kv: I) -> Option<Vec<u8>>
+    where
+        I: IntoIterator<Item = Option<(K, V)>>,
+        K: std::fmt::Display,
+        V: std::fmt::Display,
+    {
         // It looks like the `cmd` specification is typically bourne-shell-like
         // syntax, so try that first. If that fails, though, we may be on a
         // Windows machine for example where `sh` isn't actually available by
@@ -373,7 +404,7 @@ impl CredentialHelper {
         // sure it works.
         let mut c = Command::new("sh");
         c.arg("-c")
-            .arg(&format!("{} get", cmd))
+            .arg(&format!("{} {}", cmd, action))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -396,7 +427,7 @@ impl CredentialHelper {
                     Ok(p) => p,
                     Err(e) => {
                         debug!("fallback of {:?} failed with {}", cmd, e);
-                        return (None, None);
+                        return None;
                     }
                 }
             }
@@ -419,11 +450,17 @@ impl CredentialHelper {
             if let Some(ref p) = self.path {
                 let _ = writeln!(stdin, "path={}", p);
             }
-            if let Some(ref p) = *username {
-                let _ = writeln!(stdin, "username={}", p);
+            for (k, v) in kv.into_iter().flatten() {
+                let _ = writeln!(stdin, "{}={}", k, v);
             }
         }
-        let output = my_try!(p.wait_with_output());
+        let output = match p.wait_with_output() {
+            Ok(output) => output,
+            Err(e) => {
+                debug!("credential command exec failed with {}", e);
+                return None;
+            }
+        };
         if !output.status.success() {
             debug!(
                 "credential helper failed: {}\nstdout ---\n{}\nstderr ---\n{}",
@@ -431,17 +468,17 @@ impl CredentialHelper {
                 String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr)
             );
-            return (None, None);
+            return None;
         }
         trace!(
             "credential helper stderr ---\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
-        self.parse_output(output.stdout)
+        Some(output.stdout)
     }
 
     // Parse the output of a command into the username/password found
-    fn parse_output(&self, output: Vec<u8>) -> (Option<String>, Option<String>) {
+    fn parse_get_output(&self, output: Vec<u8>) -> (Option<String>, Option<String>) {
         // Parse the output of the command, looking for username/password
         let mut username = None;
         let mut password = None;
@@ -483,7 +520,7 @@ mod test {
         let td = TempDir::new().unwrap();
         let mut cfg = Config::new().unwrap();
         cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
-        $(cfg.set_str($k, $v).unwrap();)*
+        $(cfg.set_multivar($k, "DO_NO_MATCH_ANYTHING", $v).unwrap();)*
         cfg
     }) );
 
@@ -656,6 +693,36 @@ echo password=$2
             .unwrap();
         assert_eq!(u, "a");
         assert_eq!(p, "b");
+    }
+
+    #[test]
+    fn credential_helper10() {
+        let cache_file = tempfile::NamedTempFile::new().unwrap();
+        let cache_cmd = format!(
+            "!f() {{ if [ \"$1\" = store ]; then cat > \"{}\"; fi; }}; f",
+            cache_file.path().display()
+        );
+        let cfg = test_cfg!(
+            // The output will be ignored in the store phase
+            "credential.helper" => "!f() { echo username=a; echo password=b; }; f",
+            "credential.helper" => &cache_cmd
+        );
+        let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
+            .config(&cfg)
+            .execute()
+            .unwrap();
+        assert_eq!(u, "a");
+        assert_eq!(p, "b");
+
+        let mut cache_content = String::new();
+        cache_file
+            .as_file()
+            .read_to_string(&mut cache_content)
+            .unwrap();
+        assert!(cache_content.contains("protocol=https\n"));
+        assert!(cache_content.contains("host=example.com\n"));
+        assert!(cache_content.contains("username=a\n"));
+        assert!(cache_content.contains("password=b\n"));
     }
 
     #[test]
