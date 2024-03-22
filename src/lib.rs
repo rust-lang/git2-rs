@@ -385,6 +385,8 @@ pub enum ConfigLevel {
     Global,
     /// Repository specific config, e.g. $PWD/.git/config
     Local,
+    ///  Worktree specific configuration file, e.g. $GIT_DIR/config.worktree
+    Worktree,
     /// Application specific configuration file
     App,
     /// Highest level available
@@ -974,6 +976,7 @@ impl ConfigLevel {
             raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
             raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,
             raw::GIT_CONFIG_LEVEL_LOCAL => ConfigLevel::Local,
+            raw::GIT_CONFIG_LEVEL_WORKTREE => ConfigLevel::Worktree,
             raw::GIT_CONFIG_LEVEL_APP => ConfigLevel::App,
             raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
             n => panic!("unknown config level: {}", n),
