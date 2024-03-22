@@ -1977,6 +1977,7 @@ git_enum! {
 pub struct git_worktree_add_options {
     pub version: c_uint,
     pub lock: c_int,
+    pub checkout_existing: c_int,
     pub reference: *mut git_reference,
     pub checkout_options: git_checkout_options,
 }
