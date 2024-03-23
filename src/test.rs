@@ -66,7 +66,7 @@ pub fn worktrees_env_init(repo: &Repository) -> (TempDir, Branch<'_>) {
 
 #[cfg(windows)]
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
-    Ok(original.to_path_buf())
+    Ok(original.canonicalize()?.to_path_buf())
 }
 #[cfg(unix)]
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
