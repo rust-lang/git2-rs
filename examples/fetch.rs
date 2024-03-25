@@ -15,7 +15,7 @@
 #![deny(warnings)]
 
 use clap::Parser;
-use git2::{AutotagOption, FetchOptions, RemoteCallbacks, Repository};
+use git2::{AutotagOption, FetchOptions, RemoteCallbacks, RemoteUpdateFlags, Repository};
 use std::io::{self, Write};
 use std::str;
 
@@ -113,7 +113,12 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     // commits. This may be needed even if there was no packfile to download,
     // which can happen e.g. when the branches have been changed but all the
     // needed objects are available locally.
-    remote.update_tips(None, true, AutotagOption::Unspecified, None)?;
+    remote.update_tips(
+        None,
+        RemoteUpdateFlags::UPDATE_FETCHHEAD,
+        AutotagOption::Unspecified,
+        None,
+    )?;
 
     Ok(())
 }

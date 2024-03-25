@@ -482,7 +482,7 @@ mod test {
     macro_rules! test_cfg( ($($k:expr => $v:expr),*) => ({
         let td = TempDir::new().unwrap();
         let mut cfg = Config::new().unwrap();
-        cfg.add_file(&td.path().join("cfg"), ConfigLevel::Highest, false).unwrap();
+        cfg.add_file(&td.path().join("cfg"), ConfigLevel::App, false).unwrap();
         $(cfg.set_str($k, $v).unwrap();)*
         cfg
     }) );

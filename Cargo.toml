@@ -20,7 +20,7 @@ url = "2.0"
 bitflags = "2.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.16.2" }
+libgit2-sys = { path = "libgit2-sys", version = "0.17.0" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.45", optional = true }
