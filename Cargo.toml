@@ -20,7 +20,7 @@ url = "2.0"
 bitflags = "2.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.16.2" }
+libgit2-sys = { path = "libgit2-sys", version = "0.17.0" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.45", optional = true }
@@ -34,11 +34,13 @@ tempfile = "3.1.0"
 [features]
 unstable = []
 default = ["ssh", "https", "ssh_key_from_memory"]
-ssh = ["libgit2-sys/ssh"]
+ssh = ["ssh-libssh2"]
+ssh-libssh2 = ["libgit2-sys/ssh-libssh2"]
+ssh-openssh = ["libgit2-sys/ssh-openssh"]
+ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe"]
 vendored-libgit2 = ["libgit2-sys/vendored"]
 vendored-openssl = ["openssl-sys/vendored", "libgit2-sys/vendored-openssl"]
-ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 
 [workspace]
