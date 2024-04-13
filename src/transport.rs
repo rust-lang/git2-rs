@@ -259,10 +259,7 @@ extern "C" fn subtransport_action(
         if generate_stream {
             let obj = match transport.obj.action(url, action) {
                 Ok(s) => s,
-                Err(e) => {
-                    set_err(&e);
-                    return e.raw_code() as c_int;
-                }
+                Err(e) => return e.raw_set_git_error(),
             };
             *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
                 raw: raw::git_smart_subtransport_stream {
@@ -361,11 +358,6 @@ extern "C" fn stream_write(
 unsafe fn set_err_io(e: &io::Error) {
     let s = CString::new(e.to_string()).unwrap();
     raw::git_error_set_str(raw::GIT_ERROR_NET as c_int, s.as_ptr());
-}
-
-unsafe fn set_err(e: &Error) {
-    let s = CString::new(e.message()).unwrap();
-    raw::git_error_set_str(e.raw_class() as c_int, s.as_ptr());
 }
 
 // callback used by smart transports to free a `SmartSubtransportStream`

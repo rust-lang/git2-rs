@@ -1,7 +1,7 @@
 use libc::c_int;
 use std::env::JoinPathsError;
 use std::error;
-use std::ffi::{CStr, NulError};
+use std::ffi::{CStr, CString, NulError};
 use std::fmt;
 use std::str;
 
@@ -349,6 +349,17 @@ impl Error {
     /// Return the message associated with this error
     pub fn message(&self) -> &str {
         &self.message
+    }
+
+    /// A low-level convenience to call [`raw::git_error_set_str`] with the
+    /// information from this error.
+    ///
+    /// Returns the [`Error::raw_code`] value of this error, which is often
+    /// needed from a C callback.
+    pub(crate) unsafe fn raw_set_git_error(&self) -> raw::git_error_code {
+        let s = CString::new(self.message()).unwrap();
+        raw::git_error_set_str(self.class() as c_int, s.as_ptr());
+        self.raw_code()
     }
 }
 
