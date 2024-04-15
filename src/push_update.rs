@@ -28,17 +28,17 @@ impl PushUpdate<'_> {
         unsafe { crate::opt_bytes(self, (*self.raw).src_refname).unwrap() }
     }
 
-    /// Returns the source name of the reference.
+    /// Returns the source name of the reference, or None if it is not valid UTF-8.
     pub fn src_refname(&self) -> Option<&str> {
         str::from_utf8(self.src_refname_bytes()).ok()
     }
 
-    /// Returns the destination name of the reference as a byte slice.
+    /// Returns the name of the reference to update on the server as a byte slice.
     pub fn dst_refname_bytes(&self) -> &[u8] {
         unsafe { crate::opt_bytes(self, (*self.raw).dst_refname).unwrap() }
     }
 
-    /// Returns the destination name of the reference.
+    /// Returns the name of the reference to update on the server, or None if it is not valid UTF-8.
     pub fn dst_refname(&self) -> Option<&str> {
         str::from_utf8(self.dst_refname_bytes()).ok()
     }
