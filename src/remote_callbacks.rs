@@ -76,9 +76,9 @@ pub type PushUpdateReference<'a> = dyn FnMut(&str, Option<&str>) -> Result<(), E
 /// Callback for push transfer progress
 ///
 /// Parameters:
-///     * current
-///     * total
-///     * bytes
+/// * current
+/// * total
+/// * bytes
 pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
 
 /// Callback for pack progress
@@ -87,9 +87,9 @@ pub type PushTransferProgress<'a> = dyn FnMut(usize, usize, usize) + 'a;
 /// so performance may be affected.
 ///
 /// Parameters:
-///     * stage
-///     * current
-///     * total
+/// * stage
+/// * current
+/// * total
 pub type PackProgress<'a> = dyn FnMut(PackBuilderStage, usize, usize) + 'a;
 
 /// The callback is called once between the negotiation step and the upload.
@@ -209,9 +209,9 @@ impl<'a> RemoteCallbacks<'a> {
     /// The callback through which progress of push transfer is monitored
     ///
     /// Parameters:
-    ///     * current
-    ///     * total
-    ///     * bytes
+    /// * current
+    /// * total
+    /// * bytes
     pub fn push_transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
         F: FnMut(usize, usize, usize) + 'a,
@@ -226,9 +226,9 @@ impl<'a> RemoteCallbacks<'a> {
     /// so performance may be affected.
     ///
     /// Parameters:
-    ///     * stage
-    ///     * current
-    ///     * total
+    /// * stage
+    /// * current
+    /// * total
     pub fn pack_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
     where
         F: FnMut(PackBuilderStage, usize, usize) + 'a,
