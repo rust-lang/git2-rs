@@ -1,10 +1,14 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::{marker, mem, ptr, str};
+
+use libc::{c_char, c_int, c_void};
+use raw::{git_commit, git_oid, git_signature, git_tree, GIT_PASSTHROUGH};
 
 use crate::build::CheckoutBuilder;
 use crate::util::Binding;
-use crate::{raw, Error, Index, MergeOptions, Oid, Signature};
+use crate::{panic, raw, signature, Commit, Error, Index, MergeOptions, Oid, Signature, Tree};
 
+pub type CommitCreate<'a> = dyn FnMut(&Oid, &Signature<'_>, &Signature<'_>, Option<&str>, Option<&str>, &Tree<'_>, usize, &Commit<'_>) -> i32 + 'a;
 /// Rebase options
 ///
 /// Use to tell the rebase machinery how to operate.
@@ -13,6 +17,7 @@ pub struct RebaseOptions<'cb> {
     rewrite_notes_ref: Option<CString>,
     merge_options: Option<MergeOptions>,
     checkout_options: Option<CheckoutBuilder<'cb>>,
+    commit_create_cb: Option<Box<CommitCreate<'cb>>>,
 }
 
 impl<'cb> Default for RebaseOptions<'cb> {
@@ -29,9 +34,23 @@ impl<'cb> RebaseOptions<'cb> {
             rewrite_notes_ref: None,
             merge_options: None,
             checkout_options: None,
+            commit_create_cb: None,
         };
         assert_eq!(unsafe { raw::git_rebase_init_options(&mut opts.raw, 1) }, 0);
         opts
+    }
+
+    /// Used by `Repository::rebase`, this will run a callback function
+    /// to allow callers to override the commit creation behavior. For 
+    /// example, users may wish to sign commits by providing this 
+    /// information to git_commit_create_buffer, signing that buffer, then 
+    /// calling git_commit_create_with_signature
+    pub fn commit_create_cb<F>(&mut self, cb: F) -> &mut RebaseOptions<'cb> 
+    where 
+        F: FnMut(&Oid, &Signature<'_>, &Signature<'_>, Option<&str>, Option<&str>, &Tree<'_>, usize, &Commit<'_>) -> i32 + 'cb,
+    {
+        self.commit_create_cb = Some(Box::new(cb) as Box<CommitCreate<'cb>>);
+        self
     }
 
     /// Used by `Repository::rebase`, this will instruct other clients working on this
@@ -90,6 +109,23 @@ impl<'cb> RebaseOptions<'cb> {
             if let Some(opts) = self.checkout_options.as_mut() {
                 opts.configure(&mut self.raw.checkout_options);
             }
+
+            if self.commit_create_cb.is_some() {
+                let f: extern "C" fn(
+                    *mut git_oid,
+                    *const git_signature,
+                    *const git_signature,
+                    *const c_char,
+                    *const c_char,
+                    *const git_tree,
+                    usize,
+                    *const git_commit,
+                    *mut c_void,
+                ) -> c_int = commit_create_cb;
+                self.raw.commit_create_cb = Some(f);
+            }
+
+            self.raw.payload = self as *mut _ as *mut c_void;
             self.raw.rewrite_notes_ref = self
                 .rewrite_notes_ref
                 .as_ref()
@@ -331,6 +367,53 @@ impl<'rebase> Binding for RebaseOperation<'rebase> {
     fn raw(&self) -> *const raw::git_rebase_operation {
         self.raw
     }
+}
+
+extern "C" fn commit_create_cb(
+    out: *mut git_oid,
+    author: *const git_signature,
+    committer: *const git_signature,
+    message_encoding: *const c_char,
+    message: *const c_char,
+    tree: *const git_tree,
+    parent_count: usize,
+    parents: *const git_commit,
+    data: *mut c_void,
+) -> c_int {
+    panic::wrap(|| unsafe {
+        let payload = &mut *(data as *mut RebaseOptions<'_>);
+
+        let callback = match payload.commit_create_cb {
+            Some(ref mut c) => {
+                c
+            },
+            None => {
+                return GIT_PASSTHROUGH;
+            },
+        };
+        let message_encoding= if message_encoding.is_null() {
+            None
+        } else {
+            Some(str::from_utf8(CStr::from_ptr(message_encoding).to_bytes()).unwrap())
+        };
+        let message= if message.is_null() {
+            None
+        } else {
+            Some(str::from_utf8(CStr::from_ptr(message).to_bytes()).unwrap())
+        };
+        let outt = callback(
+            &Oid::from_raw(out),
+            &(signature::from_raw_const(&author, author)),
+            &(signature::from_raw_const(&committer, committer)),
+            message_encoding,
+            message,
+            &Tree::from_raw(tree as *mut git_tree),
+            parent_count,
+            &Commit::from_raw(parents as *mut git_commit)
+        );
+        return outt;
+    })
+    .unwrap_or(GIT_PASSTHROUGH)
 }
 
 #[cfg(test)]
