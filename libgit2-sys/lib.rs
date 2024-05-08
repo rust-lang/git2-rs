@@ -868,7 +868,8 @@ git_enum! {
         GIT_CONFIG_LEVEL_XDG = 3,
         GIT_CONFIG_LEVEL_GLOBAL = 4,
         GIT_CONFIG_LEVEL_LOCAL = 5,
-        GIT_CONFIG_LEVEL_APP = 6,
+        GIT_CONFIG_LEVEL_WORKTREE = 6,
+        GIT_CONFIG_LEVEL_APP = 7,
         GIT_CONFIG_HIGHEST_LEVEL = -1,
     }
 }
@@ -981,6 +982,7 @@ pub struct git_push_options {
     pub proxy_opts: git_proxy_options,
     pub follow_redirects: git_remote_redirect_t,
     pub custom_headers: git_strarray,
+    pub remote_push_options: git_strarray,
 }
 
 pub type git_tag_foreach_cb =
