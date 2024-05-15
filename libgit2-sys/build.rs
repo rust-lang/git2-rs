@@ -89,9 +89,9 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     add_c_files(&mut cfg, "libgit2/src/libgit2/transports");
     add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
 
-    // Always use bundled http-parser for now
-    cfg.include("libgit2/deps/http-parser")
-        .file("libgit2/deps/http-parser/http_parser.c");
+    // Always use bundled HTTP parser (llhttp) for now
+    cfg.include("libgit2/deps/llhttp");
+    add_c_files(&mut cfg, "libgit2/deps/llhttp");
 
     // external/system xdiff is not yet supported
     cfg.include("libgit2/deps/xdiff");
@@ -150,6 +150,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     features.push_str("#define INCLUDE_features_h\n");
     features.push_str("#define GIT_THREADS 1\n");
     features.push_str("#define GIT_TRACE 1\n");
+    features.push_str("#define GIT_HTTPPARSER_BUILTIN 1\n");
 
     if !target.contains("android") {
         features.push_str("#define GIT_USE_NSEC 1\n");
