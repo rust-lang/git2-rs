@@ -402,7 +402,7 @@ pub struct git_fetch_options {
     pub version: c_int,
     pub callbacks: git_remote_callbacks,
     pub prune: git_fetch_prune_t,
-    pub update_flags: c_uint,
+    pub update_fetchhead: c_uint,
     pub download_tags: git_remote_autotag_option_t,
     pub proxy_opts: git_proxy_options,
     pub depth: c_int,

@@ -25,9 +25,7 @@ fn main() {
         // this field is marked as const which ctest complains about
         (struct_ == "git_rebase_operation" && f == "id") ||
         // the real name of this field is ref but that is a reserved keyword
-        (struct_ == "git_worktree_add_options" && f == "reference") ||
-        // the `update_flags` field consists of 2 bitfields
-        (struct_ == "git_fetch_options" && f == "update_flags")
+        (struct_ == "git_worktree_add_options" && f == "reference")
     });
     cfg.skip_signededness(|s| match s {
         s if s.ends_with("_cb") => true,
