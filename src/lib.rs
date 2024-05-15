@@ -218,6 +218,8 @@ pub enum ErrorCode {
     ApplyFail,
     /// The object is not owned by the current user
     Owner,
+    /// Timeout
+    Timeout,
 }
 
 /// An enumeration of possible categories of things that can have
