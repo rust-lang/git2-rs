@@ -12,7 +12,7 @@ use crate::{raw, ErrorClass, ErrorCode};
 pub struct Error {
     code: c_int,
     klass: c_int,
-    message: String,
+    message: Box<str>,
 }
 
 impl Error {
@@ -70,7 +70,7 @@ impl Error {
 
     unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Error {
         let message = CStr::from_ptr((*ptr).message as *const _).to_bytes();
-        let message = String::from_utf8_lossy(message).into_owned();
+        let message = String::from_utf8_lossy(message).into_owned().into();
         Error {
             code,
             klass: (*ptr).klass,
@@ -86,7 +86,7 @@ impl Error {
         Error {
             code: raw::GIT_ERROR as c_int,
             klass: raw::GIT_ERROR_NONE as c_int,
-            message: s.to_string(),
+            message: s.into(),
         }
     }
 
