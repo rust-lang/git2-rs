@@ -31,6 +31,7 @@ The following steps can be used to update libgit2:
    can be helpful for seeing what has changed.
    The project has recently started labeling API and ABI breaking changes with labels:
    <https://github.com/libgit2/libgit2/pulls?q=is%3Apr+label%3A%22api+breaking%22%2C%22abi+breaking%22+is%3Aclosed>
+   Alternatively, running `git diff [PREV_VERSION]..[NEW_VERSION] --ignore-all-space -- include/` can provide an overview of changes made to the API.
 4. Once you have everything functional, publish a PR with the updates.
 
 ## Release process

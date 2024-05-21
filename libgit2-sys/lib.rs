@@ -198,6 +198,10 @@ git_enum! {
         GIT_EINDEXDIRTY = -34,
         GIT_EAPPLYFAIL = -35,
         GIT_EOWNER = -36,
+        GIT_TIMEOUT = -37,
+        GIT_EUNCHANGED = -38,
+        GIT_ENOTSUPPORTED = -39,
+        GIT_EREADONLY = -40,
     }
 }
 
@@ -366,6 +370,13 @@ pub struct git_indexer_options {
 
 pub type git_remote_ready_cb = Option<extern "C" fn(*mut git_remote, c_int, *mut c_void) -> c_int>;
 
+git_enum! {
+    pub enum git_remote_update_flags {
+        GIT_REMOTE_UPDATE_FETCHHEAD = 1 << 0,
+        GIT_REMOTE_UPDATE_REPORT_UNCHANGED = 1 << 1,
+    }
+}
+
 #[repr(C)]
 pub struct git_remote_callbacks {
     pub version: c_uint,
@@ -391,7 +402,7 @@ pub struct git_fetch_options {
     pub version: c_int,
     pub callbacks: git_remote_callbacks,
     pub prune: git_fetch_prune_t,
-    pub update_fetchhead: c_int,
+    pub update_fetchhead: c_uint,
     pub download_tags: git_remote_autotag_option_t,
     pub proxy_opts: git_proxy_options,
     pub depth: c_int,
@@ -855,10 +866,11 @@ pub struct git_index_time {
 pub struct git_config_entry {
     pub name: *const c_char,
     pub value: *const c_char,
+    pub backend_type: *const c_char,
+    pub origin_path: *const c_char,
     pub include_depth: c_uint,
     pub level: git_config_level_t,
     pub free: Option<extern "C" fn(*mut git_config_entry)>,
-    pub payload: *mut c_void,
 }
 
 git_enum! {
@@ -868,7 +880,8 @@ git_enum! {
         GIT_CONFIG_LEVEL_XDG = 3,
         GIT_CONFIG_LEVEL_GLOBAL = 4,
         GIT_CONFIG_LEVEL_LOCAL = 5,
-        GIT_CONFIG_LEVEL_APP = 6,
+        GIT_CONFIG_LEVEL_WORKTREE = 6,
+        GIT_CONFIG_LEVEL_APP = 7,
         GIT_CONFIG_HIGHEST_LEVEL = -1,
     }
 }
@@ -981,6 +994,7 @@ pub struct git_push_options {
     pub proxy_opts: git_proxy_options,
     pub follow_redirects: git_remote_redirect_t,
     pub custom_headers: git_strarray,
+    pub remote_push_options: git_strarray,
 }
 
 pub type git_tag_foreach_cb =
@@ -1947,6 +1961,14 @@ git_enum! {
         GIT_OPT_SET_EXTENSIONS,
         GIT_OPT_GET_OWNER_VALIDATION,
         GIT_OPT_SET_OWNER_VALIDATION,
+        GIT_OPT_GET_HOMEDIR,
+        GIT_OPT_SET_HOMEDIR,
+        GIT_OPT_SET_SERVER_CONNECT_TIMEOUT,
+        GIT_OPT_GET_SERVER_CONNECT_TIMEOUT,
+        GIT_OPT_SET_SERVER_TIMEOUT,
+        GIT_OPT_GET_SERVER_TIMEOUT,
+        GIT_OPT_SET_USER_AGENT_PRODUCT,
+        GIT_OPT_GET_USER_AGENT_PRODUCT,
     }
 }
 
@@ -1963,6 +1985,7 @@ git_enum! {
 pub struct git_worktree_add_options {
     pub version: c_uint,
     pub lock: c_int,
+    pub checkout_existing: c_int,
     pub reference: *mut git_reference,
     pub checkout_options: git_checkout_options,
 }
@@ -2326,7 +2349,7 @@ extern "C" {
     pub fn git_remote_update_tips(
         remote: *mut git_remote,
         callbacks: *const git_remote_callbacks,
-        update_fetchead: c_int,
+        update_flags: c_uint,
         download_tags: git_remote_autotag_option_t,
         reflog_message: *const c_char,
     ) -> c_int;
@@ -2882,7 +2905,7 @@ extern "C" {
         message: *const c_char,
         tree: *const git_tree,
         parent_count: size_t,
-        parents: *mut *const git_commit,
+        parents: *const *mut git_commit,
     ) -> c_int;
     pub fn git_commit_create_buffer(
         out: *mut git_buf,
@@ -2893,7 +2916,7 @@ extern "C" {
         message: *const c_char,
         tree: *const git_tree,
         parent_count: size_t,
-        parents: *mut *const git_commit,
+        parents: *const *mut git_commit,
     ) -> c_int;
     pub fn git_commit_header_field(
         out: *mut git_buf,

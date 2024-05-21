@@ -166,6 +166,7 @@ mod impls {
                 ConfigLevel::XDG => raw::GIT_CONFIG_LEVEL_XDG,
                 ConfigLevel::Global => raw::GIT_CONFIG_LEVEL_GLOBAL,
                 ConfigLevel::Local => raw::GIT_CONFIG_LEVEL_LOCAL,
+                ConfigLevel::Worktree => raw::GIT_CONFIG_LEVEL_WORKTREE,
                 ConfigLevel::App => raw::GIT_CONFIG_LEVEL_APP,
                 ConfigLevel::Highest => raw::GIT_CONFIG_HIGHEST_LEVEL,
             }

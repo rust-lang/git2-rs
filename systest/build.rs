@@ -7,6 +7,7 @@ fn main() {
         cfg.include(PathBuf::from(root).join("include"));
     }
     cfg.header("git2.h")
+        .header("git2/sys/errors.h")
         .header("git2/sys/transport.h")
         .header("git2/sys/refs.h")
         .header("git2/sys/refdb_backend.h")

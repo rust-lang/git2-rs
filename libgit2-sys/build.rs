@@ -7,7 +7,7 @@ use std::process::Command;
 /// Tries to use system libgit2 and emits necessary build script instructions.
 fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
     let mut cfg = pkg_config::Config::new();
-    match cfg.range_version("1.7.2".."1.8.0").probe("libgit2") {
+    match cfg.range_version("1.8.1".."1.9.0").probe("libgit2") {
         Ok(lib) => {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
@@ -89,9 +89,9 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     add_c_files(&mut cfg, "libgit2/src/libgit2/transports");
     add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
 
-    // Always use bundled http-parser for now
-    cfg.include("libgit2/deps/http-parser")
-        .file("libgit2/deps/http-parser/http_parser.c");
+    // Always use bundled HTTP parser (llhttp) for now
+    cfg.include("libgit2/deps/llhttp");
+    add_c_files(&mut cfg, "libgit2/deps/llhttp");
 
     // external/system xdiff is not yet supported
     cfg.include("libgit2/deps/xdiff");
@@ -150,6 +150,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     features.push_str("#define INCLUDE_features_h\n");
     features.push_str("#define GIT_THREADS 1\n");
     features.push_str("#define GIT_TRACE 1\n");
+    features.push_str("#define GIT_HTTPPARSER_BUILTIN 1\n");
 
     if !target.contains("android") {
         features.push_str("#define GIT_USE_NSEC 1\n");
@@ -180,7 +181,8 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
             cfg.include(path);
         }
         features.push_str("#define GIT_SSH 1\n");
-        features.push_str("#define GIT_SSH_MEMORY_CREDENTIALS 1\n");
+        features.push_str("#define GIT_SSH_LIBSSH2 1\n");
+        features.push_str("#define GIT_SSH_LIBSSH2_MEMORY_CREDENTIALS 1\n");
     }
     if https {
         features.push_str("#define GIT_HTTPS 1\n");

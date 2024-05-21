@@ -385,6 +385,8 @@ pub enum ConfigLevel {
     Global,
     /// Repository specific config, e.g. $PWD/.git/config
     Local,
+    ///  Worktree specific configuration file, e.g. $GIT_DIR/config.worktree
+    Worktree,
     /// Application specific configuration file
     App,
     /// Highest level available
@@ -659,6 +661,17 @@ bitflags! {
         /// exist. When using this flag, you may wish to manually call
         /// `git_odb_refresh` before processing a batch of objects.
         const NO_REFRESH = raw::GIT_ODB_LOOKUP_NO_REFRESH as u32;
+    }
+}
+
+bitflags! {
+    /// How to handle reference updates.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct RemoteUpdateFlags: u32 {
+       /// Write the fetch results to FETCH_HEAD.
+       const UPDATE_FETCHHEAD = raw::GIT_REMOTE_UPDATE_FETCHHEAD as u32;
+       /// Report unchanged tips in the update_tips callback.
+       const REPORT_UNCHANGED = raw::GIT_REMOTE_UPDATE_REPORT_UNCHANGED as u32;
     }
 }
 
@@ -963,6 +976,7 @@ impl ConfigLevel {
             raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
             raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,
             raw::GIT_CONFIG_LEVEL_LOCAL => ConfigLevel::Local,
+            raw::GIT_CONFIG_LEVEL_WORKTREE => ConfigLevel::Worktree,
             raw::GIT_CONFIG_LEVEL_APP => ConfigLevel::App,
             raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
             n => panic!("unknown config level: {}", n),

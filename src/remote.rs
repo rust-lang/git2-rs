@@ -3,6 +3,7 @@ use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
 use std::ops::Range;
+use std::os::raw::c_uint;
 use std::ptr;
 use std::slice;
 use std::str;
@@ -11,7 +12,7 @@ use std::{ffi::CString, os::raw::c_char};
 use crate::string_array::StringArray;
 use crate::util::Binding;
 use crate::{call, raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
-use crate::{AutotagOption, Progress, RemoteCallbacks, Repository};
+use crate::{AutotagOption, Progress, RemoteCallbacks, RemoteUpdateFlags, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
 ///
@@ -43,7 +44,7 @@ pub struct FetchOptions<'cb> {
     depth: i32,
     proxy: Option<ProxyOptions<'cb>>,
     prune: FetchPrune,
-    update_fetchhead: bool,
+    update_flags: RemoteUpdateFlags,
     download_tags: AutotagOption,
     follow_redirects: RemoteRedirect,
     custom_headers: Vec<CString>,
@@ -58,6 +59,8 @@ pub struct PushOptions<'cb> {
     follow_redirects: RemoteRedirect,
     custom_headers: Vec<CString>,
     custom_headers_ptrs: Vec<*const c_char>,
+    remote_push_options: Vec<CString>,
+    remote_push_options_ptrs: Vec<*const c_char>,
 }
 
 /// Holds callbacks for a connection to a `Remote`. Disconnects when dropped
@@ -318,7 +321,7 @@ impl<'repo> Remote<'repo> {
     pub fn update_tips(
         &mut self,
         callbacks: Option<&mut RemoteCallbacks<'_>>,
-        update_fetchhead: bool,
+        update_flags: RemoteUpdateFlags,
         download_tags: AutotagOption,
         msg: Option<&str>,
     ) -> Result<(), Error> {
@@ -328,7 +331,7 @@ impl<'repo> Remote<'repo> {
             try_call!(raw::git_remote_update_tips(
                 self.raw,
                 cbs.as_ref(),
-                update_fetchhead,
+                update_flags.bits() as c_uint,
                 download_tags,
                 msg
             ));
@@ -504,7 +507,7 @@ impl<'cb> FetchOptions<'cb> {
             callbacks: None,
             proxy: None,
             prune: FetchPrune::Unspecified,
-            update_fetchhead: true,
+            update_flags: RemoteUpdateFlags::UPDATE_FETCHHEAD,
             download_tags: AutotagOption::Unspecified,
             follow_redirects: RemoteRedirect::Initial,
             custom_headers: Vec::new(),
@@ -535,7 +538,17 @@ impl<'cb> FetchOptions<'cb> {
     ///
     /// Defaults to `true`.
     pub fn update_fetchhead(&mut self, update: bool) -> &mut Self {
-        self.update_fetchhead = update;
+        self.update_flags
+            .set(RemoteUpdateFlags::UPDATE_FETCHHEAD, update);
+        self
+    }
+
+    /// Set whether to report unchanged tips in the update_tips callback.
+    ///
+    /// Defaults to `false`.
+    pub fn report_unchanged(&mut self, update: bool) -> &mut Self {
+        self.update_flags
+            .set(RemoteUpdateFlags::REPORT_UNCHANGED, update);
         self
     }
 
@@ -600,7 +613,10 @@ impl<'cb> Binding for FetchOptions<'cb> {
                 .map(|m| m.raw())
                 .unwrap_or_else(|| ProxyOptions::new().raw()),
             prune: crate::call::convert(&self.prune),
-            update_fetchhead: crate::call::convert(&self.update_fetchhead),
+            // `update_fetchhead` is an incorrectly named option which contains both
+            // the `UPDATE_FETCHHEAD` and `REPORT_UNCHANGED` flags.
+            // See https://github.com/libgit2/libgit2/pull/6806
+            update_fetchhead: self.update_flags.bits() as c_uint,
             download_tags: crate::call::convert(&self.download_tags),
             depth: self.depth,
             follow_redirects: self.follow_redirects.raw(),
@@ -628,6 +644,8 @@ impl<'cb> PushOptions<'cb> {
             follow_redirects: RemoteRedirect::Initial,
             custom_headers: Vec::new(),
             custom_headers_ptrs: Vec::new(),
+            remote_push_options: Vec::new(),
+            remote_push_options_ptrs: Vec::new(),
         }
     }
 
@@ -673,6 +691,20 @@ impl<'cb> PushOptions<'cb> {
         self.custom_headers_ptrs = self.custom_headers.iter().map(|s| s.as_ptr()).collect();
         self
     }
+
+    /// Set "push options" to deliver to the remote.
+    pub fn remote_push_options(&mut self, remote_push_options: &[&str]) -> &mut Self {
+        self.remote_push_options = remote_push_options
+            .iter()
+            .map(|&s| CString::new(s).unwrap())
+            .collect();
+        self.remote_push_options_ptrs = self
+            .remote_push_options
+            .iter()
+            .map(|s| s.as_ptr())
+            .collect();
+        self
+    }
 }
 
 impl<'cb> Binding for PushOptions<'cb> {
@@ -699,6 +731,10 @@ impl<'cb> Binding for PushOptions<'cb> {
             custom_headers: git_strarray {
                 count: self.custom_headers_ptrs.len(),
                 strings: self.custom_headers_ptrs.as_ptr() as *mut _,
+            },
+            remote_push_options: git_strarray {
+                count: self.remote_push_options.len(),
+                strings: self.remote_push_options_ptrs.as_ptr() as *mut _,
             },
         }
     }
@@ -756,7 +792,7 @@ impl RemoteRedirect {
 
 #[cfg(test)]
 mod tests {
-    use crate::{AutotagOption, PushOptions};
+    use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
     use crate::{Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
     use tempfile::TempDir;
@@ -845,10 +881,20 @@ mod tests {
         origin.fetch(&[] as &[&str], None, None).unwrap();
         origin.fetch(&[] as &[&str], None, Some("foo")).unwrap();
         origin
-            .update_tips(None, true, AutotagOption::Unspecified, None)
+            .update_tips(
+                None,
+                RemoteUpdateFlags::UPDATE_FETCHHEAD,
+                AutotagOption::Unspecified,
+                None,
+            )
             .unwrap();
         origin
-            .update_tips(None, true, AutotagOption::All, Some("foo"))
+            .update_tips(
+                None,
+                RemoteUpdateFlags::UPDATE_FETCHHEAD,
+                AutotagOption::All,
+                Some("foo"),
+            )
             .unwrap();
 
         t!(repo.remote_add_fetch("origin", "foo"));
