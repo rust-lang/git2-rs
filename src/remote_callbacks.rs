@@ -1,5 +1,5 @@
 use libc::{c_char, c_int, c_uint, c_void, size_t};
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -330,11 +330,7 @@ extern "C" fn credentials_cb(
 
             let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
 
-            callback(url, username_from_url, cred_type).map_err(|e| {
-                let s = CString::new(e.to_string()).unwrap();
-                raw::git_error_set_str(e.class() as c_int, s.as_ptr());
-                e.raw_code() as c_int
-            })
+            callback(url, username_from_url, cred_type).map_err(|e| e.raw_set_git_error())
         });
         match ok {
             Some(Ok(cred)) => {
@@ -433,13 +429,7 @@ extern "C" fn certificate_check_cb(
     match ok {
         Some(Ok(CertificateCheckStatus::CertificateOk)) => 0,
         Some(Ok(CertificateCheckStatus::CertificatePassthrough)) => raw::GIT_PASSTHROUGH as c_int,
-        Some(Err(e)) => {
-            let s = CString::new(e.message()).unwrap();
-            unsafe {
-                raw::git_error_set_str(e.class() as c_int, s.as_ptr());
-            }
-            e.raw_code() as c_int
-        }
+        Some(Err(e)) => unsafe { e.raw_set_git_error() },
         None => {
             // Panic. The *should* get resumed by some future call to check().
             -1
@@ -466,7 +456,7 @@ extern "C" fn push_update_reference_cb(
         };
         match callback(refname, status) {
             Ok(()) => 0,
-            Err(e) => e.raw_code(),
+            Err(e) => e.raw_set_git_error(),
         }
     })
     .unwrap_or(-1)
@@ -529,7 +519,7 @@ extern "C" fn push_negotiation_cb(
         let updates = slice::from_raw_parts(updates as *mut PushUpdate<'_>, len);
         match callback(updates) {
             Ok(()) => 0,
-            Err(e) => e.raw_code(),
+            Err(e) => e.raw_set_git_error(),
         }
     })
     .unwrap_or(-1)
