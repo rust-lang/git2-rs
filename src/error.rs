@@ -128,6 +128,7 @@ impl Error {
             raw::GIT_EINDEXDIRTY => super::ErrorCode::IndexDirty,
             raw::GIT_EAPPLYFAIL => super::ErrorCode::ApplyFail,
             raw::GIT_EOWNER => super::ErrorCode::Owner,
+            raw::GIT_TIMEOUT => super::ErrorCode::Timeout,
             _ => super::ErrorCode::GenericError,
         }
     }
@@ -165,6 +166,7 @@ impl Error {
             ErrorCode::IndexDirty => raw::GIT_EINDEXDIRTY,
             ErrorCode::ApplyFail => raw::GIT_EAPPLYFAIL,
             ErrorCode::Owner => raw::GIT_EOWNER,
+            ErrorCode::Timeout => raw::GIT_TIMEOUT,
         };
     }
 
@@ -296,6 +298,7 @@ impl Error {
             GIT_EINDEXDIRTY,
             GIT_EAPPLYFAIL,
             GIT_EOWNER,
+            GIT_TIMEOUT,
         )
     }
 
