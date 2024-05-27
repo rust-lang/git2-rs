@@ -3060,6 +3060,8 @@ impl Repository {
     }
 
     /// Retrieve the name of the upstream remote of a local branch.
+    ///
+    /// `refname` must be in the form `refs/heads/{branch_name}`
     pub fn branch_upstream_remote(&self, refname: &str) -> Result<Buf, Error> {
         let refname = CString::new(refname)?;
         unsafe {
