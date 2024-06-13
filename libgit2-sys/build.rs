@@ -144,6 +144,12 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         cfg.define("__EXTENSIONS__", None);
     }
 
+    // Support large files and dates after the year 2038 on 32-bit GLIBC.
+    if target.contains("gnu") {
+        cfg.define("_FILE_OFFSET_BITS", Some("64"));
+        cfg.define("_TIME_BITS", Some("64"));
+    }
+
     let mut features = String::new();
 
     features.push_str("#ifndef INCLUDE_features_h\n");
