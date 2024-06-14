@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.19.0 - 2024-06-13
+[0.18.3...0.19.0](https://github.com/rust-lang/git2-rs/compare/git2-0.18.3...git2-0.19.0)
+
+### Added
+
+- Added `opts` functions to control server timeouts (`get_server_connect_timeout_in_milliseconds`, `set_server_connect_timeout_in_milliseconds`, `get_server_timeout_in_milliseconds`, `set_server_timeout_in_milliseconds`), and add `ErrorCode::Timeout`.
+  [#1052](https://github.com/rust-lang/git2-rs/pull/1052)
+
+### Changed
+
+- ❗ Updated to libgit2 [1.8.1](https://github.com/libgit2/libgit2/releases/tag/v1.8.1)
+  [#1032](https://github.com/rust-lang/git2-rs/pull/1032)
+- Reduced size of the `Error` struct.
+  [#1053](https://github.com/rust-lang/git2-rs/pull/1053)
+
+### Fixed
+
+- Fixed some callbacks to relay the error from the callback to libgit2.
+  [#1043](https://github.com/rust-lang/git2-rs/pull/1043)
 
 ## 0.18.3 - 2024-03-18
 [0.18.2...0.18.3](https://github.com/rust-lang/git2-rs/compare/git2-0.18.2...git2-0.18.3)

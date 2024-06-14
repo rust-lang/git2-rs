@@ -1,6 +1,6 @@
 [package]
 name = "git2"
-version = "0.18.3"
+version = "0.19.0"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
