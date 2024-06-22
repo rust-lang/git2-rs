@@ -364,7 +364,7 @@ impl<'repo> io::Read for OdbReader<'repo> {
             if res < 0 {
                 Err(io::Error::new(io::ErrorKind::Other, "Read error"))
             } else {
-                Ok(len)
+                Ok(res as _)
             }
         }
     }
