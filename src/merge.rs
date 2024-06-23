@@ -7,8 +7,8 @@ use std::str;
 
 use crate::call::Convert;
 use crate::util::Binding;
-use crate::{raw, Commit, FileFavor, Oid};
 use crate::IntoCString;
+use crate::{raw, Commit, FileFavor, Oid};
 
 /// A structure to represent an annotated commit, the input to merge and rebase.
 ///
@@ -225,7 +225,10 @@ impl MergeFileOptions {
             their_label: None,
             raw: unsafe { mem::zeroed() },
         };
-        assert_eq!(unsafe { raw::git_merge_file_options_init(&mut opts.raw, 1) }, 0);
+        assert_eq!(
+            unsafe { raw::git_merge_file_options_init(&mut opts.raw, 1) },
+            0
+        );
         opts
     }
 
@@ -360,7 +363,8 @@ impl<'repo> MergeFileResult<'repo> {
     /// returns `None` if a filename conflict would occur,
     /// or if the path is not valid utf-8
     pub fn path(&self) -> Option<&str> {
-        self.path_bytes().and_then(|bytes| str::from_utf8(bytes).ok())
+        self.path_bytes()
+            .and_then(|bytes| str::from_utf8(bytes).ok())
     }
 
     /// Gets the path as a byte slice.
@@ -375,12 +379,7 @@ impl<'repo> MergeFileResult<'repo> {
 
     /// The contents of the merge.
     pub fn content(&self) -> &'repo [u8] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.raw.ptr as *const u8,
-                self.raw.len as usize,
-            )
-        }
+        unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize) }
     }
 }
 

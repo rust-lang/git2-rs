@@ -101,7 +101,7 @@ pub use crate::index::{
 pub use crate::indexer::{Indexer, IndexerProgress, Progress};
 pub use crate::mailmap::Mailmap;
 pub use crate::mempack::Mempack;
-pub use crate::merge::{AnnotatedCommit, MergeOptions, MergeFileOptions, MergeFileResult};
+pub use crate::merge::{AnnotatedCommit, MergeFileOptions, MergeFileResult, MergeOptions};
 pub use crate::message::{
     message_prettify, message_trailers_bytes, message_trailers_strs, MessageTrailersBytes,
     MessageTrailersBytesIterator, MessageTrailersStrs, MessageTrailersStrsIterator,
