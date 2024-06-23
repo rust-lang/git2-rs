@@ -4,7 +4,7 @@
 // This is required to link libz when libssh2-sys is not included.
 extern crate libz_sys as libz;
 
-use libc::{c_char, c_int, c_uchar, c_uint, c_void, size_t};
+use libc::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void, size_t};
 #[cfg(feature = "ssh")]
 use libssh2_sys as libssh2;
 use std::ffi::CStr;
@@ -1361,6 +1361,32 @@ pub struct git_merge_options {
     pub file_flags: u32,
 }
 
+#[repr(C)]
+pub struct git_merge_file_options {
+    pub version: c_uint,
+    pub ancestor_label: *const c_char,
+    pub our_label: *const c_char,
+    pub their_label: *const c_char,
+    pub favor: git_merge_file_favor_t,
+    pub flags: u32,
+    pub marker_size: c_ushort,
+}
+
+#[repr(C)]
+#[derive(Copy)]
+pub struct git_merge_file_result {
+    pub automergeable: c_uint,
+    pub path: *const c_char,
+    pub mode: c_uint,
+    pub ptr: *const c_char,
+    pub len: size_t,
+}
+impl Clone for git_merge_file_result {
+    fn clone(&self) -> git_merge_file_result {
+        *self
+    }
+}
+
 git_enum! {
     pub enum git_merge_flag_t {
         GIT_MERGE_FIND_RENAMES = 1 << 0,
@@ -1390,6 +1416,8 @@ git_enum! {
         GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL = 1 << 5,
         GIT_MERGE_FILE_DIFF_PATIENCE = 1 << 6,
         GIT_MERGE_FILE_DIFF_MINIMAL = 1 << 7,
+        GIT_MERGE_FILE_STYLE_ZDIFF3 = 1 << 8,
+        GIT_MERGE_FILE_ACCEPT_CONFLICTS = 1 << 9,
     }
 }
 
@@ -3395,6 +3423,7 @@ extern "C" {
         their_tree: *const git_tree,
         opts: *const git_merge_options,
     ) -> c_int;
+    pub fn git_merge_file_options_init(opts: *mut git_merge_file_options, version: c_uint) -> c_int;
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
 
     // merge analysis
@@ -3542,6 +3571,17 @@ extern "C" {
         length: size_t,
         input_array: *const git_oid,
     ) -> c_int;
+
+    pub fn git_merge_file_from_index(
+        out: *mut git_merge_file_result,
+        repo: *mut git_repository,
+        ancestor: *const git_index_entry,
+        ours: *const git_index_entry,
+        theirs: *const git_index_entry,
+        opts: *const git_merge_file_options,
+    ) -> c_int;
+
+    pub fn git_merge_file_result_free(file_result: *mut git_merge_file_result);
 
     // pathspec
     pub fn git_pathspec_free(ps: *mut git_pathspec);
