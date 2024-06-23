@@ -24,12 +24,14 @@ use crate::{
     StashFlags,
 };
 use crate::{
-    AnnotatedCommit, MergeAnalysis, MergeOptions, MergeFileOptions, MergeFileResult, MergePreference,
-    SubmoduleIgnore, SubmoduleStatus, SubmoduleUpdate,
+    AnnotatedCommit, MergeAnalysis, MergeFileOptions, MergeFileResult, MergeOptions,
+    MergePreference, SubmoduleIgnore, SubmoduleStatus, SubmoduleUpdate,
 };
 use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
-use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, IndexEntry, Oid, Tree};
+use crate::{
+    Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, IndexEntry, Oid, Tree,
+};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
@@ -4175,12 +4177,14 @@ mod tests {
         opts.our_label("ours");
         opts.their_label("theirs");
         opts.style_diff3(true);
-        let merge_file_result = repo.merge_file_from_index(&base, &ours, &theirs, Some(&mut opts)).unwrap();
+        let merge_file_result = repo
+            .merge_file_from_index(&base, &ours, &theirs, Some(&mut opts))
+            .unwrap();
 
         assert!(!merge_file_result.is_automergeable());
         assert_eq!(
             String::from_utf8_lossy(merge_file_result.content()).to_string(),
-r"<<<<<<< ours
+            r"<<<<<<< ours
 foo
 ||||||| ancestor
 base
