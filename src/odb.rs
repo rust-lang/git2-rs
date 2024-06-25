@@ -726,4 +726,45 @@ mod tests {
         t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
         assert!(foo_file.exists());
     }
+
+    #[test]
+    fn stream_read() {
+        // Test for read impl of OdbReader.
+        const FOO_TEXT: &[u8] = b"this is a test";
+        let (_td, repo) = crate::test::repo_init();
+        let p = repo.path().parent().unwrap().join("foo");
+        std::fs::write(&p, FOO_TEXT).unwrap();
+        let mut index = repo.index().unwrap();
+        index.add_path(std::path::Path::new("foo")).unwrap();
+        let tree_id = index.write_tree().unwrap();
+        let tree = repo.find_tree(tree_id).unwrap();
+        let sig = repo.signature().unwrap();
+        let head_id = repo.refname_to_id("HEAD").unwrap();
+        let parent = repo.find_commit(head_id).unwrap();
+        let _commit = repo
+            .commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent])
+            .unwrap();
+
+        // Try reading from a commit object.
+        let odb = repo.odb().unwrap();
+        let oid = repo.refname_to_id("HEAD").unwrap();
+        let (mut reader, size, ty) = odb.reader(oid).unwrap();
+        assert!(ty == ObjectType::Commit);
+        let mut x = [0; 10000];
+        let r = reader.read(&mut x).unwrap();
+        assert!(r == size);
+
+        // Try reading from a blob. This assumes it is a loose object (packed
+        // objects can't read).
+        let commit = repo.find_commit(oid).unwrap();
+        let tree = commit.tree().unwrap();
+        let entry = tree.get_name("foo").unwrap();
+        let (mut reader, size, ty) = odb.reader(entry.id()).unwrap();
+        assert_eq!(size, FOO_TEXT.len());
+        assert!(ty == ObjectType::Blob);
+        let mut x = [0; 10000];
+        let r = reader.read(&mut x).unwrap();
+        assert_eq!(r, 14);
+        assert_eq!(&x[..FOO_TEXT.len()], FOO_TEXT);
+    }
 }
