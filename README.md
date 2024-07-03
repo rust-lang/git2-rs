@@ -51,6 +51,15 @@ If the `ssh` feature is enabled (and it is by default) then this library depends
 on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
 [`openssl` crate's instructions](https://github.com/sfackler/rust-openssl/blob/master/openssl/src/lib.rs#L31).
 
+## Troubleshooting
+
+On Windows, only SSH private keys in the PEM format are supported. This is a limitation of libssh2 specific to Windows. Not a limitation of git2-rs.
+
+To convert your SSH private key to the PEM format, please use the following command:
+```bash
+ssh-keygen.exe -m pem -f .\id_rsa -p
+```
+
 # License
 
 This project is licensed under either of
