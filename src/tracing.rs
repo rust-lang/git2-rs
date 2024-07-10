@@ -120,8 +120,8 @@ pub fn trace_shim_log_crate() {
     trace_set(TraceLevel::Trace, |level, msg| {
         // Convert the trace level to a log level.
         let log_level = level
-        .as_log_level()
-        .expect("libgit2 should not produce tracing events with level=None");
+            .as_log_level()
+            .expect("libgit2 should not produce tracing events with level=None");
 
         // Build a record to pass to the logger.
         let mut record_builder = RecordBuilder::new();
