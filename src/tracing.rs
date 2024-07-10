@@ -11,22 +11,22 @@ use crate::{panic, raw, util::Binding};
 pub enum TraceLevel {
     /// No tracing will be performed.
     None,
-    
+
     /// Severe errors that may impact the program's execution
     Fatal,
-    
+
     /// Errors that do not impact the program's execution
     Error,
-    
+
     /// Warnings that suggest abnormal data
     Warn,
-    
+
     /// Informational messages about program execution
     Info,
-    
+
     /// Detailed data that allows for debugging
     Debug,
-    
+
     /// Exceptionally detailed debugging data
     Trace,
 }
@@ -65,7 +65,7 @@ impl TraceLevel {
     /// are trivial.
     pub const fn as_log_level_filter(self) -> log::LevelFilter {
         use log::LevelFilter;
-        
+
         match self {
             Self::None => LevelFilter::Off,
             Self::Fatal | Self::Error => LevelFilter::Error,
@@ -75,7 +75,7 @@ impl TraceLevel {
             Self::Trace => LevelFilter::Trace,
         }
     }
-    
+
     /// Attempt to convert this [TraceLevel] to a [log::LevelFilter].
     ///
     /// This is done trivially with two exceptions:
@@ -83,7 +83,7 @@ impl TraceLevel {
     /// - [TraceLevel::Fatal] goes to [log::Level::Error].
     pub const fn as_log_level(self) -> Option<log::Level> {
         use log::Level;
-        
+
         match self {
             Self::None => None,
             Self::Fatal | Self::Error => Some(Level::Error),
@@ -105,11 +105,11 @@ static CALLBACK: AtomicUsize = AtomicUsize::new(0);
 /// Set the tracing callback.
 pub fn trace_set(level: TraceLevel, cb: TracingCb) -> bool {
     CALLBACK.store(cb as usize, Ordering::SeqCst);
-    
+
     unsafe {
         raw::git_trace_set(level.raw(), Some(tracing_cb_c));
     }
-    
+
     return true;
 }
 
@@ -122,13 +122,13 @@ pub fn trace_shim_log_crate() {
         let log_level = level
         .as_log_level()
         .expect("libgit2 should not produce tracing events with level=None");
-        
+
         // Build a record to pass to the logger.
         let mut record_builder = RecordBuilder::new();
-        
+
         // Set the target and level.
         record_builder.target("libgit2").level(log_level);
-        
+
         // Log the trace event to the global logger.
         log::logger().log(&record_builder.args(format_args!("{}", msg)).build());
     });
