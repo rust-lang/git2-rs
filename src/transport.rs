@@ -64,9 +64,9 @@ pub enum Service {
 }
 
 /// HTTP implementation related info for various services.
-/// 
-/// This information was pulled from 
-/// <https://github.com/libgit2/libgit2/blob/2ecc8586f7eec4063b5da1563d0a33f9e9f9fcf7/src/libgit2/transports/http.c#L68-L95>. 
+///
+/// This information was pulled from
+/// <https://github.com/libgit2/libgit2/blob/2ecc8586f7eec4063b5da1563d0a33f9e9f9fcf7/src/libgit2/transports/http.c#L68-L95>.
 impl Service {
     /// The HTTP Method used by libgit2's implementation for http(s) transport.
     pub const fn http_method(self) -> http::Method {
