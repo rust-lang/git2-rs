@@ -54,13 +54,58 @@ pub trait SmartSubtransport: Send + 'static {
 }
 
 /// Actions that a smart transport can ask a subtransport to perform
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 #[allow(missing_docs)]
 pub enum Service {
     UploadPackLs,
     UploadPack,
     ReceivePackLs,
     ReceivePack,
+}
+
+/// HTTP implementation related info for various services.
+/// 
+/// This information was pulled from 
+/// <https://github.com/libgit2/libgit2/blob/2ecc8586f7eec4063b5da1563d0a33f9e9f9fcf7/src/libgit2/transports/http.c#L68-L95>. 
+impl Service {
+    /// The HTTP Method used by libgit2's implementation for http(s) transport.
+    pub const fn http_method(self) -> http::Method {
+        use http::Method;
+
+        match self {
+            Service::UploadPackLs | Service::ReceivePackLs => Method::GET,
+            Service::UploadPack | Service::ReceivePack => Method::POST,
+        }
+    }
+
+    /// The value of the HTTP "Accept" header that is used by libgit2's implementation for http(s) transport.
+    pub const fn http_accept_header(self) -> &'static str {
+        match self {
+            Service::UploadPackLs => "application/x-git-upload-pack-advertisement",
+            Service::ReceivePackLs => "application/x-git-receive-pack-advertisement",
+            Service::UploadPack => "application/x-git-upload-pack-result",
+            Service::ReceivePack => "application/x-git-receive-pack-result",
+        }
+    }
+
+    /// The value of the HTTP "Content-Type" header that is used by libgit2's implementation for http(s) transport.
+    pub const fn http_content_type_header(self) -> Option<&'static str> {
+        match self {
+            Service::UploadPackLs | Service::ReceivePackLs => None,
+            Service::ReceivePack => Some("application/x-git-receive-pack-request"),
+            Service::UploadPack => Some("application/x-git-upload-pack-request"),
+        }
+    }
+
+    /// The HTTP Url path and query suffix used by libgit2's implementation for http(s) transport.
+    pub const fn http_path_and_query(self) -> &'static str {
+        match self {
+            Service::UploadPackLs => "/info/refs?service=git-upload-pack",
+            Service::UploadPack => "/git-upload-pack",
+            Service::ReceivePackLs => "/info/refs?service=git-receive-pack",
+            Service::ReceivePack => "/git-receive-pack",
+        }
+    }
 }
 
 /// An instance of a stream over which a smart transport will communicate with a
