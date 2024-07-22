@@ -60,11 +60,13 @@ impl Binding for TraceLevel {
 
 impl TraceLevel {
     /// Attempt to convert this [TraceLevel] to a [log::LevelFilter].
+    /// 
+    /// This function is not public to avoid having a public dependency on [`log`].
     ///
     /// This is done trivially with two exceptions:
     /// - [TraceLevel::None] goes to [None]
     /// - [TraceLevel::Fatal] goes to [log::Level::Error].
-    pub const fn as_log_level(self) -> Option<log::Level> {
+    const fn as_log_level(self) -> Option<log::Level> {
         use log::Level;
 
         match self {
