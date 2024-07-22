@@ -190,7 +190,7 @@ impl io::Write for Indexer<'_> {
             if res < 0 {
                 Err(io::Error::new(
                     io::ErrorKind::Other,
-                    Error::last_error(res).unwrap(),
+                    Error::last_error(res),
                 ))
             } else {
                 Ok(buf.len())

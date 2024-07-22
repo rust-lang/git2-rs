@@ -458,7 +458,7 @@ impl<'repo> OdbPackwriter<'repo> {
             };
 
             if res < 0 {
-                Err(Error::last_error(res).unwrap())
+                Err(Error::last_error(res))
             } else {
                 Ok(res)
             }

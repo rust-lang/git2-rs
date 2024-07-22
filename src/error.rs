@@ -32,12 +32,7 @@ impl Error {
     ///
     /// The `code` argument typically comes from the return value of a function
     /// call. This code will later be returned from the `code` function.
-    ///
-    /// Historically this function returned `Some` or `None` based on the return
-    /// value of `git_error_last` but nowadays it always returns `Some` so it's
-    /// safe to unwrap the return value. This API will change in the next major
-    /// version.
-    pub fn last_error(code: c_int) -> Option<Error> {
+    pub fn last_error(code: c_int) -> Error {
         crate::init();
         unsafe {
             // Note that whenever libgit2 returns an error any negative value
@@ -64,7 +59,7 @@ impl Error {
                 Error::from_raw(code, ptr)
             };
             raw::git_error_clear();
-            Some(err)
+            err
         }
     }
 
