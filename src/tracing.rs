@@ -59,23 +59,6 @@ impl Binding for TraceLevel {
 }
 
 impl TraceLevel {
-    /// Convert the [TraceLevel] to a [log::LevelFilter].
-    ///
-    /// [TraceLevel::Fatal] becomes [log::LevelFilter::Error] but otherwise all the conversions
-    /// are trivial.
-    pub const fn as_log_level_filter(self) -> log::LevelFilter {
-        use log::LevelFilter;
-
-        match self {
-            Self::None => LevelFilter::Off,
-            Self::Fatal | Self::Error => LevelFilter::Error,
-            Self::Warn => LevelFilter::Warn,
-            Self::Info => LevelFilter::Info,
-            Self::Debug => LevelFilter::Debug,
-            Self::Trace => LevelFilter::Trace,
-        }
-    }
-
     /// Attempt to convert this [TraceLevel] to a [log::LevelFilter].
     ///
     /// This is done trivially with two exceptions:
