@@ -1,4 +1,7 @@
-use std::{ffi::CStr, sync::atomic::{AtomicPtr, Ordering}};
+use std::{
+    ffi::CStr,
+    sync::atomic::{AtomicPtr, Ordering},
+};
 
 use libc::{c_char, c_int};
 
@@ -61,7 +64,7 @@ impl Binding for TraceLevel {
 /// see `trace_set` to register a subscriber.
 pub type TracingCb = fn(TraceLevel, &[u8]);
 
-/// Use an atomic pointer to store the global tracing subscriber function. 
+/// Use an atomic pointer to store the global tracing subscriber function.
 static CALLBACK: AtomicPtr<()> = AtomicPtr::new(std::ptr::null_mut());
 
 /// Set the global subscriber called when libgit2 produces a tracing message.
@@ -69,10 +72,8 @@ pub fn trace_set(level: TraceLevel, cb: TracingCb) -> Result<(), Error> {
     // Store the callback in the global atomic.
     CALLBACK.store(cb as *mut (), Ordering::SeqCst);
 
-    // git_trace_set returns 0 if there was no error. 
-    let return_code: c_int = unsafe {
-        raw::git_trace_set(level.raw(), Some(tracing_cb_c))
-    };
+    // git_trace_set returns 0 if there was no error.
+    let return_code: c_int = unsafe { raw::git_trace_set(level.raw(), Some(tracing_cb_c)) };
 
     if return_code != 0 {
         // Unwrap here is fine since `Error::last_error` always returns `Some`.
@@ -88,10 +89,10 @@ extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     let cb: *mut () = CALLBACK.load(Ordering::SeqCst);
 
     // Transmute the callback pointer into the function pointer we know it to be.
-    // 
-    // SAFETY: We only ever set the callback pointer with something cast from a TracingCb 
-    // so transmuting back to a TracingCb is safe. This is notably not an integer-to-pointer 
-    // transmute as described in the mem::transmute documentation and is in-line with the 
+    //
+    // SAFETY: We only ever set the callback pointer with something cast from a TracingCb
+    // so transmuting back to a TracingCb is safe. This is notably not an integer-to-pointer
+    // transmute as described in the mem::transmute documentation and is in-line with the
     // example in that documentation for casing between *const () to fn pointers.
     let cb: TracingCb = unsafe { std::mem::transmute(cb) };
 
@@ -102,10 +103,10 @@ extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     }
 
     // Convert the message from a *const c_char to a &[u8] and pass it to the callback.
-    // 
-    // SAFETY: We've just checked that the pointer is not null. The other safety requirements are left to 
+    //
+    // SAFETY: We've just checked that the pointer is not null. The other safety requirements are left to
     // libgit2 to enforce -- namely that it gives us a valid, nul-terminated, C string, that that string exists
-    // entirely in one allocation, that the string will not be mutated once passed to us, and that the nul-terminator is 
+    // entirely in one allocation, that the string will not be mutated once passed to us, and that the nul-terminator is
     // within isize::MAX bytes from the given pointers data address.
     let msg: &CStr = unsafe { CStr::from_ptr(msg) };
 
@@ -116,7 +117,7 @@ extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     panic::wrap(|| {
         // Convert the raw trace level into a type we can pass to the rust callback fn.
         //
-        // SAFETY: Currently the implementation of this function (above) may panic, but is only marked as unsafe to match 
+        // SAFETY: Currently the implementation of this function (above) may panic, but is only marked as unsafe to match
         // the trait definition, thus we can consider this call safe.
         let level: TraceLevel = unsafe { Binding::from_raw(level) };
 
@@ -134,6 +135,7 @@ mod tests {
     fn smoke() {
         super::trace_set(TraceLevel::Trace, |level, msg| {
             dbg!(level, msg);
-        }).expect("libgit2 can set global trace callback");
+        })
+        .expect("libgit2 can set global trace callback");
     }
 }
