@@ -6,7 +6,7 @@ build = "build.rs"
 edition = "2018"
 
 [dependencies]
-libgit2-sys = { path = "../libgit2-sys", features = ['https', 'ssh'] }
+libgit2-sys = { path = "../libgit2-sys", features = ['https', 'ssh-libssh2'] }
 libc = "0.2"
 
 [build-dependencies]
