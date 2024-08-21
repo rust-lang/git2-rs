@@ -456,6 +456,8 @@ impl Repository {
         }
     }
 
+    /// Returns the path of the shared common directory for this repository.
+    ///
     /// If the repository is bare, it is the root directory for the repository.
     /// If the repository is a worktree, it is the parent repo's gitdir.
     /// Otherwise, it is the gitdir.
