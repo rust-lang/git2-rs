@@ -2148,6 +2148,7 @@ extern "C" {
     pub fn git_repository_is_empty(repo: *mut git_repository) -> c_int;
     pub fn git_repository_is_shallow(repo: *mut git_repository) -> c_int;
     pub fn git_repository_path(repo: *const git_repository) -> *const c_char;
+    pub fn git_repository_commondir(repo: *const git_repository) -> *const c_char;
     pub fn git_repository_state(repo: *mut git_repository) -> c_int;
     pub fn git_repository_workdir(repo: *const git_repository) -> *const c_char;
     pub fn git_repository_set_workdir(
