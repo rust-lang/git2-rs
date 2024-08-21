@@ -456,6 +456,16 @@ impl Repository {
         }
     }
 
+    /// If the repository is bare, it is the root directory for the repository.
+    /// If the repository is a worktree, it is the parent repo's gitdir.
+    /// Otherwise, it is the gitdir.
+    pub fn commondir(&self) -> &Path {
+        unsafe {
+            let ptr = raw::git_repository_commondir(self.raw);
+            util::bytes2path(crate::opt_bytes(self, ptr).unwrap())
+        }
+    }
+
     /// Returns the current state of this repository
     pub fn state(&self) -> RepositoryState {
         let state = unsafe { raw::git_repository_state(self.raw) };
@@ -4303,5 +4313,23 @@ Committer Name <committer.proper@email> <committer@email>"#,
             .find_tag_by_prefix(&tag.id().to_string()[0..7])
             .unwrap();
         assert_eq!(tag.id(), found_tag.id());
+    }
+
+    #[test]
+    fn smoke_commondir() {
+        let (td, repo) = crate::test::repo_init();
+        assert_eq!(
+            crate::test::realpath(repo.path()).unwrap(),
+            crate::test::realpath(repo.commondir()).unwrap()
+        );
+
+        let worktree = repo
+            .worktree("test", &td.path().join("worktree"), None)
+            .unwrap();
+        let worktree_repo = Repository::open_from_worktree(&worktree).unwrap();
+        assert_eq!(
+            crate::test::realpath(repo.path()).unwrap(),
+            crate::test::realpath(worktree_repo.commondir()).unwrap()
+        );
     }
 }
