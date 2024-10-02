@@ -33,12 +33,11 @@ tempfile = "3.1.0"
 
 [features]
 unstable = []
-default = ["ssh", "https", "ssh_key_from_memory"]
+default = ["ssh", "https"]
 ssh = ["libgit2-sys/ssh"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe"]
 vendored-libgit2 = ["libgit2-sys/vendored"]
 vendored-openssl = ["openssl-sys/vendored", "libgit2-sys/vendored-openssl"]
-ssh_key_from_memory = ["libgit2-sys/ssh_key_from_memory"]
 zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 
 [workspace]

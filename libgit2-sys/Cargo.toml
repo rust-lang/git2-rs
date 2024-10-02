@@ -35,7 +35,6 @@ openssl-sys = { version = "0.9.45", optional = true }
 [features]
 ssh = ["libssh2-sys"]
 https = ["openssl-sys"]
-ssh_key_from_memory = []
 vendored = []
 vendored-openssl = ["openssl-sys/vendored"]
 zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]
