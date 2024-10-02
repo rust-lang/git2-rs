@@ -2467,6 +2467,38 @@ impl Repository {
     }
 
     /// Find a merge base given a list of commits
+    ///
+    /// This behaves similar to [`git merge-base`](https://git-scm.com/docs/git-merge-base#_discussion).
+    /// Given three commits `a`, `b`, and `c`, `merge_base_many(&[a, b, c])`
+    /// will compute a hypothetical commit `m`, which is a merge between `b`
+    /// and `c`.
+    ///
+    /// For example, with the following topology:
+    /// ```text
+    ///        o---o---o---o---C
+    ///       /
+    ///      /   o---o---o---B
+    ///     /   /
+    /// ---2---1---o---o---o---A
+    /// ```
+    ///
+    /// the result of `merge_base_many(&[a, b, c])` is 1. This is because the
+    /// equivalent topology with a merge commit `m` between `b` and `c` would
+    /// is:
+    /// ```text
+    ///        o---o---o---o---o
+    ///       /                 \
+    ///      /   o---o---o---o---M
+    ///     /   /
+    /// ---2---1---o---o---o---A
+    /// ```
+    ///
+    /// and the result of `merge_base_many(&[a, m])` is 1.
+    ///
+    /// ---
+    ///
+    /// If you're looking to recieve the common merge base between all the
+    /// given commits, use [`Self::merge_base_octopus`].
     pub fn merge_base_many(&self, oids: &[Oid]) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -2474,6 +2506,23 @@ impl Repository {
 
         unsafe {
             try_call!(raw::git_merge_base_many(
+                &mut raw,
+                self.raw,
+                oids.len() as size_t,
+                oids.as_ptr() as *const raw::git_oid
+            ));
+            Ok(Binding::from_raw(&raw as *const _))
+        }
+    }
+
+    /// Find a common merge base between all given a list of commits
+    pub fn merge_base_octopus(&self, oids: &[Oid]) -> Result<Oid, Error> {
+        let mut raw = raw::git_oid {
+            id: [0; raw::GIT_OID_RAWSZ],
+        };
+
+        unsafe {
+            try_call!(raw::git_merge_base_octopus(
                 &mut raw,
                 self.raw,
                 oids.len() as size_t,
@@ -3824,6 +3873,10 @@ mod tests {
 
         // the merge base of (oid2,oid3,oid4) should be oid1
         let merge_base = repo.merge_base_many(&[oid2, oid3, oid4]).unwrap();
+        assert_eq!(merge_base, oid1);
+
+        // the octopus merge base of (oid2,oid3,oid4) should be oid1
+        let merge_base = repo.merge_base_octopus(&[oid2, oid3, oid4]).unwrap();
         assert_eq!(merge_base, oid1);
     }
 
