@@ -372,6 +372,12 @@ impl CredentialHelper {
         // If that fails then it's up to the user to put `sh` in path and make
         // sure it works.
         let mut c = Command::new("sh");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            c.creation_flags(CREATE_NO_WINDOW);
+        }
         c.arg("-c")
             .arg(&format!("{} get", cmd))
             .stdin(Stdio::piped())
@@ -384,6 +390,12 @@ impl CredentialHelper {
                 debug!("`sh` failed to spawn: {}", e);
                 let mut parts = cmd.split_whitespace();
                 let mut c = Command::new(parts.next().unwrap());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    const CREATE_NO_WINDOW: u32 = 0x08000000;
+                    c.creation_flags(CREATE_NO_WINDOW);
+                }
                 for arg in parts {
                     c.arg(arg);
                 }
