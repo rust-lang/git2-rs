@@ -33,9 +33,11 @@ cc = { version = "1.0.43", features = ['parallel'] }
 openssl-sys = { version = "0.9.45", optional = true }
 
 [features]
-ssh = ["libssh2-sys"]
+ssh = ["ssh-libssh2"]
+ssh-libssh2 = ["libssh2-sys"]
+ssh-openssh = []
+ssh_key_from_memory = ["ssh-libssh2"]
 https = ["openssl-sys"]
-ssh_key_from_memory = []
 vendored = []
 vendored-openssl = ["openssl-sys/vendored"]
 zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]
