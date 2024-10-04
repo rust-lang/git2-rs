@@ -44,9 +44,7 @@ pub fn c_try(ret: libc::c_int) -> Result<libc::c_int, Error> {
 }
 
 pub fn last_error(code: libc::c_int) -> Error {
-    // nowadays this unwrap is safe as `Error::last_error` always returns
-    // `Some`.
-    Error::last_error(code).unwrap()
+    Error::last_error(code)
 }
 
 mod impls {
