@@ -188,7 +188,7 @@ fn do_merge<'a>(
         checkout_options.conflict_style_merge(true);
         checkout_options.force();
 
-        let mut merge_options = MergeOptions::new();
+        let mut merge_options = git2::MergeOptions::new();
         merge_options.diff3_style(true);
 
         repo.merge(
