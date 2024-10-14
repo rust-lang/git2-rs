@@ -139,8 +139,8 @@ fn normal_merge(
         &result_tree,
         &[&local_commit, &remote_commit],
     )?;
-    // Set working tree to match head.
-    repo.checkout_head(None)?;
+    // SEE https://libgit2.org/libgit2/ex/HEAD/merge.html
+    repo.cleanup_state()?;
     Ok(())
 }
 
@@ -181,6 +181,22 @@ fn do_merge<'a>(
             }
         };
     } else if analysis.0.is_normal() {
+        // SEE https://libgit2.org/libgit2/ex/HEAD/merge.html
+        
+        let mut checkout_options = git2::build::CheckoutBuilder::default();
+        checkout_options.allow_conflicts(true);
+        checkout_options.conflict_style_merge(true);
+        checkout_options.force();
+
+        let mut merge_options = MergeOptions::new();
+        merge_options.diff3_style(true);
+
+        repo.merge(
+            &[&fetch_commit],
+            Some(&mut merge_options),
+            Some(&mut checkout_options),
+        )?;
+        
         // do a normal merge
         let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
         normal_merge(&repo, &head_commit, &fetch_commit)?;
