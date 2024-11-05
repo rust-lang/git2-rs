@@ -2577,58 +2577,12 @@ impl Repository {
         theirs: &IndexEntry,
         opts: Option<&mut MergeFileOptions>,
     ) -> Result<MergeFileResult<'_>, Error> {
-        let create_raw_entry = |entry: &IndexEntry| -> Result<raw::git_index_entry, Error> {
-            let path = CString::new(&entry.path[..])?;
-
-            // libgit2 encodes the length of the path in the lower bits of the
-            // `flags` entry, so mask those out and recalculate here to ensure we
-            // don't corrupt anything.
-            let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-            if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-                flags |= entry.path.len() as u16;
-            } else {
-                flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-            }
-
-            unsafe {
-                let raw = raw::git_index_entry {
-                    dev: entry.dev,
-                    ino: entry.ino,
-                    mode: entry.mode,
-                    uid: entry.uid,
-                    gid: entry.gid,
-                    file_size: entry.file_size,
-                    id: *entry.id.raw(),
-                    flags,
-                    flags_extended: entry.flags_extended,
-                    path: path.as_ptr(),
-                    mtime: raw::git_index_time {
-                        seconds: entry.mtime.seconds(),
-                        nanoseconds: entry.mtime.nanoseconds(),
-                    },
-                    ctime: raw::git_index_time {
-                        seconds: entry.ctime.seconds(),
-                        nanoseconds: entry.ctime.nanoseconds(),
-                    },
-                };
-
-                Ok(raw)
-            }
-        };
-
-        let mut ret = raw::git_merge_file_result {
-            automergeable: 0,
-            path: ptr::null_mut(),
-            mode: 0,
-            ptr: ptr::null_mut(),
-            len: 0,
-        };
-        let ancestor = create_raw_entry(ancestor)?;
-        let ours = create_raw_entry(ours)?;
-        let theirs = create_raw_entry(theirs)?;
+        let (ancestor, _ancestor_path) = ancestor.to_raw()?;
+        let (ours, _ours_path) = ours.to_raw()?;
+        let (theirs, _theirs_path) = theirs.to_raw()?;
 
         unsafe {
+            let mut ret = mem::zeroed();
             try_call!(raw::git_merge_file_from_index(
                 &mut ret,
                 self.raw(),
@@ -4182,6 +4136,7 @@ mod tests {
             .unwrap();
 
         assert!(!merge_file_result.is_automergeable());
+        assert_eq!(merge_file_result.path(), Some("file"));
         assert_eq!(
             String::from_utf8_lossy(merge_file_result.content()).to_string(),
             r"<<<<<<< ours

@@ -1373,18 +1373,13 @@ pub struct git_merge_file_options {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct git_merge_file_result {
     pub automergeable: c_uint,
     pub path: *const c_char,
     pub mode: c_uint,
     pub ptr: *const c_char,
     pub len: size_t,
-}
-impl Clone for git_merge_file_result {
-    fn clone(&self) -> git_merge_file_result {
-        *self
-    }
 }
 
 git_enum! {

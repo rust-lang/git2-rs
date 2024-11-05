@@ -402,7 +402,7 @@ impl<'repo> Drop for MergeFileResult<'repo> {
     }
 }
 
-impl<'repo> std::fmt::Display for MergeFileResult<'repo> {
+impl<'repo> std::fmt::Debug for MergeFileResult<'repo> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ds = f.debug_struct("MergeFileResult");
         if let Some(path) = &self.path() {
