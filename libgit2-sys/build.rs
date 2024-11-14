@@ -6,8 +6,19 @@ use std::process::Command;
 
 /// Tries to use system libgit2 and emits necessary build script instructions.
 fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
+    // Specify `LIBGIT2_OVERRIDE_PKGCONFIG_NAME` to change the name of the pkgconfig configuration
+    // that will be looked for when checking to see if the system libgit2 is usable. This is
+    // most useful for distributions that may ship co-installable versions of libgit2 where
+    // the pkgconfig may be renamed.
+    println!("cargo:rerun-if-env-changed=LIBGIT2_OVERRIDE_PKGCONFIG_NAME");
+    let libgit2_pkgconfig =
+        env::var("LIBGIT2_OVERRIDE_PKGCONFIG_NAME").unwrap_or("libgit2".to_string());
+
     let mut cfg = pkg_config::Config::new();
-    match cfg.range_version("1.8.1".."1.9.0").probe("libgit2") {
+    match cfg
+        .range_version("1.8.1".."1.9.0")
+        .probe(&libgit2_pkgconfig)
+    {
         Ok(lib) => {
             for include in &lib.include_paths {
                 println!("cargo:root={}", include.display());
