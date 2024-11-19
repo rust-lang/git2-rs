@@ -116,6 +116,17 @@ mod impls {
         }
     }
 
+    impl Convert<raw::git_treewalk_mode> for crate::TreeWalkMode {
+        #[cfg(target_env = "msvc")]
+        fn convert(&self) -> raw::git_treewalk_mode {
+            *self as i32
+        }
+        #[cfg(not(target_env = "msvc"))]
+        fn convert(&self) -> raw::git_treewalk_mode {
+            *self as u32
+        }
+    }
+
     impl Convert<raw::git_direction> for Direction {
         fn convert(&self) -> raw::git_direction {
             match *self {
