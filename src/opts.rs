@@ -33,6 +33,29 @@ where
     Ok(())
 }
 
+/// Set the memory allocator to a different memory allocator.
+/// 
+/// This allocator will then be used to make all memory allocations for
+/// libgit2 operations. If the given `allocator` is None, then the
+/// system default will be restored.
+pub unsafe fn set_allocator(
+    gmalloc: *const extern "C" fn(libc::size_t, *const core::ffi::c_char, core::ffi::c_int) -> *mut core::ffi::c_void,
+    grealloc: *const extern "C" fn(*mut core::ffi::c_void, libc::size_t, *const core::ffi::c_char, core::ffi::c_int) -> *mut core::ffi::c_void,
+    gfree: *const extern "C" fn(*mut core::ffi::c_void),
+) -> Result<(), Error> {
+    crate::init();
+    let allocator = raw::git_allocator{
+        gmalloc: gmalloc,
+        gfree: gfree,
+        grealloc: grealloc,
+    };
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_ALLOCATOR as libc::c_int,
+        &allocator as *const raw::git_allocator
+    ));
+    Ok(())
+}
+
 /// Reset the search path for a given level of config data to the default
 /// (generally based on environment variables).
 ///
@@ -416,6 +439,8 @@ pub unsafe fn set_server_timeout_in_milliseconds(timeout: libc::c_int) -> Result
 
 #[cfg(test)]
 mod test {
+    use crate::test::repo_init;
+
     use super::*;
 
     #[test]
@@ -445,6 +470,40 @@ mod test {
             assert!(set_mwindow_file_limit(1024).is_ok());
             assert!(get_mwindow_file_limit().unwrap() == 1024);
         }
+    }
+
+    static mut ALLOC_CALLED: bool = false;
+    static mut FREE_CALLED: bool = false;
+
+    #[test]
+    fn custom_allocator() {
+        unsafe {
+            extern "C" fn gmalloc(size: libc::size_t, _: *const core::ffi::c_char, _: core::ffi::c_int) -> *mut core::ffi::c_void {
+                unsafe {
+                    ALLOC_CALLED = true;
+                    libc::malloc(size)
+                }
+            }
+            extern "C" fn grealloc(ptr: *mut core::ffi::c_void, size: libc::size_t, _: *const core::ffi::c_char, _: core::ffi::c_int) -> *mut core::ffi::c_void {
+                unsafe {
+                    ALLOC_CALLED = true;
+                    libc::realloc(ptr, size)
+                }
+            }
+            extern "C" fn gfree(ptr: *mut core::ffi::c_void) {
+                unsafe {
+                    FREE_CALLED = true;
+                    libc::free(ptr)
+                }
+            }
+            assert!(set_allocator(
+                gmalloc as *const extern "C" fn(libc::size_t, *const core::ffi::c_char, core::ffi::c_int) -> *mut core::ffi::c_void,
+                grealloc as *const extern "C" fn(*mut core::ffi::c_void, libc::size_t, *const core::ffi::c_char, core::ffi::c_int) -> *mut core::ffi::c_void,
+                gfree as *const extern "C" fn(*mut core::ffi::c_void),
+            ).is_ok());
+            repo_init();
+            assert!(ALLOC_CALLED); 
+            assert!(FREE_CALLED);}
     }
 
     #[test]
