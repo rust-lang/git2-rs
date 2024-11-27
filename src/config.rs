@@ -237,7 +237,10 @@ impl Config {
     /// This is the same as `get_bytes` except that it may return `Err` if
     /// the bytes are not valid utf-8.
     ///
-    /// This method will return an error if this `Config` is not a snapshot.
+    /// For consistency reasons, this method can only be called on a [`snapshot`].
+    /// An error will be returned otherwise.
+    ///
+    /// [`snapshot`]: `crate::Config::snapshot`
     pub fn get_str(&self, name: &str) -> Result<&str, Error> {
         str::from_utf8(self.get_bytes(name)?)
             .map_err(|_| Error::from_str("configuration value is not valid utf8"))
@@ -245,7 +248,10 @@ impl Config {
 
     /// Get the value of a string config variable as a byte slice.
     ///
-    /// This method will return an error if this `Config` is not a snapshot.
+    /// For consistency reasons, this method can only be called on a [`snapshot`].
+    /// An error will be returned otherwise.
+    ///
+    /// [`snapshot`]: `crate::Config::snapshot`
     pub fn get_bytes(&self, name: &str) -> Result<&[u8], Error> {
         let mut ret = ptr::null();
         let name = CString::new(name)?;
