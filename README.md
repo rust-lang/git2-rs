@@ -25,7 +25,7 @@ is present, `git2` will attempt to dynamically link it.
 To be more precise, the vendored `libgit2` is linked statically if two
 conditions both hold:
 
-- The enviornment variable `LIBGIT2_NO_VENDOR=1` is **not** set
+- The environment variable `LIBGIT2_NO_VENDOR=1` is **not** set
 - **and** either a) The Cargo feature `vendored-libgit2` is set or b) an
   appropriate version of `libgit2` cannot be found on the system.
 
