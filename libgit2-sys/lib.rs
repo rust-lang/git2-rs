@@ -925,6 +925,13 @@ pub struct git_writestream {
     pub free: Option<extern "C" fn(*mut git_writestream)>,
 }
 
+#[repr(C)]
+pub struct git_allocator {
+    pub gmalloc: *const extern "C" fn(size_t, *const c_char, c_int) -> *mut c_void,
+    pub grealloc: *const extern "C" fn(*mut c_void, size_t, *const c_char, c_int) -> *mut c_void,
+    pub gfree: *const extern "C" fn(*mut c_void),
+}
+
 git_enum! {
     pub enum git_attr_value_t {
         GIT_ATTR_VALUE_UNSPECIFIED = 0,
