@@ -23,7 +23,9 @@ fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
 
 fn main() {
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
-    let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
+    let ssh_libssh2 = env::var("CARGO_FEATURE_SSH_LIBSSH2").is_ok();
+    let ssh_libssh2_key_from_memory = env::var("CARGO_FEATURE_SSH_KEY_FROM_MEMORY").is_ok();
+    let ssh_openssh = env::var("CARGO_FEATURE_SSH_OPENSSH").is_ok();
     let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
 
@@ -176,13 +178,20 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         features.push_str("#define GIT_ARCH_64 1\n");
     }
 
-    if ssh {
+    if ssh_openssh || ssh_libssh2 {
         if let Some(path) = env::var_os("DEP_SSH2_INCLUDE") {
             cfg.include(path);
         }
         features.push_str("#define GIT_SSH 1\n");
-        features.push_str("#define GIT_SSH_LIBSSH2 1\n");
-        features.push_str("#define GIT_SSH_LIBSSH2_MEMORY_CREDENTIALS 1\n");
+        if ssh_openssh {
+            features.push_str("#define GIT_SSH_EXEC 1\n");
+        }
+        if ssh_libssh2 {
+            features.push_str("#define GIT_SSH_LIBSSH2 1\n");
+            if ssh_libssh2_key_from_memory {
+                features.push_str("#define GIT_SSH_LIBSSH2_MEMORY_CREDENTIALS 1\n");
+            }
+        }
     }
     if https {
         features.push_str("#define GIT_HTTPS 1\n");
