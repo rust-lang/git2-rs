@@ -36,6 +36,7 @@ pub struct TreeIter<'tree> {
 
 /// A binary indicator of whether a tree walk should be performed in pre-order
 /// or post-order.
+#[derive(Clone, Copy)]
 pub enum TreeWalkMode {
     /// Runs the traversal in pre-order.
     PreOrder = 0,
@@ -57,17 +58,6 @@ pub enum TreeWalkResult {
 impl Into<i32> for TreeWalkResult {
     fn into(self) -> i32 {
         self as i32
-    }
-}
-
-impl Into<raw::git_treewalk_mode> for TreeWalkMode {
-    #[cfg(target_env = "msvc")]
-    fn into(self) -> raw::git_treewalk_mode {
-        self as i32
-    }
-    #[cfg(not(target_env = "msvc"))]
-    fn into(self) -> raw::git_treewalk_mode {
-        self as u32
     }
 }
 
@@ -126,12 +116,12 @@ impl<'repo> Tree<'repo> {
             let mut data = TreeWalkCbData {
                 callback: &mut callback,
             };
-            raw::git_tree_walk(
+            try_call!(raw::git_tree_walk(
                 self.raw(),
-                mode.into(),
-                Some(treewalk_cb::<T>),
-                &mut data as *mut _ as *mut c_void,
-            );
+                mode,
+                treewalk_cb::<T> as raw::git_treewalk_cb,
+                &mut data as *mut _ as *mut c_void
+            ));
             Ok(())
         }
     }
@@ -598,5 +588,19 @@ mod tests {
         })
         .unwrap();
         assert_eq!(ct, 8);
+    }
+
+    #[test]
+    fn tree_walk_error() {
+        let (td, repo) = crate::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+
+        assert!(tree.walk(TreeWalkMode::PreOrder, |_, _| { -1 }).is_err());
     }
 }
