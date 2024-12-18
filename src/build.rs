@@ -491,6 +491,11 @@ impl<'cb> CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_DIFF3, on)
     }
 
+    /// Treat paths as a simple list.
+    pub fn disable_pathspec_match(&mut self, on: bool) -> &mut CheckoutBuilder<'cb> {
+        self.flag(raw::GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH, on)
+    }
+
     /// Indicate whether to apply filters like CRLF conversion.
     pub fn disable_filters(&mut self, disable: bool) -> &mut CheckoutBuilder<'cb> {
         self.disable_filters = disable;
