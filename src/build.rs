@@ -491,6 +491,12 @@ impl<'cb> CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_CONFLICT_STYLE_DIFF3, on)
     }
 
+    /// Treat paths specified in [`CheckoutBuilder::path`] as exact file paths
+    /// instead of as pathspecs.
+    pub fn disable_pathspec_match(&mut self, on: bool) -> &mut CheckoutBuilder<'cb> {
+        self.flag(raw::GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH, on)
+    }
+
     /// Indicate whether to apply filters like CRLF conversion.
     pub fn disable_filters(&mut self, disable: bool) -> &mut CheckoutBuilder<'cb> {
         self.disable_filters = disable;
@@ -515,8 +521,13 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Add a path to be checked out.
     ///
+    /// The path is a [pathspec] pattern, unless
+    /// [`CheckoutBuilder::disable_pathspec_match`] is set.
+    ///
     /// If no paths are specified, then all files are checked out. Otherwise
     /// only these specified paths are checked out.
+    ///
+    /// [pathspec]: https://git-scm.com/docs/gitglossary.html#Documentation/gitglossary.txt-aiddefpathspecapathspec
     pub fn path<T: IntoCString>(&mut self, path: T) -> &mut CheckoutBuilder<'cb> {
         let path = util::cstring_to_repo_path(path).unwrap();
         self.path_ptrs.push(path.as_ptr());
