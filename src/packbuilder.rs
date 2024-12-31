@@ -1,10 +1,13 @@
 use libc::{c_int, c_uint, c_void, size_t};
 use std::marker;
+use std::path::Path;
 use std::ptr;
 use std::slice;
 use std::str;
 
+use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
+use crate::IntoCString;
 use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
@@ -80,6 +83,27 @@ impl<'repo> PackBuilder<'repo> {
     pub fn write_buf(&mut self, buf: &mut Buf) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_packbuilder_write_buf(buf.raw(), self.raw));
+        }
+        Ok(())
+    }
+
+    /// Write the contents of the packfile to the specified path. The contents
+    /// of the buffer will become a valid packfile, even though there will be
+    /// no attached index.
+    pub fn write(&mut self, path: &Path, mode: u32) -> Result<(), Error> {
+        let path = path.into_c_string()?;
+        let progress_cb: raw::git_indexer_progress_cb = Some(write_pack_progress_cb);
+        let progress_payload = Box::new(OdbPackwriterCb { cb: None });
+        let progress_payload_ptr = Box::into_raw(progress_payload);
+
+        unsafe {
+            try_call!(raw::git_packbuilder_write(
+                self.raw,
+                path,
+                mode,
+                progress_cb,
+                progress_payload_ptr as *mut _
+            ));
         }
         Ok(())
     }
