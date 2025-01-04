@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.17")]
+#![doc(html_root_url = "https://docs.rs/libgit2-sys/0.18")]
 #![allow(non_camel_case_types, unused_extern_crates)]
 
 // This is required to link libz when libssh2-sys is not included.
@@ -395,6 +395,15 @@ pub struct git_remote_callbacks {
     pub remote_ready: git_remote_ready_cb,
     pub payload: *mut c_void,
     pub resolve_url: git_url_resolve_cb,
+    pub update_refs: Option<
+        extern "C" fn(
+            *const c_char,
+            *const git_oid,
+            *const git_oid,
+            *mut git_refspec,
+            *mut c_void,
+        ) -> c_int,
+    >,
 }
 
 #[repr(C)]
@@ -668,8 +677,7 @@ pub struct git_status_entry {
 
 git_enum! {
     pub enum git_checkout_strategy_t {
-        GIT_CHECKOUT_NONE = 0,
-        GIT_CHECKOUT_SAFE = 1 << 0,
+        GIT_CHECKOUT_SAFE = 0,
         GIT_CHECKOUT_FORCE = 1 << 1,
         GIT_CHECKOUT_RECREATE_MISSING = 1 << 2,
         GIT_CHECKOUT_ALLOW_CONFLICTS = 1 << 4,
@@ -686,6 +694,7 @@ git_enum! {
         GIT_CHECKOUT_DONT_OVERWRITE_IGNORED = 1 << 19,
         GIT_CHECKOUT_CONFLICT_STYLE_MERGE = 1 << 20,
         GIT_CHECKOUT_CONFLICT_STYLE_DIFF3 = 1 << 21,
+        GIT_CHECKOUT_NONE = 1 << 30,
 
         GIT_CHECKOUT_UPDATE_SUBMODULES = 1 << 16,
         GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED = 1 << 17,
@@ -808,10 +817,13 @@ pub struct git_blame_hunk {
     pub final_commit_id: git_oid,
     pub final_start_line_number: usize,
     pub final_signature: *mut git_signature,
+    pub final_committer: *mut git_signature,
     pub orig_commit_id: git_oid,
     pub orig_path: *const c_char,
     pub orig_start_line_number: usize,
     pub orig_signature: *mut git_signature,
+    pub orig_committer: *mut git_signature,
+    pub summary: *const c_char,
     pub boundary: c_char,
 }
 
@@ -870,7 +882,6 @@ pub struct git_config_entry {
     pub origin_path: *const c_char,
     pub include_depth: c_uint,
     pub level: git_config_level_t,
-    pub free: Option<extern "C" fn(*mut git_config_entry)>,
 }
 
 git_enum! {
@@ -2906,7 +2917,7 @@ extern "C" {
         message: *const c_char,
         tree: *const git_tree,
         parent_count: size_t,
-        parents: *const *mut git_commit,
+        parents: *mut *const git_commit,
     ) -> c_int;
     pub fn git_commit_create_buffer(
         out: *mut git_buf,
@@ -2917,7 +2928,7 @@ extern "C" {
         message: *const c_char,
         tree: *const git_tree,
         parent_count: size_t,
-        parents: *const *mut git_commit,
+        parents: *mut *const git_commit,
     ) -> c_int;
     pub fn git_commit_header_field(
         out: *mut git_buf,
