@@ -1,10 +1,13 @@
 use libc::{c_int, c_uint, c_void, size_t};
 use std::marker;
+use std::path::Path;
 use std::ptr;
 use std::slice;
 use std::str;
 
+use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
+use crate::IntoCString;
 use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
@@ -80,6 +83,26 @@ impl<'repo> PackBuilder<'repo> {
     pub fn write_buf(&mut self, buf: &mut Buf) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_packbuilder_write_buf(buf.raw(), self.raw));
+        }
+        Ok(())
+    }
+
+    /// Write the new pack and corresponding index file to path.
+    /// To set a progress callback, use `set_progress_callback` before calling this method.
+    pub fn write(&mut self, path: &Path, mode: u32) -> Result<(), Error> {
+        let path = path.into_c_string()?;
+        let progress_cb: raw::git_indexer_progress_cb = Some(write_pack_progress_cb);
+        let progress_payload = Box::new(OdbPackwriterCb { cb: None });
+        let progress_payload_ptr = Box::into_raw(progress_payload);
+
+        unsafe {
+            try_call!(raw::git_packbuilder_write(
+                self.raw,
+                path,
+                mode,
+                progress_cb,
+                progress_payload_ptr as *mut _
+            ));
         }
         Ok(())
     }
@@ -270,7 +293,10 @@ extern "C" fn progress_c(
 
 #[cfg(test)]
 mod tests {
-    use crate::Buf;
+    use crate::{Buf, Oid};
+
+    // hash of a packfile constructed without any objects in it
+    const EMPTY_PACKFILE_OID: &str = "029d08823bd8a8eab510ad6ac75c823cfd3ed31e";
 
     fn pack_header(len: u8) -> Vec<u8> {
         [].iter()
@@ -312,6 +338,18 @@ mod tests {
         }
         assert!(builder.name().is_none());
         assert_eq!(&*buf, &*empty_pack_header());
+    }
+
+    #[test]
+    fn smoke_write() {
+        let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        t!(builder.write(repo.path(), 0));
+        #[allow(deprecated)]
+        {
+            assert!(builder.hash().unwrap() == Oid::from_str(EMPTY_PACKFILE_OID).unwrap());
+        }
+        assert!(builder.name().unwrap() == EMPTY_PACKFILE_OID);
     }
 
     #[test]
@@ -368,6 +406,41 @@ mod tests {
     }
 
     #[test]
+    fn insert_write() {
+        let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let (commit, _tree) = crate::test::commit(&repo);
+        t!(builder.insert_object(commit, None));
+        assert_eq!(builder.object_count(), 1);
+        t!(builder.write(repo.path(), 0));
+        t!(repo.find_commit(commit));
+    }
+
+    #[test]
+    fn insert_tree_write() {
+        let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let (_commit, tree) = crate::test::commit(&repo);
+        // will insert the tree itself and the blob, 2 objects
+        t!(builder.insert_tree(tree));
+        assert_eq!(builder.object_count(), 2);
+        t!(builder.write(repo.path(), 0));
+        t!(repo.find_tree(tree));
+    }
+
+    #[test]
+    fn insert_commit_write() {
+        let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let (commit, _tree) = crate::test::commit(&repo);
+        // will insert the commit, its tree and the blob, 3 objects
+        t!(builder.insert_commit(commit));
+        assert_eq!(builder.object_count(), 3);
+        t!(builder.write(repo.path(), 0));
+        t!(repo.find_commit(commit));
+    }
+
+    #[test]
     fn progress_callback() {
         let mut progress_called = false;
         {
@@ -400,6 +473,23 @@ mod tests {
             t!(builder.write_buf(&mut Buf::new()));
         }
         assert_eq!(progress_called, false);
+    }
+
+    #[test]
+    fn progress_callback_with_write() {
+        let mut progress_called = false;
+        {
+            let (_td, repo) = crate::test::repo_init();
+            let mut builder = t!(repo.packbuilder());
+            let (commit, _tree) = crate::test::commit(&repo);
+            t!(builder.set_progress_callback(|_, _, _| {
+                progress_called = true;
+                true
+            }));
+            t!(builder.insert_commit(commit));
+            t!(builder.write(repo.path(), 0));
+        }
+        assert_eq!(progress_called, true);
     }
 
     #[test]
