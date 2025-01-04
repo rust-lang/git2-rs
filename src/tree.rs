@@ -36,6 +36,7 @@ pub struct TreeIter<'tree> {
 
 /// A binary indicator of whether a tree walk should be performed in pre-order
 /// or post-order.
+#[derive(Clone, Copy)]
 pub enum TreeWalkMode {
     /// Runs the traversal in pre-order.
     PreOrder = 0,
@@ -126,12 +127,12 @@ impl<'repo> Tree<'repo> {
             let mut data = TreeWalkCbData {
                 callback: &mut callback,
             };
-            raw::git_tree_walk(
+            try_call!(raw::git_tree_walk(
                 self.raw(),
-                mode.into(),
-                Some(treewalk_cb::<T>),
-                &mut data as *mut _ as *mut c_void,
-            );
+                mode as raw::git_treewalk_mode,
+                treewalk_cb::<T>,
+                &mut data as *mut _ as *mut c_void
+            ));
             Ok(())
         }
     }
@@ -598,5 +599,19 @@ mod tests {
         })
         .unwrap();
         assert_eq!(ct, 8);
+    }
+
+    #[test]
+    fn tree_walk_error() {
+        let (td, repo) = crate::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        let e = tree.walk(TreeWalkMode::PreOrder, |_, _| -1).unwrap_err();
+        assert_eq!(e.class(), crate::ErrorClass::Callback);
     }
 }

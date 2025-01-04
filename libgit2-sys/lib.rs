@@ -751,7 +751,7 @@ git_enum! {
 }
 
 pub type git_treewalk_cb =
-    Option<extern "C" fn(*const c_char, *const git_tree_entry, *mut c_void) -> c_int>;
+    extern "C" fn(*const c_char, *const git_tree_entry, *mut c_void) -> c_int;
 pub type git_treebuilder_filter_cb =
     Option<extern "C" fn(*const git_tree_entry, *mut c_void) -> c_int>;
 
