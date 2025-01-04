@@ -22,6 +22,12 @@ fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
 }
 
 fn main() {
+    println!(
+        "cargo:rustc-check-cfg=cfg(\
+            libgit2_vendored,\
+        )"
+    );
+
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
     let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
