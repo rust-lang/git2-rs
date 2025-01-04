@@ -61,6 +61,17 @@ impl Into<i32> for TreeWalkResult {
     }
 }
 
+impl Into<raw::git_treewalk_mode> for TreeWalkMode {
+    #[cfg(target_env = "msvc")]
+    fn into(self) -> raw::git_treewalk_mode {
+        self as i32
+    }
+    #[cfg(not(target_env = "msvc"))]
+    fn into(self) -> raw::git_treewalk_mode {
+        self as u32
+    }
+}
+
 impl<'repo> Tree<'repo> {
     /// Get the id (SHA1) of a repository object
     pub fn id(&self) -> Oid {
@@ -118,8 +129,8 @@ impl<'repo> Tree<'repo> {
             };
             try_call!(raw::git_tree_walk(
                 self.raw(),
-                mode,
-                treewalk_cb::<T> as raw::git_treewalk_cb,
+                mode as raw::git_treewalk_mode,
+                treewalk_cb::<T>,
                 &mut data as *mut _ as *mut c_void
             ));
             Ok(())
@@ -600,7 +611,7 @@ mod tests {
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();
         let tree = repo.find_tree(commit.tree_id()).unwrap();
-
-        assert!(tree.walk(TreeWalkMode::PreOrder, |_, _| { -1 }).is_err());
+        let e = tree.walk(TreeWalkMode::PreOrder, |_, _| -1).unwrap_err();
+        assert_eq!(e.class(), crate::ErrorClass::Callback);
     }
 }
