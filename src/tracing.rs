@@ -76,8 +76,7 @@ pub fn trace_set(level: TraceLevel, cb: TracingCb) -> Result<(), Error> {
     let return_code: c_int = unsafe { raw::git_trace_set(level.raw(), Some(tracing_cb_c)) };
 
     if return_code != 0 {
-        // Unwrap here is fine since `Error::last_error` always returns `Some`.
-        Err(Error::last_error(return_code).unwrap())
+        Err(Error::last_error(return_code))
     } else {
         Ok(())
     }

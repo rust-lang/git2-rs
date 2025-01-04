@@ -860,7 +860,7 @@ impl Repository {
             match value {
                 0 => Ok(false),
                 1 => Ok(true),
-                _ => Err(Error::last_error(value).unwrap()),
+                _ => Err(Error::last_error(value)),
             }
         }
     }
