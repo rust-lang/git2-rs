@@ -15,6 +15,7 @@ fn main() {
         .header("git2/sys/mempack.h")
         .header("git2/sys/repository.h")
         .header("git2/sys/cred.h")
+        .header("git2/sys/email.h")
         .header("git2/cred_helpers.h")
         .type_name(|s, _, _| s.to_string());
     cfg.field_name(|_, f| match f {

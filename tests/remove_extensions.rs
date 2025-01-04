@@ -11,16 +11,16 @@ fn test_remove_extensions() -> Result<(), Error> {
             "!ignore",
             "!noop",
             "!objectformat",
+            "!preciousobjects",
             "!worktreeconfig",
             "other",
         ])?;
     }
 
     let extensions = unsafe { get_extensions() }?;
+    let extensions: Vec<_> = extensions.iter().collect();
 
-    assert_eq!(extensions.len(), 2);
-    assert_eq!(extensions.get(0), Some("custom"));
-    assert_eq!(extensions.get(1), Some("other"));
+    assert_eq!(extensions, [Some("custom"), Some("other")]);
 
     Ok(())
 }
