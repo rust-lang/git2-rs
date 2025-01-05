@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.20.0 - 2025-01-04
+[0.19.0...0.20.0](https://github.com/rust-lang/git2-rs/compare/git2-0.19.0...git2-0.20.0)
+
+### Added
+
+- `Debug` is now implemented for `transport::Service`
+  [#1074](https://github.com/rust-lang/git2-rs/pull/1074)
+- Added `Repository::commondir`
+  [#1079](https://github.com/rust-lang/git2-rs/pull/1079)
+- Added `Repository::merge_base_octopus`
+  [#1088](https://github.com/rust-lang/git2-rs/pull/1088)
+- Restored impls for `PartialOrd`, `Ord`, and `Hash` for bitflags types that were inadvertently removed in a prior release.
+  [#1096](https://github.com/rust-lang/git2-rs/pull/1096)
+- Added `CheckoutBuilder::disable_pathspec_match`
+  [#1107](https://github.com/rust-lang/git2-rs/pull/1107)
+- Added `PackBuilder::write`
+  [#1110](https://github.com/rust-lang/git2-rs/pull/1110)
+
+### Changed
+
+- ❗ Updated to libgit2 [1.9.0](https://github.com/libgit2/libgit2/releases/tag/v1.9.0)
+  [#1111](https://github.com/rust-lang/git2-rs/pull/1111)
+- ❗ Removed the `ssh_key_from_memory` Cargo feature, it was unused.
+  [#1087](https://github.com/rust-lang/git2-rs/pull/1087)
+- ❗ Errors from `Tree::walk` are now correctly reported to the caller.
+  [#1098](https://github.com/rust-lang/git2-rs/pull/1098)
+- ❗ The `trace_set` callback now takes a `&[u8]` instead of a `&str`.
+  [#1071](https://github.com/rust-lang/git2-rs/pull/1071)
+- ❗ `Error::last_error` now returns `Error` instead of `Option<Error>`.
+  [#1072](https://github.com/rust-lang/git2-rs/pull/1072)
+
+### Fixed
+
+- Fixed `OdbReader::read` return value.
+  [#1061](https://github.com/rust-lang/git2-rs/pull/1061)
+- When a credential helper executes a shell command, don't pop open a console window on Windows.
+  [#1075](https://github.com/rust-lang/git2-rs/pull/1075)
+
 ## 0.19.0 - 2024-06-13
 [0.18.3...0.19.0](https://github.com/rust-lang/git2-rs/compare/git2-0.18.3...git2-0.19.0)
 
