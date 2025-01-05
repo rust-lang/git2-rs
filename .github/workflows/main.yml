@@ -37,6 +37,8 @@ jobs:
     - run: cargo test
     - run: cargo run -p systest
     - run: cargo test -p git2-curl
+    - name: Verify Cargo.lock is up-to-date
+      run: cargo update -p git2 --locked
 
   rustfmt:
     name: Rustfmt
