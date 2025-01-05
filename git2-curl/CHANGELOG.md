@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.21.0 - 2025-01-04
+[0.20.0...0.21.0](https://github.com/rust-lang/git2-rs/compare/git2-curl-0.20.0...git2-curl-0.21.0)
+
+- Updated to [git2 0.20.0](../CHANGELOG.md#0200---2025-01-04)
+
 ## 0.20.0 - 2024-06-13
 [0.19.0...0.20.0](https://github.com/rust-lang/git2-rs/compare/git2-curl-0.19.0...git2-curl-0.20.0)
 

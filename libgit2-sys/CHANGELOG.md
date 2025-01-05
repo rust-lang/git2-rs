@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.18.0+1.9.0 - 2025-01-04
+[0.16.2...0.17.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.17.0+1.8.1...libgit2-sys-0.18.0+1.9.0)
+
+### Added
+
+- Added bindings for `git_repository_commondir`
+  [#1079](https://github.com/rust-lang/git2-rs/pull/1079)
+- Added bindings for `git_merge_base_octopus`
+  [#1088](https://github.com/rust-lang/git2-rs/pull/1088)
+
+### Changed
+
+- ❗ Updated to libgit2 [1.9.0](https://github.com/libgit2/libgit2/releases/tag/v1.9.0)
+  [#1111](https://github.com/rust-lang/git2-rs/pull/1111)
+- ❗ Removed the `ssh_key_from_memory` Cargo feature, it was unused.
+  [#1087](https://github.com/rust-lang/git2-rs/pull/1087)
+
 ## 0.17.0+1.8.1 - 2024-06-13
 [0.16.2...0.17.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.16.2+1.7.2...libgit2-sys-0.17.0+1.8.1)
 
