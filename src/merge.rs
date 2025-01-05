@@ -282,9 +282,9 @@ impl MergeFileOptions {
 
     fn flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut MergeFileOptions {
         if val {
-            self.raw.flags |= opt;
+            self.raw.flags |= opt as u32;
         } else {
-            self.raw.flags &= !opt;
+            self.raw.flags &= !opt as u32;
         }
         self
     }
