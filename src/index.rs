@@ -661,7 +661,7 @@ impl IndexEntry {
     ///
     /// The returned `raw::git_index_entry` contains a pointer to a `CString` path, which is also
     /// returned because it's lifetime must exceed the lifetime of the `raw::git_index_entry`.
-    pub fn to_raw(&self) -> Result<(raw::git_index_entry, CString), Error> {
+    pub(crate) unsafe fn to_raw(&self) -> Result<(raw::git_index_entry, CString), Error> {
         let path = CString::new(&self.path[..])?;
 
         // libgit2 encodes the length of the path in the lower bits of the

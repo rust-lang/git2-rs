@@ -2577,11 +2577,11 @@ impl Repository {
         theirs: &IndexEntry,
         opts: Option<&mut MergeFileOptions>,
     ) -> Result<MergeFileResult<'_>, Error> {
-        let (ancestor, _ancestor_path) = ancestor.to_raw()?;
-        let (ours, _ours_path) = ours.to_raw()?;
-        let (theirs, _theirs_path) = theirs.to_raw()?;
-
         unsafe {
+            let (ancestor, _ancestor_path) = ancestor.to_raw()?;
+            let (ours, _ours_path) = ours.to_raw()?;
+            let (theirs, _theirs_path) = theirs.to_raw()?;
+
             let mut ret = mem::zeroed();
             try_call!(raw::git_merge_file_from_index(
                 &mut ret,
