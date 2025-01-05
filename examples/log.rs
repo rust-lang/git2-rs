@@ -253,22 +253,15 @@ fn print_commit(commit: &Commit) {
 }
 
 fn print_time(time: &Time, prefix: &str) {
-    let (offset, sign) = match time.offset_minutes() {
-        n if n < 0 => (-n, '-'),
-        n => (n, '+'),
-    };
+    let offset = time.offset_minutes();
     let (hours, minutes) = (offset / 60, offset % 60);
-    let ts = time::Timespec::new(time.seconds() + (time.offset_minutes() as i64) * 60, 0);
-    let time = time::at(ts);
+    let dt = time::OffsetDateTime::from_unix_timestamp(time.seconds()).unwrap();
+    let dto = dt.to_offset(time::UtcOffset::from_hms(hours as i8, minutes as i8, 0).unwrap());
+    let format = time::format_description::parse("[weekday repr:short] [month repr:short] [day padding:space] [hour]:[minute]:[second] [year] [offset_hour sign:mandatory][offset_minute]")
+        .unwrap();
+    let time_str = dto.format(&format).unwrap();
 
-    println!(
-        "{}{} {}{:02}{:02}",
-        prefix,
-        time.strftime("%a %b %e %T %Y").unwrap(),
-        sign,
-        hours,
-        minutes
-    );
+    println!("{}{}", prefix, time_str);
 }
 
 fn match_with_parent(
