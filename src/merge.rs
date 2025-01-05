@@ -280,7 +280,7 @@ impl MergeFileOptions {
         self
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut MergeFileOptions {
+    fn flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut MergeFileOptions {
         if val {
             self.raw.flags |= opt;
         } else {
@@ -291,52 +291,52 @@ impl MergeFileOptions {
 
     /// Create standard conflicted merge files
     pub fn style_standard(&mut self, standard: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_STYLE_MERGE as u32, standard)
+        self.flag(raw::GIT_MERGE_FILE_STYLE_MERGE, standard)
     }
 
     /// Create diff3-style file
     pub fn style_diff3(&mut self, diff3: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_STYLE_DIFF3 as u32, diff3)
+        self.flag(raw::GIT_MERGE_FILE_STYLE_DIFF3, diff3)
     }
 
     /// Condense non-alphanumeric regions for simplified diff file
     pub fn simplify_alnum(&mut self, simplify: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM as u32, simplify)
+        self.flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM, simplify)
     }
 
     /// Ignore all whitespace
     pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE as u32, ignore)
+        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE, ignore)
     }
 
     /// Ignore changes in amount of whitespace
     pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE as u32, ignore)
+        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE, ignore)
     }
 
     /// Ignore whitespace at end of line
     pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL as u32, ignore)
+        self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL, ignore)
     }
 
     /// Use the "patience diff" algorithm
     pub fn patience(&mut self, patience: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE as u32, patience)
+        self.flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE, patience)
     }
 
     /// Take extra time to find minimal diff
     pub fn minimal(&mut self, minimal: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL as u32, minimal)
+        self.flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL, minimal)
     }
 
     /// Create zdiff3 ("zealous diff3")-style files
     pub fn style_zdiff3(&mut self, zdiff3: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_STYLE_ZDIFF3 as u32, zdiff3)
+        self.flag(raw::GIT_MERGE_FILE_STYLE_ZDIFF3, zdiff3)
     }
 
     /// Do not produce file conflicts when common regions have changed
     pub fn accept_conflicts(&mut self, accept: bool) -> &mut MergeFileOptions {
-        self.flag(raw::GIT_MERGE_FILE_ACCEPT_CONFLICTS as u32, accept)
+        self.flag(raw::GIT_MERGE_FILE_ACCEPT_CONFLICTS, accept)
     }
 
     /// The size of conflict markers (eg, "<<<<<<<"). Default is 7.
