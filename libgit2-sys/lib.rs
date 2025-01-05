@@ -1368,7 +1368,7 @@ pub struct git_merge_file_options {
     pub our_label: *const c_char,
     pub their_label: *const c_char,
     pub favor: git_merge_file_favor_t,
-    pub flags: u32,
+    pub flags: git_merge_file_flag_t,
     pub marker_size: c_ushort,
 }
 
