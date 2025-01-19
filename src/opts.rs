@@ -5,7 +5,7 @@ use std::ptr;
 
 use crate::string_array::StringArray;
 use crate::util::Binding;
-use crate::{raw, Buf, ConfigLevel, Error, IntoCString};
+use crate::{raw, Buf, ConfigLevel, Error, IntoCString, ObjectType};
 
 /// Set the search path for a level of config data. The search path applied to
 /// shared attributes and ignore files, too.
@@ -87,6 +87,28 @@ pub fn enable_caching(enabled: bool) {
     // This function cannot actually fail, but the function has an error return
     // for other options that can.
     debug_assert!(error >= 0);
+}
+
+/// Set the maximum data size for the given type of object to be considered
+/// eligible for caching in memory.  Setting to value to zero means that that
+/// type of object will not be cached.  Defaults to 0 for [`ObjectType::Blob`]
+/// (i.e. won't cache blobs) and 4k for [`ObjectType::Commit`],
+/// [`ObjectType::Tree`], and [`ObjectType::Tag`].
+///
+/// `kind` must be one of [`ObjectType::Blob`], [`ObjectType::Commit`],
+/// [`ObjectType::Tree`], and [`ObjectType::Tag`].
+///
+/// # Safety
+/// This function is modifying a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
+pub unsafe fn set_cache_object_limit(kind: ObjectType, size: libc::size_t) -> Result<(), Error> {
+    crate::init();
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_CACHE_OBJECT_LIMIT as libc::c_int,
+        kind as libc::c_int,
+        size
+    ));
+    Ok(())
 }
 
 /// Controls whether or not libgit2 will verify when writing an object that all
