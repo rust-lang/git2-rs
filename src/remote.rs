@@ -147,7 +147,7 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's URL as a byte array.
     pub fn url_bytes(&self) -> &[u8] {
-        unsafe { crate::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap() }
+        unsafe { crate::opt_bytes(self, raw::git_remote_url(&*self.raw)).unwrap_or(&[]) }
     }
 
     /// Get the remote's pushurl.
