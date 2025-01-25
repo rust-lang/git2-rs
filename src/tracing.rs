@@ -5,7 +5,7 @@ use std::{
 
 use libc::{c_char, c_int};
 
-use crate::{panic, raw, util::Binding, Error};
+use crate::{raw, util::Binding, Error};
 
 /// Available tracing levels.  When tracing is set to a particular level,
 /// callers will be provided tracing at the given level and all lower levels.
