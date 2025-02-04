@@ -4,7 +4,7 @@
 //! to manage git repositories. The library itself is a work in progress and is
 //! likely lacking some bindings here and there, so be warned.
 //!
-//! [1]: https://libgit2.github.com/
+//! [1]: https://libgit2.org/
 //!
 //! The git2-rs library strives to be as close to libgit2 as possible, but also
 //! strives to make using libgit2 as safe as possible. All resource management
