@@ -152,12 +152,14 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's pushurl.
     ///
-    /// Returns `None` if the pushurl is not valid utf-8
+    /// Returns `None` if the pushurl is not valid utf-8 or no special url for pushing is set.
     pub fn pushurl(&self) -> Option<&str> {
         self.pushurl_bytes().and_then(|s| str::from_utf8(s).ok())
     }
 
     /// Get the remote's pushurl as a byte array.
+    ///
+    /// Returns `None` if no special url for pushing is set.
     pub fn pushurl_bytes(&self) -> Option<&[u8]> {
         unsafe { crate::opt_bytes(self, raw::git_remote_pushurl(&*self.raw)) }
     }
