@@ -16,7 +16,7 @@ categories = ["api-bindings"]
 edition = "2018"
 
 [dependencies]
-url = "2.0"
+url = "2.5.4"
 bitflags = "2.1.0"
 libc = "0.2"
 log = "0.4.8"
