@@ -33,7 +33,9 @@ cc = { version = "1.0.43", features = ['parallel'] }
 openssl-sys = { version = "0.9.45", optional = true }
 
 [features]
-ssh = ["libssh2-sys"]
+ssh = ["ssh-libssh2"]
+ssh-libssh2 = ["libssh2-sys"]
+ssh-openssh = []
 https = ["openssl-sys"]
 vendored = []
 vendored-openssl = ["openssl-sys/vendored"]
