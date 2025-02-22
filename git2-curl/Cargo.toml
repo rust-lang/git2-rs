@@ -14,7 +14,7 @@ edition = "2018"
 
 [dependencies]
 curl = "0.4.33"
-url = "2.0"
+url = "2.5.4"
 log = "0.4"
 git2 = { path = "..", version = "0.20", default-features = false }
 
