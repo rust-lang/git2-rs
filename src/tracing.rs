@@ -5,7 +5,7 @@ use std::{
 
 use libc::{c_char, c_int};
 
-use crate::{panic, raw, util::Binding, Error};
+use crate::{raw, util::Binding, Error};
 
 /// Available tracing levels.  When tracing is set to a particular level,
 /// callers will be provided tracing at the given level and all lower levels.
@@ -112,17 +112,32 @@ extern "C" fn tracing_cb_c(level: raw::git_trace_level_t, msg: *const c_char) {
     // Convert from a CStr to &[u8] to pass to the rust code callback.
     let msg: &[u8] = CStr::to_bytes(msg);
 
-    // Do the remaining part of this function in a panic wrapper, to catch any panics it produces.
-    panic::wrap(|| {
-        // Convert the raw trace level into a type we can pass to the rust callback fn.
-        //
-        // SAFETY: Currently the implementation of this function (above) may panic, but is only marked as unsafe to match
-        // the trait definition, thus we can consider this call safe.
-        let level: TraceLevel = unsafe { Binding::from_raw(level) };
+    // Do not bother with wrapping any of the following calls in `panic::wrap`:
+    //
+    // The previous implementation used `panic::wrap` here but never called `panic::check` to determine if the
+    // trace callback had panicked, much less what caused it.
+    //
+    // This had the potential to lead to lost errors/unwinds, confusing to debugging situations, and potential issues
+    // catching panics in other parts of the `git2-rs` codebase.
+    //
+    // Instead, we simply call the next two lines, both of which may panic, directly. We can rely on the
+    // `extern "C"` semantics to appropriately catch the panics generated here and abort the process:
+    //
+    // Per <https://doc.rust-lang.org/std/panic/fn.catch_unwind.html>:
+    // > Rust functions that are expected to be called from foreign code that does not support
+    // > unwinding (such as C compiled with -fno-exceptions) should be defined using extern "C", which ensures
+    // > that if the Rust code panics, it is automatically caught and the process is aborted. If this is the desired
+    // > behavior, it is not necessary to use catch_unwind explicitly. This function should instead be used when
+    // > more graceful error-handling is needed.
 
-        // Call the user-supplied callback (which may panic).
-        (cb)(level, msg);
-    });
+    // Convert the raw trace level into a type we can pass to the rust callback fn.
+    //
+    // SAFETY: Currently the implementation of this function (above) may panic, but is only marked as unsafe to match
+    // the trait definition, thus we can consider this call safe.
+    let level: TraceLevel = unsafe { Binding::from_raw(level) };
+
+    // Call the user-supplied callback (which may panic).
+    (cb)(level, msg);
 }
 
 #[cfg(test)]
