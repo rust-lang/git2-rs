@@ -3048,6 +3048,7 @@ extern "C" {
         our_entry: *const git_index_entry,
         their_entry: *const git_index_entry,
     ) -> c_int;
+    pub fn git_index_conflict_cleanup(index: *mut git_index) -> c_int;
     pub fn git_index_conflict_remove(index: *mut git_index, path: *const c_char) -> c_int;
     pub fn git_index_conflict_get(
         ancestor_out: *mut *const git_index_entry,
