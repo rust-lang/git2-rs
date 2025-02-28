@@ -3136,6 +3136,19 @@ impl Repository {
         }
     }
 
+    /// Retrieve the upstream merge of a local branch,
+    /// configured in "branch.*.merge"
+    ///
+    /// `refname` must be in the form `refs/heads/{branch_name}`
+    pub fn branch_upstream_merge(&self, refname: &str) -> Result<Buf, Error> {
+        let refname = CString::new(refname)?;
+        unsafe {
+            let buf = Buf::new();
+            try_call!(raw::git_branch_upstream_merge(buf.raw(), self.raw, refname));
+            Ok(buf)
+        }
+    }
+
     /// Apply a Diff to the given repo, making changes directly in the working directory, the index, or both.
     pub fn apply(
         &self,

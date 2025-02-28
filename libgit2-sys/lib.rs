@@ -3018,6 +3018,11 @@ extern "C" {
         repo: *mut git_repository,
         refname: *const c_char,
     ) -> c_int;
+    pub fn git_branch_upstream_merge(
+        out: *mut git_buf,
+        repo: *mut git_repository,
+        refname: *const c_char,
+    ) -> c_int;
 
     // index
     pub fn git_index_version(index: *mut git_index) -> c_uint;
