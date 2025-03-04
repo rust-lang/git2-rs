@@ -518,6 +518,15 @@ impl Index {
         Ok(())
     }
 
+    /// Removes the index entries that represent a conflict of a single file.
+    pub fn conflict_remove(&mut self, path: &Path) -> Result<(), Error> {
+        let path = path_to_repo_path(path)?;
+        unsafe {
+            try_call!(raw::git_index_conflict_remove(self.raw, path));
+        }
+        Ok(())
+    }
+
     /// Remove all matching index entries.
     ///
     /// If you provide a callback function, it will be invoked on each matching
