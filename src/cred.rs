@@ -299,7 +299,7 @@ impl CredentialHelper {
 
         if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
-        } else if cmd.contains("/") || cmd.contains("\\") {
+        } else if is_absolute_path(cmd) {
             self.commands.push(cmd.to_string());
         } else {
             self.commands.push(format!("git credential-{}", cmd));
@@ -479,6 +479,12 @@ impl CredentialHelper {
         }
         (username, password)
     }
+}
+
+fn is_absolute_path(path: &str) -> bool {
+    path.starts_with('/')
+        || path.starts_with('\\')
+        || cfg!(windows) && path.chars().nth(1).is_some_and(|x| x == ':')
 }
 
 #[cfg(test)]
