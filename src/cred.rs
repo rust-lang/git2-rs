@@ -306,12 +306,6 @@ impl CredentialHelper {
         }
     }
 
-    fn is_absolute_path(path: &str) -> bool {
-        path.starts_with('/')
-            || path.starts_with('\\')
-            || cfg!(windows) && path.chars().nth(1).is_some_and(|x| x == ':')
-    }
-
     fn exact_key(&self, name: &str) -> String {
         format!("credential.{}.{}", self.url, name)
     }
@@ -485,6 +479,12 @@ impl CredentialHelper {
         }
         (username, password)
     }
+}
+
+fn is_absolute_path(path: &str) -> bool {
+    path.starts_with('/')
+        || path.starts_with('\\')
+        || cfg!(windows) && path.chars().nth(1).is_some_and(|x| x == ':')
 }
 
 #[cfg(test)]
