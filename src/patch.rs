@@ -125,7 +125,7 @@ impl<'buffers> Patch<'buffers> {
     }
 
     /// Get the DiffDelta associated with the Patch.
-    pub fn delta(&self) -> DiffDelta<'buffers> {
+    pub fn delta<'a>(&'a self) -> DiffDelta<'a> {
         unsafe { Binding::from_raw(raw::git_patch_get_delta(self.raw) as *mut _) }
     }
 
@@ -151,7 +151,7 @@ impl<'buffers> Patch<'buffers> {
     }
 
     /// Get a DiffHunk and its total line count from the Patch.
-    pub fn hunk(&self, hunk_idx: usize) -> Result<(DiffHunk<'buffers>, usize), Error> {
+    pub fn hunk<'a>(&'a self, hunk_idx: usize) -> Result<(DiffHunk<'a>, usize), Error> {
         let mut ret = ptr::null();
         let mut lines = 0;
         unsafe {
@@ -168,11 +168,11 @@ impl<'buffers> Patch<'buffers> {
     }
 
     /// Get a DiffLine from a hunk of the Patch.
-    pub fn line_in_hunk(
-        &self,
+    pub fn line_in_hunk<'a>(
+        &'a self,
         hunk_idx: usize,
         line_of_hunk: usize,
-    ) -> Result<DiffLine<'buffers>, Error> {
+    ) -> Result<DiffLine<'a>, Error> {
         let mut ret = ptr::null();
         unsafe {
             try_call!(raw::git_patch_get_line_in_hunk(
