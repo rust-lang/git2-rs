@@ -412,6 +412,39 @@ impl Index {
         unsafe { raw::git_index_has_conflicts(self.raw) == 1 }
     }
 
+    /// Get the index entries that represent a conflict of a single file.
+    pub fn conflict_get(&self, path: &Path) -> Result<IndexConflict, Error> {
+        let path = path_to_repo_path(path)?;
+        let mut ancestor = ptr::null();
+        let mut our = ptr::null();
+        let mut their = ptr::null();
+
+        unsafe {
+            try_call!(raw::git_index_conflict_get(
+                &mut ancestor,
+                &mut our,
+                &mut their,
+                self.raw,
+                path
+            ));
+
+            Ok(IndexConflict {
+                ancestor: match ancestor.is_null() {
+                    false => Some(IndexEntry::from_raw(*ancestor)),
+                    true => None,
+                },
+                our: match our.is_null() {
+                    false => Some(IndexEntry::from_raw(*our)),
+                    true => None,
+                },
+                their: match their.is_null() {
+                    false => Some(IndexEntry::from_raw(*their)),
+                    true => None,
+                },
+            })
+        }
+    }
+
     /// Get the full path to the index file on disk.
     ///
     /// Returns `None` if this is an in-memory index.
