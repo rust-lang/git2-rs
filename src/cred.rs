@@ -299,7 +299,7 @@ impl CredentialHelper {
 
         if cmd.starts_with('!') {
             self.commands.push(cmd[1..].to_string());
-        } else if cmd.contains("/") || cmd.contains("\\") {
+        } else if is_absolute_path(cmd) {
             self.commands.push(cmd.to_string());
         } else {
             self.commands.push(format!("git credential-{}", cmd));
@@ -481,6 +481,12 @@ impl CredentialHelper {
     }
 }
 
+fn is_absolute_path(path: &str) -> bool {
+    path.starts_with('/')
+        || path.starts_with('\\')
+        || cfg!(windows) && path.chars().nth(1).is_some_and(|x| x == ':')
+}
+
 #[cfg(test)]
 mod test {
     use std::env;
@@ -578,13 +584,13 @@ echo username=c
             return;
         } // shell scripts don't work on Windows
         let td = TempDir::new().unwrap();
-        let path = td.path().join("git-credential-script");
+        let path = td.path().join("git-credential-some-script");
         File::create(&path)
             .unwrap()
             .write(
                 br"\
 #!/bin/sh
-echo username=c
+echo username=$1
 ",
             )
             .unwrap();
@@ -596,14 +602,14 @@ echo username=c
         env::set_var("PATH", &env::join_paths(paths).unwrap());
 
         let cfg = test_cfg! {
-            "credential.https://example.com.helper" => "script",
+            "credential.https://example.com.helper" => "some-script \"value/with\\slashes\"",
             "credential.helper" => "!f() { echo username=a; echo password=b; }; f"
         };
         let (u, p) = CredentialHelper::new("https://example.com/foo/bar")
             .config(&cfg)
             .execute()
             .unwrap();
-        assert_eq!(u, "c");
+        assert_eq!(u, "value/with\\slashes");
         assert_eq!(p, "b");
     }
 
