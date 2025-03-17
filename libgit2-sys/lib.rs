@@ -1373,7 +1373,6 @@ pub struct git_merge_file_options {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
 pub struct git_merge_file_result {
     pub automergeable: c_uint,
     pub path: *const c_char,

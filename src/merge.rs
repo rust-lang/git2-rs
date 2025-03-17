@@ -395,7 +395,7 @@ impl<'repo> Binding for MergeFileResult<'repo> {
         }
     }
     fn raw(&self) -> raw::git_merge_file_result {
-        self.raw
+        unimplemented!()
     }
 }
 
