@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.1+1.9.0 - 2025-03-17
+[0.18.0...0.18.1](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.0+1.9.0...libgit2-sys-0.18.1+1.9.0)
+
+### Added
+
+- Added binding for `git_branch_upstream_merge`
+  [#1131](https://github.com/rust-lang/git2-rs/pull/1131)
+- Added bindings for `git_merge_file_options` and `git_merge_file_result`, `git_merge_file_options_init`, `git_merge_file_from_index`, `git_merge_file_result_free`, and updated `git_merge_file_flag_t`.
+  [#1062](https://github.com/rust-lang/git2-rs/pull/1062)
+
+### Fixed
+
+- Fixed linking to advapi32 on Windows for recent nightly versions of Rust.
+  [#1143](https://github.com/rust-lang/git2-rs/pull/1143)
+
 ## 0.18.0+1.9.0 - 2025-01-04
 [0.16.2...0.17.0](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.17.0+1.8.1...libgit2-sys-0.18.0+1.9.0)
 
