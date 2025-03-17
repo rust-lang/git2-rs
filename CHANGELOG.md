@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.20.1 - 2025-03-17
+[0.20.0...0.20.1](https://github.com/rust-lang/git2-rs/compare/git2-0.20.0...git2-0.20.1)
+
+### Added
+
+- Added `Repository::branch_upstream_merge()`
+  [#1131](https://github.com/rust-lang/git2-rs/pull/1131)
+- Added `Index::conflict_get()`
+  [#1134](https://github.com/rust-lang/git2-rs/pull/1134)
+- Added `Index::conflict_remove()`
+  [#1133](https://github.com/rust-lang/git2-rs/pull/1133)
+- Added `opts::set_cache_object_limit()`
+  [#1118](https://github.com/rust-lang/git2-rs/pull/1118)
+- Added `Repo::merge_file_from_index()` and associated `MergeFileOptions` and `MergeFileResult`.
+  [#1062](https://github.com/rust-lang/git2-rs/pull/1062)
+
+### Changed
+
+- The `url` dependency minimum raised to 2.5.4
+  [#1128](https://github.com/rust-lang/git2-rs/pull/1128)
+- Changed the tracing callback to abort the process if the callback panics instead of randomly detecting the panic in some other function.
+  [#1121](https://github.com/rust-lang/git2-rs/pull/1121)
+- Credential helper config (loaded with `CredentialHelper::config`) now checks for helpers that start with something that looks like an absolute path, rather than checking for a `/` or `\` anywhere in the helper string (which resolves an issue if the helper had arguments with `/` or `\`).
+  [#1137](https://github.com/rust-lang/git2-rs/pull/1137)
+
+### Fixed
+
+- Fixed panic in `Remote::url_bytes` if the url is empty.
+  [#1120](https://github.com/rust-lang/git2-rs/pull/1120)
+- Fixed incorrect lifetimes on `Patch::delta`, `Patch::hunk`, and `Patch::line_in_hunk`. The return values must not outlive the `Patch`.
+  [#1141](https://github.com/rust-lang/git2-rs/pull/1141)
+- Bumped requirement to libgit2-sys 0.18.1, which fixes linking of advapi32 on Windows.
+  [#1143](https://github.com/rust-lang/git2-rs/pull/1143)
+
+
 ## 0.20.0 - 2025-01-04
 [0.19.0...0.20.0](https://github.com/rust-lang/git2-rs/compare/git2-0.19.0...git2-0.20.0)
 
