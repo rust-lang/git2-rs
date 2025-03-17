@@ -346,8 +346,11 @@ impl MergeFileOptions {
     }
 
     /// Acquire a pointer to the underlying raw options.
-    pub unsafe fn raw(&mut self) -> *const raw::git_merge_file_options {
-        &self.raw as *const _
+    ///
+    /// # Safety
+    /// The pointer used here (or its contents) should not outlive self.
+    pub(crate) unsafe fn raw(&mut self) -> *const raw::git_merge_file_options {
+        &self.raw
     }
 }
 
