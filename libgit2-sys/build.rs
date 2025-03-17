@@ -252,6 +252,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         println!("cargo:rustc-link-lib=ole32");
         println!("cargo:rustc-link-lib=crypt32");
         println!("cargo:rustc-link-lib=secur32");
+        println!("cargo:rustc-link-lib=advapi32");
     }
 
     if target.contains("apple") {
