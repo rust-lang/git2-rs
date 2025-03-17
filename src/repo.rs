@@ -2576,7 +2576,7 @@ impl Repository {
         ours: &IndexEntry,
         theirs: &IndexEntry,
         opts: Option<&mut MergeFileOptions>,
-    ) -> Result<MergeFileResult<'_>, Error> {
+    ) -> Result<MergeFileResult, Error> {
         unsafe {
             let (ancestor, _ancestor_path) = ancestor.to_raw()?;
             let (ours, _ours_path) = ours.to_raw()?;

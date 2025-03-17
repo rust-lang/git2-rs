@@ -34,9 +34,8 @@ pub struct MergeFileOptions {
 }
 
 /// Information about file-level merging.
-pub struct MergeFileResult<'repo> {
+pub struct MergeFileResult {
     raw: raw::git_merge_file_result,
-    _marker: marker::PhantomData<&'repo str>,
 }
 
 impl<'repo> AnnotatedCommit<'repo> {
@@ -354,7 +353,7 @@ impl MergeFileOptions {
     }
 }
 
-impl<'repo> MergeFileResult<'repo> {
+impl MergeFileResult {
     /// True if the output was automerged, false if the output contains
     /// conflict markers.
     pub fn is_automergeable(&self) -> bool {
@@ -381,31 +380,28 @@ impl<'repo> MergeFileResult<'repo> {
     }
 
     /// The contents of the merge.
-    pub fn content(&self) -> &'repo [u8] {
+    pub fn content(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize) }
     }
 }
 
-impl<'repo> Binding for MergeFileResult<'repo> {
+impl Binding for MergeFileResult {
     type Raw = raw::git_merge_file_result;
-    unsafe fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult<'repo> {
-        MergeFileResult {
-            raw,
-            _marker: marker::PhantomData,
-        }
+    unsafe fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult {
+        MergeFileResult { raw }
     }
     fn raw(&self) -> raw::git_merge_file_result {
         unimplemented!()
     }
 }
 
-impl<'repo> Drop for MergeFileResult<'repo> {
+impl Drop for MergeFileResult {
     fn drop(&mut self) {
         unsafe { raw::git_merge_file_result_free(&mut self.raw) }
     }
 }
 
-impl<'repo> std::fmt::Debug for MergeFileResult<'repo> {
+impl std::fmt::Debug for MergeFileResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ds = f.debug_struct("MergeFileResult");
         if let Some(path) = &self.path() {
