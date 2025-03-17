@@ -85,6 +85,43 @@ pub struct IndexEntry {
     pub path: Vec<u8>,
 }
 
+impl IndexEntry {
+    // Expecting c_path to contain a CString with the contents of self.path
+    fn to_raw(&self, c_path: &CString) -> raw::git_index_entry {
+        // libgit2 encodes the length of the path in the lower bits of the
+        // `flags` entry, so mask those out and recalculate here to ensure we
+        // don't corrupt anything.
+        let mut flags = self.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
+
+        if self.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
+            flags |= self.path.len() as u16;
+        } else {
+            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
+        }
+
+        raw::git_index_entry {
+            dev: self.dev,
+            ino: self.ino,
+            mode: self.mode,
+            uid: self.uid,
+            gid: self.gid,
+            file_size: self.file_size,
+            id: unsafe { *self.id.raw() },
+            flags,
+            flags_extended: self.flags_extended,
+            path: c_path.as_ptr(),
+            mtime: raw::git_index_time {
+                seconds: self.mtime.seconds(),
+                nanoseconds: self.mtime.nanoseconds(),
+            },
+            ctime: raw::git_index_time {
+                seconds: self.ctime.seconds(),
+                nanoseconds: self.ctime.nanoseconds(),
+            },
+        }
+    }
+}
+
 impl Index {
     /// Creates a new in-memory index.
     ///
@@ -145,43 +182,13 @@ impl Index {
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
     pub fn add(&mut self, entry: &IndexEntry) -> Result<(), Error> {
-        let path = CString::new(&entry.path[..])?;
-
-        // libgit2 encodes the length of the path in the lower bits of the
-        // `flags` entry, so mask those out and recalculate here to ensure we
-        // don't corrupt anything.
-        let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-        if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-            flags |= entry.path.len() as u16;
-        } else {
-            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-        }
+        let c_path = CString::new(&entry.path[..])?;
+        let raw_entry = entry.to_raw(&c_path);
 
         unsafe {
-            let raw = raw::git_index_entry {
-                dev: entry.dev,
-                ino: entry.ino,
-                mode: entry.mode,
-                uid: entry.uid,
-                gid: entry.gid,
-                file_size: entry.file_size,
-                id: *entry.id.raw(),
-                flags,
-                flags_extended: entry.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: entry.mtime.seconds(),
-                    nanoseconds: entry.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: entry.ctime.seconds(),
-                    nanoseconds: entry.ctime.nanoseconds(),
-                },
-            };
-            try_call!(raw::git_index_add(self.raw, &raw));
-            Ok(())
+            try_call!(raw::git_index_add(self.raw, &raw_entry));
         }
+        Ok(())
     }
 
     /// Add or update an index entry from a buffer in memory
@@ -202,46 +209,17 @@ impl Index {
     /// no longer be marked as conflicting. The data about the conflict will be
     /// moved to the "resolve undo" (REUC) section.
     pub fn add_frombuffer(&mut self, entry: &IndexEntry, data: &[u8]) -> Result<(), Error> {
-        let path = CString::new(&entry.path[..])?;
-
-        // libgit2 encodes the length of the path in the lower bits of the
-        // `flags` entry, so mask those out and recalculate here to ensure we
-        // don't corrupt anything.
-        let mut flags = entry.flags & !raw::GIT_INDEX_ENTRY_NAMEMASK;
-
-        if entry.path.len() < raw::GIT_INDEX_ENTRY_NAMEMASK as usize {
-            flags |= entry.path.len() as u16;
-        } else {
-            flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
-        }
+        let c_path = CString::new(&entry.path[..])?;
+        let raw_entry = entry.to_raw(&c_path);
 
         unsafe {
-            let raw = raw::git_index_entry {
-                dev: entry.dev,
-                ino: entry.ino,
-                mode: entry.mode,
-                uid: entry.uid,
-                gid: entry.gid,
-                file_size: entry.file_size,
-                id: *entry.id.raw(),
-                flags,
-                flags_extended: entry.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: entry.mtime.seconds(),
-                    nanoseconds: entry.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: entry.ctime.seconds(),
-                    nanoseconds: entry.ctime.nanoseconds(),
-                },
-            };
-
             let ptr = data.as_ptr() as *const c_void;
             let len = data.len() as size_t;
-            try_call!(raw::git_index_add_frombuffer(self.raw, &raw, ptr, len));
-            Ok(())
+            try_call!(raw::git_index_add_frombuffer(
+                self.raw, &raw_entry, ptr, len
+            ));
         }
+        Ok(())
     }
 
     /// Add or update an index entry from a file on disk
@@ -410,6 +388,125 @@ impl Index {
     /// Returns `true` if the index contains conflicts, `false` if it does not.
     pub fn has_conflicts(&self) -> bool {
         unsafe { raw::git_index_has_conflicts(self.raw) == 1 }
+    }
+
+    /// Add or update index entries to represent a conflict. Any staged entries
+    /// that exist at the given paths will be removed.
+    ///
+    /// The entries are the entries from the tree included in the merge. Any entry
+    /// may be `None` to indicate that that file was not present in the trees during
+    /// the merge. For example, ancestor_entry may be `None` to indicate that a file
+    /// was added in both branches and must be resolved.
+    pub fn conflict_add(
+        &self,
+        ancestor_entry: Option<&IndexEntry>,
+        our_entry: Option<&IndexEntry>,
+        their_entry: Option<&IndexEntry>,
+    ) -> Result<(), Error> {
+        let ancestor_c_path = if let Some(entry) = ancestor_entry {
+            Some(CString::new(&entry.path[..])?)
+        } else {
+            None
+        };
+        let our_c_path = if let Some(entry) = our_entry {
+            Some(CString::new(&entry.path[..])?)
+        } else {
+            None
+        };
+        let their_c_path = if let Some(entry) = their_entry {
+            Some(CString::new(&entry.path[..])?)
+        } else {
+            None
+        };
+
+        let mut raw_ancestor_entry = None;
+        let mut raw_our_entry = None;
+        let mut raw_their_entry = None;
+
+        if let Some(entry) = ancestor_entry {
+            let c_path = ancestor_c_path.as_ref().unwrap();
+            raw_ancestor_entry = Some(entry.to_raw(&c_path));
+        }
+        if let Some(entry) = our_entry {
+            let c_path = our_c_path.as_ref().unwrap();
+            raw_our_entry = Some(entry.to_raw(&c_path));
+        }
+        if let Some(entry) = their_entry {
+            let c_path = their_c_path.as_ref().unwrap();
+            raw_their_entry = Some(entry.to_raw(&c_path));
+        }
+
+        let raw_ancestor_entry_ptr = raw_ancestor_entry
+            .as_ref()
+            .map_or_else(std::ptr::null, |ptr| ptr);
+        let raw_our_entry_ptr = raw_our_entry
+            .as_ref()
+            .map_or_else(std::ptr::null, |ptr| ptr);
+        let raw_their_entry_ptr = raw_their_entry
+            .as_ref()
+            .map_or_else(std::ptr::null, |ptr| ptr);
+
+        unsafe {
+            try_call!(raw::git_index_conflict_add(
+                self.raw,
+                raw_ancestor_entry_ptr,
+                raw_our_entry_ptr,
+                raw_their_entry_ptr
+            ));
+        }
+        Ok(())
+    }
+
+    /// Remove all conflicts in the index (entries with a stage greater than 0).
+    pub fn conflict_cleanup(&self) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_index_conflict_cleanup(self.raw));
+            Ok(())
+        }
+    }
+
+    /// Get the index entries that represent a conflict of a single file.
+    ///
+    /// The entries are not modifiable.
+    pub fn conflict_get(&self, path: &Path) -> Result<IndexConflict, Error> {
+        let path = path_to_repo_path(path)?;
+        let mut ancestor = ptr::null();
+        let mut our = ptr::null();
+        let mut their = ptr::null();
+
+        unsafe {
+            try_call!(raw::git_index_conflict_get(
+                &mut ancestor,
+                &mut our,
+                &mut their,
+                self.raw,
+                path
+            ));
+            Ok(IndexConflict {
+                ancestor: match ancestor.is_null() {
+                    false => Some(IndexEntry::from_raw(*ancestor)),
+                    true => None,
+                },
+                our: match our.is_null() {
+                    false => Some(IndexEntry::from_raw(*our)),
+                    true => None,
+                },
+                their: match their.is_null() {
+                    false => Some(IndexEntry::from_raw(*their)),
+                    true => None,
+                },
+            })
+        }
+    }
+
+    /// Removes the index entries that represent a conflict of a single file.
+    pub fn conflict_remove(&self, path: &Path) -> Result<(), Error> {
+        let path = path_to_repo_path(path)?;
+
+        unsafe {
+            try_call!(raw::git_index_conflict_remove(self.raw, path));
+            Ok(())
+        }
     }
 
     /// Get the full path to the index file on disk.
