@@ -24,12 +24,14 @@ use crate::{
     StashFlags,
 };
 use crate::{
-    AnnotatedCommit, MergeAnalysis, MergeOptions, MergePreference, SubmoduleIgnore,
-    SubmoduleStatus, SubmoduleUpdate,
+    AnnotatedCommit, MergeAnalysis, MergeFileOptions, MergeFileResult, MergeOptions,
+    MergePreference, SubmoduleIgnore, SubmoduleStatus, SubmoduleUpdate,
 };
 use crate::{ApplyLocation, ApplyOptions, Rebase, RebaseOptions};
 use crate::{Blame, BlameOptions, Reference, References, ResetType, Signature, Submodule};
-use crate::{Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, Oid, Tree};
+use crate::{
+    Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, IndexEntry, Oid, Tree,
+};
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
@@ -2566,6 +2568,33 @@ impl Repository {
         }
     }
 
+    /// Merge two files as they exist in the index, using the given common ancestor
+    /// as the baseline.
+    pub fn merge_file_from_index(
+        &self,
+        ancestor: &IndexEntry,
+        ours: &IndexEntry,
+        theirs: &IndexEntry,
+        opts: Option<&mut MergeFileOptions>,
+    ) -> Result<MergeFileResult, Error> {
+        unsafe {
+            let (ancestor, _ancestor_path) = ancestor.to_raw()?;
+            let (ours, _ours_path) = ours.to_raw()?;
+            let (theirs, _theirs_path) = theirs.to_raw()?;
+
+            let mut ret = mem::zeroed();
+            try_call!(raw::git_merge_file_from_index(
+                &mut ret,
+                self.raw(),
+                &ancestor,
+                &ours,
+                &theirs,
+                opts.map(|o| o.raw()).unwrap_or(ptr::null())
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
     /// Count the number of unique commits between two commit objects
     ///
     /// There is no need for branches containing the commits to have any
@@ -3519,7 +3548,7 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
-    use crate::CherrypickOptions;
+    use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
         ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
     };
@@ -4023,6 +4052,102 @@ mod tests {
         assert!(found_oid2);
         assert!(found_oid3);
         assert_eq!(merge_bases.len(), 2);
+    }
+
+    #[test]
+    fn smoke_merge_file_from_index() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let head_commit = {
+            let head = t!(repo.head()).target().unwrap();
+            t!(repo.find_commit(head))
+        };
+
+        let file_path = Path::new("file");
+        let author = t!(Signature::now("committer", "committer@email"));
+
+        let base_commit = {
+            t!(fs::write(repo.workdir().unwrap().join(&file_path), "base"));
+            let mut index = t!(repo.index());
+            t!(index.add_path(&file_path));
+            let tree_id = t!(index.write_tree());
+            let tree = t!(repo.find_tree(tree_id));
+
+            let commit_id = t!(repo.commit(
+                Some("HEAD"),
+                &author,
+                &author,
+                r"Add file with contents 'base'",
+                &tree,
+                &[&head_commit],
+            ));
+            t!(repo.find_commit(commit_id))
+        };
+
+        let foo_commit = {
+            t!(fs::write(repo.workdir().unwrap().join(&file_path), "foo"));
+            let mut index = t!(repo.index());
+            t!(index.add_path(&file_path));
+            let tree_id = t!(index.write_tree());
+            let tree = t!(repo.find_tree(tree_id));
+
+            let commit_id = t!(repo.commit(
+                Some("refs/heads/foo"),
+                &author,
+                &author,
+                r"Update file with contents 'foo'",
+                &tree,
+                &[&base_commit],
+            ));
+            t!(repo.find_commit(commit_id))
+        };
+
+        let bar_commit = {
+            t!(fs::write(repo.workdir().unwrap().join(&file_path), "bar"));
+            let mut index = t!(repo.index());
+            t!(index.add_path(&file_path));
+            let tree_id = t!(index.write_tree());
+            let tree = t!(repo.find_tree(tree_id));
+
+            let commit_id = t!(repo.commit(
+                Some("refs/heads/bar"),
+                &author,
+                &author,
+                r"Update file with contents 'bar'",
+                &tree,
+                &[&base_commit],
+            ));
+            t!(repo.find_commit(commit_id))
+        };
+
+        let index = t!(repo.merge_commits(&foo_commit, &bar_commit, None));
+
+        let base = index.get_path(file_path, 1).unwrap();
+        let ours = index.get_path(file_path, 2).unwrap();
+        let theirs = index.get_path(file_path, 3).unwrap();
+
+        let mut opts = MergeFileOptions::new();
+        opts.ancestor_label("ancestor");
+        opts.our_label("ours");
+        opts.their_label("theirs");
+        opts.style_diff3(true);
+        let merge_file_result = repo
+            .merge_file_from_index(&base, &ours, &theirs, Some(&mut opts))
+            .unwrap();
+
+        assert!(!merge_file_result.is_automergeable());
+        assert_eq!(merge_file_result.path(), Some("file"));
+        assert_eq!(
+            String::from_utf8_lossy(merge_file_result.content()).to_string(),
+            r"<<<<<<< ours
+foo
+||||||| ancestor
+base
+=======
+bar
+>>>>>>> theirs
+",
+        );
     }
 
     #[test]
