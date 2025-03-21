@@ -431,7 +431,9 @@ extern "C" fn certificate_check_cb(
             });
             match ok {
                 Some(Ok(CertificateCheckStatus::CertificateOk)) => 0,
-                Some(Ok(CertificateCheckStatus::CertificatePassthrough)) => raw::GIT_PASSTHROUGH as c_int,
+                Some(Ok(CertificateCheckStatus::CertificatePassthrough)) => {
+                    raw::GIT_PASSTHROUGH as c_int
+                }
                 Some(Err(e)) => unsafe { e.raw_set_git_error() },
                 None => {
                     // Panic. The *should* get resumed by some future call to check().
