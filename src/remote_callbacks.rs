@@ -417,7 +417,7 @@ extern "C" fn certificate_check_cb(
     data: *mut c_void,
 ) -> c_int {
     match valid {
-        -1 => valid,
+        1 => valid,
         _ => {
             let ok = panic::wrap(|| unsafe {
                 let payload = &mut *(data as *mut RemoteCallbacks<'_>);
