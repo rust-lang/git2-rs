@@ -2065,6 +2065,13 @@ impl Repository {
 
     /// Updates files in the index and the working tree to match the content of
     /// the commit pointed at by HEAD.
+    ///
+    /// Make sure you're aware of the potentially confusing semantics of this function, as described
+    /// by the libgit2 documentation for the underlying libgit2 function:
+    /// <https://libgit2.org/docs/reference/main/checkout/git_checkout_head.html>.
+    ///
+    /// Notably, this should not be used for switching branches. For that you should checkout the target of the
+    /// desired branch and then use [Repository::set_head] to update HEAD to point to the checked-out branch.
     pub fn checkout_head(&self, opts: Option<&mut CheckoutBuilder<'_>>) -> Result<(), Error> {
         unsafe {
             let mut raw_opts = mem::zeroed();
