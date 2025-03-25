@@ -2065,6 +2065,13 @@ impl Repository {
 
     /// Updates files in the index and the working tree to match the content of
     /// the commit pointed at by HEAD.
+    ///
+    /// Note that this is _not_ the correct mechanism used to switch branches;
+    /// do not change your `HEAD` and then call this method, that would leave
+    /// you with checkout conflicts since your working directory would then
+    /// appear to be dirty.  Instead, checkout the target of the branch and
+    /// then update `HEAD` using [`Repository::set_head`] to point to the
+    /// branch you checked out.
     pub fn checkout_head(&self, opts: Option<&mut CheckoutBuilder<'_>>) -> Result<(), Error> {
         unsafe {
             let mut raw_opts = mem::zeroed();
