@@ -1049,6 +1049,8 @@ bitflags! {
         const WT_TYPECHANGE = raw::GIT_STATUS_WT_TYPECHANGE as u32;
         #[allow(missing_docs)]
         const WT_RENAMED = raw::GIT_STATUS_WT_RENAMED as u32;
+        #[allow(missing_docs)]
+        const WT_UNREADABLE = raw::GIT_STATUS_WT_UNREADABLE as u32;
 
         #[allow(missing_docs)]
         const IGNORED = raw::GIT_STATUS_IGNORED as u32;
