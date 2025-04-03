@@ -286,6 +286,8 @@ impl Error {
             GIT_EEOF,
             GIT_EINVALID,
             GIT_EUNCOMMITTED,
+            GIT_EDIRECTORY,
+            GIT_EMERGECONFLICT,
             GIT_PASSTHROUGH,
             GIT_ITEROVER,
             GIT_RETRY,
@@ -294,6 +296,9 @@ impl Error {
             GIT_EAPPLYFAIL,
             GIT_EOWNER,
             GIT_TIMEOUT,
+            GIT_EUNCHANGED,
+            GIT_ENOTSUPPORTED,
+            GIT_EREADONLY,
         )
     }
 
