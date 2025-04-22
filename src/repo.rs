@@ -2137,7 +2137,7 @@ impl Repository {
     ///
     /// For compatibility with git, the repository is put into a merging state.
     /// Once the commit is done (or if the user wishes to abort), you should
-    /// clear this state by calling cleanup_state().
+    /// clear this state by calling [`cleanup_state()`][Repository::cleanup_state].
     pub fn merge(
         &self,
         annotated_commits: &[&AnnotatedCommit<'_>],
