@@ -122,6 +122,7 @@ impl<'a> Indexer<'a> {
     ///
     /// If `verify` is `false`, the indexer will bypass object connectivity checks.
     pub fn new(odb: Option<&Odb<'a>>, path: &Path, mode: u32, verify: bool) -> Result<Self, Error> {
+        crate::init();
         let path = path.into_c_string()?;
 
         let odb = odb.map(Binding::raw).unwrap_or_else(ptr::null_mut);
