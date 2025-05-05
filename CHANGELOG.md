@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.20.2 - 2025-05-05
+[0.20.1...0.20.2](https://github.com/rust-lang/git2-rs/compare/git2-0.20.1...git2-0.20.2)
+
+### Added
+
+- Added `Status::WT_UNREADABLE`.
+  [#1151](https://github.com/rust-lang/git2-rs/pull/1151)
+
+### Fixed
+
+- Added missing codes for `GIT_EDIRECTORY`, `GIT_EMERGECONFLICT`, `GIT_EUNCHANGED`, `GIT_ENOTSUPPORTED`, and `GIT_EREADONLY` to `Error::raw_code`.
+  [#1153](https://github.com/rust-lang/git2-rs/pull/1153)
+- Fixed missing initialization in `Indexer::new`.
+  [#1160](https://github.com/rust-lang/git2-rs/pull/1160)
+
 ## 0.20.1 - 2025-03-17
 [0.20.0...0.20.1](https://github.com/rust-lang/git2-rs/compare/git2-0.20.0...git2-0.20.1)
 
