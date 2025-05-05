@@ -118,6 +118,8 @@ impl<'a> Indexer<'a> {
     /// can be `None` if no thin pack is expected, in which case missing bases
     /// will result in an error.
     ///
+    /// `path` is the directory where the packfile should be stored.
+    ///
     /// `mode` is the permissions to use for the output files, use `0` for defaults.
     ///
     /// If `verify` is `false`, the indexer will bypass object connectivity checks.
