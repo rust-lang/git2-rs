@@ -529,9 +529,9 @@ bitflags! {
     /// Flags for APIs that add files matching pathspec
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct IndexAddOption: u32 {
-        #[allow(missing_docs)]
+        /// Adds files that are not ignored to the index
         const DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32;
-        #[allow(missing_docs)]
+        /// Allows adding otherwise ignored files to the index
         const FORCE = raw::GIT_INDEX_ADD_FORCE as u32;
         #[allow(missing_docs)]
         const DISABLE_PATHSPEC_MATCH =
