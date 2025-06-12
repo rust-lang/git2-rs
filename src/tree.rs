@@ -224,7 +224,8 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
         let payload = &mut *(payload as *mut TreeWalkCbData<'_, T>);
         let callback = &mut payload.callback;
         callback(root, &entry).into()
-    }).unwrap_or(-1)
+    })
+    .unwrap_or(-1)
 }
 
 impl<'repo> Binding for Tree<'repo> {

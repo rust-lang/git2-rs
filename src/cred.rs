@@ -312,9 +312,7 @@ impl CredentialHelper {
 
     fn url_key(&self, name: &str) -> Option<String> {
         match (&self.host, &self.protocol) {
-            (Some(host), Some(protocol)) => {
-                Some(format!("credential.{protocol}://{host}.{name}"))
-            }
+            (Some(host), Some(protocol)) => Some(format!("credential.{protocol}://{host}.{name}")),
             _ => None,
         }
     }

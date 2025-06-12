@@ -507,7 +507,9 @@ impl<'repo> Drop for OdbPackwriter<'repo> {
     fn drop(&mut self) {
         unsafe {
             let writepack = &*self.raw;
-            if let Some(free) = writepack.free { free(self.raw) };
+            if let Some(free) = writepack.free {
+                free(self.raw)
+            };
 
             drop(Box::from_raw(self.progress_payload_ptr));
         }

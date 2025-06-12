@@ -1048,12 +1048,7 @@ impl<'a> DiffLine<'a> {
 
     /// Content of this line as bytes.
     pub fn content(&self) -> &'a [u8] {
-        unsafe {
-            slice::from_raw_parts(
-                (*self.raw).content as *const u8,
-                (*self.raw).content_len,
-            )
-        }
+        unsafe { slice::from_raw_parts((*self.raw).content as *const u8, (*self.raw).content_len) }
     }
 
     /// origin of this `DiffLine`.
@@ -1277,9 +1272,7 @@ impl<'a> DiffBinaryFile<'a> {
 
     /// The binary data, deflated
     pub fn data(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).datalen)
-        }
+        unsafe { slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).datalen) }
     }
 
     /// The length of the binary data after inflation

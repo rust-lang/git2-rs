@@ -339,12 +339,7 @@ impl<'repo> Reference<'repo> {
     ///
     /// If the force flag is not enabled, and there's already a reference with
     /// the given name, the renaming will fail.
-    pub fn rename(
-        &mut self,
-        new_name: &str,
-        force: bool,
-        msg: &str,
-    ) -> Result<Self, Error> {
+    pub fn rename(&mut self, new_name: &str, force: bool, msg: &str) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         let new_name = CString::new(new_name)?;
         let msg = CString::new(msg)?;
@@ -389,11 +384,7 @@ impl<'repo> Reference<'repo> {
     /// The message for the reflog will be ignored if the reference does not
     /// belong in the standard set (HEAD, branches and remote-tracking
     /// branches) and it does not have a reflog.
-    pub fn symbolic_set_target(
-        &mut self,
-        target: &str,
-        reflog_msg: &str,
-    ) -> Result<Self, Error> {
+    pub fn symbolic_set_target(&mut self, target: &str, reflog_msg: &str) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         let target = CString::new(target)?;
         let msg = CString::new(reflog_msg)?;
