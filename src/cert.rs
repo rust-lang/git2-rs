@@ -51,26 +51,26 @@ impl SshHostKeyType {
     /// The name of the key type as encoded in the known_hosts file.
     pub fn name(&self) -> &'static str {
         match self {
-            SshHostKeyType::Unknown => "unknown",
-            SshHostKeyType::Rsa => "ssh-rsa",
-            SshHostKeyType::Dss => "ssh-dss",
-            SshHostKeyType::Ecdsa256 => "ecdsa-sha2-nistp256",
-            SshHostKeyType::Ecdsa384 => "ecdsa-sha2-nistp384",
-            SshHostKeyType::Ecdsa521 => "ecdsa-sha2-nistp521",
-            SshHostKeyType::Ed255219 => "ssh-ed25519",
+            Self::Unknown => "unknown",
+            Self::Rsa => "ssh-rsa",
+            Self::Dss => "ssh-dss",
+            Self::Ecdsa256 => "ecdsa-sha2-nistp256",
+            Self::Ecdsa384 => "ecdsa-sha2-nistp384",
+            Self::Ecdsa521 => "ecdsa-sha2-nistp521",
+            Self::Ed255219 => "ssh-ed25519",
         }
     }
 
     /// A short name of the key type, the colloquial form used as a human-readable description.
     pub fn short_name(&self) -> &'static str {
         match self {
-            SshHostKeyType::Unknown => "Unknown",
-            SshHostKeyType::Rsa => "RSA",
-            SshHostKeyType::Dss => "DSA",
-            SshHostKeyType::Ecdsa256 => "ECDSA",
-            SshHostKeyType::Ecdsa384 => "ECDSA",
-            SshHostKeyType::Ecdsa521 => "ECDSA",
-            SshHostKeyType::Ed255219 => "ED25519",
+            Self::Unknown => "Unknown",
+            Self::Rsa => "RSA",
+            Self::Dss => "DSA",
+            Self::Ecdsa256 => "ECDSA",
+            Self::Ecdsa384 => "ECDSA",
+            Self::Ecdsa521 => "ECDSA",
+            Self::Ed255219 => "ED25519",
         }
     }
 }
@@ -106,7 +106,7 @@ impl<'a> CertHostkey<'a> {
     /// Returns the md5 hash of the hostkey, if available.
     pub fn hash_md5(&self) -> Option<&[u8; 16]> {
         unsafe {
-            if (*self.raw).kind as u32 & raw::GIT_CERT_SSH_MD5 as u32 == 0 {
+            if (*self.raw).kind & raw::GIT_CERT_SSH_MD5 == 0 {
                 None
             } else {
                 Some(&(*self.raw).hash_md5)
@@ -117,7 +117,7 @@ impl<'a> CertHostkey<'a> {
     /// Returns the SHA-1 hash of the hostkey, if available.
     pub fn hash_sha1(&self) -> Option<&[u8; 20]> {
         unsafe {
-            if (*self.raw).kind as u32 & raw::GIT_CERT_SSH_SHA1 as u32 == 0 {
+            if (*self.raw).kind & raw::GIT_CERT_SSH_SHA1 == 0 {
                 None
             } else {
                 Some(&(*self.raw).hash_sha1)
@@ -128,7 +128,7 @@ impl<'a> CertHostkey<'a> {
     /// Returns the SHA-256 hash of the hostkey, if available.
     pub fn hash_sha256(&self) -> Option<&[u8; 32]> {
         unsafe {
-            if (*self.raw).kind as u32 & raw::GIT_CERT_SSH_SHA256 as u32 == 0 {
+            if (*self.raw).kind & raw::GIT_CERT_SSH_SHA256 == 0 {
                 None
             } else {
                 Some(&(*self.raw).hash_sha256)
@@ -144,7 +144,7 @@ impl<'a> CertHostkey<'a> {
             }
             Some(slice::from_raw_parts(
                 (*self.raw).hostkey as *const u8,
-                (*self.raw).hostkey_len as usize,
+                (*self.raw).hostkey_len,
             ))
         }
     }
@@ -173,13 +173,13 @@ impl<'a> CertHostkey<'a> {
 impl<'a> CertX509<'a> {
     /// Return the X.509 certificate data as a byte slice
     pub fn data(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).len as usize) }
+        unsafe { slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).len) }
     }
 }
 
 impl<'a> Binding for Cert<'a> {
     type Raw = *mut raw::git_cert;
-    unsafe fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_cert) -> Self {
         Cert {
             raw,
             _marker: marker::PhantomData,

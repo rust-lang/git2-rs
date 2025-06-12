@@ -15,7 +15,7 @@ pub struct ProxyOptions<'a> {
 
 impl<'a> ProxyOptions<'a> {
     /// Creates a new set of proxy options ready to be configured.
-    pub fn new() -> ProxyOptions<'a> {
+    pub fn new() -> Self {
         Default::default()
     }
 
@@ -39,7 +39,7 @@ impl<'a> ProxyOptions<'a> {
 
 impl<'a> Binding for ProxyOptions<'a> {
     type Raw = raw::git_proxy_options;
-    unsafe fn from_raw(_raw: raw::git_proxy_options) -> ProxyOptions<'a> {
+    unsafe fn from_raw(_raw: raw::git_proxy_options) -> Self {
         panic!("can't create proxy from raw options")
     }
 

@@ -65,15 +65,15 @@ impl Default for MergeOptions {
 
 impl MergeOptions {
     /// Creates a default set of merge options.
-    pub fn new() -> MergeOptions {
-        let mut opts = MergeOptions {
+    pub fn new() -> Self {
+        let mut opts = Self {
             raw: unsafe { mem::zeroed() },
         };
         assert_eq!(unsafe { raw::git_merge_init_options(&mut opts.raw, 1) }, 0);
         opts
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut MergeOptions {
+    fn flag(&mut self, opt: u32, val: bool) -> &mut Self {
         if val {
             self.raw.flags |= opt;
         } else {
@@ -83,30 +83,30 @@ impl MergeOptions {
     }
 
     /// Detect file renames
-    pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FIND_RENAMES as u32, find)
+    pub fn find_renames(&mut self, find: bool) -> &mut Self {
+        self.flag(raw::GIT_MERGE_FIND_RENAMES, find)
     }
 
     /// If a conflict occurs, exit immediately instead of attempting to continue
     /// resolving conflicts
-    pub fn fail_on_conflict(&mut self, fail: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT as u32, fail)
+    pub fn fail_on_conflict(&mut self, fail: bool) -> &mut Self {
+        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT, fail)
     }
 
     /// Do not write the REUC extension on the generated index
-    pub fn skip_reuc(&mut self, skip: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT as u32, skip)
+    pub fn skip_reuc(&mut self, skip: bool) -> &mut Self {
+        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT, skip)
     }
 
     /// If the commits being merged have multiple merge bases, do not build a
     /// recursive merge base (by merging the multiple merge bases), instead
     /// simply use the first base.
-    pub fn no_recursive(&mut self, disable: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_NO_RECURSIVE as u32, disable)
+    pub fn no_recursive(&mut self, disable: bool) -> &mut Self {
+        self.flag(raw::GIT_MERGE_NO_RECURSIVE, disable)
     }
 
     /// Similarity to consider a file renamed (default 50)
-    pub fn rename_threshold(&mut self, thresh: u32) -> &mut MergeOptions {
+    pub fn rename_threshold(&mut self, thresh: u32) -> &mut Self {
         self.raw.rename_threshold = thresh;
         self
     }
@@ -115,7 +115,7 @@ impl MergeOptions {
     /// If the number of rename candidates (add / delete pairs) is greater
     /// than this value, inexact rename detection is aborted. This setting
     /// overrides the `merge.renameLimit` configuration value.
-    pub fn target_limit(&mut self, limit: u32) -> &mut MergeOptions {
+    pub fn target_limit(&mut self, limit: u32) -> &mut Self {
         self.raw.target_limit = limit as c_uint;
         self
     }
@@ -124,18 +124,18 @@ impl MergeOptions {
     /// virtual merge base when faced with criss-cross merges.  When
     /// this limit is reached, the next ancestor will simply be used
     /// instead of attempting to merge it.  The default is unlimited.
-    pub fn recursion_limit(&mut self, limit: u32) -> &mut MergeOptions {
+    pub fn recursion_limit(&mut self, limit: u32) -> &mut Self {
         self.raw.recursion_limit = limit as c_uint;
         self
     }
 
     /// Specify a side to favor for resolving conflicts
-    pub fn file_favor(&mut self, favor: FileFavor) -> &mut MergeOptions {
+    pub fn file_favor(&mut self, favor: FileFavor) -> &mut Self {
         self.raw.file_favor = favor.convert();
         self
     }
 
-    fn file_flag(&mut self, opt: u32, val: bool) -> &mut MergeOptions {
+    fn file_flag(&mut self, opt: u32, val: bool) -> &mut Self {
         if val {
             self.raw.file_flags |= opt;
         } else {
@@ -145,43 +145,43 @@ impl MergeOptions {
     }
 
     /// Create standard conflicted merge files
-    pub fn standard_style(&mut self, standard: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_STYLE_MERGE as u32, standard)
+    pub fn standard_style(&mut self, standard: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_STYLE_MERGE, standard)
     }
 
     /// Create diff3-style file
-    pub fn diff3_style(&mut self, diff3: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_STYLE_DIFF3 as u32, diff3)
+    pub fn diff3_style(&mut self, diff3: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_STYLE_DIFF3, diff3)
     }
 
     /// Condense non-alphanumeric regions for simplified diff file
-    pub fn simplify_alnum(&mut self, simplify: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM as u32, simplify)
+    pub fn simplify_alnum(&mut self, simplify: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM, simplify)
     }
 
     /// Ignore all whitespace
-    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE as u32, ignore)
+    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE, ignore)
     }
 
     /// Ignore changes in amount of whitespace
-    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE as u32, ignore)
+    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE, ignore)
     }
 
     /// Ignore whitespace at end of line
-    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL as u32, ignore)
+    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL, ignore)
     }
 
     /// Use the "patience diff" algorithm
-    pub fn patience(&mut self, patience: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE as u32, patience)
+    pub fn patience(&mut self, patience: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE, patience)
     }
 
     /// Take extra time to find minimal diff
-    pub fn minimal(&mut self, minimal: bool) -> &mut MergeOptions {
-        self.file_flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL as u32, minimal)
+    pub fn minimal(&mut self, minimal: bool) -> &mut Self {
+        self.file_flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL, minimal)
     }
 
     /// Acquire a pointer to the underlying raw options.
@@ -192,7 +192,7 @@ impl MergeOptions {
 
 impl<'repo> Binding for AnnotatedCommit<'repo> {
     type Raw = *mut raw::git_annotated_commit;
-    unsafe fn from_raw(raw: *mut raw::git_annotated_commit) -> AnnotatedCommit<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_annotated_commit) -> Self {
         AnnotatedCommit {
             raw,
             _marker: marker::PhantomData,
@@ -217,8 +217,8 @@ impl Default for MergeFileOptions {
 
 impl MergeFileOptions {
     /// Creates a default set of merge file options.
-    pub fn new() -> MergeFileOptions {
-        let mut opts = MergeFileOptions {
+    pub fn new() -> Self {
+        let mut opts = Self {
             ancestor_label: None,
             our_label: None,
             their_label: None,
@@ -233,7 +233,7 @@ impl MergeFileOptions {
 
     /// Label for the ancestor file side of the conflict which will be prepended
     /// to labels in diff3-format merge files.
-    pub fn ancestor_label<T: IntoCString>(&mut self, t: T) -> &mut MergeFileOptions {
+    pub fn ancestor_label<T: IntoCString>(&mut self, t: T) -> &mut Self {
         self.ancestor_label = Some(t.into_c_string().unwrap());
 
         self.raw.ancestor_label = self
@@ -247,7 +247,7 @@ impl MergeFileOptions {
 
     /// Label for our file side of the conflict which will be prepended to labels
     /// in merge files.
-    pub fn our_label<T: IntoCString>(&mut self, t: T) -> &mut MergeFileOptions {
+    pub fn our_label<T: IntoCString>(&mut self, t: T) -> &mut Self {
         self.our_label = Some(t.into_c_string().unwrap());
 
         self.raw.our_label = self
@@ -261,7 +261,7 @@ impl MergeFileOptions {
 
     /// Label for their file side of the conflict which will be prepended to labels
     /// in merge files.
-    pub fn their_label<T: IntoCString>(&mut self, t: T) -> &mut MergeFileOptions {
+    pub fn their_label<T: IntoCString>(&mut self, t: T) -> &mut Self {
         self.their_label = Some(t.into_c_string().unwrap());
 
         self.raw.their_label = self
@@ -274,72 +274,72 @@ impl MergeFileOptions {
     }
 
     /// Specify a side to favor for resolving conflicts
-    pub fn favor(&mut self, favor: FileFavor) -> &mut MergeFileOptions {
+    pub fn favor(&mut self, favor: FileFavor) -> &mut Self {
         self.raw.favor = favor.convert();
         self
     }
 
-    fn flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut MergeFileOptions {
+    fn flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut Self {
         if val {
-            self.raw.flags |= opt as u32;
+            self.raw.flags |= opt;
         } else {
-            self.raw.flags &= !opt as u32;
+            self.raw.flags &= !opt;
         }
         self
     }
 
     /// Create standard conflicted merge files
-    pub fn style_standard(&mut self, standard: bool) -> &mut MergeFileOptions {
+    pub fn style_standard(&mut self, standard: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_STYLE_MERGE, standard)
     }
 
     /// Create diff3-style file
-    pub fn style_diff3(&mut self, diff3: bool) -> &mut MergeFileOptions {
+    pub fn style_diff3(&mut self, diff3: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_STYLE_DIFF3, diff3)
     }
 
     /// Condense non-alphanumeric regions for simplified diff file
-    pub fn simplify_alnum(&mut self, simplify: bool) -> &mut MergeFileOptions {
+    pub fn simplify_alnum(&mut self, simplify: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM, simplify)
     }
 
     /// Ignore all whitespace
-    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut MergeFileOptions {
+    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE, ignore)
     }
 
     /// Ignore changes in amount of whitespace
-    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut MergeFileOptions {
+    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE, ignore)
     }
 
     /// Ignore whitespace at end of line
-    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut MergeFileOptions {
+    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL, ignore)
     }
 
     /// Use the "patience diff" algorithm
-    pub fn patience(&mut self, patience: bool) -> &mut MergeFileOptions {
+    pub fn patience(&mut self, patience: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE, patience)
     }
 
     /// Take extra time to find minimal diff
-    pub fn minimal(&mut self, minimal: bool) -> &mut MergeFileOptions {
+    pub fn minimal(&mut self, minimal: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL, minimal)
     }
 
     /// Create zdiff3 ("zealous diff3")-style files
-    pub fn style_zdiff3(&mut self, zdiff3: bool) -> &mut MergeFileOptions {
+    pub fn style_zdiff3(&mut self, zdiff3: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_STYLE_ZDIFF3, zdiff3)
     }
 
     /// Do not produce file conflicts when common regions have changed
-    pub fn accept_conflicts(&mut self, accept: bool) -> &mut MergeFileOptions {
+    pub fn accept_conflicts(&mut self, accept: bool) -> &mut Self {
         self.flag(raw::GIT_MERGE_FILE_ACCEPT_CONFLICTS, accept)
     }
 
     /// The size of conflict markers (eg, "<<<<<<<"). Default is 7.
-    pub fn marker_size(&mut self, size: u16) -> &mut MergeFileOptions {
+    pub fn marker_size(&mut self, size: u16) -> &mut Self {
         self.raw.marker_size = size as c_ushort;
         self
     }
@@ -376,19 +376,19 @@ impl MergeFileResult {
 
     /// The mode that the resultant merge file should use.
     pub fn mode(&self) -> u32 {
-        self.raw.mode as u32
+        self.raw.mode
     }
 
     /// The contents of the merge.
     pub fn content(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize) }
+        unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len) }
     }
 }
 
 impl Binding for MergeFileResult {
     type Raw = raw::git_merge_file_result;
-    unsafe fn from_raw(raw: raw::git_merge_file_result) -> MergeFileResult {
-        MergeFileResult { raw }
+    unsafe fn from_raw(raw: raw::git_merge_file_result) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> raw::git_merge_file_result {
         unimplemented!()

@@ -94,7 +94,7 @@ impl<'cb> Default for StashApplyOptions<'cb> {
 
 impl<'cb> StashApplyOptions<'cb> {
     /// Creates a default set of merge options.
-    pub fn new() -> StashApplyOptions<'cb> {
+    pub fn new() -> Self {
         let mut opts = StashApplyOptions {
             progress: None,
             checkout_options: None,
@@ -108,13 +108,13 @@ impl<'cb> StashApplyOptions<'cb> {
     }
 
     /// Set stash application flag to GIT_STASH_APPLY_REINSTATE_INDEX
-    pub fn reinstantiate_index(&mut self) -> &mut StashApplyOptions<'cb> {
-        self.raw_opts.flags = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32;
+    pub fn reinstantiate_index(&mut self) -> &mut Self {
+        self.raw_opts.flags = raw::GIT_STASH_APPLY_REINSTATE_INDEX;
         self
     }
 
     /// Options to use when writing files to the working directory
-    pub fn checkout_options(&mut self, opts: CheckoutBuilder<'cb>) -> &mut StashApplyOptions<'cb> {
+    pub fn checkout_options(&mut self, opts: CheckoutBuilder<'cb>) -> &mut Self {
         self.checkout_options = Some(opts);
         self
     }
@@ -123,7 +123,7 @@ impl<'cb> StashApplyOptions<'cb> {
     ///
     /// Return `true` to continue processing, or `false` to
     /// abort the stash application.
-    pub fn progress_cb<C>(&mut self, callback: C) -> &mut StashApplyOptions<'cb>
+    pub fn progress_cb<C>(&mut self, callback: C) -> &mut Self
     where
         C: FnMut(StashApplyProgress) -> bool + 'cb,
     {

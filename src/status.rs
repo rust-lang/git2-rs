@@ -67,12 +67,12 @@ impl Default for StatusOptions {
 
 impl StatusOptions {
     /// Creates a new blank set of status options.
-    pub fn new() -> StatusOptions {
+    pub fn new() -> Self {
         unsafe {
             let mut raw = mem::zeroed();
             let r = raw::git_status_init_options(&mut raw, raw::GIT_STATUS_OPTIONS_VERSION);
             assert_eq!(r, 0);
-            StatusOptions {
+            Self {
                 raw,
                 pathspec: Vec::new(),
                 ptrs: Vec::new(),
@@ -84,7 +84,7 @@ impl StatusOptions {
     ///
     /// The default, if unspecified, is to show the index and the working
     /// directory.
-    pub fn show(&mut self, show: StatusShow) -> &mut StatusOptions {
+    pub fn show(&mut self, show: StatusShow) -> &mut Self {
         self.raw.show = match show {
             StatusShow::Index => raw::GIT_STATUS_SHOW_INDEX_ONLY,
             StatusShow::Workdir => raw::GIT_STATUS_SHOW_WORKDIR_ONLY,
@@ -98,14 +98,14 @@ impl StatusOptions {
     /// If the `disable_pathspec_match` option is given, then this is a literal
     /// path to match. If this is not called, then there will be no patterns to
     /// match and the entire directory will be used.
-    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut StatusOptions {
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut Self {
         let s = util::cstring_to_repo_path(pathspec).unwrap();
         self.ptrs.push(s.as_ptr());
         self.pathspec.push(s);
         self
     }
 
-    fn flag(&mut self, flag: raw::git_status_opt_t, val: bool) -> &mut StatusOptions {
+    fn flag(&mut self, flag: raw::git_status_opt_t, val: bool) -> &mut Self {
         if val {
             self.raw.flags |= flag as c_uint;
         } else {
@@ -118,7 +118,7 @@ impl StatusOptions {
     ///
     /// Untracked files will only be included if the workdir files are included
     /// in the status "show" option.
-    pub fn include_untracked(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn include_untracked(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNTRACKED, include)
     }
 
@@ -126,12 +126,12 @@ impl StatusOptions {
     ///
     /// The files will only be included if the workdir files are included
     /// in the status "show" option.
-    pub fn include_ignored(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn include_ignored(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_IGNORED, include)
     }
 
     /// Flag to include unmodified files.
-    pub fn include_unmodified(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn include_unmodified(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNMODIFIED, include)
     }
 
@@ -139,7 +139,7 @@ impl StatusOptions {
     ///
     /// This only applies if there are no pending typechanges to the submodule
     /// (either from or to another type).
-    pub fn exclude_submodules(&mut self, exclude: bool) -> &mut StatusOptions {
+    pub fn exclude_submodules(&mut self, exclude: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_EXCLUDE_SUBMODULES, exclude)
     }
 
@@ -147,52 +147,52 @@ impl StatusOptions {
     ///
     /// Normally if an entire directory is new then just the top-level directory
     /// is included (with a trailing slash on the entry name).
-    pub fn recurse_untracked_dirs(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn recurse_untracked_dirs(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS, include)
     }
 
     /// Indicates that the given paths should be treated as literals paths, note
     /// patterns.
-    pub fn disable_pathspec_match(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn disable_pathspec_match(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH, include)
     }
 
     /// Indicates that the contents of ignored directories should be included in
     /// the status.
-    pub fn recurse_ignored_dirs(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn recurse_ignored_dirs(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_RECURSE_IGNORED_DIRS, include)
     }
 
     /// Indicates that rename detection should be processed between the head.
-    pub fn renames_head_to_index(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn renames_head_to_index(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX, include)
     }
 
     /// Indicates that rename detection should be run between the index and the
     /// working directory.
-    pub fn renames_index_to_workdir(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn renames_index_to_workdir(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR, include)
     }
 
     /// Override the native case sensitivity for the file system and force the
     /// output to be in case sensitive order.
-    pub fn sort_case_sensitively(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn sort_case_sensitively(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_SORT_CASE_SENSITIVELY, include)
     }
 
     /// Override the native case sensitivity for the file system and force the
     /// output to be in case-insensitive order.
-    pub fn sort_case_insensitively(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn sort_case_insensitively(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY, include)
     }
 
     /// Indicates that rename detection should include rewritten files.
-    pub fn renames_from_rewrites(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn renames_from_rewrites(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_RENAMES_FROM_REWRITES, include)
     }
 
     /// Bypasses the default status behavior of doing a "soft" index reload.
-    pub fn no_refresh(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn no_refresh(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_NO_REFRESH, include)
     }
 
@@ -201,26 +201,26 @@ impl StatusOptions {
     ///
     /// This will result in less work being done on subsequent calls to fetching
     /// the status.
-    pub fn update_index(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn update_index(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_UPDATE_INDEX, include)
     }
 
     // erm...
     #[allow(missing_docs)]
-    pub fn include_unreadable(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn include_unreadable(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNREADABLE, include)
     }
 
     // erm...
     #[allow(missing_docs)]
-    pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut StatusOptions {
+    pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_STATUS_OPT_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
 
     /// Set threshold above which similar files will be considered renames.
     ///
     /// This is equivalent to the `-M` option. Defaults to 50.
-    pub fn rename_threshold(&mut self, threshold: u16) -> &mut StatusOptions {
+    pub fn rename_threshold(&mut self, threshold: u16) -> &mut Self {
         self.raw.rename_threshold = threshold;
         self
     }
@@ -271,7 +271,7 @@ impl<'repo> Statuses<'repo> {
 
 impl<'repo> Binding for Statuses<'repo> {
     type Raw = *mut raw::git_status_list;
-    unsafe fn from_raw(raw: *mut raw::git_status_list) -> Statuses<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_status_list) -> Self {
         Statuses {
             raw,
             _marker: marker::PhantomData,
@@ -337,7 +337,7 @@ impl<'statuses> StatusEntry<'statuses> {
 
     /// Access the status flags for this file
     pub fn status(&self) -> Status {
-        Status::from_bits_truncate(unsafe { (*self.raw).status as u32 })
+        Status::from_bits_truncate(unsafe { (*self.raw).status })
     }
 
     /// Access detailed information about the differences between the file in
@@ -356,7 +356,7 @@ impl<'statuses> StatusEntry<'statuses> {
 impl<'statuses> Binding for StatusEntry<'statuses> {
     type Raw = *const raw::git_status_entry;
 
-    unsafe fn from_raw(raw: *const raw::git_status_entry) -> StatusEntry<'statuses> {
+    unsafe fn from_raw(raw: *const raw::git_status_entry) -> Self {
         StatusEntry {
             raw,
             _marker: marker::PhantomData,

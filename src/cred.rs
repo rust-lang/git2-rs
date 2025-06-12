@@ -30,7 +30,7 @@ pub struct CredentialHelper {
 impl Cred {
     /// Create a "default" credential usable for Negotiate mechanisms like NTLM
     /// or Kerberos authentication.
-    pub fn default() -> Result<Cred, Error> {
+    pub fn default() -> Result<Self, Error> {
         crate::init();
         let mut out = ptr::null_mut();
         unsafe {
@@ -42,7 +42,7 @@ impl Cred {
     /// Create a new ssh key credential object used for querying an ssh-agent.
     ///
     /// The username specified is the username to authenticate.
-    pub fn ssh_key_from_agent(username: &str) -> Result<Cred, Error> {
+    pub fn ssh_key_from_agent(username: &str) -> Result<Self, Error> {
         crate::init();
         let mut out = ptr::null_mut();
         let username = CString::new(username)?;
@@ -58,7 +58,7 @@ impl Cred {
         publickey: Option<&Path>,
         privatekey: &Path,
         passphrase: Option<&str>,
-    ) -> Result<Cred, Error> {
+    ) -> Result<Self, Error> {
         crate::init();
         let username = CString::new(username)?;
         let publickey = crate::opt_cstr(publickey)?;
@@ -79,7 +79,7 @@ impl Cred {
         publickey: Option<&str>,
         privatekey: &str,
         passphrase: Option<&str>,
-    ) -> Result<Cred, Error> {
+    ) -> Result<Self, Error> {
         crate::init();
         let username = CString::new(username)?;
         let publickey = crate::opt_cstr(publickey)?;
@@ -95,7 +95,7 @@ impl Cred {
     }
 
     /// Create a new plain-text username and password credential object.
-    pub fn userpass_plaintext(username: &str, password: &str) -> Result<Cred, Error> {
+    pub fn userpass_plaintext(username: &str, password: &str) -> Result<Self, Error> {
         crate::init();
         let username = CString::new(username)?;
         let password = CString::new(password)?;
@@ -122,13 +122,13 @@ impl Cred {
         config: &Config,
         url: &str,
         username: Option<&str>,
-    ) -> Result<Cred, Error> {
+    ) -> Result<Self, Error> {
         match CredentialHelper::new(url)
             .config(config)
             .username(username)
             .execute()
         {
-            Some((username, password)) => Cred::userpass_plaintext(&username, &password),
+            Some((username, password)) => Self::userpass_plaintext(&username, &password),
             None => Err(Error::from_str(
                 "failed to acquire username/password \
                  from local configuration",
@@ -140,7 +140,7 @@ impl Cred {
     ///
     /// This is used with ssh authentication to query for the username if none is
     /// specified in the URL.
-    pub fn username(username: &str) -> Result<Cred, Error> {
+    pub fn username(username: &str) -> Result<Self, Error> {
         crate::init();
         let username = CString::new(username)?;
         let mut out = ptr::null_mut();
@@ -169,8 +169,8 @@ impl Cred {
 impl Binding for Cred {
     type Raw = *mut raw::git_cred;
 
-    unsafe fn from_raw(raw: *mut raw::git_cred) -> Cred {
-        Cred { raw }
+    unsafe fn from_raw(raw: *mut raw::git_cred) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> *mut raw::git_cred {
         self.raw
@@ -195,8 +195,8 @@ impl CredentialHelper {
     ///
     /// The URL specified is the namespace on which this will query credentials.
     /// Invalid URLs are currently ignored.
-    pub fn new(url: &str) -> CredentialHelper {
-        let mut ret = CredentialHelper {
+    pub fn new(url: &str) -> Self {
+        let mut ret = Self {
             protocol: None,
             host: None,
             port: None,
@@ -220,14 +220,14 @@ impl CredentialHelper {
     /// Set the username that this credential helper will query with.
     ///
     /// By default the username is `None`.
-    pub fn username(&mut self, username: Option<&str>) -> &mut CredentialHelper {
+    pub fn username(&mut self, username: Option<&str>) -> &mut Self {
         self.username = username.map(|s| s.to_string());
         self
     }
 
     /// Query the specified configuration object to discover commands to
     /// execute, usernames to query, etc.
-    pub fn config(&mut self, config: &Config) -> &mut CredentialHelper {
+    pub fn config(&mut self, config: &Config) -> &mut Self {
         // Figure out the configured username/helper program.
         //
         // see http://git-scm.com/docs/gitcredentials.html#_configuration_options
@@ -267,14 +267,14 @@ impl CredentialHelper {
     // Discover `useHttpPath` from `config`
     fn config_use_http_path(&mut self, config: &Config) {
         let mut use_http_path = false;
-        if let Some(value) = config.get_bool(&self.exact_key("useHttpPath")).ok() {
+        if let Ok(value) = config.get_bool(&self.exact_key("useHttpPath")) {
             use_http_path = value;
         } else if let Some(value) = self
             .url_key("useHttpPath")
             .and_then(|key| config.get_bool(&key).ok())
         {
             use_http_path = value;
-        } else if let Some(value) = config.get_bool("credential.useHttpPath").ok() {
+        } else if let Ok(value) = config.get_bool("credential.useHttpPath") {
             use_http_path = value;
         }
 
@@ -302,7 +302,7 @@ impl CredentialHelper {
         } else if is_absolute_path(cmd) {
             self.commands.push(cmd.to_string());
         } else {
-            self.commands.push(format!("git credential-{}", cmd));
+            self.commands.push(format!("git credential-{cmd}"));
         }
     }
 
@@ -312,8 +312,8 @@ impl CredentialHelper {
 
     fn url_key(&self, name: &str) -> Option<String> {
         match (&self.host, &self.protocol) {
-            (&Some(ref host), &Some(ref protocol)) => {
-                Some(format!("credential.{}://{}.{}", protocol, host, name))
+            (Some(host), Some(protocol)) => {
+                Some(format!("credential.{protocol}://{host}.{name}"))
             }
             _ => None,
         }
@@ -379,7 +379,7 @@ impl CredentialHelper {
             c.creation_flags(CREATE_NO_WINDOW);
         }
         c.arg("-c")
-            .arg(&format!("{} get", cmd))
+            .arg(format!("{cmd} get"))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -419,20 +419,20 @@ impl CredentialHelper {
         {
             let stdin = p.stdin.as_mut().unwrap();
             if let Some(ref p) = self.protocol {
-                let _ = writeln!(stdin, "protocol={}", p);
+                let _ = writeln!(stdin, "protocol={p}");
             }
             if let Some(ref p) = self.host {
                 if let Some(ref p2) = self.port {
-                    let _ = writeln!(stdin, "host={}:{}", p, p2);
+                    let _ = writeln!(stdin, "host={p}:{p2}");
                 } else {
-                    let _ = writeln!(stdin, "host={}", p);
+                    let _ = writeln!(stdin, "host={p}");
                 }
             }
             if let Some(ref p) = self.path {
-                let _ = writeln!(stdin, "path={}", p);
+                let _ = writeln!(stdin, "path={p}");
             }
             if let Some(ref p) = *username {
-                let _ = writeln!(stdin, "username={}", p);
+                let _ = writeln!(stdin, "username={p}");
             }
         }
         let output = my_try!(p.wait_with_output());

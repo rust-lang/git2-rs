@@ -12,9 +12,15 @@ pub struct CherrypickOptions<'cb> {
     merge_opts: Option<MergeOptions>,
 }
 
+impl<'cb> Default for CherrypickOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'cb> CherrypickOptions<'cb> {
     /// Creates a default set of cherrypick options
-    pub fn new() -> CherrypickOptions<'cb> {
+    pub fn new() -> Self {
         CherrypickOptions {
             mainline: 0,
             checkout_builder: None,

@@ -14,8 +14,8 @@ pub struct Mailmap {
 impl Binding for Mailmap {
     type Raw = *mut raw::git_mailmap;
 
-    unsafe fn from_raw(ptr: *mut raw::git_mailmap) -> Mailmap {
-        Mailmap { raw: ptr }
+    unsafe fn from_raw(ptr: *mut raw::git_mailmap) -> Self {
+        Self { raw: ptr }
     }
 
     fn raw(&self) -> *mut raw::git_mailmap {
@@ -33,7 +33,7 @@ impl Drop for Mailmap {
 
 impl Mailmap {
     /// Creates an empty, in-memory mailmap object.
-    pub fn new() -> Result<Mailmap, Error> {
+    pub fn new() -> Result<Self, Error> {
         crate::init();
         let mut ret = ptr::null_mut();
         unsafe {
@@ -43,7 +43,7 @@ impl Mailmap {
     }
 
     /// Creates an in-memory mailmap object representing the given buffer.
-    pub fn from_buffer(buf: &str) -> Result<Mailmap, Error> {
+    pub fn from_buffer(buf: &str) -> Result<Self, Error> {
         crate::init();
         let mut ret = ptr::null_mut();
         let len = buf.len();

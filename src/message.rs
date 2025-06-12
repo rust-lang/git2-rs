@@ -39,7 +39,7 @@ pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 ///
 /// Use this function when you are dealing with a UTF-8-encoded message.
 pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error> {
-    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersStrs(res))
+    _message_trailers(message.into_c_string()?).map(MessageTrailersStrs)
 }
 
 /// Get the trailers for the given message.
@@ -48,7 +48,7 @@ pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error
 /// or if you want to handle the returned trailer key–value pairs
 /// as bytes.
 pub fn message_trailers_bytes<S: IntoCString>(message: S) -> Result<MessageTrailersBytes, Error> {
-    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersBytes(res))
+    _message_trailers(message.into_c_string()?).map(MessageTrailersBytes)
 }
 
 fn _message_trailers(message: CString) -> Result<MessageTrailers, Error> {
@@ -100,7 +100,7 @@ struct MessageTrailers {
 }
 
 impl MessageTrailers {
-    fn new() -> MessageTrailers {
+    fn new() -> Self {
         crate::init();
         unsafe {
             Binding::from_raw(&mut raw::git_message_trailer_array {
@@ -134,8 +134,8 @@ impl Drop for MessageTrailers {
 
 impl Binding for MessageTrailers {
     type Raw = *mut raw::git_message_trailer_array;
-    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers {
-        MessageTrailers { raw: *raw }
+    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> Self {
+        Self { raw: *raw }
     }
     fn raw(&self) -> *mut raw::git_message_trailer_array {
         &self.raw as *const _ as *mut _
@@ -164,7 +164,7 @@ impl<'pair> Iterator for MessageTrailersStrsIterator<'pair> {
         self.0
             .range
             .next()
-            .map(|index| to_str_tuple(&self.0.trailers, index))
+            .map(|index| to_str_tuple(self.0.trailers, index))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -185,13 +185,13 @@ impl DoubleEndedIterator for MessageTrailersStrsIterator<'_> {
         self.0
             .range
             .next_back()
-            .map(|index| to_str_tuple(&self.0.trailers, index))
+            .map(|index| to_str_tuple(self.0.trailers, index))
     }
 }
 
 fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
     unsafe {
-        let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+        let (rkey, rvalue) = to_raw_tuple(trailers, index);
         let key = CStr::from_ptr(rkey).to_str().unwrap();
         let value = CStr::from_ptr(rvalue).to_str().unwrap();
         (key, value)
@@ -208,7 +208,7 @@ impl<'pair> Iterator for MessageTrailersBytesIterator<'pair> {
         self.0
             .range
             .next()
-            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+            .map(|index| to_bytes_tuple(self.0.trailers, index))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -229,13 +229,13 @@ impl DoubleEndedIterator for MessageTrailersBytesIterator<'_> {
         self.0
             .range
             .next_back()
-            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+            .map(|index| to_bytes_tuple(self.0.trailers, index))
     }
 }
 
 fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
     unsafe {
-        let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+        let (rkey, rvalue) = to_raw_tuple(trailers, index);
         let key = CStr::from_ptr(rkey).to_bytes();
         let value = CStr::from_ptr(rvalue).to_bytes();
         (key, value)
