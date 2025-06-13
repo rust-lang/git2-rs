@@ -172,10 +172,7 @@ impl<'a> WorktreeAddOptions<'a> {
     }
 
     /// reference to use for the new worktree HEAD
-    pub fn reference(
-        &mut self,
-        reference: Option<&'a Reference<'_>>,
-    ) -> &mut Self {
+    pub fn reference(&mut self, reference: Option<&'a Reference<'_>>) -> &mut Self {
         self.raw.reference = if let Some(reference) = reference {
             reference.raw()
         } else {

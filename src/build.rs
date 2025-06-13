@@ -475,10 +475,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// callback.
     ///
     /// Defaults to none.
-    pub fn notify_on(
-        &mut self,
-        notification_types: CheckoutNotificationType,
-    ) -> &mut Self {
+    pub fn notify_on(&mut self, notification_types: CheckoutNotificationType) -> &mut Self {
         self.notify_flags = notification_types;
         self
     }

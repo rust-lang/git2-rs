@@ -308,10 +308,7 @@ impl Repository {
     /// Creates a new repository in the specified folder with the given options.
     ///
     /// See `RepositoryInitOptions` struct for more information.
-    pub fn init_opts<P: AsRef<Path>>(
-        path: P,
-        opts: &RepositoryInitOptions,
-    ) -> Result<Self, Error> {
+    pub fn init_opts<P: AsRef<Path>>(path: P, opts: &RepositoryInitOptions) -> Result<Self, Error> {
         crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
@@ -3461,11 +3458,7 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE, enabled)
     }
 
-    fn flag(
-        &mut self,
-        flag: raw::git_repository_init_flag_t,
-        on: bool,
-    ) -> &mut Self {
+    fn flag(&mut self, flag: raw::git_repository_init_flag_t, on: bool) -> &mut Self {
         if on {
             self.flags |= flag as u32;
         } else {
