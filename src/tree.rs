@@ -233,7 +233,7 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
 impl<'repo> Binding for Tree<'repo> {
     type Raw = *mut raw::git_tree;
 
-    unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_tree) -> Self {
         Tree {
             raw,
             _marker: marker::PhantomData,
@@ -342,7 +342,7 @@ impl<'tree> TreeEntry<'tree> {
 
 impl<'a> Binding for TreeEntry<'a> {
     type Raw = *mut raw::git_tree_entry;
-    unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> Self {
         TreeEntry {
             raw,
             owned: true,
@@ -355,7 +355,7 @@ impl<'a> Binding for TreeEntry<'a> {
 }
 
 impl<'a> Clone for TreeEntry<'a> {
-    fn clone(&self) -> TreeEntry<'a> {
+    fn clone(&self) -> Self {
         let mut ret = ptr::null_mut();
         unsafe {
             assert_eq!(raw::git_tree_entry_dup(&mut ret, &*self.raw()), 0);
@@ -365,18 +365,18 @@ impl<'a> Clone for TreeEntry<'a> {
 }
 
 impl<'a> PartialOrd for TreeEntry<'a> {
-    fn partial_cmp(&self, other: &TreeEntry<'a>) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 impl<'a> Ord for TreeEntry<'a> {
-    fn cmp(&self, other: &TreeEntry<'a>) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         c_cmp_to_ordering(unsafe { raw::git_tree_entry_cmp(&*self.raw(), &*other.raw()) })
     }
 }
 
 impl<'a> PartialEq for TreeEntry<'a> {
-    fn eq(&self, other: &TreeEntry<'a>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }

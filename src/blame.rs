@@ -94,7 +94,7 @@ impl<'repo> Blame<'repo> {
 }
 
 impl<'blame> BlameHunk<'blame> {
-    unsafe fn from_raw_const(raw: *const raw::git_blame_hunk) -> BlameHunk<'blame> {
+    unsafe fn from_raw_const(raw: *const raw::git_blame_hunk) -> Self {
         BlameHunk {
             raw: raw as *mut raw::git_blame_hunk,
             _marker: marker::PhantomData,
@@ -172,7 +172,7 @@ impl Default for BlameOptions {
 
 impl BlameOptions {
     /// Initialize options
-    pub fn new() -> BlameOptions {
+    pub fn new() -> Self {
         unsafe {
             let mut raw: raw::git_blame_options = mem::zeroed();
             assert_eq!(
@@ -184,7 +184,7 @@ impl BlameOptions {
         }
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut BlameOptions {
+    fn flag(&mut self, opt: u32, val: bool) -> &mut Self {
         if val {
             self.raw.flags |= opt;
         } else {
@@ -194,47 +194,47 @@ impl BlameOptions {
     }
 
     /// Track lines that have moved within a file.
-    pub fn track_copies_same_file(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn track_copies_same_file(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_TRACK_COPIES_SAME_FILE, opt)
     }
 
     /// Track lines that have moved across files in the same commit.
-    pub fn track_copies_same_commit_moves(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn track_copies_same_commit_moves(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_TRACK_COPIES_SAME_COMMIT_MOVES, opt)
     }
 
     /// Track lines that have been copied from another file that exists
     /// in the same commit.
-    pub fn track_copies_same_commit_copies(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn track_copies_same_commit_copies(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES, opt)
     }
 
     /// Track lines that have been copied from another file that exists
     /// in any commit.
-    pub fn track_copies_any_commit_copies(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn track_copies_any_commit_copies(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_TRACK_COPIES_ANY_COMMIT_COPIES, opt)
     }
 
     /// Restrict the search of commits to those reachable following only
     /// the first parents.
-    pub fn first_parent(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn first_parent(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_FIRST_PARENT, opt)
     }
 
     /// Use mailmap file to map author and committer names and email addresses
     /// to canonical real names and email addresses. The mailmap will be read
     /// from the working directory, or HEAD in a bare repository.
-    pub fn use_mailmap(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn use_mailmap(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_USE_MAILMAP, opt)
     }
 
     /// Ignore whitespace differences.
-    pub fn ignore_whitespace(&mut self, opt: bool) -> &mut BlameOptions {
+    pub fn ignore_whitespace(&mut self, opt: bool) -> &mut Self {
         self.flag(raw::GIT_BLAME_IGNORE_WHITESPACE, opt)
     }
 
     /// Setter for the id of the newest commit to consider.
-    pub fn newest_commit(&mut self, id: Oid) -> &mut BlameOptions {
+    pub fn newest_commit(&mut self, id: Oid) -> &mut Self {
         unsafe {
             self.raw.newest_commit = *id.raw();
         }
@@ -242,7 +242,7 @@ impl BlameOptions {
     }
 
     /// Setter for the id of the oldest commit to consider.
-    pub fn oldest_commit(&mut self, id: Oid) -> &mut BlameOptions {
+    pub fn oldest_commit(&mut self, id: Oid) -> &mut Self {
         unsafe {
             self.raw.oldest_commit = *id.raw();
         }
@@ -250,13 +250,13 @@ impl BlameOptions {
     }
 
     /// The first line in the file to blame.
-    pub fn min_line(&mut self, lineno: usize) -> &mut BlameOptions {
+    pub fn min_line(&mut self, lineno: usize) -> &mut Self {
         self.raw.min_line = lineno;
         self
     }
 
     /// The last line in the file to blame.
-    pub fn max_line(&mut self, lineno: usize) -> &mut BlameOptions {
+    pub fn max_line(&mut self, lineno: usize) -> &mut Self {
         self.raw.max_line = lineno;
         self
     }
@@ -265,7 +265,7 @@ impl BlameOptions {
 impl<'repo> Binding for Blame<'repo> {
     type Raw = *mut raw::git_blame;
 
-    unsafe fn from_raw(raw: *mut raw::git_blame) -> Blame<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_blame) -> Self {
         Blame {
             raw,
             _marker: marker::PhantomData,
@@ -286,7 +286,7 @@ impl<'repo> Drop for Blame<'repo> {
 impl<'blame> Binding for BlameHunk<'blame> {
     type Raw = *mut raw::git_blame_hunk;
 
-    unsafe fn from_raw(raw: *mut raw::git_blame_hunk) -> BlameHunk<'blame> {
+    unsafe fn from_raw(raw: *mut raw::git_blame_hunk) -> Self {
         BlameHunk {
             raw,
             _marker: marker::PhantomData,
@@ -301,8 +301,8 @@ impl<'blame> Binding for BlameHunk<'blame> {
 impl Binding for BlameOptions {
     type Raw = *mut raw::git_blame_options;
 
-    unsafe fn from_raw(opts: *mut raw::git_blame_options) -> BlameOptions {
-        BlameOptions { raw: *opts }
+    unsafe fn from_raw(opts: *mut raw::git_blame_options) -> Self {
+        Self { raw: *opts }
     }
 
     fn raw(&self) -> *mut raw::git_blame_options {

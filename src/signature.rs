@@ -102,7 +102,7 @@ impl<'a> Signature<'a> {
 
 impl<'a> Binding for Signature<'a> {
     type Raw = *mut raw::git_signature;
-    unsafe fn from_raw(raw: *mut raw::git_signature) -> Signature<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_signature) -> Self {
         Signature {
             raw,
             _marker: marker::PhantomData,
@@ -128,7 +128,7 @@ pub unsafe fn from_raw_const<'b, T>(_lt: &'b T, raw: *const raw::git_signature) 
 }
 
 impl Clone for Signature<'static> {
-    fn clone(&self) -> Signature<'static> {
+    fn clone(&self) -> Self {
         // TODO: can this be defined for 'a and just do a plain old copy if the
         //       lifetime isn't static?
         let mut raw = ptr::null_mut();

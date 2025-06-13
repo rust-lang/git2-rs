@@ -43,7 +43,7 @@ impl Worktree {
     /// If a repository is not the main tree but a worktree, this
     /// function will look up the worktree inside the parent
     /// repository and create a new `git_worktree` structure.
-    pub fn open_from_repository(repo: &Repository) -> Result<Worktree, Error> {
+    pub fn open_from_repository(repo: &Repository) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_worktree_open_from_repository(&mut raw, repo.raw()));
@@ -145,7 +145,7 @@ impl<'a> WorktreeAddOptions<'a> {
     /// Creates a default set of add options.
     ///
     /// By default this will not lock the worktree
-    pub fn new() -> WorktreeAddOptions<'a> {
+    pub fn new() -> Self {
         unsafe {
             let mut raw = mem::zeroed();
             assert_eq!(
@@ -160,13 +160,13 @@ impl<'a> WorktreeAddOptions<'a> {
     }
 
     /// If enabled, this will cause the newly added worktree to be locked
-    pub fn lock(&mut self, enabled: bool) -> &mut WorktreeAddOptions<'a> {
+    pub fn lock(&mut self, enabled: bool) -> &mut Self {
         self.raw.lock = enabled as c_int;
         self
     }
 
     /// If enabled, this will checkout the existing branch matching the worktree name.
-    pub fn checkout_existing(&mut self, enabled: bool) -> &mut WorktreeAddOptions<'a> {
+    pub fn checkout_existing(&mut self, enabled: bool) -> &mut Self {
         self.raw.checkout_existing = enabled as c_int;
         self
     }
@@ -175,7 +175,7 @@ impl<'a> WorktreeAddOptions<'a> {
     pub fn reference(
         &mut self,
         reference: Option<&'a Reference<'_>>,
-    ) -> &mut WorktreeAddOptions<'a> {
+    ) -> &mut Self {
         self.raw.reference = if let Some(reference) = reference {
             reference.raw()
         } else {
@@ -195,7 +195,7 @@ impl WorktreePruneOptions {
     ///
     /// By defaults this will prune only worktrees that are no longer valid
     /// unlocked and not checked out
-    pub fn new() -> WorktreePruneOptions {
+    pub fn new() -> Self {
         unsafe {
             let mut raw = mem::zeroed();
             assert_eq!(
@@ -205,7 +205,7 @@ impl WorktreePruneOptions {
                 ),
                 0
             );
-            WorktreePruneOptions { raw }
+            Self { raw }
         }
     }
 
@@ -213,25 +213,25 @@ impl WorktreePruneOptions {
     /// will be pruned
     ///
     /// Defaults to false
-    pub fn valid(&mut self, valid: bool) -> &mut WorktreePruneOptions {
+    pub fn valid(&mut self, valid: bool) -> &mut Self {
         self.flag(raw::GIT_WORKTREE_PRUNE_VALID, valid)
     }
 
     /// Controls whether locked worktrees will be pruned
     ///
     /// Defaults to false
-    pub fn locked(&mut self, locked: bool) -> &mut WorktreePruneOptions {
+    pub fn locked(&mut self, locked: bool) -> &mut Self {
         self.flag(raw::GIT_WORKTREE_PRUNE_LOCKED, locked)
     }
 
     /// Controls whether the actual working tree on the filesystem is recursively removed
     ///
     /// Defaults to false
-    pub fn working_tree(&mut self, working_tree: bool) -> &mut WorktreePruneOptions {
+    pub fn working_tree(&mut self, working_tree: bool) -> &mut Self {
         self.flag(raw::GIT_WORKTREE_PRUNE_WORKING_TREE, working_tree)
     }
 
-    fn flag(&mut self, flag: raw::git_worktree_prune_t, on: bool) -> &mut WorktreePruneOptions {
+    fn flag(&mut self, flag: raw::git_worktree_prune_t, on: bool) -> &mut Self {
         if on {
             self.raw.flags |= flag as u32;
         } else {
@@ -248,8 +248,8 @@ impl WorktreePruneOptions {
 
 impl Binding for Worktree {
     type Raw = *mut raw::git_worktree;
-    unsafe fn from_raw(ptr: *mut raw::git_worktree) -> Worktree {
-        Worktree { raw: ptr }
+    unsafe fn from_raw(ptr: *mut raw::git_worktree) -> Self {
+        Self { raw: ptr }
     }
     fn raw(&self) -> *mut raw::git_worktree {
         self.raw

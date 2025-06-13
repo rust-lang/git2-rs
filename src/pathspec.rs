@@ -40,7 +40,7 @@ pub struct PathspecFailedEntries<'list> {
 
 impl Pathspec {
     /// Creates a new pathspec from a list of specs to match against.
-    pub fn new<I, T>(specs: I) -> Result<Pathspec, Error>
+    pub fn new<I, T>(specs: I) -> Result<Self, Error>
     where
         T: IntoCString,
         I: IntoIterator<Item = T>,
@@ -167,8 +167,8 @@ impl Pathspec {
 impl Binding for Pathspec {
     type Raw = *mut raw::git_pathspec;
 
-    unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Pathspec {
-        Pathspec { raw }
+    unsafe fn from_raw(raw: *mut raw::git_pathspec) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> *mut raw::git_pathspec {
         self.raw
@@ -266,7 +266,7 @@ impl<'ps> PathspecMatchList<'ps> {
 impl<'ps> Binding for PathspecMatchList<'ps> {
     type Raw = *mut raw::git_pathspec_match_list;
 
-    unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list) -> PathspecMatchList<'ps> {
+    unsafe fn from_raw(raw: *mut raw::git_pathspec_match_list) -> Self {
         PathspecMatchList {
             raw,
             _marker: marker::PhantomData,

@@ -42,7 +42,7 @@ impl<'repo> Describe<'repo> {
 impl<'repo> Binding for Describe<'repo> {
     type Raw = *mut raw::git_describe_result;
 
-    unsafe fn from_raw(raw: *mut raw::git_describe_result) -> Describe<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_describe_result) -> Self {
         Describe {
             raw,
             _marker: marker::PhantomData,
@@ -67,8 +67,8 @@ impl Default for DescribeFormatOptions {
 
 impl DescribeFormatOptions {
     /// Creates a new blank set of formatting options for a description.
-    pub fn new() -> DescribeFormatOptions {
-        let mut opts = DescribeFormatOptions {
+    pub fn new() -> Self {
+        let mut opts = Self {
             raw: unsafe { mem::zeroed() },
             dirty_suffix: CString::new(Vec::new()).unwrap(),
         };
@@ -110,8 +110,8 @@ impl Default for DescribeOptions {
 
 impl DescribeOptions {
     /// Creates a new blank set of formatting options for a description.
-    pub fn new() -> DescribeOptions {
-        let mut opts = DescribeOptions {
+    pub fn new() -> Self {
+        let mut opts = Self {
             raw: unsafe { mem::zeroed() },
             pattern: CString::new(Vec::new()).unwrap(),
         };
@@ -168,7 +168,7 @@ impl DescribeOptions {
 impl Binding for DescribeOptions {
     type Raw = *mut raw::git_describe_options;
 
-    unsafe fn from_raw(_raw: *mut raw::git_describe_options) -> DescribeOptions {
+    unsafe fn from_raw(_raw: *mut raw::git_describe_options) -> Self {
         panic!("unimplemened")
     }
     fn raw(&self) -> *mut raw::git_describe_options {

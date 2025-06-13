@@ -279,7 +279,7 @@ impl<'repo> Reference<'repo> {
     ///
     /// If a direct reference is passed as an argument, a copy of that
     /// reference is returned.
-    pub fn resolve(&self) -> Result<Reference<'repo>, Error> {
+    pub fn resolve(&self) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_resolve(&mut raw, &*self.raw));
@@ -344,7 +344,7 @@ impl<'repo> Reference<'repo> {
         new_name: &str,
         force: bool,
         msg: &str,
-    ) -> Result<Reference<'repo>, Error> {
+    ) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         let new_name = CString::new(new_name)?;
         let msg = CString::new(msg)?;
@@ -362,7 +362,7 @@ impl<'repo> Reference<'repo> {
     ///
     /// The new reference will be written to disk, overwriting the given
     /// reference.
-    pub fn set_target(&mut self, id: Oid, reflog_msg: &str) -> Result<Reference<'repo>, Error> {
+    pub fn set_target(&mut self, id: Oid, reflog_msg: &str) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         let msg = CString::new(reflog_msg)?;
         unsafe {
@@ -393,7 +393,7 @@ impl<'repo> Reference<'repo> {
         &mut self,
         target: &str,
         reflog_msg: &str,
-    ) -> Result<Reference<'repo>, Error> {
+    ) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         let target = CString::new(target)?;
         let msg = CString::new(reflog_msg)?;
@@ -407,19 +407,19 @@ impl<'repo> Reference<'repo> {
 }
 
 impl<'repo> PartialOrd for Reference<'repo> {
-    fn partial_cmp(&self, other: &Reference<'repo>) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl<'repo> Ord for Reference<'repo> {
-    fn cmp(&self, other: &Reference<'repo>) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         c_cmp_to_ordering(unsafe { raw::git_reference_cmp(&*self.raw, &*other.raw) })
     }
 }
 
 impl<'repo> PartialEq for Reference<'repo> {
-    fn eq(&self, other: &Reference<'repo>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
@@ -428,7 +428,7 @@ impl<'repo> Eq for Reference<'repo> {}
 
 impl<'repo> Binding for Reference<'repo> {
     type Raw = *mut raw::git_reference;
-    unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_reference) -> Self {
         Reference {
             raw,
             _marker: marker::PhantomData,
@@ -460,7 +460,7 @@ impl<'repo> References<'repo> {
 
 impl<'repo> Binding for References<'repo> {
     type Raw = *mut raw::git_reference_iterator;
-    unsafe fn from_raw(raw: *mut raw::git_reference_iterator) -> References<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_reference_iterator) -> Self {
         References {
             raw,
             _marker: marker::PhantomData,

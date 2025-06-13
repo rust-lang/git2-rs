@@ -54,7 +54,7 @@ impl<'repo> Blob<'repo> {
 impl<'repo> Binding for Blob<'repo> {
     type Raw = *mut raw::git_blob;
 
-    unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_blob) -> Self {
         Blob {
             raw,
             _marker: marker::PhantomData,
@@ -108,7 +108,7 @@ impl<'repo> BlobWriter<'repo> {
 impl<'repo> Binding for BlobWriter<'repo> {
     type Raw = *mut raw::git_writestream;
 
-    unsafe fn from_raw(raw: *mut raw::git_writestream) -> BlobWriter<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_writestream) -> Self {
         BlobWriter {
             raw,
             need_cleanup: true,

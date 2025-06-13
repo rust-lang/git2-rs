@@ -250,7 +250,7 @@ impl<'repo> Submodule<'repo> {
 
 impl<'repo> Binding for Submodule<'repo> {
     type Raw = *mut raw::git_submodule;
-    unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_submodule) -> Self {
         Submodule {
             raw,
             _marker: marker::PhantomData,

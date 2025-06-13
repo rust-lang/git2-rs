@@ -485,7 +485,7 @@ impl CredentialType {
 
 impl Default for CredentialType {
     fn default() -> Self {
-        CredentialType::DEFAULT
+        Self::DEFAULT
     }
 }
 
@@ -553,7 +553,7 @@ impl IndexAddOption {
 
 impl Default for IndexAddOption {
     fn default() -> Self {
-        IndexAddOption::DEFAULT
+        Self::DEFAULT
     }
 }
 
@@ -915,13 +915,13 @@ impl ObjectType {
     }
 
     /// Convert a raw git_object_t to an ObjectType
-    pub fn from_raw(raw: raw::git_object_t) -> Option<ObjectType> {
+    pub fn from_raw(raw: raw::git_object_t) -> Option<Self> {
         match raw {
-            raw::GIT_OBJECT_ANY => Some(ObjectType::Any),
-            raw::GIT_OBJECT_COMMIT => Some(ObjectType::Commit),
-            raw::GIT_OBJECT_TREE => Some(ObjectType::Tree),
-            raw::GIT_OBJECT_BLOB => Some(ObjectType::Blob),
-            raw::GIT_OBJECT_TAG => Some(ObjectType::Tag),
+            raw::GIT_OBJECT_ANY => Some(Self::Any),
+            raw::GIT_OBJECT_COMMIT => Some(Self::Commit),
+            raw::GIT_OBJECT_TREE => Some(Self::Tree),
+            raw::GIT_OBJECT_BLOB => Some(Self::Blob),
+            raw::GIT_OBJECT_TAG => Some(Self::Tag),
             _ => None,
         }
     }
@@ -932,9 +932,9 @@ impl ObjectType {
     }
 
     /// Convert a string object type representation to its object type.
-    pub fn from_str(s: &str) -> Option<ObjectType> {
+    pub fn from_str(s: &str) -> Option<Self> {
         let raw = unsafe { call!(raw::git_object_string2type(CString::new(s).unwrap())) };
-        ObjectType::from_raw(raw)
+        Self::from_raw(raw)
     }
 }
 
@@ -948,16 +948,16 @@ impl ReferenceType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
         match self {
-            ReferenceType::Direct => "direct",
-            ReferenceType::Symbolic => "symbolic",
+            Self::Direct => "direct",
+            Self::Symbolic => "symbolic",
         }
     }
 
     /// Convert a raw git_reference_t to a ReferenceType.
-    pub fn from_raw(raw: raw::git_reference_t) -> Option<ReferenceType> {
+    pub fn from_raw(raw: raw::git_reference_t) -> Option<Self> {
         match raw {
-            raw::GIT_REFERENCE_DIRECT => Some(ReferenceType::Direct),
-            raw::GIT_REFERENCE_SYMBOLIC => Some(ReferenceType::Symbolic),
+            raw::GIT_REFERENCE_DIRECT => Some(Self::Direct),
+            raw::GIT_REFERENCE_SYMBOLIC => Some(Self::Symbolic),
             _ => None,
         }
     }
@@ -971,16 +971,16 @@ impl fmt::Display for ReferenceType {
 
 impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
-    pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
+    pub fn from_raw(raw: raw::git_config_level_t) -> Self {
         match raw {
-            raw::GIT_CONFIG_LEVEL_PROGRAMDATA => ConfigLevel::ProgramData,
-            raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
-            raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
-            raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,
-            raw::GIT_CONFIG_LEVEL_LOCAL => ConfigLevel::Local,
-            raw::GIT_CONFIG_LEVEL_WORKTREE => ConfigLevel::Worktree,
-            raw::GIT_CONFIG_LEVEL_APP => ConfigLevel::App,
-            raw::GIT_CONFIG_HIGHEST_LEVEL => ConfigLevel::Highest,
+            raw::GIT_CONFIG_LEVEL_PROGRAMDATA => Self::ProgramData,
+            raw::GIT_CONFIG_LEVEL_SYSTEM => Self::System,
+            raw::GIT_CONFIG_LEVEL_XDG => Self::XDG,
+            raw::GIT_CONFIG_LEVEL_GLOBAL => Self::Global,
+            raw::GIT_CONFIG_LEVEL_LOCAL => Self::Local,
+            raw::GIT_CONFIG_LEVEL_WORKTREE => Self::Worktree,
+            raw::GIT_CONFIG_LEVEL_APP => Self::App,
+            raw::GIT_CONFIG_HIGHEST_LEVEL => Self::Highest,
             n => panic!("unknown config level: {}", n),
         }
     }
@@ -990,11 +990,11 @@ impl SubmoduleIgnore {
     /// Converts a [`raw::git_submodule_ignore_t`] to a [`SubmoduleIgnore`]
     pub fn from_raw(raw: raw::git_submodule_ignore_t) -> Self {
         match raw {
-            raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED => SubmoduleIgnore::Unspecified,
-            raw::GIT_SUBMODULE_IGNORE_NONE => SubmoduleIgnore::None,
-            raw::GIT_SUBMODULE_IGNORE_UNTRACKED => SubmoduleIgnore::Untracked,
-            raw::GIT_SUBMODULE_IGNORE_DIRTY => SubmoduleIgnore::Dirty,
-            raw::GIT_SUBMODULE_IGNORE_ALL => SubmoduleIgnore::All,
+            raw::GIT_SUBMODULE_IGNORE_UNSPECIFIED => Self::Unspecified,
+            raw::GIT_SUBMODULE_IGNORE_NONE => Self::None,
+            raw::GIT_SUBMODULE_IGNORE_UNTRACKED => Self::Untracked,
+            raw::GIT_SUBMODULE_IGNORE_DIRTY => Self::Dirty,
+            raw::GIT_SUBMODULE_IGNORE_ALL => Self::All,
             n => panic!("unknown submodule ignore rule: {}", n),
         }
     }
@@ -1004,11 +1004,11 @@ impl SubmoduleUpdate {
     /// Converts a [`raw::git_submodule_update_t`] to a [`SubmoduleUpdate`]
     pub fn from_raw(raw: raw::git_submodule_update_t) -> Self {
         match raw {
-            raw::GIT_SUBMODULE_UPDATE_CHECKOUT => SubmoduleUpdate::Checkout,
-            raw::GIT_SUBMODULE_UPDATE_REBASE => SubmoduleUpdate::Rebase,
-            raw::GIT_SUBMODULE_UPDATE_MERGE => SubmoduleUpdate::Merge,
-            raw::GIT_SUBMODULE_UPDATE_NONE => SubmoduleUpdate::None,
-            raw::GIT_SUBMODULE_UPDATE_DEFAULT => SubmoduleUpdate::Default,
+            raw::GIT_SUBMODULE_UPDATE_CHECKOUT => Self::Checkout,
+            raw::GIT_SUBMODULE_UPDATE_REBASE => Self::Rebase,
+            raw::GIT_SUBMODULE_UPDATE_MERGE => Self::Merge,
+            raw::GIT_SUBMODULE_UPDATE_NONE => Self::None,
+            raw::GIT_SUBMODULE_UPDATE_DEFAULT => Self::Default,
             n => panic!("unknown submodule update strategy: {}", n),
         }
     }
@@ -1141,29 +1141,29 @@ pub enum FileMode {
 }
 
 impl From<FileMode> for i32 {
-    fn from(mode: FileMode) -> i32 {
+    fn from(mode: FileMode) -> Self {
         match mode {
-            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as i32,
-            FileMode::Tree => raw::GIT_FILEMODE_TREE as i32,
-            FileMode::Blob => raw::GIT_FILEMODE_BLOB as i32,
-            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as i32,
-            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as i32,
-            FileMode::Link => raw::GIT_FILEMODE_LINK as i32,
-            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as i32,
+            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as Self,
+            FileMode::Tree => raw::GIT_FILEMODE_TREE as Self,
+            FileMode::Blob => raw::GIT_FILEMODE_BLOB as Self,
+            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as Self,
+            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as Self,
+            FileMode::Link => raw::GIT_FILEMODE_LINK as Self,
+            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as Self,
         }
     }
 }
 
 impl From<FileMode> for u32 {
-    fn from(mode: FileMode) -> u32 {
+    fn from(mode: FileMode) -> Self {
         match mode {
-            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as u32,
-            FileMode::Tree => raw::GIT_FILEMODE_TREE as u32,
-            FileMode::Blob => raw::GIT_FILEMODE_BLOB as u32,
-            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as u32,
-            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as u32,
-            FileMode::Link => raw::GIT_FILEMODE_LINK as u32,
-            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as u32,
+            FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as Self,
+            FileMode::Tree => raw::GIT_FILEMODE_TREE as Self,
+            FileMode::Blob => raw::GIT_FILEMODE_BLOB as Self,
+            FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as Self,
+            FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as Self,
+            FileMode::Link => raw::GIT_FILEMODE_LINK as Self,
+            FileMode::Commit => raw::GIT_FILEMODE_COMMIT as Self,
         }
     }
 }
@@ -1346,7 +1346,7 @@ impl PathspecFlags {
 
 impl Default for PathspecFlags {
     fn default() -> Self {
-        PathspecFlags::DEFAULT
+        Self::DEFAULT
     }
 }
 
@@ -1482,7 +1482,7 @@ impl StashApplyFlags {
 
 impl Default for StashApplyFlags {
     fn default() -> Self {
-        StashApplyFlags::DEFAULT
+        Self::DEFAULT
     }
 }
 
@@ -1515,7 +1515,7 @@ impl StashFlags {
 
 impl Default for StashFlags {
     fn default() -> Self {
-        StashFlags::DEFAULT
+        Self::DEFAULT
     }
 }
 
@@ -1536,7 +1536,7 @@ bitflags! {
 
 impl Default for AttrCheckFlags {
     fn default() -> Self {
-        AttrCheckFlags::FILE_THEN_INDEX
+        Self::FILE_THEN_INDEX
     }
 }
 
@@ -1593,7 +1593,7 @@ impl ReferenceFormat {
 
 impl Default for ReferenceFormat {
     fn default() -> Self {
-        ReferenceFormat::NORMAL
+        Self::NORMAL
     }
 }
 

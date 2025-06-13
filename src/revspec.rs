@@ -13,7 +13,7 @@ impl<'repo> Revspec<'repo> {
         from: Option<Object<'repo>>,
         to: Option<Object<'repo>>,
         mode: RevparseMode,
-    ) -> Revspec<'repo> {
+    ) -> Self {
         Revspec { from, to, mode }
     }
 
