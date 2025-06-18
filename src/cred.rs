@@ -1,13 +1,14 @@
+#[cfg(feature = "cred")]
 use log::{debug, trace};
 use std::ffi::CString;
-use std::io::Write;
 use std::mem;
 use std::path::Path;
-use std::process::{Command, Stdio};
 use std::ptr;
 
 use crate::util::Binding;
-use crate::{raw, Config, Error, IntoCString};
+#[cfg(feature = "cred")]
+use crate::Config;
+use crate::{raw, Error, IntoCString};
 
 /// A structure to represent git credentials in libgit2.
 pub struct Cred {
@@ -15,6 +16,7 @@ pub struct Cred {
 }
 
 /// Management of the gitcredentials(7) interface.
+#[cfg(feature = "cred")]
 pub struct CredentialHelper {
     /// A public field representing the currently discovered username from
     /// configuration.
@@ -118,6 +120,7 @@ impl Cred {
     /// successful.
     ///
     /// [1]: https://www.kernel.org/pub/software/scm/git/docs/gitcredentials.html
+    #[cfg(feature = "cred")]
     pub fn credential_helper(
         config: &Config,
         url: &str,
@@ -189,6 +192,7 @@ impl Drop for Cred {
     }
 }
 
+#[cfg(feature = "cred")]
 impl CredentialHelper {
     /// Create a new credential helper object which will be used to probe git's
     /// local credential configuration.
@@ -292,6 +296,12 @@ impl CredentialHelper {
     // see https://www.kernel.org/pub/software/scm/git/docs/technical
     //                           /api-credentials.html#_credential_helpers
     fn add_command(&mut self, cmd: Option<&str>) {
+        fn is_absolute_path(path: &str) -> bool {
+            path.starts_with('/')
+                || path.starts_with('\\')
+                || cfg!(windows) && path.chars().nth(1).is_some_and(|x| x == ':')
+        }
+
         let cmd = match cmd {
             Some("") | None => return,
             Some(s) => s,
@@ -352,6 +362,9 @@ impl CredentialHelper {
         cmd: &str,
         username: &Option<String>,
     ) -> (Option<String>, Option<String>) {
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+
         macro_rules! my_try( ($e:expr) => (
             match $e {
                 Ok(e) => e,
@@ -481,13 +494,8 @@ impl CredentialHelper {
     }
 }
 
-fn is_absolute_path(path: &str) -> bool {
-    path.starts_with('/')
-        || path.starts_with('\\')
-        || cfg!(windows) && path.chars().nth(1).is_some_and(|x| x == ':')
-}
-
 #[cfg(test)]
+#[cfg(feature = "cred")]
 mod test {
     use std::env;
     use std::fs::File;
