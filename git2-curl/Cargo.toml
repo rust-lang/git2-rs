@@ -19,9 +19,6 @@ log = "0.4"
 git2 = { path = "..", version = "0.20", default-features = false }
 
 [dev-dependencies]
-civet = "0.11"
-conduit = "0.8"
-conduit-git-http-backend = "0.8"
 tempfile = "3.0"
 
 [features]
