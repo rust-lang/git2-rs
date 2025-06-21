@@ -873,6 +873,7 @@ fn openssl_env_init() {
     // OS X the OpenSSL binaries are stable enough that we can just rely on
     // dynamic linkage (plus they have some weird modifications to OpenSSL which
     // means we wouldn't want to link statically).
+    #[allow(deprecated)] // FIXME: use init_openssl_env_vars instead
     openssl_probe::init_ssl_cert_env_vars();
 }
 
