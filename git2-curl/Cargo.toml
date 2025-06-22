@@ -10,7 +10,7 @@ Backend for an HTTP transport in libgit2 powered by libcurl.
 
 Intended to be used with the git2 crate.
 """
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 curl = "0.4.33"

@@ -13,7 +13,7 @@ both threadsafe and memory safe and allows both reading and writing git
 repositories.
 """
 categories = ["api-bindings"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 url = "2.5.4"

@@ -3,7 +3,7 @@ name = "systest"
 version = "0.1.0"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
 build = "build.rs"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 libgit2-sys = { path = "../libgit2-sys", features = ['https', 'ssh'] }

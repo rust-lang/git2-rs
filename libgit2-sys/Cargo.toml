@@ -14,7 +14,7 @@ exclude = [
     "libgit2/fuzzers/*",
     "libgit2/tests/*",
 ]
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "libgit2_sys"
