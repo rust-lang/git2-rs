@@ -136,7 +136,7 @@ impl<'repo> Diff<'repo> {
     /// as if the old version was from the "onto" list and the new version
     /// is from the "from" list (with the exception that if the item has a
     /// pending DELETE in the middle, then it will show as deleted).
-    pub fn merge(&mut self, from: &Diff<'repo>) -> Result<(), Error> {
+    pub fn merge(&mut self, from: &Self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_diff_merge(self.raw, &*from.raw));
         }
@@ -312,7 +312,7 @@ impl Diff<'static> {
     /// two trees, however there may be subtle differences. For example,
     /// a patch file likely contains abbreviated object IDs, so the
     /// object IDs parsed by this function will also be abbreviated.
-    pub fn from_buffer(buffer: &[u8]) -> Result<Diff<'static>, Error> {
+    pub fn from_buffer(buffer: &[u8]) -> Result<Self, Error> {
         crate::init();
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
         unsafe {
@@ -449,7 +449,7 @@ pub extern "C" fn line_cb_c(
 
 impl<'repo> Binding for Diff<'repo> {
     type Raw = *mut raw::git_diff;
-    unsafe fn from_raw(raw: *mut raw::git_diff) -> Diff<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_diff) -> Self {
         Diff {
             raw,
             _marker: marker::PhantomData,
@@ -547,7 +547,7 @@ impl<'a> DiffDelta<'a> {
 
 impl<'a> Binding for DiffDelta<'a> {
     type Raw = *mut raw::git_diff_delta;
-    unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> DiffDelta<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_diff_delta) -> Self {
         DiffDelta {
             raw,
             _marker: marker::PhantomData,
@@ -633,7 +633,7 @@ impl<'a> DiffFile<'a> {
 
 impl<'a> Binding for DiffFile<'a> {
     type Raw = *const raw::git_diff_file;
-    unsafe fn from_raw(raw: *const raw::git_diff_file) -> DiffFile<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_file) -> Self {
         DiffFile {
             raw,
             _marker: marker::PhantomData,
@@ -669,8 +669,8 @@ impl DiffOptions {
     ///
     /// All flags and other options are defaulted to false or their otherwise
     /// zero equivalents.
-    pub fn new() -> DiffOptions {
-        let mut opts = DiffOptions {
+    pub fn new() -> Self {
+        let mut opts = Self {
             pathspec: Vec::new(),
             pathspec_ptrs: Vec::new(),
             raw: unsafe { mem::zeroed() },
@@ -681,7 +681,7 @@ impl DiffOptions {
         opts
     }
 
-    fn flag(&mut self, opt: raw::git_diff_option_t, val: bool) -> &mut DiffOptions {
+    fn flag(&mut self, opt: raw::git_diff_option_t, val: bool) -> &mut Self {
         let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
@@ -692,38 +692,38 @@ impl DiffOptions {
     }
 
     /// Flag indicating whether the sides of the diff will be reversed.
-    pub fn reverse(&mut self, reverse: bool) -> &mut DiffOptions {
+    pub fn reverse(&mut self, reverse: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_REVERSE, reverse)
     }
 
     /// Flag indicating whether ignored files are included.
-    pub fn include_ignored(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_ignored(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_IGNORED, include)
     }
 
     /// Flag indicating whether ignored directories are traversed deeply or not.
-    pub fn recurse_ignored_dirs(&mut self, recurse: bool) -> &mut DiffOptions {
+    pub fn recurse_ignored_dirs(&mut self, recurse: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_RECURSE_IGNORED_DIRS, recurse)
     }
 
     /// Flag indicating whether untracked files are in the diff
-    pub fn include_untracked(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_untracked(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_UNTRACKED, include)
     }
 
     /// Flag indicating whether untracked directories are traversed deeply or
     /// not.
-    pub fn recurse_untracked_dirs(&mut self, recurse: bool) -> &mut DiffOptions {
+    pub fn recurse_untracked_dirs(&mut self, recurse: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_RECURSE_UNTRACKED_DIRS, recurse)
     }
 
     /// Flag indicating whether unmodified files are in the diff.
-    pub fn include_unmodified(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_unmodified(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_UNMODIFIED, include)
     }
 
     /// If enabled, then Typechange delta records are generated.
-    pub fn include_typechange(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_typechange(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_TYPECHANGE, include)
     }
 
@@ -732,35 +732,35 @@ impl DiffOptions {
     /// typechange record with the `new_file`'s mode set to tree.
     ///
     /// Note that the tree SHA will not be available.
-    pub fn include_typechange_trees(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_typechange_trees(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_TYPECHANGE_TREES, include)
     }
 
     /// Flag indicating whether file mode changes are ignored.
-    pub fn ignore_filemode(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_filemode(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_FILEMODE, ignore)
     }
 
     /// Flag indicating whether all submodules should be treated as unmodified.
-    pub fn ignore_submodules(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_submodules(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_SUBMODULES, ignore)
     }
 
     /// Flag indicating whether case insensitive filenames should be used.
-    pub fn ignore_case(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_case(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_CASE, ignore)
     }
 
     /// If pathspecs are specified, this flag means that they should be applied
     /// as an exact match instead of a fnmatch pattern.
-    pub fn disable_pathspec_match(&mut self, disable: bool) -> &mut DiffOptions {
+    pub fn disable_pathspec_match(&mut self, disable: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_DISABLE_PATHSPEC_MATCH, disable)
     }
 
     /// Disable updating the `binary` flag in delta records. This is useful when
     /// iterating over a diff if you don't need hunk and data callbacks and want
     /// to avoid having to load a file completely.
-    pub fn skip_binary_check(&mut self, skip: bool) -> &mut DiffOptions {
+    pub fn skip_binary_check(&mut self, skip: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_SKIP_BINARY_CHECK, skip)
     }
 
@@ -772,7 +772,7 @@ impl DiffOptions {
     ///
     /// This flag turns off that scan and immediately labels an untracked
     /// directory as untracked (changing the behavior to not match core git).
-    pub fn enable_fast_untracked_dirs(&mut self, enable: bool) -> &mut DiffOptions {
+    pub fn enable_fast_untracked_dirs(&mut self, enable: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS, enable)
     }
 
@@ -780,47 +780,47 @@ impl DiffOptions {
     /// different from the index, but the OID ends up being the same, write the
     /// correct stat information into the index. Note: without this flag, diff
     /// will always leave the index untouched.
-    pub fn update_index(&mut self, update: bool) -> &mut DiffOptions {
+    pub fn update_index(&mut self, update: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_UPDATE_INDEX, update)
     }
 
     /// Include unreadable files in the diff
-    pub fn include_unreadable(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_unreadable(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE, include)
     }
 
     /// Include unreadable files in the diff as untracked files
-    pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut DiffOptions {
+    pub fn include_unreadable_as_untracked(&mut self, include: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INCLUDE_UNREADABLE_AS_UNTRACKED, include)
     }
 
     /// Treat all files as text, disabling binary attributes and detection.
-    pub fn force_text(&mut self, force: bool) -> &mut DiffOptions {
+    pub fn force_text(&mut self, force: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FORCE_TEXT, force)
     }
 
     /// Treat all files as binary, disabling text diffs
-    pub fn force_binary(&mut self, force: bool) -> &mut DiffOptions {
+    pub fn force_binary(&mut self, force: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FORCE_BINARY, force)
     }
 
     /// Ignore all whitespace
-    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE, ignore)
     }
 
     /// Ignore changes in the amount of whitespace
-    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_CHANGE, ignore)
     }
 
     /// Ignore whitespace at the end of line
-    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_WHITESPACE_EOL, ignore)
     }
 
     /// Ignore blank lines
-    pub fn ignore_blank_lines(&mut self, ignore: bool) -> &mut DiffOptions {
+    pub fn ignore_blank_lines(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_IGNORE_BLANK_LINES, ignore)
     }
 
@@ -829,7 +829,7 @@ impl DiffOptions {
     /// This automatically turns on `include_untracked` but it does not turn on
     /// `recurse_untracked_dirs`. Add that flag if you want the content of every
     /// single untracked file.
-    pub fn show_untracked_content(&mut self, show: bool) -> &mut DiffOptions {
+    pub fn show_untracked_content(&mut self, show: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_SHOW_UNTRACKED_CONTENT, show)
     }
 
@@ -837,30 +837,30 @@ impl DiffOptions {
     /// are included in the `Diff`. Normally these are skipped in the formats
     /// that list files (e.g. name-only, name-status, raw). Even with this these
     /// will not be included in the patch format.
-    pub fn show_unmodified(&mut self, show: bool) -> &mut DiffOptions {
+    pub fn show_unmodified(&mut self, show: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_SHOW_UNMODIFIED, show)
     }
 
     /// Use the "patience diff" algorithm
-    pub fn patience(&mut self, patience: bool) -> &mut DiffOptions {
+    pub fn patience(&mut self, patience: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_PATIENCE, patience)
     }
 
     /// Take extra time to find the minimal diff
-    pub fn minimal(&mut self, minimal: bool) -> &mut DiffOptions {
+    pub fn minimal(&mut self, minimal: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_MINIMAL, minimal)
     }
 
     /// Include the necessary deflate/delta information so that `git-apply` can
     /// apply given diff information to binary files.
-    pub fn show_binary(&mut self, show: bool) -> &mut DiffOptions {
+    pub fn show_binary(&mut self, show: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_SHOW_BINARY, show)
     }
 
     /// Use a heuristic that takes indentation and whitespace into account
     /// which generally can produce better diffs when dealing with ambiguous
     /// diff hunks.
-    pub fn indent_heuristic(&mut self, heuristic: bool) -> &mut DiffOptions {
+    pub fn indent_heuristic(&mut self, heuristic: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_INDENT_HEURISTIC, heuristic)
     }
 
@@ -868,7 +868,7 @@ impl DiffOptions {
     /// (and to display before and after).
     ///
     /// The default value for this is 3.
-    pub fn context_lines(&mut self, lines: u32) -> &mut DiffOptions {
+    pub fn context_lines(&mut self, lines: u32) -> &mut Self {
         self.raw.context_lines = lines;
         self
     }
@@ -877,13 +877,13 @@ impl DiffOptions {
     /// the hunks will be merged into one.
     ///
     /// The default value for this is 0.
-    pub fn interhunk_lines(&mut self, lines: u32) -> &mut DiffOptions {
+    pub fn interhunk_lines(&mut self, lines: u32) -> &mut Self {
         self.raw.interhunk_lines = lines;
         self
     }
 
     /// The default value for this is `core.abbrev` or 7 if unset.
-    pub fn id_abbrev(&mut self, abbrev: u16) -> &mut DiffOptions {
+    pub fn id_abbrev(&mut self, abbrev: u16) -> &mut Self {
         self.raw.id_abbrev = abbrev;
         self
     }
@@ -894,7 +894,7 @@ impl DiffOptions {
     /// A negative value will disable this entirely.
     ///
     /// The default value for this is 512MB.
-    pub fn max_size(&mut self, size: i64) -> &mut DiffOptions {
+    pub fn max_size(&mut self, size: i64) -> &mut Self {
         self.raw.max_size = size as raw::git_off_t;
         self
     }
@@ -902,7 +902,7 @@ impl DiffOptions {
     /// The virtual "directory" to prefix old file names with in hunk headers.
     ///
     /// The default value for this is "a".
-    pub fn old_prefix<T: IntoCString>(&mut self, t: T) -> &mut DiffOptions {
+    pub fn old_prefix<T: IntoCString>(&mut self, t: T) -> &mut Self {
         self.old_prefix = Some(t.into_c_string().unwrap());
         self
     }
@@ -910,13 +910,13 @@ impl DiffOptions {
     /// The virtual "directory" to prefix new file names with in hunk headers.
     ///
     /// The default value for this is "b".
-    pub fn new_prefix<T: IntoCString>(&mut self, t: T) -> &mut DiffOptions {
+    pub fn new_prefix<T: IntoCString>(&mut self, t: T) -> &mut Self {
         self.new_prefix = Some(t.into_c_string().unwrap());
         self
     }
 
     /// Add to the array of paths/fnmatch patterns to constrain the diff.
-    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut DiffOptions {
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut Self {
         let s = util::cstring_to_repo_path(pathspec).unwrap();
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
@@ -992,29 +992,29 @@ impl Binding for DiffLineType {
     type Raw = raw::git_diff_line_t;
     unsafe fn from_raw(raw: raw::git_diff_line_t) -> Self {
         match raw {
-            raw::GIT_DIFF_LINE_CONTEXT => DiffLineType::Context,
-            raw::GIT_DIFF_LINE_ADDITION => DiffLineType::Addition,
-            raw::GIT_DIFF_LINE_DELETION => DiffLineType::Deletion,
-            raw::GIT_DIFF_LINE_CONTEXT_EOFNL => DiffLineType::ContextEOFNL,
-            raw::GIT_DIFF_LINE_ADD_EOFNL => DiffLineType::AddEOFNL,
-            raw::GIT_DIFF_LINE_DEL_EOFNL => DiffLineType::DeleteEOFNL,
-            raw::GIT_DIFF_LINE_FILE_HDR => DiffLineType::FileHeader,
-            raw::GIT_DIFF_LINE_HUNK_HDR => DiffLineType::HunkHeader,
-            raw::GIT_DIFF_LINE_BINARY => DiffLineType::Binary,
+            raw::GIT_DIFF_LINE_CONTEXT => Self::Context,
+            raw::GIT_DIFF_LINE_ADDITION => Self::Addition,
+            raw::GIT_DIFF_LINE_DELETION => Self::Deletion,
+            raw::GIT_DIFF_LINE_CONTEXT_EOFNL => Self::ContextEOFNL,
+            raw::GIT_DIFF_LINE_ADD_EOFNL => Self::AddEOFNL,
+            raw::GIT_DIFF_LINE_DEL_EOFNL => Self::DeleteEOFNL,
+            raw::GIT_DIFF_LINE_FILE_HDR => Self::FileHeader,
+            raw::GIT_DIFF_LINE_HUNK_HDR => Self::HunkHeader,
+            raw::GIT_DIFF_LINE_BINARY => Self::Binary,
             _ => panic!("Unknown git diff line type"),
         }
     }
     fn raw(&self) -> raw::git_diff_line_t {
         match *self {
-            DiffLineType::Context => raw::GIT_DIFF_LINE_CONTEXT,
-            DiffLineType::Addition => raw::GIT_DIFF_LINE_ADDITION,
-            DiffLineType::Deletion => raw::GIT_DIFF_LINE_DELETION,
-            DiffLineType::ContextEOFNL => raw::GIT_DIFF_LINE_CONTEXT_EOFNL,
-            DiffLineType::AddEOFNL => raw::GIT_DIFF_LINE_ADD_EOFNL,
-            DiffLineType::DeleteEOFNL => raw::GIT_DIFF_LINE_DEL_EOFNL,
-            DiffLineType::FileHeader => raw::GIT_DIFF_LINE_FILE_HDR,
-            DiffLineType::HunkHeader => raw::GIT_DIFF_LINE_HUNK_HDR,
-            DiffLineType::Binary => raw::GIT_DIFF_LINE_BINARY,
+            Self::Context => raw::GIT_DIFF_LINE_CONTEXT,
+            Self::Addition => raw::GIT_DIFF_LINE_ADDITION,
+            Self::Deletion => raw::GIT_DIFF_LINE_DELETION,
+            Self::ContextEOFNL => raw::GIT_DIFF_LINE_CONTEXT_EOFNL,
+            Self::AddEOFNL => raw::GIT_DIFF_LINE_ADD_EOFNL,
+            Self::DeleteEOFNL => raw::GIT_DIFF_LINE_DEL_EOFNL,
+            Self::FileHeader => raw::GIT_DIFF_LINE_FILE_HDR,
+            Self::HunkHeader => raw::GIT_DIFF_LINE_HUNK_HDR,
+            Self::Binary => raw::GIT_DIFF_LINE_BINARY,
         }
     }
 }
@@ -1091,7 +1091,7 @@ impl<'a> DiffLine<'a> {
 
 impl<'a> Binding for DiffLine<'a> {
     type Raw = *const raw::git_diff_line;
-    unsafe fn from_raw(raw: *const raw::git_diff_line) -> DiffLine<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_line) -> Self {
         DiffLine {
             raw,
             _marker: marker::PhantomData,
@@ -1153,7 +1153,7 @@ impl<'a> DiffHunk<'a> {
 
 impl<'a> Binding for DiffHunk<'a> {
     type Raw = *const raw::git_diff_hunk;
-    unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> DiffHunk<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_hunk) -> Self {
         DiffHunk {
             raw,
             _marker: marker::PhantomData,
@@ -1210,8 +1210,8 @@ impl DiffStats {
 impl Binding for DiffStats {
     type Raw = *mut raw::git_diff_stats;
 
-    unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> DiffStats {
-        DiffStats { raw }
+    unsafe fn from_raw(raw: *mut raw::git_diff_stats) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> *mut raw::git_diff_stats {
         self.raw
@@ -1258,7 +1258,7 @@ impl<'a> DiffBinary<'a> {
 
 impl<'a> Binding for DiffBinary<'a> {
     type Raw = *const raw::git_diff_binary;
-    unsafe fn from_raw(raw: *const raw::git_diff_binary) -> DiffBinary<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_binary) -> Self {
         DiffBinary {
             raw,
             _marker: marker::PhantomData,
@@ -1290,7 +1290,7 @@ impl<'a> DiffBinaryFile<'a> {
 
 impl<'a> Binding for DiffBinaryFile<'a> {
     type Raw = *const raw::git_diff_binary_file;
-    unsafe fn from_raw(raw: *const raw::git_diff_binary_file) -> DiffBinaryFile<'a> {
+    unsafe fn from_raw(raw: *const raw::git_diff_binary_file) -> Self {
         DiffBinaryFile {
             raw,
             _marker: marker::PhantomData,
@@ -1303,19 +1303,19 @@ impl<'a> Binding for DiffBinaryFile<'a> {
 
 impl Binding for DiffBinaryKind {
     type Raw = raw::git_diff_binary_t;
-    unsafe fn from_raw(raw: raw::git_diff_binary_t) -> DiffBinaryKind {
+    unsafe fn from_raw(raw: raw::git_diff_binary_t) -> Self {
         match raw {
-            raw::GIT_DIFF_BINARY_NONE => DiffBinaryKind::None,
-            raw::GIT_DIFF_BINARY_LITERAL => DiffBinaryKind::Literal,
-            raw::GIT_DIFF_BINARY_DELTA => DiffBinaryKind::Delta,
+            raw::GIT_DIFF_BINARY_NONE => Self::None,
+            raw::GIT_DIFF_BINARY_LITERAL => Self::Literal,
+            raw::GIT_DIFF_BINARY_DELTA => Self::Delta,
             _ => panic!("Unknown git diff binary kind"),
         }
     }
     fn raw(&self) -> raw::git_diff_binary_t {
         match *self {
-            DiffBinaryKind::None => raw::GIT_DIFF_BINARY_NONE,
-            DiffBinaryKind::Literal => raw::GIT_DIFF_BINARY_LITERAL,
-            DiffBinaryKind::Delta => raw::GIT_DIFF_BINARY_DELTA,
+            Self::None => raw::GIT_DIFF_BINARY_NONE,
+            Self::Literal => raw::GIT_DIFF_BINARY_LITERAL,
+            Self::Delta => raw::GIT_DIFF_BINARY_DELTA,
         }
     }
 }
@@ -1331,8 +1331,8 @@ impl DiffFindOptions {
     ///
     /// All flags and other options are defaulted to false or their otherwise
     /// zero equivalents.
-    pub fn new() -> DiffFindOptions {
-        let mut opts = DiffFindOptions {
+    pub fn new() -> Self {
+        let mut opts = Self {
             raw: unsafe { mem::zeroed() },
         };
         assert_eq!(
@@ -1342,7 +1342,7 @@ impl DiffFindOptions {
         opts
     }
 
-    fn flag(&mut self, opt: u32, val: bool) -> &mut DiffFindOptions {
+    fn flag(&mut self, opt: u32, val: bool) -> &mut Self {
         if val {
             self.raw.flags |= opt;
         } else {
@@ -1354,22 +1354,22 @@ impl DiffFindOptions {
     /// Reset all flags back to their unset state, indicating that
     /// `diff.renames` should be used instead. This is overridden once any flag
     /// is set.
-    pub fn by_config(&mut self) -> &mut DiffFindOptions {
+    pub fn by_config(&mut self) -> &mut Self {
         self.flag(0xffffffff, false)
     }
 
     /// Look for renames?
-    pub fn renames(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn renames(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_RENAMES, find)
     }
 
     /// Consider old side of modified for renames?
-    pub fn renames_from_rewrites(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn renames_from_rewrites(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_RENAMES_FROM_REWRITES, find)
     }
 
     /// Look for copies?
-    pub fn copies(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn copies(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_COPIES, find)
     }
 
@@ -1377,22 +1377,22 @@ impl DiffFindOptions {
     ///
     /// For this to work correctly, use `include_unmodified` when the initial
     /// diff is being generated.
-    pub fn copies_from_unmodified(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn copies_from_unmodified(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED, find)
     }
 
     /// Mark significant rewrites for split.
-    pub fn rewrites(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn rewrites(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_REWRITES, find)
     }
 
     /// Actually split large rewrites into delete/add pairs
-    pub fn break_rewrites(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn break_rewrites(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_BREAK_REWRITES, find)
     }
 
     #[doc(hidden)]
-    pub fn break_rewries(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn break_rewries(&mut self, find: bool) -> &mut Self {
         self.break_rewrites(find)
     }
 
@@ -1400,32 +1400,32 @@ impl DiffFindOptions {
     ///
     /// For this to work correctly use the `include_untracked` option when the
     /// initial diff is being generated.
-    pub fn for_untracked(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn for_untracked(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_FOR_UNTRACKED, find)
     }
 
     /// Turn on all finding features.
-    pub fn all(&mut self, find: bool) -> &mut DiffFindOptions {
+    pub fn all(&mut self, find: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_ALL, find)
     }
 
     /// Measure similarity ignoring leading whitespace (default)
-    pub fn ignore_leading_whitespace(&mut self, ignore: bool) -> &mut DiffFindOptions {
+    pub fn ignore_leading_whitespace(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_IGNORE_LEADING_WHITESPACE, ignore)
     }
 
     /// Measure similarity ignoring all whitespace
-    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut DiffFindOptions {
+    pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_IGNORE_WHITESPACE, ignore)
     }
 
     /// Measure similarity including all data
-    pub fn dont_ignore_whitespace(&mut self, dont: bool) -> &mut DiffFindOptions {
+    pub fn dont_ignore_whitespace(&mut self, dont: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE, dont)
     }
 
     /// Measure similarity only by comparing SHAs (fast and cheap)
-    pub fn exact_match_only(&mut self, exact: bool) -> &mut DiffFindOptions {
+    pub fn exact_match_only(&mut self, exact: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_EXACT_MATCH_ONLY, exact)
     }
 
@@ -1439,7 +1439,7 @@ impl DiffFindOptions {
     /// If you add this flag in and the split pair is not used for an actual
     /// rename or copy, then the modified record will be restored to a regular
     /// modified record instead of being split.
-    pub fn break_rewrites_for_renames_only(&mut self, b: bool) -> &mut DiffFindOptions {
+    pub fn break_rewrites_for_renames_only(&mut self, b: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY, b)
     }
 
@@ -1449,30 +1449,30 @@ impl DiffFindOptions {
     /// behavior requires building a diff with the `include_unmodified` flag. If
     /// you do not want unmodified records in the final result, pas this flag to
     /// have them removed.
-    pub fn remove_unmodified(&mut self, remove: bool) -> &mut DiffFindOptions {
+    pub fn remove_unmodified(&mut self, remove: bool) -> &mut Self {
         self.flag(raw::GIT_DIFF_FIND_REMOVE_UNMODIFIED, remove)
     }
 
     /// Similarity to consider a file renamed (default 50)
-    pub fn rename_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
+    pub fn rename_threshold(&mut self, thresh: u16) -> &mut Self {
         self.raw.rename_threshold = thresh;
         self
     }
 
     /// Similarity of modified to be eligible rename source (default 50)
-    pub fn rename_from_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
+    pub fn rename_from_rewrite_threshold(&mut self, thresh: u16) -> &mut Self {
         self.raw.rename_from_rewrite_threshold = thresh;
         self
     }
 
     /// Similarity to consider a file copy (default 50)
-    pub fn copy_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
+    pub fn copy_threshold(&mut self, thresh: u16) -> &mut Self {
         self.raw.copy_threshold = thresh;
         self
     }
 
     /// Similarity to split modify into delete/add pair (default 60)
-    pub fn break_rewrite_threshold(&mut self, thresh: u16) -> &mut DiffFindOptions {
+    pub fn break_rewrite_threshold(&mut self, thresh: u16) -> &mut Self {
         self.raw.break_rewrite_threshold = thresh;
         self
     }
@@ -1481,7 +1481,7 @@ impl DiffFindOptions {
     /// git-diff's `-l` option or `diff.renameLimit` config)
     ///
     /// Defaults to 200
-    pub fn rename_limit(&mut self, limit: usize) -> &mut DiffFindOptions {
+    pub fn rename_limit(&mut self, limit: usize) -> &mut Self {
         self.raw.rename_limit = limit as size_t;
         self
     }
@@ -1504,7 +1504,7 @@ impl DiffFormatEmailOptions {
     /// Creates a new set of email options,
     /// initialized to the default values
     pub fn new() -> Self {
-        let mut opts = DiffFormatEmailOptions {
+        let mut opts = Self {
             raw: unsafe { mem::zeroed() },
         };
         assert_eq!(
@@ -1536,7 +1536,7 @@ impl DiffPatchidOptions {
     /// Creates a new set of patchid options,
     /// initialized to the default values
     pub fn new() -> Self {
-        let mut opts = DiffPatchidOptions {
+        let mut opts = Self {
             raw: unsafe { mem::zeroed() },
         };
         assert_eq!(

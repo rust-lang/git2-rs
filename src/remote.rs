@@ -113,7 +113,7 @@ impl<'repo> Remote<'repo> {
     /// when you have a URL instead of a remote's name.
     /// Contrasted with an anonymous remote, a detached remote will not
     /// consider any repo configuration values.
-    pub fn create_detached<S: Into<Vec<u8>>>(url: S) -> Result<Remote<'repo>, Error> {
+    pub fn create_detached<S: Into<Vec<u8>>>(url: S) -> Result<Self, Error> {
         crate::init();
         let mut ret = ptr::null_mut();
         let url = CString::new(url)?;
@@ -421,7 +421,7 @@ impl<'repo> Remote<'repo> {
 }
 
 impl<'repo> Clone for Remote<'repo> {
-    fn clone(&self) -> Remote<'repo> {
+    fn clone(&self) -> Self {
         let mut ret = ptr::null_mut();
         let rc = unsafe { call!(raw::git_remote_dup(&mut ret, self.raw)) };
         assert_eq!(rc, 0);
@@ -435,7 +435,7 @@ impl<'repo> Clone for Remote<'repo> {
 impl<'repo> Binding for Remote<'repo> {
     type Raw = *mut raw::git_remote;
 
-    unsafe fn from_raw(raw: *mut raw::git_remote) -> Remote<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_remote) -> Self {
         Remote {
             raw,
             _marker: marker::PhantomData,
@@ -504,7 +504,7 @@ impl<'cb> Default for FetchOptions<'cb> {
 
 impl<'cb> FetchOptions<'cb> {
     /// Creates a new blank set of fetch options
-    pub fn new() -> FetchOptions<'cb> {
+    pub fn new() -> Self {
         FetchOptions {
             callbacks: None,
             proxy: None,
@@ -598,7 +598,7 @@ impl<'cb> FetchOptions<'cb> {
 impl<'cb> Binding for FetchOptions<'cb> {
     type Raw = raw::git_fetch_options;
 
-    unsafe fn from_raw(_raw: raw::git_fetch_options) -> FetchOptions<'cb> {
+    unsafe fn from_raw(_raw: raw::git_fetch_options) -> Self {
         panic!("unimplemented");
     }
     fn raw(&self) -> raw::git_fetch_options {
@@ -638,7 +638,7 @@ impl<'cb> Default for PushOptions<'cb> {
 
 impl<'cb> PushOptions<'cb> {
     /// Creates a new blank set of push options
-    pub fn new() -> PushOptions<'cb> {
+    pub fn new() -> Self {
         PushOptions {
             callbacks: None,
             proxy: None,
@@ -712,7 +712,7 @@ impl<'cb> PushOptions<'cb> {
 impl<'cb> Binding for PushOptions<'cb> {
     type Raw = raw::git_push_options;
 
-    unsafe fn from_raw(_raw: raw::git_push_options) -> PushOptions<'cb> {
+    unsafe fn from_raw(_raw: raw::git_push_options) -> Self {
         panic!("unimplemented");
     }
     fn raw(&self) -> raw::git_push_options {
@@ -778,16 +778,16 @@ impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb>
 
 impl Default for RemoteRedirect {
     fn default() -> Self {
-        RemoteRedirect::Initial
+        Self::Initial
     }
 }
 
 impl RemoteRedirect {
     fn raw(&self) -> raw::git_remote_redirect_t {
         match self {
-            RemoteRedirect::None => raw::GIT_REMOTE_REDIRECT_NONE,
-            RemoteRedirect::Initial => raw::GIT_REMOTE_REDIRECT_INITIAL,
-            RemoteRedirect::All => raw::GIT_REMOTE_REDIRECT_ALL,
+            Self::None => raw::GIT_REMOTE_REDIRECT_NONE,
+            Self::Initial => raw::GIT_REMOTE_REDIRECT_INITIAL,
+            Self::All => raw::GIT_REMOTE_REDIRECT_ALL,
         }
     }
 }

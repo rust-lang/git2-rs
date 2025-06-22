@@ -23,7 +23,7 @@ impl Drop for Transaction<'_> {
 impl<'repo> Binding for Transaction<'repo> {
     type Raw = *mut raw::git_transaction;
 
-    unsafe fn from_raw(ptr: *mut raw::git_transaction) -> Transaction<'repo> {
+    unsafe fn from_raw(ptr: *mut raw::git_transaction) -> Self {
         Transaction {
             raw: ptr,
             _marker: marker::PhantomData,
