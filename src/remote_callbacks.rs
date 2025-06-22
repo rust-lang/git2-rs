@@ -108,7 +108,7 @@ impl<'a> Default for RemoteCallbacks<'a> {
 
 impl<'a> RemoteCallbacks<'a> {
     /// Creates a new set of empty callbacks
-    pub fn new() -> RemoteCallbacks<'a> {
+    pub fn new() -> Self {
         RemoteCallbacks {
             credentials: None,
             progress: None,
@@ -143,7 +143,7 @@ impl<'a> RemoteCallbacks<'a> {
     ///   )
     /// });
     /// ```
-    pub fn credentials<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn credentials<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a,
     {
@@ -152,7 +152,7 @@ impl<'a> RemoteCallbacks<'a> {
     }
 
     /// The callback through which progress is monitored.
-    pub fn transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn transfer_progress<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(Progress<'_>) -> bool + 'a,
     {
@@ -164,7 +164,7 @@ impl<'a> RemoteCallbacks<'a> {
     ///
     /// Text sent over the progress side-band will be passed to this function
     /// (this is the 'counting objects' output).
-    pub fn sideband_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn sideband_progress<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(&[u8]) -> bool + 'a,
     {
@@ -174,7 +174,7 @@ impl<'a> RemoteCallbacks<'a> {
 
     /// Each time a reference is updated locally, the callback will be called
     /// with information about it.
-    pub fn update_tips<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn update_tips<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(&str, Oid, Oid) -> bool + 'a,
     {
@@ -185,7 +185,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// If certificate verification fails, then this callback will be invoked to
     /// let the caller make the final decision of whether to allow the
     /// connection to proceed.
-    pub fn certificate_check<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn certificate_check<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(&Cert<'_>, &str) -> Result<CertificateCheckStatus, Error> + 'a,
     {
@@ -198,7 +198,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// The first argument to the callback is the name of the reference and the
     /// second is a status message sent by the server. If the status is `Some`
     /// then the push was rejected.
-    pub fn push_update_reference<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn push_update_reference<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(&str, Option<&str>) -> Result<(), Error> + 'a,
     {
@@ -212,7 +212,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// * current
     /// * total
     /// * bytes
-    pub fn push_transfer_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn push_transfer_progress<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(usize, usize, usize) + 'a,
     {
@@ -229,7 +229,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// * stage
     /// * current
     /// * total
-    pub fn pack_progress<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn pack_progress<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(PackBuilderStage, usize, usize) + 'a,
     {
@@ -243,7 +243,7 @@ impl<'a> RemoteCallbacks<'a> {
     /// will be sent as commands to the destination.
     ///
     /// The push is cancelled if the callback returns an error.
-    pub fn push_negotiation<F>(&mut self, cb: F) -> &mut RemoteCallbacks<'a>
+    pub fn push_negotiation<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(&[PushUpdate<'_>]) -> Result<(), Error> + 'a,
     {
@@ -254,7 +254,7 @@ impl<'a> RemoteCallbacks<'a> {
 
 impl<'a> Binding for RemoteCallbacks<'a> {
     type Raw = raw::git_remote_callbacks;
-    unsafe fn from_raw(_raw: raw::git_remote_callbacks) -> RemoteCallbacks<'a> {
+    unsafe fn from_raw(_raw: raw::git_remote_callbacks) -> Self {
         panic!("unimplemented");
     }
 
@@ -328,7 +328,7 @@ extern "C" fn credentials_cb(
                 None => None,
             };
 
-            let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
+            let cred_type = CredentialType::from_bits_truncate(allowed_types);
 
             callback(url, username_from_url, cred_type).map_err(|e| e.raw_set_git_error())
         });
@@ -475,7 +475,7 @@ extern "C" fn push_transfer_progress_cb(
             None => return 0,
         };
 
-        callback(progress as usize, total as usize, bytes as usize);
+        callback(progress as usize, total as usize, bytes);
 
         0
     })

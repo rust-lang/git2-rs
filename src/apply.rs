@@ -86,6 +86,12 @@ extern "C" fn hunk_cb_c(hunk: *const raw::git_diff_hunk, data: *mut c_void) -> c
     .unwrap_or(-1)
 }
 
+impl<'cb> Default for ApplyOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'cb> ApplyOptions<'cb> {
     /// Creates a new set of empty options (zeroed).
     pub fn new() -> Self {
@@ -102,7 +108,7 @@ impl<'cb> ApplyOptions<'cb> {
     }
 
     fn flag(&mut self, opt: raw::git_apply_flags_t, val: bool) -> &mut Self {
-        let opt = opt as u32;
+        let opt = opt;
         if val {
             self.raw.flags |= opt;
         } else {

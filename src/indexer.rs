@@ -57,7 +57,7 @@ impl<'a> Progress<'a> {
     }
     /// Size of the packfile received up to now
     pub fn received_bytes(&self) -> usize {
-        unsafe { (*self.raw()).received_bytes as usize }
+        unsafe { (*self.raw()).received_bytes }
     }
 
     /// Convert this to an owned version of `Progress`.
@@ -71,7 +71,7 @@ impl<'a> Progress<'a> {
 
 impl<'a> Binding for Progress<'a> {
     type Raw = *const raw::git_indexer_progress;
-    unsafe fn from_raw(raw: *const raw::git_indexer_progress) -> Progress<'a> {
+    unsafe fn from_raw(raw: *const raw::git_indexer_progress) -> Self {
         Progress {
             raw: ProgressState::Borrowed(raw),
             _marker: marker::PhantomData,
@@ -191,7 +191,7 @@ impl io::Write for Indexer<'_> {
 
             let res = raw::git_indexer_append(self.raw, ptr, len, &mut self.progress);
             if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, Error::last_error(res)))
+                Err(io::Error::other(Error::last_error(res)))
             } else {
                 Ok(buf.len())
             }
