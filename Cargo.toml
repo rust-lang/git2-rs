@@ -34,7 +34,7 @@ url = "2.5.4"
 
 [features]
 unstable = []
-default = ["ssh", "https", "cred"]
+default = []
 ssh = ["libgit2-sys/ssh", "cred"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe", "cred"]
 # Include support for credentials, which pulls in the `url` crate and all its dependencies
