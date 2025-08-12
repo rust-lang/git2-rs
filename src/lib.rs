@@ -65,7 +65,7 @@
 //! source `Repository`, to ensure that they do not outlive the repository
 //! itself.
 
-#![doc(html_root_url = "https://docs.rs/git2/0.20")]
+#![doc(html_root_url = "https://docs.rs/git2/0.21")]
 #![allow(trivial_numeric_casts, trivial_casts)]
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
@@ -88,7 +88,9 @@ pub use crate::buf::Buf;
 pub use crate::cherrypick::CherrypickOptions;
 pub use crate::commit::{Commit, Parents};
 pub use crate::config::{Config, ConfigEntries, ConfigEntry};
-pub use crate::cred::{Cred, CredentialHelper};
+pub use crate::cred::Cred;
+#[cfg(feature = "cred")]
+pub use crate::cred::CredentialHelper;
 pub use crate::describe::{Describe, DescribeFormatOptions, DescribeOptions};
 pub use crate::diff::{Deltas, Diff, DiffDelta, DiffFile, DiffOptions};
 pub use crate::diff::{DiffBinary, DiffBinaryFile, DiffBinaryKind, DiffPatchidOptions};

@@ -1,6 +1,6 @@
 [package]
 name = "git2-curl"
-version = "0.21.0"
+version = "0.22.0"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/git2-rs"
@@ -16,7 +16,7 @@ edition = "2021"
 curl = "0.4.33"
 url = "2.5.4"
 log = "0.4"
-git2 = { path = "..", version = "0.20", default-features = false }
+git2 = { path = "..", version = "0.21", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.0"

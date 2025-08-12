@@ -6,7 +6,7 @@ libgit2 bindings for Rust.
 
 ```toml
 [dependencies]
-git2 = "0.20.2"
+git2 = "0.21"
 ```
 
 ## Rust version requirements
