@@ -33,12 +33,10 @@ jobs:
     - name: Install Rust (rustup)
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       shell: bash
-    - run: cargo test --no-default-features
+    - run: cargo test --no-default-features --locked
     - run: cargo test
     - run: cargo run -p systest
     - run: cargo test -p git2-curl
-    - name: Verify Cargo.lock is up-to-date
-      run: cargo update -p git2 --locked
 
   rustfmt:
     name: Rustfmt

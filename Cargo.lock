@@ -327,7 +327,7 @@ dependencies = [
 
 [[package]]
 name = "git2-curl"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "curl",
  "git2",
