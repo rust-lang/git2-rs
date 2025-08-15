@@ -142,7 +142,7 @@ pub use crate::tracing::{trace_set, TraceLevel};
 pub use crate::transaction::Transaction;
 pub use crate::tree::{Tree, TreeEntry, TreeIter, TreeWalkMode, TreeWalkResult};
 pub use crate::treebuilder::TreeBuilder;
-pub use crate::util::IntoCString;
+pub use crate::util::{Binding, IntoCString};
 pub use crate::version::Version;
 pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions};
 
