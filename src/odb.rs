@@ -12,6 +12,7 @@ use crate::util::Binding;
 use crate::{
     raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
 };
+use crate::odb_backend::{CustomOdbBackend, OdbBackend};
 
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
@@ -267,6 +268,18 @@ impl<'repo> Odb<'repo> {
                 priority as c_int
             ));
             Ok(Mempack::from_raw(mempack))
+        }
+    }
+
+    /// Adds a custom backend to this odb with the given priority.
+    /// Returns a handle to the backend.
+    ///
+    /// `backend` will be dropped when this Odb is dropped.
+    pub fn add_custom_backend<'odb, B: OdbBackend + 'odb>(&'odb self, backend: B, priority: i32) -> Result<CustomOdbBackend<'odb, B>, Error> {
+        let mut inner = CustomOdbBackend::new_inner(backend);
+        unsafe {
+            try_call!(raw::git_odb_add_backend(self.raw, ptr::from_mut(inner.as_mut()).cast(), priority as c_int));
+            Ok(CustomOdbBackend::new(inner))
         }
     }
 }
