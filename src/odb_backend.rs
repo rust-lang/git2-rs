@@ -129,6 +129,34 @@ pub trait OdbBackend {
         unimplemented!("OdbBackend::read_header")
     }
 
+    /// Write an object.
+    ///
+    /// Corresponds to the `write` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::WRITE`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// `oid` is calculated by libgit2 prior to this method being called.
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn write(
+        &mut self,
+        ctx: &OdbBackendContext,
+        oid: Oid,
+        object_type: ObjectType,
+        data: &[u8],
+    ) -> Result<(), Error> {
+        unimplemented!("OdbBackend::write")
+    }
+
     /// Check if an object exists.
     ///
     /// Corresponds to the `exists` function of [`git_odb_backend`].
@@ -183,7 +211,6 @@ pub trait OdbBackend {
         unimplemented!("OdbBackend::exists_prefix")
     }
 
-    // TODO: fn write()
     // TODO: fn writestream()
     // TODO: fn readstream()
     // TODO: fn exists_prefix()
@@ -379,6 +406,7 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(read if READ);
         op_if!(read_prefix if READ_PREFIX);
         op_if!(read_header if READ_HEADER);
+        op_if!(write if WRITE);
         op_if!(exists if EXISTS);
         op_if!(exists_prefix if EXISTS_PREFIX);
 
@@ -490,6 +518,24 @@ impl<B: OdbBackend> Backend<B> {
         };
         *otype = object_type.raw();
 
+        raw::GIT_OK
+    }
+
+    extern "C" fn write(
+        backend_ptr: *mut raw::git_odb_backend,
+        oid_ptr: *const raw::git_oid,
+        data_ptr: *const libc::c_void,
+        len: usize,
+        otype: raw::git_object_t,
+    ) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Backend<B>>().as_mut().unwrap() };
+        let oid = unsafe { Oid::from_raw(oid_ptr) };
+        let data = unsafe { slice::from_raw_parts(data_ptr.cast::<u8>(), len) };
+        let object_type = ObjectType::from_raw(otype).unwrap();
+        let context = OdbBackendContext { backend_ptr };
+        if let Err(e) = backend.inner.write(&context, oid, object_type, data) {
+            return unsafe { e.raw_set_git_error() };
+        }
         raw::GIT_OK
     }
 
