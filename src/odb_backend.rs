@@ -399,7 +399,7 @@ impl<B: OdbBackend> Backend<B> {
         otype_ptr: *mut raw::git_object_t,
         backend_ptr: *mut raw::git_odb_backend,
         oid_ptr: *const raw::git_oid,
-    ) -> raw::git_error_code {
+    ) -> c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let data = unsafe { data_ptr.as_mut().unwrap() };
         let size = unsafe { size_ptr.as_mut().unwrap() };
@@ -434,7 +434,7 @@ impl<B: OdbBackend> Backend<B> {
         backend_ptr: *mut raw::git_odb_backend,
         oid_prefix_ptr: *const raw::git_oid,
         oid_prefix_len: size_t,
-    ) -> raw::git_error_code {
+    ) -> c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let data = unsafe { data_ptr.as_mut().unwrap() };
         let size = unsafe { size_ptr.as_mut().unwrap() };
@@ -474,7 +474,7 @@ impl<B: OdbBackend> Backend<B> {
         otype_ptr: *mut raw::git_object_t,
         backend_ptr: *mut raw::git_odb_backend,
         oid_ptr: *const raw::git_oid,
-    ) -> raw::git_error_code {
+    ) -> c_int {
         let size = unsafe { size_ptr.as_mut().unwrap() };
         let otype = unsafe { otype_ptr.as_mut().unwrap() };
         let backend = unsafe { backend_ptr.cast::<Backend<B>>().as_mut().unwrap() };
