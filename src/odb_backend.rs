@@ -248,7 +248,7 @@ pub trait OdbBackend {
     /// "Freshens" an already existing object, updating its last-used time.
     ///
     /// Corresponds to the `freshen` function of [`git_odb_backend`].
-    /// Requires that [`SupportedOperations::REFRESH`] is present in the value returned from
+    /// Requires that [`SupportedOperations::FRESHEN`] is present in the value returned from
     /// [`supported_operations`] to expose it to libgit2.
     ///
     /// The default implementation of this method panics.
