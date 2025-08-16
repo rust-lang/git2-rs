@@ -78,7 +78,7 @@ pub trait OdbBackend {
     /// Only the first `oid_prefix_len * 4` bits of `oid_prefix` are set.
     /// The remaining `(GIT_OID_SHA1_HEXSIZE - oid_prefix_len) * 4` bits are set to 0.
     ///
-    /// If an implementation returns `Ok(())`, `oid`, `data`, and `object_type` SHOULD be set to the
+    /// If an implementation returns `Ok(())`, `oid`, `data`, and `object_type` MUST be set to the
     /// full object ID, the object type, and the contents of the object respectively.
     ///
     /// [`OdbBackendAllocation`]s SHOULD be created using `ctx` (see
@@ -112,7 +112,7 @@ pub trait OdbBackend {
     ///
     /// # Implementation notes
     ///
-    /// If an implementation returns `Ok(())`, `length` and `object_type` SHOULD be set to the
+    /// If an implementation returns `Ok(())`, `length` and `object_type` MUST be set to the
     /// length of the object's contents and the object type respectively.
     ///
     /// # Errors
@@ -153,6 +153,36 @@ pub trait OdbBackend {
     /// [`supported_operations`]: Self::supported_operations
     fn exists(&mut self, ctx: &OdbBackendContext, oid: Oid) -> Result<bool, Error> {
         unimplemented!("OdbBackend::exists")
+    }
+
+    /// Check if an object exists based on a prefix of its [`Oid`].
+    ///
+    /// Corresponds to the `exists_prefix` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::EXISTS_PREFIX`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// Only the first `oid_prefix_len * 4` bits of `oid_prefix` are set.
+    /// The remaining `(GIT_OID_SHA1_HEXSIZE - oid_prefix_len) * 4` bits are set to 0.
+    ///
+    /// If an implementation returns `Ok(oid)`, `oid` SHOULD be the full Oid of the object.
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend::exists`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn exists_prefix(
+        &mut self,
+        ctx: &OdbBackendContext,
+        oid_prefix: Oid,
+        oid_prefix_length: usize,
+    ) -> Result<Oid, Error> {
+        unimplemented!("OdbBackend::exists_prefix")
     }
 
     // TODO: fn write()
@@ -351,6 +381,7 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(read_prefix if READ_PREFIX);
         op_if!(read_header if READ_HEADER);
         op_if!(exists if EXISTS);
+        op_if!(exists_prefix if EXISTS_PREFIX);
 
         backend.free = Some(Backend::<B>::free);
     }
@@ -479,6 +510,24 @@ impl<B: OdbBackend> Backend<B> {
         } else {
             0
         }
+    }
+    
+    extern "C" fn exists_prefix(
+        oid_ptr: *mut raw::git_oid,
+        backend_ptr: *mut raw::git_odb_backend,
+        oid_prefix_ptr: *const raw::git_oid,
+        oid_prefix_len: size_t
+    ) -> c_int {
+        let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
+        let oid_prefix = unsafe { Oid::from_raw(oid_prefix_ptr) };
+        let oid = unsafe { oid_ptr.cast::<Oid>().as_mut().unwrap() };
+
+        let context = OdbBackendContext { backend_ptr };
+        *oid = match backend.inner.exists_prefix(&context, oid_prefix, oid_prefix_len) {
+            Err(e) => return unsafe { e.raw_set_git_error() },
+            Ok(x) => x,
+        };
+        raw::GIT_OK
     }
 
     extern "C" fn free(backend: *mut raw::git_odb_backend) {
