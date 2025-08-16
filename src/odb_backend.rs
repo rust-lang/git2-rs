@@ -6,8 +6,7 @@ use crate::{raw, Error, ErrorClass, ErrorCode, ObjectType, Oid};
 use bitflags::bitflags;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
-use std::ptr::NonNull;
-use std::{ptr, slice};
+use std::{marker, ptr, slice};
 
 /// A custom implementation of an [`Odb`](crate::Odb) backend.
 ///
@@ -347,7 +346,7 @@ bitflags! {
 /// [`git_odb_backend_data_free`]: raw::git_odb_backend_data_free
 pub struct OdbBackendAllocation {
     backend_ptr: *mut raw::git_odb_backend,
-    raw: NonNull<libc::c_void>,
+    raw: ptr::NonNull<libc::c_void>,
     size: usize,
 }
 impl OdbBackendAllocation {
@@ -374,7 +373,7 @@ impl OdbBackendContext {
     pub const fn alloc_0(&self) -> OdbBackendAllocation {
         OdbBackendAllocation {
             backend_ptr: self.backend_ptr,
-            raw: NonNull::dangling(),
+            raw: ptr::NonNull::dangling(),
             size: 0,
         }
     }
@@ -387,7 +386,7 @@ impl OdbBackendContext {
     pub fn alloc(&self, size: usize) -> Option<OdbBackendAllocation> {
         let data =
             unsafe { raw::git_odb_backend_data_alloc(self.backend_ptr, size as libc::size_t) };
-        let data = NonNull::new(data)?;
+        let data = ptr::NonNull::new(data)?;
         Some(OdbBackendAllocation {
             backend_ptr: self.backend_ptr,
             raw: data,
@@ -416,8 +415,8 @@ impl OdbBackendContext {
 /// A handle to an [`OdbBackend`] that has been added to an [`Odb`](crate::Odb).
 pub struct CustomOdbBackend<'a, B: OdbBackend> {
     // NOTE: Any pointer in this field must be both non-null and properly aligned.
-    raw: NonNull<Backend<B>>,
-    phantom: PhantomData<fn() -> &'a ()>,
+    raw: ptr::NonNull<Backend<B>>,
+    phantom: marker::PhantomData<fn() -> &'a ()>,
 }
 
 impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
@@ -450,10 +449,10 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
     pub(crate) fn new(backend: Box<Backend<B>>) -> Self {
         // SAFETY: Box::into_raw guarantees that the pointer is properly aligned and non-null
         let backend = Box::into_raw(backend);
-        let backend = unsafe { NonNull::new_unchecked(backend) };
+        let backend = unsafe { ptr::NonNull::new_unchecked(backend) };
         Self {
             raw: backend,
-            phantom: PhantomData,
+            phantom: marker::PhantomData,
         }
     }
 
@@ -598,7 +597,7 @@ impl<B: OdbBackend> Backend<B> {
             .inner
             .read_header(&context, oid, size, &mut object_type)
         {
-            unsafe { return e.raw_set_git_error() }
+            return unsafe { e.raw_set_git_error() };
         };
         *otype = object_type.raw();
 
