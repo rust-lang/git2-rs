@@ -266,6 +266,9 @@ impl CredentialHelper {
         }
         let global = config.get_string("credential.helper");
         self.add_command(global.as_ref().ok().map(|s| &s[..]));
+
+        // add the "fill" command
+        self.add_command(Some("!git credential fill"));
     }
 
     // Discover `useHttpPath` from `config`
@@ -312,7 +315,7 @@ impl CredentialHelper {
         } else if is_absolute_path(cmd) {
             self.commands.push(cmd.to_string());
         } else {
-            self.commands.push(format!("git credential-{}", cmd));
+            self.commands.push(format!("git credential-{} get", cmd));
         }
     }
 
@@ -338,8 +341,11 @@ impl CredentialHelper {
         let mut password = None;
         for cmd in &self.commands {
             let (u, p) = self.execute_cmd(cmd, &username);
-            if u.is_some() && username.is_none() {
-                username = u;
+            #[allow(clippy::collapsible_if)]
+            if let Some(u) = u {
+                if !u.is_empty() && username.is_none() {
+                    username = Some(u);
+                }
             }
             if p.is_some() && password.is_none() {
                 password = p;
@@ -392,7 +398,7 @@ impl CredentialHelper {
             c.creation_flags(CREATE_NO_WINDOW);
         }
         c.arg("-c")
-            .arg(&format!("{} get", cmd))
+            .arg(cmd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
