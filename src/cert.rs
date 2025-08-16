@@ -51,26 +51,26 @@ impl SshHostKeyType {
     /// The name of the key type as encoded in the known_hosts file.
     pub fn name(&self) -> &'static str {
         match self {
-            SshHostKeyType::Unknown => "unknown",
-            SshHostKeyType::Rsa => "ssh-rsa",
-            SshHostKeyType::Dss => "ssh-dss",
-            SshHostKeyType::Ecdsa256 => "ecdsa-sha2-nistp256",
-            SshHostKeyType::Ecdsa384 => "ecdsa-sha2-nistp384",
-            SshHostKeyType::Ecdsa521 => "ecdsa-sha2-nistp521",
-            SshHostKeyType::Ed255219 => "ssh-ed25519",
+            Self::Unknown => "unknown",
+            Self::Rsa => "ssh-rsa",
+            Self::Dss => "ssh-dss",
+            Self::Ecdsa256 => "ecdsa-sha2-nistp256",
+            Self::Ecdsa384 => "ecdsa-sha2-nistp384",
+            Self::Ecdsa521 => "ecdsa-sha2-nistp521",
+            Self::Ed255219 => "ssh-ed25519",
         }
     }
 
     /// A short name of the key type, the colloquial form used as a human-readable description.
     pub fn short_name(&self) -> &'static str {
         match self {
-            SshHostKeyType::Unknown => "Unknown",
-            SshHostKeyType::Rsa => "RSA",
-            SshHostKeyType::Dss => "DSA",
-            SshHostKeyType::Ecdsa256 => "ECDSA",
-            SshHostKeyType::Ecdsa384 => "ECDSA",
-            SshHostKeyType::Ecdsa521 => "ECDSA",
-            SshHostKeyType::Ed255219 => "ED25519",
+            Self::Unknown => "Unknown",
+            Self::Rsa => "RSA",
+            Self::Dss => "DSA",
+            Self::Ecdsa256 => "ECDSA",
+            Self::Ecdsa384 => "ECDSA",
+            Self::Ecdsa521 => "ECDSA",
+            Self::Ed255219 => "ED25519",
         }
     }
 }
@@ -179,7 +179,7 @@ impl<'a> CertX509<'a> {
 
 impl<'a> Binding for Cert<'a> {
     type Raw = *mut raw::git_cert;
-    unsafe fn from_raw(raw: *mut raw::git_cert) -> Cert<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_cert) -> Self {
         Cert {
             raw,
             _marker: marker::PhantomData,

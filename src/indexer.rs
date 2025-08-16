@@ -71,7 +71,7 @@ impl<'a> Progress<'a> {
 
 impl<'a> Binding for Progress<'a> {
     type Raw = *const raw::git_indexer_progress;
-    unsafe fn from_raw(raw: *const raw::git_indexer_progress) -> Progress<'a> {
+    unsafe fn from_raw(raw: *const raw::git_indexer_progress) -> Self {
         Progress {
             raw: ProgressState::Borrowed(raw),
             _marker: marker::PhantomData,
