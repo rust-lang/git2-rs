@@ -4128,7 +4128,6 @@ extern "C" {
         position: size_t,
     ) -> c_int;
 
-
     // mempack
     pub fn git_mempack_new(out: *mut *mut git_odb_backend) -> c_int;
     pub fn git_mempack_reset(backend: *mut git_odb_backend) -> c_int;
