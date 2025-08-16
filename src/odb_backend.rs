@@ -11,10 +11,18 @@ use std::{ptr, slice};
 
 /// A custom implementation of an [`Odb`] backend.
 ///
-/// # Errors
+/// Most of the default implementations of this trait's methods panic when called as they are
+/// intended to be overridden.
 ///
-/// If the backend does not have enough memory, the error code should be
-/// [`ErrorCode::GenericError`] and the class should be [`ErrorClass::NoMemory`].
+/// # Error recommendations
+///
+/// Errors are generally left at the implementation's discretion; some recommendations are
+/// made regarding error codes and classes to ease implementation and usage of custom backends.
+///
+/// Read the individual methods' documentation for more specific recommendations.
+///
+/// If the backend does not have enough memory, the error SHOULD be code
+/// [`ErrorCode::GenericError`] and the class SHOULD be [`ErrorClass::NoMemory`].
 #[allow(unused_variables)]
 pub trait OdbBackend {
     /// Returns the supported operations of this backend.
@@ -162,6 +170,8 @@ pub trait OdbBackend {
     /// Corresponds to the `exists` function of [`git_odb_backend`].
     /// Requires that [`SupportedOperations::EXISTS`] is present in the value returned from
     /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
     ///
     /// # Implementation notes
     ///
