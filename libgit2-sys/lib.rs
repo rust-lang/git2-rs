@@ -4115,7 +4115,11 @@ extern "C" {
         priority: c_int,
     ) -> c_int;
 
+    #[deprecated(note = "only kept for compatibility; prefer git_odb_backend_data_alloc")]
     pub fn git_odb_backend_malloc(backend: *mut git_odb_backend, len: size_t) -> *mut c_void;
+
+    pub fn git_odb_backend_data_alloc(backend: *mut git_odb_backend, len: size_t) -> *mut c_void;
+    pub fn git_odb_backend_data_free(backend: *mut git_odb_backend, data: *mut c_void);
 
     pub fn git_odb_num_backends(odb: *mut git_odb) -> size_t;
     pub fn git_odb_get_backend(
