@@ -4,8 +4,6 @@
 use crate::util::Binding;
 use crate::{raw, Error, ErrorClass, ErrorCode, ObjectType, Oid};
 use bitflags::bitflags;
-use libc::{c_int, size_t};
-use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::ptr::NonNull;
@@ -241,7 +239,7 @@ bitflags! {
 /// [`git_odb_backend_data_free`]: raw::git_odb_backend_data_free
 pub struct OdbBackendAllocation {
     backend_ptr: *mut raw::git_odb_backend,
-    raw: NonNull<c_void>,
+    raw: NonNull<libc::c_void>,
     size: usize,
 }
 impl OdbBackendAllocation {
@@ -279,7 +277,7 @@ impl OdbBackendContext {
     /// `Some(allocation)` if the allocation succeeded.
     /// `None` otherwise. This usually indicates that there is not enough memory.
     pub fn alloc(&self, size: usize) -> Option<OdbBackendAllocation> {
-        let data = unsafe { raw::git_odb_backend_data_alloc(self.backend_ptr, size as size_t) };
+        let data = unsafe { raw::git_odb_backend_data_alloc(self.backend_ptr, size as libc::size_t) };
         let data = NonNull::new(data)?;
         Some(OdbBackendAllocation {
             backend_ptr: self.backend_ptr,
@@ -394,12 +392,12 @@ pub(crate) struct Backend<B> {
 }
 impl<B: OdbBackend> Backend<B> {
     extern "C" fn read(
-        data_ptr: *mut *mut c_void,
-        size_ptr: *mut size_t,
+        data_ptr: *mut *mut libc::c_void,
+        size_ptr: *mut libc::size_t,
         otype_ptr: *mut raw::git_object_t,
         backend_ptr: *mut raw::git_odb_backend,
         oid_ptr: *const raw::git_oid,
-    ) -> c_int {
+    ) -> libc::c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let data = unsafe { data_ptr.as_mut().unwrap() };
         let size = unsafe { size_ptr.as_mut().unwrap() };
@@ -428,13 +426,13 @@ impl<B: OdbBackend> Backend<B> {
     }
     extern "C" fn read_prefix(
         oid_ptr: *mut raw::git_oid,
-        data_ptr: *mut *mut c_void,
-        size_ptr: *mut size_t,
+        data_ptr: *mut *mut libc::c_void,
+        size_ptr: *mut libc::size_t,
         otype_ptr: *mut raw::git_object_t,
         backend_ptr: *mut raw::git_odb_backend,
         oid_prefix_ptr: *const raw::git_oid,
-        oid_prefix_len: size_t,
-    ) -> c_int {
+        oid_prefix_len: libc::size_t,
+    ) -> libc::c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let data = unsafe { data_ptr.as_mut().unwrap() };
         let size = unsafe { size_ptr.as_mut().unwrap() };
@@ -470,11 +468,11 @@ impl<B: OdbBackend> Backend<B> {
         raw::GIT_OK
     }
     extern "C" fn read_header(
-        size_ptr: *mut size_t,
+        size_ptr: *mut libc::size_t,
         otype_ptr: *mut raw::git_object_t,
         backend_ptr: *mut raw::git_odb_backend,
         oid_ptr: *const raw::git_oid,
-    ) -> c_int {
+    ) -> libc::c_int {
         let size = unsafe { size_ptr.as_mut().unwrap() };
         let otype = unsafe { otype_ptr.as_mut().unwrap() };
         let backend = unsafe { backend_ptr.cast::<Backend<B>>().as_mut().unwrap() };
@@ -497,7 +495,7 @@ impl<B: OdbBackend> Backend<B> {
     extern "C" fn exists(
         backend_ptr: *mut raw::git_odb_backend,
         oid_ptr: *const raw::git_oid,
-    ) -> c_int {
+    ) -> libc::c_int {
         let backend = unsafe { backend_ptr.cast::<Backend<B>>().as_mut().unwrap() };
         let oid = unsafe { Oid::from_raw(oid_ptr) };
         let context = OdbBackendContext { backend_ptr };
@@ -511,13 +509,13 @@ impl<B: OdbBackend> Backend<B> {
             0
         }
     }
-    
+
     extern "C" fn exists_prefix(
         oid_ptr: *mut raw::git_oid,
         backend_ptr: *mut raw::git_odb_backend,
         oid_prefix_ptr: *const raw::git_oid,
-        oid_prefix_len: size_t
-    ) -> c_int {
+        oid_prefix_len: libc::size_t
+    ) -> libc::c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let oid_prefix = unsafe { Oid::from_raw(oid_prefix_ptr) };
         let oid = unsafe { oid_ptr.cast::<Oid>().as_mut().unwrap() };
