@@ -211,14 +211,63 @@ pub trait OdbBackend {
         unimplemented!("OdbBackend::exists_prefix")
     }
 
+    /// Refreshes the backend.
+    ///
+    /// Corresponds to the `refresh` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::REFRESH`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method returns `Ok(())`.
+    ///
+    /// # Implementation notes
+    ///
+    /// This method is called automatically when a lookup fails (e.g. through
+    /// [`OdbBackend::exists`], [`OdbBackend::read`], or [`OdbBackend::read_header`]),
+    /// or when [`Odb::refresh`](crate::Odb::refresh) is invoked.
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn refresh(&mut self, ctx: &OdbBackendContext) -> Result<(), Error> {
+        Ok(())
+    }
+
+    /// "Freshens" an already existing object, updating its last-used time.
+    ///
+    /// Corresponds to the `freshen` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::REFRESH`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// This method is called when [`Odb::write`](crate::Odb::write) is called, but the object
+    /// already exists and will not be rewritten.
+    ///
+    /// Implementations may want to update last-used timestamps.
+    ///
+    /// Implementations SHOULD return `Ok(())` if the object exists and was freshened; otherwise,
+    /// they SHOULD return an error.
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn freshen(&mut self, ctx: &OdbBackendContext, oid: Oid) -> Result<(), Error> {
+        unimplemented!("OdbBackend::freshen")
+    }
+
     // TODO: fn writestream()
     // TODO: fn readstream()
-    // TODO: fn exists_prefix()
-    // TODO: fn refresh()
     // TODO: fn foreach()
     // TODO: fn writepack()
     // TODO: fn writemidx()
-    // TODO: fn freshen()
 }
 
 bitflags! {
@@ -409,6 +458,8 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(write if WRITE);
         op_if!(exists if EXISTS);
         op_if!(exists_prefix if EXISTS_PREFIX);
+        op_if!(refresh if REFRESH);
+        op_if!(freshen if FRESHEN);
 
         backend.free = Some(Backend::<B>::free);
     }
@@ -575,6 +626,29 @@ impl<B: OdbBackend> Backend<B> {
             Err(e) => return unsafe { e.raw_set_git_error() },
             Ok(x) => x,
         };
+        raw::GIT_OK
+    }
+
+    extern "C" fn refresh(backend_ptr: *mut raw::git_odb_backend) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
+        let context = OdbBackendContext { backend_ptr };
+        if let Err(e) = backend.inner.refresh(&context) {
+            return unsafe { e.raw_set_git_error() };
+        }
+        raw::GIT_OK
+    }
+
+    extern "C" fn freshen(
+        backend_ptr: *mut raw::git_odb_backend,
+        oid_ptr: *const raw::git_oid,
+    ) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
+        let oid = unsafe { Oid::from_raw(oid_ptr) };
+        let context = OdbBackendContext { backend_ptr };
+        if let Err(e) = backend.inner.freshen(&context, oid) {
+            return unsafe { e.raw_set_git_error() };
+        }
+
         raw::GIT_OK
     }
 
