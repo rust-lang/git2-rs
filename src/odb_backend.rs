@@ -9,7 +9,7 @@ use std::mem::ManuallyDrop;
 use std::ptr::NonNull;
 use std::{ptr, slice};
 
-/// A custom implementation of an [`Odb`] backend.
+/// A custom implementation of an [`Odb`](crate::Odb) backend.
 ///
 /// Most of the default implementations of this trait's methods panic when called as they are
 /// intended to be overridden.
@@ -273,11 +273,33 @@ pub trait OdbBackend {
         unimplemented!("OdbBackend::freshen")
     }
 
+    /// Creates a `multi-pack-index` file containing an index of all objects across all `.pack`
+    /// files.
+    ///
+    /// Corresponds to the `writemidx` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::WRITE_MULTIPACK_INDEX`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// TODO: Implementation notes for `write_multipack_index`
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn write_multipack_index(&mut self, ctx: &OdbBackendContext) -> Result<(), Error> {
+        unimplemented!("OdbBackend::write_multipack_index")
+    }
+
     // TODO: fn writestream()
     // TODO: fn readstream()
     // TODO: fn foreach()
     // TODO: fn writepack()
-    // TODO: fn writemidx()
 }
 
 bitflags! {
@@ -305,10 +327,10 @@ bitflags! {
         const REFRESH = 1 << 7;
         /// The backend supports the [`OdbBackend::foreach`] method.
         const FOREACH = 1 << 8;
-        /// The backend supports the [`OdbBackend::writepack`] method.
-        const WRITEPACK = 1 << 9;
-        /// The backend supports the [`OdbBackend::writemidx`] method.
-        const WRITEMIDX = 1 << 10;
+        /// The backend supports the [`OdbBackend::write_pack`] method.
+        const WRITE_PACK = 1 << 9;
+        /// The backend supports the [`OdbBackend::write_multipack_index`] method.
+        const WRITE_MULTIPACK_INDEX = 1 << 10;
         /// The backend supports the [`OdbBackend::freshen`] method.
         const FRESHEN = 1 << 11;
     }
@@ -469,6 +491,7 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(exists if EXISTS);
         op_if!(exists_prefix if EXISTS_PREFIX);
         op_if!(refresh if REFRESH);
+        op_if!(writemidx if WRITE_MULTIPACK_INDEX);
         op_if!(freshen if FRESHEN);
 
         backend.free = Some(Backend::<B>::free);
@@ -643,6 +666,15 @@ impl<B: OdbBackend> Backend<B> {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let context = OdbBackendContext { backend_ptr };
         if let Err(e) = backend.inner.refresh(&context) {
+            return unsafe { e.raw_set_git_error() };
+        }
+        raw::GIT_OK
+    }
+
+    extern "C" fn writemidx(backend_ptr: *mut raw::git_odb_backend) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
+        let context = OdbBackendContext { backend_ptr };
+        if let Err(e) = backend.inner.write_multipack_index(&context) {
             return unsafe { e.raw_set_git_error() };
         }
         raw::GIT_OK
