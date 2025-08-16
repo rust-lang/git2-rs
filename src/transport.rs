@@ -132,7 +132,7 @@ impl Transport {
     ///
     /// The `rpc` argument is `true` if the protocol is stateless, false
     /// otherwise. For example `http://` is stateless but `git://` is not.
-    pub fn smart<S>(remote: &Remote<'_>, rpc: bool, subtransport: S) -> Result<Transport, Error>
+    pub fn smart<S>(remote: &Remote<'_>, rpc: bool, subtransport: S) -> Result<Self, Error>
     where
         S: SmartSubtransport,
     {
@@ -170,7 +170,7 @@ impl Transport {
             ));
             mem::forget(raw); // ownership transport to `ret`
         }
-        return Ok(Transport {
+        return Ok(Self {
             raw: ret,
             owned: true,
         });
@@ -314,7 +314,7 @@ extern "C" fn stream_read(
 ) -> c_int {
     let ret = panic::wrap(|| unsafe {
         let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-        let buf = slice::from_raw_parts_mut(buffer as *mut u8, buf_size as usize);
+        let buf = slice::from_raw_parts_mut(buffer as *mut u8, buf_size);
         match transport.obj.read(buf) {
             Ok(n) => {
                 *bytes_read = n as size_t;
@@ -342,7 +342,7 @@ extern "C" fn stream_write(
 ) -> c_int {
     let ret = panic::wrap(|| unsafe {
         let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-        let buf = slice::from_raw_parts(buffer as *const u8, len as usize);
+        let buf = slice::from_raw_parts(buffer as *const u8, len);
         transport.obj.write_all(buf)
     });
     match ret {
