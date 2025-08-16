@@ -277,7 +277,8 @@ impl OdbBackendContext {
     /// `Some(allocation)` if the allocation succeeded.
     /// `None` otherwise. This usually indicates that there is not enough memory.
     pub fn alloc(&self, size: usize) -> Option<OdbBackendAllocation> {
-        let data = unsafe { raw::git_odb_backend_data_alloc(self.backend_ptr, size as libc::size_t) };
+        let data =
+            unsafe { raw::git_odb_backend_data_alloc(self.backend_ptr, size as libc::size_t) };
         let data = NonNull::new(data)?;
         Some(OdbBackendAllocation {
             backend_ptr: self.backend_ptr,
@@ -514,14 +515,17 @@ impl<B: OdbBackend> Backend<B> {
         oid_ptr: *mut raw::git_oid,
         backend_ptr: *mut raw::git_odb_backend,
         oid_prefix_ptr: *const raw::git_oid,
-        oid_prefix_len: libc::size_t
+        oid_prefix_len: libc::size_t,
     ) -> libc::c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let oid_prefix = unsafe { Oid::from_raw(oid_prefix_ptr) };
         let oid = unsafe { oid_ptr.cast::<Oid>().as_mut().unwrap() };
 
         let context = OdbBackendContext { backend_ptr };
-        *oid = match backend.inner.exists_prefix(&context, oid_prefix, oid_prefix_len) {
+        *oid = match backend
+            .inner
+            .exists_prefix(&context, oid_prefix, oid_prefix_len)
+        {
             Err(e) => return unsafe { e.raw_set_git_error() },
             Ok(x) => x,
         };
