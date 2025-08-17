@@ -116,7 +116,30 @@ pub enum git_reflog_entry {}
 pub enum git_describe_result {}
 pub enum git_packbuilder {}
 pub enum git_odb {}
-pub enum git_odb_stream {}
+
+#[repr(C)]
+pub struct git_odb_stream {
+    pub backend: *mut git_odb_backend,
+    pub mode: c_uint,
+    pub hash_ctx: *mut c_void,
+    #[cfg(feature = "unstable-sha256")]
+    pub oid_type: git_oid_t,
+    pub declared_size: git_object_size_t,
+    pub received_bytes: git_object_size_t,
+    pub read: Option<extern "C" fn(*mut git_odb_stream, *mut c_char, size_t) -> c_int>,
+    pub write: Option<extern "C" fn(*mut git_odb_stream, *const c_char, size_t) -> c_int>,
+    pub finalize_write: Option<extern "C" fn(*mut git_odb_stream, *const git_oid) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_odb_stream)>,
+}
+
+git_enum! {
+    pub enum git_odb_stream_t {
+        GIT_STREAM_RDONLY = 2,
+        GIT_STREAM_WRONLY = 4,
+        GIT_STREAM_RW = 6,
+    }
+}
+
 pub enum git_odb_object {}
 pub enum git_worktree {}
 pub enum git_transaction {}
