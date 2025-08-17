@@ -141,7 +141,15 @@ pub enum git_index {}
 pub enum git_index_conflict_iterator {}
 pub enum git_object {}
 pub enum git_reference {}
-pub enum git_reference_iterator {}
+
+#[repr(C)]
+pub struct git_reference_iterator {
+    pub db: *mut git_refdb,
+    pub next: Option<fn(*mut *mut git_reference, *mut git_reference_iterator) -> c_int>,
+    pub next_name: Option<fn(*mut *const c_char, *mut git_reference_iterator) -> c_int>,
+    pub free: Option<fn(*mut git_reference_iterator)>,
+}
+
 pub enum git_annotated_commit {}
 pub enum git_refdb {}
 pub enum git_refspec {}
