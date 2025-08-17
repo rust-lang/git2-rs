@@ -336,8 +336,9 @@ pub trait OdbBackend: Sized {
 bitflags! {
     /// Supported operations for a backend.
     pub struct SupportedOperations: u32 {
-        // NOTE: The names are taken from the trait method names, but the order is taken from the
-        //       fields of git_odb_backend.
+        // NOTE: The names are mostly taken from the trait method names, but the order of the flags
+        //       is taken from the fields of git_odb_backend.
+        //       Essentially, choose a name that is tasteful.
         /// The backend supports the [`OdbBackend::read`] method.
         const READ = 1;
         /// The backend supports the [`OdbBackend::read_prefix`] method.
@@ -358,7 +359,7 @@ bitflags! {
         const REFRESH = 1 << 7;
         /// The backend supports the [`OdbBackend::foreach`] method.
         const FOREACH = 1 << 8;
-        /// The backend supports the [`OdbBackend::write_pack`] method.
+        /// The backend supports the [`OdbBackend::open_writepack`] method.
         const WRITE_PACK = 1 << 9;
         /// The backend supports the [`OdbBackend::write_multipack_index`] method.
         const WRITE_MULTIPACK_INDEX = 1 << 10;
