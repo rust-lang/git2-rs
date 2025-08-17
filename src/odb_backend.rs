@@ -1,14 +1,16 @@
 //! Custom backends for [`Odb`]s.
 //!
-//! [`Odb`]: crate::Odb
+//! TODO: Merge a lot of these APIs with existing ones.
+//!       Currently
 use crate::util::Binding;
-use crate::{raw, Error, ErrorClass, ErrorCode, ObjectType, Oid};
+use crate::{raw, Error, ErrorClass, ErrorCode, IntoCString, ObjectType, Odb, Oid};
 use bitflags::bitflags;
-use std::marker::PhantomData;
+use std::convert::Infallible;
 use std::mem::ManuallyDrop;
-use std::{marker, ptr, slice};
+use std::path::Path;
+use std::{marker, mem, ptr, slice};
 
-/// A custom implementation of an [`Odb`](crate::Odb) backend.
+/// A custom implementation of an [`Odb`] backend.
 ///
 /// Most of the default implementations of this trait's methods panic when called as they are
 /// intended to be overridden.
@@ -23,7 +25,14 @@ use std::{marker, ptr, slice};
 /// If the backend does not have enough memory, the error SHOULD be code
 /// [`ErrorCode::GenericError`] and the class SHOULD be [`ErrorClass::NoMemory`].
 #[allow(unused_variables)]
-pub trait OdbBackend {
+pub trait OdbBackend: Sized {
+    /// Backend-specific writepack implementation.
+    ///
+    /// If the backend doesn't support writepack, this type should be [`Infallible`].
+    ///
+    /// [`Infallible`]: std::convert::Infallible
+    type Writepack: OdbWritepack<Self>;
+
     /// Returns the supported operations of this backend.
     /// The return value is used to determine what functions to provide to libgit2.
     ///
@@ -31,9 +40,6 @@ pub trait OdbBackend {
     /// [`CustomOdbBackend::refresh_operations`]; in general, it is called very rarely.
     /// Very few implementations should change their available operations after being added to an
     /// [`Odb`].
-    ///
-    /// [`Odb`]: crate::Odb
-    /// [`Odb::add_custom_backend`]: crate::Odb::add_custom_backend
     fn supported_operations(&self) -> SupportedOperations;
 
     /// Read an object.
@@ -254,7 +260,7 @@ pub trait OdbBackend {
     ///
     /// # Implementation notes
     ///
-    /// This method is called when [`Odb::write`](crate::Odb::write) is called, but the object
+    /// This method is called when [`Odb::write`](Odb::write) is called, but the object
     /// already exists and will not be rewritten.
     ///
     /// Implementations may want to update last-used timestamps.
@@ -270,6 +276,33 @@ pub trait OdbBackend {
     /// [`supported_operations`]: Self::supported_operations
     fn freshen(&mut self, ctx: &OdbBackendContext, oid: Oid) -> Result<(), Error> {
         unimplemented!("OdbBackend::freshen")
+    }
+
+    /// Opens a stream to write a packfile to this backend.
+    ///
+    /// Corresponds to the `writepack` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::WRITE_PACK`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// TODO: More information on what this even is.
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn open_writepack(
+        &mut self,
+        ctx: &OdbBackendContext,
+        odb: &Odb<'_>,
+        callback: IndexerProgressCallback,
+    ) -> Result<Self::Writepack, Error> {
+        unimplemented!("OdbBackend::open_writepack")
     }
 
     /// Creates a `multi-pack-index` file containing an index of all objects across all `.pack`
@@ -298,7 +331,6 @@ pub trait OdbBackend {
     // TODO: fn writestream()
     // TODO: fn readstream()
     // TODO: fn foreach()
-    // TODO: fn writepack()
 }
 
 bitflags! {
@@ -411,8 +443,255 @@ impl OdbBackendContext {
         })
     }
 }
+/// Indexer progress callback.
+pub struct IndexerProgressCallback {
+    callback: raw::git_indexer_progress_cb,
+    payload: *mut libc::c_void,
+}
+impl IndexerProgressCallback {
+    /// Invokes this callback.
+    pub fn invoke(&mut self, progress: &IndexerProgress) -> Result<(), Error> {
+        let Some(callback) = self.callback else {
+            return Ok(());
+        };
+        let value = callback(unsafe { progress.raw.as_ref() }, self.payload);
+        if value != raw::GIT_OK {
+            return Err(Error::last_error(value));
+        }
+        Ok(())
+    }
+    /// Creates an [`Indexer`] using this callback. Compare with [`crate::indexer::Indexer`].
+    pub fn into_indexer(self, odb: &Odb<'_>, path: &Path, verify: bool) -> Result<Indexer, Error> {
+        let mut opts = unsafe { mem::zeroed::<raw::git_indexer_options>() };
+        unsafe {
+            try_call!(raw::git_indexer_options_init(
+                &mut opts,
+                raw::GIT_INDEXER_OPTIONS_VERSION
+            ));
+        }
+        opts.progress_cb = self.callback;
+        opts.progress_cb_payload = self.payload;
+        opts.verify = verify.into();
+        let mut indexer: *mut raw::git_indexer = ptr::null_mut();
+        let path = path.into_c_string()?;
+        unsafe {
+            try_call!(raw::git_indexer_new(
+                &mut indexer,
+                path.as_ptr(),
+                0,
+                odb.raw(),
+                &mut opts
+            ));
+        }
 
-/// A handle to an [`OdbBackend`] that has been added to an [`Odb`](crate::Odb).
+        Ok(Indexer {
+            raw: ptr::NonNull::new(indexer).unwrap(),
+        })
+    }
+}
+
+/// Indexer that stores packfiles at an arbitrary path. See [`crate::indexer::Indexer`].
+///
+/// TODO: Merge this type with aforementioned [`crate::indexer::Indexer`]?
+///       They do essentially the same thing, except that the older one allows setting a callback.
+///       It's probably better to merge the two into one base type and then have the elder become a
+///       wrapper around the base type similar to [`CustomOdbBackend`] that allows setting the
+///       callback.
+pub struct Indexer {
+    raw: ptr::NonNull<raw::git_indexer>,
+}
+impl Indexer {
+    /// Appends data to this indexer.
+    pub fn append(&mut self, data: &[u8], stats: &IndexerProgress) -> Result<usize, Error> {
+        let result = unsafe {
+            raw::git_indexer_append(
+                self.raw.as_ptr(),
+                data.as_ptr().cast(),
+                data.len(),
+                stats.raw().as_ptr(),
+            )
+        };
+
+        if result < 0 {
+            Err(Error::last_error(result))
+        } else {
+            Ok(result as usize)
+        }
+    }
+    /// Commit the packfile to disk.
+    pub fn commit(&mut self, stats: &IndexerProgress) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_indexer_commit(
+                self.raw.as_ptr(),
+                stats.raw().as_ptr()
+            ));
+        }
+        Ok(())
+    }
+}
+impl Drop for Indexer {
+    fn drop(&mut self) {
+        unsafe { raw::git_indexer_free(self.raw.as_ptr()) }
+    }
+}
+
+/// Implementation of the [`git_odb_writepack`] interface. See [`OdbBackend`].
+///
+/// This is the backend equivalent of [`OdbPackwriter`].
+///
+/// TODO: More documentation regarding what Writepack even is.
+///       libgit2 is an enigma slowly peeled back in lines.
+///
+/// [`git_odb_writepack`]: raw::git_odb_writepack
+/// [`OdbPackwriter`]: crate::odb::OdbPackwriter
+pub trait OdbWritepack<B: OdbBackend<Writepack = Self>> {
+    /// Append data to this stream.
+    ///
+    /// Corresponds to the `append` function of [`git_odb_writepack`].
+    /// See [`OdbBackend::open_writepack`] for more information.
+    /// See also [`OdbPackwriter`] (this method corresponds to its [`io::Write`] implementation).
+    ///
+    /// # Implementation notes
+    ///
+    /// TODO: Implementation notes
+    ///
+    /// [`git_odb_writepack`]: raw::git_odb_writepack
+    /// [`OdbPackwriter`]: crate::odb::OdbPackwriter
+    /// [`io::Write`]: std::io::Write
+    fn append(
+        &mut self,
+        context: &mut OdbWritepackContext<B>,
+        data: &[u8],
+        stats: &mut IndexerProgress,
+    ) -> Result<(), Error>;
+    /// Finish writing this packfile.
+    ///
+    /// Corresponds to the `commit` function of [`git_odb_writepack`].
+    /// See [`OdbBackend::open_writepack`] for more information.
+    /// See also [`OdbPackwriter`] (this method corresponds to [`OdbPackwriter::commit`]).
+    ///
+    /// [`git_odb_writepack`]: raw::git_odb_writepack
+    /// [`OdbPackwriter`]: crate::odb::OdbPackwriter
+    /// [`OdbPackwriter::commit`]: crate::odb::OdbPackwriter::commit
+    fn commit(
+        &mut self,
+        context: &mut OdbWritepackContext<B>,
+        stats: &mut IndexerProgress,
+    ) -> Result<(), Error>;
+}
+
+impl<B: OdbBackend<Writepack = Self>> OdbWritepack<B> for Infallible {
+    fn append(
+        &mut self,
+        _context: &mut OdbWritepackContext<B>,
+        _data: &[u8],
+        _stats: &mut IndexerProgress,
+    ) -> Result<(), Error> {
+        unreachable!()
+    }
+
+    fn commit(
+        &mut self,
+        _context: &mut OdbWritepackContext<B>,
+        _stats: &mut IndexerProgress,
+    ) -> Result<(), Error> {
+        unreachable!()
+    }
+}
+/// Context struct passed to [`OdbWritepack`]'s methods.
+///
+/// This type allows access to the associated [`OdbBackend`].
+pub struct OdbWritepackContext<B: OdbBackend> {
+    backend_ptr: ptr::NonNull<Backend<B>>,
+}
+impl<B: OdbBackend> OdbWritepackContext<B> {
+    /// Get a reference to the associated [`OdbBackend`].
+    pub fn backend(&self) -> &B {
+        unsafe { &self.backend_ptr.as_ref().inner }
+    }
+    /// Get a mutable reference to the associated [`OdbBackend`].
+    pub fn backend_mut(&mut self) -> &mut B {
+        unsafe { &mut self.backend_ptr.as_mut().inner }
+    }
+}
+
+/// For tracking statistics in [`OdbWritepack`] implementations.
+///
+/// This type is essentially just a mutable version of the [`Progress`] type; in fact, their only
+/// difference is that [`IndexerProgress`] contains a [`NonNull<git_indexer_progress>`] whereas
+/// [`Progress`] is either an owned value or a pointer to [`git_indexer_progress`].
+///
+/// [`Progress`]: crate::Progress
+/// [`git_indexer_progress`]: raw::git_indexer_progress
+/// [`NonNull<git_indexer_progress>`]: ptr::NonNull
+pub struct IndexerProgress {
+    raw: ptr::NonNull<raw::git_indexer_progress>,
+}
+
+macro_rules! define_stats {
+    (
+        $(
+        $field_name:ident: $set_fn:ident, $as_mut_fn:ident, $preferred_type:ident, $native_type:ident
+        ),*
+    ) => {
+        impl IndexerProgress {
+            $(
+            #[doc = "Gets the `"]
+            #[doc = stringify!($field_name)]
+            #[doc = "` field's value from the underlying"]
+            #[doc = "[`git_indexer_progress`](raw::git_indexer_progress) struct"]
+            pub fn $field_name(&self) -> $preferred_type {
+                unsafe { self.raw.as_ref() }.$field_name
+            }
+            #[doc = "Sets the `"]
+            #[doc = stringify!($field_name)]
+            #[doc = "` field's value from the underlying"]
+            #[doc = "[`git_indexer_progress`](raw::git_indexer_progress) struct"]
+            #[doc = ""]
+            #[doc = "# Panics"]
+            #[doc = ""]
+            #[doc = "This method may panic if the value cannot be casted to the native type, which"]
+            #[doc = "is only the case for platforms where [`libc::"]
+            #[doc = stringify!($native_type)]
+            #[doc = "`] is smaller than [`"]
+            #[doc = stringify!($preferred_type)]
+            #[doc = "`]."]
+            pub fn $set_fn(&mut self, value: $preferred_type) {
+                unsafe { self.raw.as_mut() }.$field_name = value as libc::$native_type;
+            }
+            #[doc = "Return a mutable reference to the underlying `"]
+            #[doc = stringify!($field_name)]
+            #[doc = "` field of the [`git_indexer_progress`](raw::git_indexer_progress) struct"]
+            pub fn $as_mut_fn(&mut self) -> &mut libc::$native_type {
+                &mut unsafe { self.raw.as_mut() }.$field_name
+            }
+            )*
+        }
+    };
+}
+define_stats!(
+    total_objects:    set_total_objects,    total_objects_mut,    u32,   c_uint,
+    indexed_objects:  set_indexed_objects,  indexed_objects_mut,  u32,   c_uint,
+    received_objects: set_received_objects, received_objects_mut, u32,   c_uint,
+    local_objects:    set_local_objects,    local_objects_mut,    u32,   c_uint,
+    total_deltas:     set_total_deltas,     total_deltas_mut,     u32,   c_uint,
+    indexed_deltas:   set_indexed_deltas,   indexed_deltas_mut,   u32,   c_uint,
+    received_bytes:   set_received_bytes,   received_bytes_mut,   usize, size_t
+);
+
+impl Binding for IndexerProgress {
+    type Raw = ptr::NonNull<raw::git_indexer_progress>;
+
+    unsafe fn from_raw(raw: Self::Raw) -> Self {
+        Self { raw }
+    }
+
+    fn raw(&self) -> Self::Raw {
+        self.raw
+    }
+}
+
+/// A handle to an [`OdbBackend`] that has been added to an [`Odb`].
 pub struct CustomOdbBackend<'a, B: OdbBackend> {
     // NOTE: Any pointer in this field must be both non-null and properly aligned.
     raw: ptr::NonNull<Backend<B>>,
@@ -490,6 +769,7 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(exists if EXISTS);
         op_if!(exists_prefix if EXISTS_PREFIX);
         op_if!(refresh if REFRESH);
+        op_if!(writepack if WRITE_PACK);
         op_if!(writemidx if WRITE_MULTIPACK_INDEX);
         op_if!(freshen if FRESHEN);
 
@@ -670,6 +950,44 @@ impl<B: OdbBackend> Backend<B> {
         raw::GIT_OK
     }
 
+    extern "C" fn writepack(
+        out_writepack_ptr: *mut *mut raw::git_odb_writepack,
+        backend_ptr: *mut raw::git_odb_backend,
+        odb_ptr: *mut raw::git_odb,
+        progress_cb: raw::git_indexer_progress_cb,
+        progress_payload: *mut libc::c_void,
+    ) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
+        let context = OdbBackendContext { backend_ptr };
+
+        let odb = unsafe { Odb::from_raw(odb_ptr) };
+        let callback = IndexerProgressCallback {
+            callback: progress_cb,
+            payload: progress_payload,
+        };
+
+        let writepack = match backend.inner.open_writepack(&context, &odb, callback) {
+            Err(e) => return unsafe { e.raw_set_git_error() },
+            Ok(x) => x,
+        };
+
+        let writepack = Writepack::<B> {
+            writepack: raw::git_odb_writepack {
+                backend: backend_ptr,
+                append: Some(Writepack::<B>::append),
+                commit: Some(Writepack::<B>::commit),
+                free: Some(Writepack::<B>::free),
+            },
+            inner: writepack,
+        };
+        let writepack = Box::into_raw(Box::new(writepack));
+
+        let out_writepack = unsafe { out_writepack_ptr.as_mut().unwrap() };
+        *out_writepack = writepack.cast();
+
+        raw::GIT_OK
+    }
+
     extern "C" fn writemidx(backend_ptr: *mut raw::git_odb_backend) -> libc::c_int {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let context = OdbBackendContext { backend_ptr };
@@ -695,6 +1013,63 @@ impl<B: OdbBackend> Backend<B> {
 
     extern "C" fn free(backend: *mut raw::git_odb_backend) {
         let inner = unsafe { Box::from_raw(backend.cast::<Self>()) };
+        drop(inner);
+    }
+}
+
+#[repr(C)]
+struct Writepack<B>
+where
+    B: OdbBackend,
+{
+    writepack: raw::git_odb_writepack,
+    inner: B::Writepack,
+}
+
+impl<B> Writepack<B>
+where
+    B: OdbBackend,
+{
+    extern "C" fn append(
+        writepack_ptr: *mut raw::git_odb_writepack,
+        data_ptr: *const libc::c_void,
+        data_len: libc::size_t,
+        progress_ptr: *mut raw::git_indexer_progress,
+    ) -> libc::c_int {
+        let writepack_ptr = unsafe { ptr::NonNull::new_unchecked(writepack_ptr) };
+        let data = unsafe { slice::from_raw_parts(data_ptr.cast::<u8>(), data_len) };
+        let mut progress =
+            unsafe { IndexerProgress::from_raw(ptr::NonNull::new_unchecked(progress_ptr)) };
+        let writepack = unsafe { writepack_ptr.cast::<Self>().as_mut() };
+
+        let mut context = OdbWritepackContext {
+            backend_ptr: unsafe { ptr::NonNull::new_unchecked(writepack.writepack.backend) }.cast(),
+        };
+
+        if let Err(e) = writepack.inner.append(&mut context, data, &mut progress) {
+            return unsafe { e.raw_set_git_error() };
+        }
+
+        raw::GIT_OK
+    }
+    extern "C" fn commit(
+        writepack_ptr: *mut raw::git_odb_writepack,
+        progress_ptr: *mut raw::git_indexer_progress,
+    ) -> libc::c_int {
+        let writepack_ptr = unsafe { ptr::NonNull::new_unchecked(writepack_ptr) };
+        let writepack = unsafe { writepack_ptr.cast::<Self>().as_mut() };
+        let mut progress =
+            unsafe { IndexerProgress::from_raw(ptr::NonNull::new_unchecked(progress_ptr)) };
+        let mut context = OdbWritepackContext {
+            backend_ptr: unsafe { ptr::NonNull::new_unchecked(writepack.writepack.backend) }.cast(),
+        };
+        if let Err(e) = writepack.inner.commit(&mut context, &mut progress) {
+            return unsafe { e.raw_set_git_error() };
+        }
+        raw::GIT_OK
+    }
+    extern "C" fn free(writepack_ptr: *mut raw::git_odb_writepack) {
+        let inner = unsafe { Box::from_raw(writepack_ptr.cast::<Self>()) };
         drop(inner);
     }
 }
