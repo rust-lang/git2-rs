@@ -128,6 +128,8 @@ pub struct git_config_backend {
     pub del: Option<extern "C" fn(*mut git_config_backend, *const c_char) -> c_int>,
     pub del_multivar:
         Option<extern "C" fn(*mut git_config_backend, *const c_char, *const c_char) -> c_int>,
+    pub iterator:
+        Option<extern "C" fn(*mut *mut git_config_iterator, *mut git_config_backend) -> c_int>,
     pub snapshot:
         Option<extern "C" fn(*mut *mut git_config_backend, *mut git_config_backend) -> c_int>,
     pub lock: Option<extern "C" fn(*mut git_config_backend) -> c_int>,
