@@ -173,7 +173,7 @@ pub struct git_odb_stream {
 }
 
 git_enum! {
-    pub enum git_odb_stream_t: c_int {
+    pub enum git_odb_stream_t: c_uint {
         GIT_STREAM_RDONLY = 2,
         GIT_STREAM_WRONLY = 4,
         GIT_STREAM_RW = 6,
