@@ -102,7 +102,7 @@ pub struct git_config_backend {
     pub snapshot:
         Option<extern "C" fn(*mut *mut git_config_backend, *mut git_config_backend) -> c_int>,
     pub lock: Option<extern "C" fn(*mut git_config_backend) -> c_int>,
-    pub unlock: Option<extern "C" fn(*mut git_config_backend) -> c_int>,
+    pub unlock: Option<extern "C" fn(*mut git_config_backend, c_int) -> c_int>,
     pub free: Option<extern "C" fn(*mut git_config_backend)>,
 }
 
@@ -3244,13 +3244,13 @@ extern "C" {
         repo: *const git_repository,
         force: c_int,
     ) -> c_int;
-    pub fn git_config_backend_backend_from_string(
+    pub fn git_config_backend_from_string(
         out: *mut *mut git_config_backend,
         cfg: *const c_char,
         len: size_t,
         opts: *mut git_config_backend_memory_options,
     ) -> c_int;
-    pub fn git_config_backend_backend_from_values(
+    pub fn git_config_backend_from_values(
         out: *mut *mut git_config_backend,
         values: *mut *const c_char,
         len: size_t,
