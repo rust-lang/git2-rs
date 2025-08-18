@@ -2991,7 +2991,7 @@ extern "C" {
     pub fn git_commit_message_encoding(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_message_raw(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_nth_gen_ancestor(
-        commit: *mut *mut git_commit,
+        ancestor: *mut *mut git_commit,
         commit: *const git_commit,
         n: c_uint,
     ) -> c_int;
