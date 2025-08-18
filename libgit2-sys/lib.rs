@@ -131,7 +131,7 @@ pub struct git_config_backend {
     pub snapshot:
         Option<extern "C" fn(*mut *mut git_config_backend, *mut git_config_backend) -> c_int>,
     pub lock: Option<extern "C" fn(*mut git_config_backend) -> c_int>,
-    pub unlock: Option<extern "C" fn(*mut git_config_backend) -> c_int>,
+    pub unlock: Option<extern "C" fn(*mut git_config_backend, c_int) -> c_int>,
     pub free: Option<extern "C" fn(*mut git_config_backend)>,
 }
 
@@ -145,9 +145,9 @@ pub enum git_reference {}
 #[repr(C)]
 pub struct git_reference_iterator {
     pub db: *mut git_refdb,
-    pub next: Option<fn(*mut *mut git_reference, *mut git_reference_iterator) -> c_int>,
-    pub next_name: Option<fn(*mut *const c_char, *mut git_reference_iterator) -> c_int>,
-    pub free: Option<fn(*mut git_reference_iterator)>,
+    pub next: Option<extern "C" fn(*mut *mut git_reference, *mut git_reference_iterator) -> c_int>,
+    pub next_name: Option<extern "C" fn(*mut *const c_char, *mut git_reference_iterator) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_reference_iterator)>,
 }
 
 pub enum git_annotated_commit {}
