@@ -1088,7 +1088,7 @@ impl<B: OdbBackend> Backend<B> {
             inner: stream,
         };
 
-        *stream_out = unsafe { allocate(stream).cast() };
+        *stream_out = unsafe { box_allocate(stream).cast() };
 
         raw::GIT_OK
     }
@@ -1134,7 +1134,7 @@ impl<B: OdbBackend> Backend<B> {
             inner: stream,
         };
 
-        *stream_out = unsafe { allocate(stream).cast() };
+        *stream_out = unsafe { box_allocate(stream).cast() };
 
         raw::GIT_OK
     }
@@ -1217,10 +1217,9 @@ impl<B: OdbBackend> Backend<B> {
             },
             inner: writepack,
         };
-        let writepack = Box::into_raw(Box::new(writepack));
 
         let out_writepack = unsafe { out_writepack_ptr.as_mut().unwrap() };
-        *out_writepack = writepack.cast();
+        *out_writepack = unsafe { box_allocate(writepack).cast() };
 
         raw::GIT_OK
     }
@@ -1249,8 +1248,7 @@ impl<B: OdbBackend> Backend<B> {
     }
 
     extern "C" fn free(backend: *mut raw::git_odb_backend) {
-        let inner = unsafe { Box::from_raw(backend.cast::<Self>()) };
-        drop(inner);
+        unsafe { box_free(backend.cast::<Self>()) }
     }
 }
 
@@ -1306,8 +1304,7 @@ where
         raw::GIT_OK
     }
     extern "C" fn free(writepack_ptr: *mut raw::git_odb_writepack) {
-        let inner = unsafe { Box::from_raw(writepack_ptr.cast::<Self>()) };
-        drop(inner);
+        unsafe { box_free(writepack_ptr.cast::<Self>()) }
     }
 }
 
@@ -1379,15 +1376,15 @@ impl<B, T> Stream<B, T> {
     }
 
     extern "C" fn free(stream_ptr: *mut raw::git_odb_stream) {
-        unsafe { free(stream_ptr.cast::<Self>()) }
+        unsafe { box_free(stream_ptr.cast::<Self>()) }
     }
 }
 type WriteStream<B> = Stream<B, <B as OdbBackend>::WriteStream>;
 type ReadStream<B> = Stream<B, <B as OdbBackend>::ReadStream>;
 
-unsafe fn allocate<T>(value: T) -> *mut T {
+unsafe fn box_allocate<T>(value: T) -> *mut T {
     Box::into_raw(Box::new(value))
 }
-unsafe fn free<T>(ptr: *mut T) {
+unsafe fn box_free<T>(ptr: *mut T) {
     drop(Box::from_raw(ptr))
 }
