@@ -32,6 +32,14 @@ pub trait OdbBackend: Sized {
     ///
     /// [`Infallible`]: std::convert::Infallible
     type Writepack: OdbWritepack<Self>;
+    /// Backend-specific readable stream.
+    ///
+    /// If the backend doesn't support reading through streams, this type should be [`Infallible`].
+    type ReadStream: OdbReadStream<Self>;
+    /// Backend-specific writable stream.
+    ///
+    /// If the backend doesn't support writing through streams, this type should be [`Infallible`].
+    type WriteStream: OdbWriteStream<Self>;
 
     /// Returns the supported operations of this backend.
     /// The return value is used to determine what functions to provide to libgit2.
@@ -328,8 +336,62 @@ pub trait OdbBackend: Sized {
         unimplemented!("OdbBackend::write_multipack_index")
     }
 
-    // TODO: fn writestream()
-    // TODO: fn readstream()
+    /// Opens a stream to read an object.
+    ///
+    /// Corresponds to the `readstream` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::READSTREAM`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// If an implementation returns `Ok(stream)`, `length` and `object_type` MUST be set to the
+    /// length of the object's contents and the object type respectively; see
+    /// [`OdbBackend::read_header`].
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend::read`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn open_read_stream(
+        &mut self,
+        ctx: &OdbBackendContext,
+        oid: Oid,
+        length: &mut usize,
+        object_type: &mut ObjectType,
+    ) -> Result<Self::ReadStream, Error> {
+        unimplemented!("OdbBackend::open_read_stream")
+    }
+    /// Opens a stream to write an object.
+    ///
+    /// Corresponds to the `writestream` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::WRITESTREAM`] is present in the value returned from
+    /// [`supported_operations`] to expose it to libgit2.
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// The Oid of the object is calculated by libgit2 *after* all the data has been written.
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend::write`].
+    ///
+    /// [`git_odb_backend`]: raw::git_odb_backend
+    /// [`supported_operations`]: Self::supported_operations
+    fn open_write_stream(
+        &mut self,
+        ctx: &OdbBackendContext,
+        length: usize,
+        object_type: ObjectType,
+    ) -> Result<Self::WriteStream, Error> {
+        unimplemented!("OdbBackend::open_write_stream")
+    }
+
     // TODO: fn foreach()
 }
 
@@ -347,9 +409,9 @@ bitflags! {
         const READ_HEADER = 1 << 2;
         /// The backend supports the [`OdbBackend::write`] method.
         const WRITE = 1 << 3;
-        /// The backend supports the [`OdbBackend::writestream`] method.
+        /// The backend supports the [`OdbBackend::open_write_stream`] method.
         const WRITESTREAM = 1 << 4;
-        /// The backend supports the [`OdbBackend::readstream`] method.
+        /// The backend supports the [`OdbBackend::open_read_stream`] method.
         const READSTREAM = 1 << 5;
         /// The backend supports the [`OdbBackend::exists`] method.
         const EXISTS = 1 << 6;
@@ -692,6 +754,94 @@ impl Binding for IndexerProgress {
     }
 }
 
+/// A stream that can be read from.
+pub trait OdbReadStream<B: OdbBackend> {
+    /// Read as many bytes as possible from this stream, returning how many bytes were read.
+    ///
+    /// Corresponds to the `read` function of [`git_odb_stream`].
+    ///
+    /// # Implementation notes
+    ///
+    /// If `Ok(read_bytes)` is returned, `read_bytes` should be how many bytes were read from this
+    /// stream. This number must not exceed the length of `out`.
+    ///
+    /// `out` will never have a length greater than [`libc::c_int::MAX`].
+    ///
+    /// > Whilst a caller may be able to pass buffers longer than that, `read_bytes` (from the `Ok`
+    /// > return value) must be convertible to a [`libc::c_int`] for git2 to be able to return the
+    /// > value back to libgit2.
+    /// > For that reason, git2 will automatically limit the buffer length to [`libc::c_int::MAX`].
+    ///
+    /// # Errors
+    ///
+    /// See [`OdbBackend`].
+    ///
+    /// [`git_odb_stream`]: raw::git_odb_stream
+    fn read(&mut self, ctx: &mut OdbStreamContext<B>, out: &mut [u8]) -> Result<usize, Error>;
+}
+
+impl<B: OdbBackend> OdbReadStream<B> for Infallible {
+    fn read(&mut self, _ctx: &mut OdbStreamContext<B>, _out: &mut [u8]) -> Result<usize, Error> {
+        unreachable!()
+    }
+}
+
+/// A stream that can be written to.
+pub trait OdbWriteStream<B: OdbBackend> {
+    /// Write bytes to this stream.
+    ///
+    /// Corresponds to the `write` function of [`git_odb_stream`].
+    ///
+    /// # Implementation notes
+    ///
+    /// All calls to `write` will be "finalized" by a single call to [`finalize_write`], after which
+    /// no more calls to this stream will occur.
+    ///
+    /// [`git_odb_stream`]: raw::git_odb_stream
+    /// [`finalize_write`]: OdbWriteStream::finalize_write
+    fn write(&mut self, ctx: &mut OdbStreamContext<B>, data: &[u8]) -> Result<(), Error>;
+    /// Store the contents of the stream as an object with the specified [`Oid`].
+    ///
+    /// Corresponds to the `finalize_write` function of [`git_odb_stream`].
+    ///
+    /// # Implementation notes
+    ///
+    /// This method might not be invoked if:
+    /// - an error occurs in the [`write`] implementation,
+    /// - `oid` refers to an already existing object in another backend, or
+    /// - the final number of received bytes differs from the size declared when the stream was opened.
+    ///
+    ///
+    /// [`git_odb_stream`]: raw::git_odb_stream
+    /// [`write`]: OdbWriteStream::write
+    fn finalize_write(&mut self, ctx: &mut OdbStreamContext<B>, oid: Oid) -> Result<(), Error>;
+}
+
+impl<B: OdbBackend> OdbWriteStream<B> for Infallible {
+    fn write(&mut self, _ctx: &mut OdbStreamContext<B>, _data: &[u8]) -> Result<(), Error> {
+        unreachable!()
+    }
+
+    fn finalize_write(&mut self, _ctx: &mut OdbStreamContext<B>, _oid: Oid) -> Result<(), Error> {
+        unreachable!()
+    }
+}
+
+/// Context struct passed to [`OdbReadStream`] and [`OdbWriteStream`]'s methods.
+pub struct OdbStreamContext<B: OdbBackend> {
+    backend_ptr: ptr::NonNull<Backend<B>>,
+}
+impl<B: OdbBackend> OdbStreamContext<B> {
+    /// Get a reference to the associated [`OdbBackend`].
+    pub fn backend(&self) -> &B {
+        unsafe { &self.backend_ptr.as_ref().inner }
+    }
+    /// Get a mutable reference to the associated [`OdbBackend`].
+    pub fn backend_mut(&mut self) -> &mut B {
+        unsafe { &mut self.backend_ptr.as_mut().inner }
+    }
+}
+
 /// A handle to an [`OdbBackend`] that has been added to an [`Odb`].
 pub struct CustomOdbBackend<'a, B: OdbBackend> {
     // NOTE: Any pointer in this field must be both non-null and properly aligned.
@@ -767,6 +917,8 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(read_prefix if READ_PREFIX);
         op_if!(read_header if READ_HEADER);
         op_if!(write if WRITE);
+        op_if!(writestream if WRITESTREAM);
+        op_if!(readstream if READSTREAM);
         op_if!(exists if EXISTS);
         op_if!(exists_prefix if EXISTS_PREFIX);
         op_if!(refresh if REFRESH);
@@ -900,6 +1052,90 @@ impl<B: OdbBackend> Backend<B> {
         if let Err(e) = backend.inner.write(&context, oid, object_type, data) {
             return unsafe { e.raw_set_git_error() };
         }
+        raw::GIT_OK
+    }
+    extern "C" fn writestream(
+        stream_out: *mut *mut raw::git_odb_stream,
+        backend_ptr: *mut raw::git_odb_backend,
+        length: raw::git_object_size_t,
+        object_type: raw::git_object_t,
+    ) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Backend<B>>().as_mut().unwrap() };
+        let object_type = ObjectType::from_raw(object_type).unwrap();
+        let context = OdbBackendContext { backend_ptr };
+        let stream_out = unsafe { stream_out.as_mut().unwrap() };
+        let stream = match backend
+            .inner
+            .open_write_stream(&context, length as usize, object_type)
+        {
+            Err(e) => return unsafe { e.raw_set_git_error() },
+            Ok(x) => x,
+        };
+
+        let stream = WriteStream::<B> {
+            parent: raw::git_odb_stream {
+                backend: backend_ptr,
+                mode: raw::GIT_STREAM_WRONLY,
+                hash_ctx: ptr::null_mut(),
+                declared_size: 0,
+                received_bytes: 0,
+                read: None,
+                write: Some(WriteStream::<B>::write),
+                finalize_write: Some(WriteStream::<B>::finalize_write),
+                free: Some(WriteStream::<B>::free),
+            },
+            _marker: marker::PhantomData,
+            inner: stream,
+        };
+
+        *stream_out = unsafe { allocate(stream).cast() };
+
+        raw::GIT_OK
+    }
+    extern "C" fn readstream(
+        stream_out: *mut *mut raw::git_odb_stream,
+        length_ptr: *mut libc::size_t,
+        otype_ptr: *mut raw::git_object_t,
+        backend_ptr: *mut raw::git_odb_backend,
+        oid_ptr: *const raw::git_oid,
+    ) -> libc::c_int {
+        let size = unsafe { length_ptr.as_mut().unwrap() };
+        let otype = unsafe { otype_ptr.as_mut().unwrap() };
+        let backend = unsafe { backend_ptr.cast::<Backend<B>>().as_mut().unwrap() };
+        let oid = unsafe { Oid::from_raw(oid_ptr) };
+        let stream_out = unsafe { stream_out.as_mut().unwrap() };
+
+        let context = OdbBackendContext { backend_ptr };
+
+        let mut object_type = ObjectType::Any;
+        let stream = match backend
+            .inner
+            .open_read_stream(&context, oid, size, &mut object_type)
+        {
+            Err(e) => return unsafe { e.raw_set_git_error() },
+            Ok(x) => x,
+        };
+
+        *otype = object_type.raw();
+
+        let stream = ReadStream::<B> {
+            parent: raw::git_odb_stream {
+                backend: backend_ptr,
+                mode: raw::GIT_STREAM_RDONLY,
+                hash_ctx: ptr::null_mut(),
+                declared_size: 0,
+                received_bytes: 0,
+                read: Some(ReadStream::<B>::read),
+                write: None,
+                finalize_write: None,
+                free: Some(ReadStream::<B>::free),
+            },
+            _marker: marker::PhantomData,
+            inner: stream,
+        };
+
+        *stream_out = unsafe { allocate(stream).cast() };
+
         raw::GIT_OK
     }
 
@@ -1073,4 +1309,85 @@ where
         let inner = unsafe { Box::from_raw(writepack_ptr.cast::<Self>()) };
         drop(inner);
     }
+}
+
+struct Stream<B, T> {
+    parent: raw::git_odb_stream,
+    _marker: marker::PhantomData<B>,
+    inner: T,
+}
+impl<B, T> Stream<B, T> {
+    extern "C" fn read(
+        stream_ptr: *mut raw::git_odb_stream,
+        out_ptr: *mut libc::c_char,
+        out_len: libc::size_t,
+    ) -> libc::c_int
+    where
+        B: OdbBackend<ReadStream = T>,
+        T: OdbReadStream<B>,
+    {
+        let stream = unsafe { stream_ptr.cast::<Self>().as_mut().unwrap() };
+        let buf_len = (out_len as usize).max(libc::c_int::MAX as usize);
+        let buf = unsafe { slice::from_raw_parts_mut(out_ptr.cast::<u8>(), buf_len) };
+        let mut context = OdbStreamContext {
+            backend_ptr: ptr::NonNull::new(stream.parent.backend).unwrap().cast(),
+        };
+        let read_bytes = match stream.inner.read(&mut context, buf) {
+            Err(e) => return unsafe { e.raw_set_git_error() },
+            Ok(x) => x,
+        };
+        read_bytes as libc::c_int
+    }
+
+    extern "C" fn write(
+        stream_ptr: *mut raw::git_odb_stream,
+        data: *const libc::c_char,
+        len: libc::size_t,
+    ) -> libc::c_int
+    where
+        B: OdbBackend<WriteStream = T>,
+        T: OdbWriteStream<B>,
+    {
+        let stream = unsafe { stream_ptr.cast::<Self>().as_mut().unwrap() };
+        let data = unsafe { slice::from_raw_parts(data.cast::<u8>(), len) };
+        let mut context = OdbStreamContext {
+            backend_ptr: ptr::NonNull::new(stream.parent.backend).unwrap().cast(),
+        };
+        if let Err(e) = stream.inner.write(&mut context, data) {
+            return unsafe { e.raw_set_git_error() };
+        }
+
+        raw::GIT_OK
+    }
+    extern "C" fn finalize_write(
+        stream_ptr: *mut raw::git_odb_stream,
+        oid_ptr: *const raw::git_oid,
+    ) -> libc::c_int
+    where
+        B: OdbBackend<WriteStream = T>,
+        T: OdbWriteStream<B>,
+    {
+        let stream = unsafe { stream_ptr.cast::<Self>().as_mut().unwrap() };
+        let oid = unsafe { Oid::from_raw(oid_ptr) };
+        let mut context = OdbStreamContext {
+            backend_ptr: ptr::NonNull::new(stream.parent.backend).unwrap().cast(),
+        };
+        if let Err(e) = stream.inner.finalize_write(&mut context, oid) {
+            return unsafe { e.raw_set_git_error() };
+        }
+        raw::GIT_OK
+    }
+
+    extern "C" fn free(stream_ptr: *mut raw::git_odb_stream) {
+        unsafe { free(stream_ptr.cast::<Self>()) }
+    }
+}
+type WriteStream<B> = Stream<B, <B as OdbBackend>::WriteStream>;
+type ReadStream<B> = Stream<B, <B as OdbBackend>::ReadStream>;
+
+unsafe fn allocate<T>(value: T) -> *mut T {
+    Box::into_raw(Box::new(value))
+}
+unsafe fn free<T>(ptr: *mut T) {
+    drop(Box::from_raw(ptr))
 }
