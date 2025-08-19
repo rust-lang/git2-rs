@@ -1075,7 +1075,7 @@ impl<B: OdbBackend> Backend<B> {
         let stream = WriteStream::<B> {
             parent: raw::git_odb_stream {
                 backend: backend_ptr,
-                mode: raw::GIT_STREAM_WRONLY,
+                mode: raw::GIT_STREAM_WRONLY as _,
                 hash_ctx: ptr::null_mut(),
                 declared_size: 0,
                 received_bytes: 0,
@@ -1121,7 +1121,7 @@ impl<B: OdbBackend> Backend<B> {
         let stream = ReadStream::<B> {
             parent: raw::git_odb_stream {
                 backend: backend_ptr,
-                mode: raw::GIT_STREAM_RDONLY,
+                mode: raw::GIT_STREAM_RDONLY as _,
                 hash_ctx: ptr::null_mut(),
                 declared_size: 0,
                 received_bytes: 0,
