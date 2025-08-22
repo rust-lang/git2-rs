@@ -45,3 +45,6 @@ zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 
 [workspace]
 members = ["systest", "git2-curl"]
+
+[package.metadata.docs.rs]
+features = ["https", "ssh"]
