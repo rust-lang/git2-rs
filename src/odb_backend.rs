@@ -392,7 +392,28 @@ pub trait OdbBackend: Sized {
         unimplemented!("OdbBackend::open_write_stream")
     }
 
-    // TODO: fn foreach()
+    /// Iterates through all objects this backend knows of.
+    ///
+    /// Corresponds to the `foreach` function of [`git_odb_backend`].
+    /// Requires that [`SupportedOperations::FOREACH`] is present in the value returned from
+    /// [`supported_operations`].
+    ///
+    /// The default implementation of this method panics.
+    ///
+    /// # Implementation notes
+    ///
+    /// For each object in this backend, `callback` should be invoked with the object's Oid once.
+    /// See [`ForeachCallback::invoke`].
+    ///
+    /// # Errors
+    ///
+    /// If the callback returns an error, the backend SHOULD propagate that error instead of
+    /// continuing iteration.
+    ///
+    /// See [`OdbBackend`] for more recommendations.
+    fn foreach(&mut self, ctx: &OdbBackendContext, callback: ForeachCallback) -> Result<(), Error> {
+        unimplemented!("OdbBackend::foreach")
+    }
 }
 
 bitflags! {
@@ -827,6 +848,37 @@ impl<B: OdbBackend> OdbWriteStream<B> for Infallible {
     }
 }
 
+/// Callback used in calls to [`OdbBackend::foreach`].
+///
+/// A wrapper for [`git_odb_foreach_cb`](raw::git_odb_foreach_cb).
+pub struct ForeachCallback {
+    callback: raw::git_odb_foreach_cb,
+    payload: *mut libc::c_void,
+}
+impl ForeachCallback {
+    /// Invokes this callback.
+    ///
+    /// # Arguments
+    ///
+    /// `oid` should be the ID of the object that was iterated over.
+    ///
+    /// # Return value
+    ///
+    /// Returns `Ok(())` if the callback returns 0.
+    /// Returns an error if the callback returns a non-zero integer.
+    pub fn invoke(&mut self, oid: &Oid) -> Result<(), Error> {
+        let code = match self.callback {
+            Some(callback) => callback(oid.raw(), self.payload),
+            None => return Ok(()), // maybe this should be an error
+        };
+        if code != 0 {
+            Err(Error::last_error(code))
+        } else {
+            Ok(())
+        }
+    }
+}
+
 /// Context struct passed to [`OdbReadStream`] and [`OdbWriteStream`]'s methods.
 pub struct OdbStreamContext<B: OdbBackend> {
     backend_ptr: ptr::NonNull<Backend<B>>,
@@ -922,6 +974,7 @@ impl<'a, B: OdbBackend> CustomOdbBackend<'a, B> {
         op_if!(exists if EXISTS);
         op_if!(exists_prefix if EXISTS_PREFIX);
         op_if!(refresh if REFRESH);
+        op_if!(foreach if FOREACH);
         op_if!(writepack if WRITE_PACK);
         op_if!(writemidx if WRITE_MULTIPACK_INDEX);
         op_if!(freshen if FRESHEN);
@@ -1182,6 +1235,23 @@ impl<B: OdbBackend> Backend<B> {
         let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
         let context = OdbBackendContext { backend_ptr };
         if let Err(e) = backend.inner.refresh(&context) {
+            return unsafe { e.raw_set_git_error() };
+        }
+        raw::GIT_OK
+    }
+
+    extern "C" fn foreach(
+        backend_ptr: *mut raw::git_odb_backend,
+        foreach_cb: raw::git_odb_foreach_cb,
+        foreach_cb_payload: *mut libc::c_void,
+    ) -> libc::c_int {
+        let backend = unsafe { backend_ptr.cast::<Self>().as_mut().unwrap() };
+        let context = OdbBackendContext { backend_ptr };
+        let callback = ForeachCallback {
+            callback: foreach_cb,
+            payload: foreach_cb_payload,
+        };
+        if let Err(e) = backend.inner.foreach(&context, callback) {
             return unsafe { e.raw_set_git_error() };
         }
         raw::GIT_OK
