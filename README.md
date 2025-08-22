@@ -4,9 +4,20 @@
 
 libgit2 bindings for Rust.
 
-```toml
-[dependencies]
-git2 = "0.21"
+```
+cargo add git2
+```
+
+## Features
+
+By default, git2 includes support for working with local repositories, but does
+not include network support (e.g. cloning remote repositories). If you want to
+use features that require network support, you may need the `"https"` and/or
+`"ssh"` features. If you support user-provided repository URLs, you probably
+want to enable both.
+
+```
+cargo add git2 --features https,ssh
 ```
 
 ## Rust version requirements
