@@ -22,7 +22,7 @@ impl Default for Buf {
 
 impl Buf {
     /// Creates a new empty buffer.
-    pub fn new() -> Buf {
+    pub fn new() -> Self {
         crate::init();
         unsafe {
             Binding::from_raw(&mut raw::git_buf {
@@ -56,8 +56,8 @@ impl DerefMut for Buf {
 
 impl Binding for Buf {
     type Raw = *mut raw::git_buf;
-    unsafe fn from_raw(raw: *mut raw::git_buf) -> Buf {
-        Buf { raw: *raw }
+    unsafe fn from_raw(raw: *mut raw::git_buf) -> Self {
+        Self { raw: *raw }
     }
     fn raw(&self) -> *mut raw::git_buf {
         &self.raw as *const _ as *mut _

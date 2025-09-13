@@ -100,7 +100,7 @@ struct MessageTrailers {
 }
 
 impl MessageTrailers {
-    fn new() -> MessageTrailers {
+    fn new() -> Self {
         crate::init();
         unsafe {
             Binding::from_raw(&mut raw::git_message_trailer_array {
@@ -134,8 +134,8 @@ impl Drop for MessageTrailers {
 
 impl Binding for MessageTrailers {
     type Raw = *mut raw::git_message_trailer_array;
-    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> MessageTrailers {
-        MessageTrailers { raw: *raw }
+    unsafe fn from_raw(raw: *mut raw::git_message_trailer_array) -> Self {
+        Self { raw: *raw }
     }
     fn raw(&self) -> *mut raw::git_message_trailer_array {
         &self.raw as *const _ as *mut _
