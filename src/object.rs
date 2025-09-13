@@ -32,7 +32,7 @@ impl<'repo> Object<'repo> {
     /// If you pass `Any` as the target type, then the object will be
     /// peeled until the type changes (e.g. a tag will be chased until the
     /// referenced object is no longer a tag).
-    pub fn peel(&self, kind: ObjectType) -> Result<Object<'repo>, Error> {
+    pub fn peel(&self, kind: ObjectType) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_object_peel(&mut raw, &*self.raw(), kind));
@@ -88,7 +88,7 @@ impl<'repo> Object<'repo> {
     /// Attempt to consume this object and return a commit.
     ///
     /// Returns `Err(self)` if this object is not actually a commit.
-    pub fn into_commit(self) -> Result<Commit<'repo>, Object<'repo>> {
+    pub fn into_commit(self) -> Result<Commit<'repo>, Self> {
         self.cast_into(ObjectType::Commit)
     }
 
@@ -102,7 +102,7 @@ impl<'repo> Object<'repo> {
     /// Attempt to consume this object and return a tag.
     ///
     /// Returns `Err(self)` if this object is not actually a tag.
-    pub fn into_tag(self) -> Result<Tag<'repo>, Object<'repo>> {
+    pub fn into_tag(self) -> Result<Tag<'repo>, Self> {
         self.cast_into(ObjectType::Tag)
     }
 
@@ -116,7 +116,7 @@ impl<'repo> Object<'repo> {
     /// Attempt to consume this object and return a tree.
     ///
     /// Returns `Err(self)` if this object is not actually a tree.
-    pub fn into_tree(self) -> Result<Tree<'repo>, Object<'repo>> {
+    pub fn into_tree(self) -> Result<Tree<'repo>, Self> {
         self.cast_into(ObjectType::Tree)
     }
 
@@ -130,7 +130,7 @@ impl<'repo> Object<'repo> {
     /// Attempt to consume this object and return a blob.
     ///
     /// Returns `Err(self)` if this object is not actually a blob.
-    pub fn into_blob(self) -> Result<Blob<'repo>, Object<'repo>> {
+    pub fn into_blob(self) -> Result<Blob<'repo>, Self> {
         self.cast_into(ObjectType::Blob)
     }
 
@@ -154,7 +154,7 @@ impl<'repo> Object<'repo> {
         }
     }
 
-    fn cast_into<T>(self, kind: ObjectType) -> Result<T, Object<'repo>> {
+    fn cast_into<T>(self, kind: ObjectType) -> Result<T, Self> {
         assert_eq!(mem::size_of_val(&self), mem::size_of::<T>());
         if self.kind() == Some(kind) {
             Ok(unsafe {
@@ -202,7 +202,7 @@ impl<'repo> CastOrPanic for Object<'repo> {
 }
 
 impl<'repo> Clone for Object<'repo> {
-    fn clone(&self) -> Object<'repo> {
+    fn clone(&self) -> Self {
         let mut raw = ptr::null_mut();
         unsafe {
             let rc = raw::git_object_dup(&mut raw, self.raw);
@@ -230,7 +230,7 @@ impl<'repo> std::fmt::Debug for Object<'repo> {
 impl<'repo> Binding for Object<'repo> {
     type Raw = *mut raw::git_object;
 
-    unsafe fn from_raw(raw: *mut raw::git_object) -> Object<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_object) -> Self {
         Object {
             raw,
             _marker: marker::PhantomData,

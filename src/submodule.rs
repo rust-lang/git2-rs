@@ -250,7 +250,7 @@ impl<'repo> Submodule<'repo> {
 
 impl<'repo> Binding for Submodule<'repo> {
     type Raw = *mut raw::git_submodule;
-    unsafe fn from_raw(raw: *mut raw::git_submodule) -> Submodule<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_submodule) -> Self {
         Submodule {
             raw,
             _marker: marker::PhantomData,
@@ -290,13 +290,13 @@ impl<'cb> SubmoduleUpdateOptions<'cb> {
             raw::git_checkout_init_options(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
         assert_eq!(0, init_res);
         self.checkout_builder.configure(&mut checkout_opts);
-        let opts = raw::git_submodule_update_options {
+
+        raw::git_submodule_update_options {
             version: raw::GIT_SUBMODULE_UPDATE_OPTIONS_VERSION,
             checkout_opts,
             fetch_opts: self.fetch_opts.raw(),
             allow_fetch: self.allow_fetch as c_int,
-        };
-        opts
+        }
     }
 
     /// Set checkout options.

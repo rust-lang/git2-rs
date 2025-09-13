@@ -63,7 +63,7 @@ impl Config {
     ///
     /// This object is empty, so you have to add a file to it before you can do
     /// anything with it.
-    pub fn new() -> Result<Config, Error> {
+    pub fn new() -> Result<Self, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
@@ -73,7 +73,7 @@ impl Config {
     }
 
     /// Create a new config instance containing a single on-disk file
-    pub fn open(path: &Path) -> Result<Config, Error> {
+    pub fn open(path: &Path) -> Result<Self, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         // Normal file path OK (does not need Windows conversion).
@@ -89,7 +89,7 @@ impl Config {
     /// Utility wrapper that finds the global, XDG and system configuration
     /// files and opens them into a single prioritized config object that can
     /// be used when accessing default config data outside a repository.
-    pub fn open_default() -> Result<Config, Error> {
+    pub fn open_default() -> Result<Self, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
@@ -377,7 +377,7 @@ impl Config {
     /// `$XDG_CONFIG_HOME/git/config`. For backwards compatibility, the XDG file
     /// shouldn't be used unless the use has created it explicitly. With this
     /// function you'll open the correct one to write to.
-    pub fn open_global(&mut self) -> Result<Config, Error> {
+    pub fn open_global(&mut self) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_open_global(&mut raw, self.raw));
@@ -389,7 +389,7 @@ impl Config {
     ///
     /// The returned config object can be used to perform get/set/delete
     /// operations on a single specific level.
-    pub fn open_level(&self, level: ConfigLevel) -> Result<Config, Error> {
+    pub fn open_level(&self, level: ConfigLevel) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_open_level(&mut raw, &*self.raw, level));
@@ -457,7 +457,7 @@ impl Config {
     /// Create a snapshot of the current state of a configuration, which allows
     /// you to look into a consistent view of the configuration for looking up
     /// complex values (e.g. a remote, submodule).
-    pub fn snapshot(&mut self) -> Result<Config, Error> {
+    pub fn snapshot(&mut self) -> Result<Self, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_config_snapshot(&mut ret, self.raw));
@@ -506,8 +506,8 @@ impl Config {
 
 impl Binding for Config {
     type Raw = *mut raw::git_config;
-    unsafe fn from_raw(raw: *mut raw::git_config) -> Config {
-        Config { raw }
+    unsafe fn from_raw(raw: *mut raw::git_config) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> *mut raw::git_config {
         self.raw
@@ -567,14 +567,14 @@ impl<'cfg> ConfigEntry<'cfg> {
 
     /// Depth of includes where this variable was found
     pub fn include_depth(&self) -> u32 {
-        unsafe { (*self.raw).include_depth as u32 }
+        unsafe { (*self.raw).include_depth }
     }
 }
 
 impl<'cfg> Binding for ConfigEntry<'cfg> {
     type Raw = *mut raw::git_config_entry;
 
-    unsafe fn from_raw(raw: *mut raw::git_config_entry) -> ConfigEntry<'cfg> {
+    unsafe fn from_raw(raw: *mut raw::git_config_entry) -> Self {
         ConfigEntry {
             raw,
             _marker: marker::PhantomData,
@@ -589,7 +589,7 @@ impl<'cfg> Binding for ConfigEntry<'cfg> {
 impl<'cfg> Binding for ConfigEntries<'cfg> {
     type Raw = *mut raw::git_config_iterator;
 
-    unsafe fn from_raw(raw: *mut raw::git_config_iterator) -> ConfigEntries<'cfg> {
+    unsafe fn from_raw(raw: *mut raw::git_config_iterator) -> Self {
         ConfigEntries {
             raw,
             current: None,

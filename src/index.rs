@@ -90,7 +90,7 @@ impl Index {
     ///
     /// This index object cannot be read/written to the filesystem, but may be
     /// used to perform in-memory index operations.
-    pub fn new() -> Result<Index, Error> {
+    pub fn new() -> Result<Self, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
@@ -107,7 +107,7 @@ impl Index {
     ///
     /// If you need an index attached to a repository, use the `index()` method
     /// on `Repository`.
-    pub fn open(index_path: &Path) -> Result<Index, Error> {
+    pub fn open(index_path: &Path) -> Result<Self, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         // Normal file path OK (does not need Windows conversion).
@@ -704,8 +704,8 @@ impl IndexEntry {
 
 impl Binding for Index {
     type Raw = *mut raw::git_index;
-    unsafe fn from_raw(raw: *mut raw::git_index) -> Index {
-        Index { raw }
+    unsafe fn from_raw(raw: *mut raw::git_index) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> *mut raw::git_index {
         self.raw
@@ -715,7 +715,7 @@ impl Binding for Index {
 impl<'index> Binding for IndexConflicts<'index> {
     type Raw = *mut raw::git_index_conflict_iterator;
 
-    unsafe fn from_raw(raw: *mut raw::git_index_conflict_iterator) -> IndexConflicts<'index> {
+    unsafe fn from_raw(raw: *mut raw::git_index_conflict_iterator) -> Self {
         IndexConflicts {
             conflict_iter: raw,
             _marker: marker::PhantomData,
@@ -796,7 +796,7 @@ impl<'index> Iterator for IndexConflicts<'index> {
 impl Binding for IndexEntry {
     type Raw = raw::git_index_entry;
 
-    unsafe fn from_raw(raw: raw::git_index_entry) -> IndexEntry {
+    unsafe fn from_raw(raw: raw::git_index_entry) -> Self {
         let raw::git_index_entry {
             ctime,
             mtime,
@@ -822,7 +822,7 @@ impl Binding for IndexEntry {
 
         let path = slice::from_raw_parts(path as *const u8, pathlen);
 
-        IndexEntry {
+        Self {
             dev,
             ino,
             mode,
