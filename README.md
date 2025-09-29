@@ -63,7 +63,7 @@ To skip tests on a simple commit or doc-fixes, use `git commit --no-verify`.
 
 ## Building on macOS 10.10+
 
-If the `ssh` feature is enabled (and it is by default) then this library depends
+If the `ssh` feature is enabled then this library depends
 on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
 [`openssl` crate's instructions](https://github.com/sfackler/rust-openssl/blob/master/openssl/src/lib.rs#L31).
 
