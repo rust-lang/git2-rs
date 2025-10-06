@@ -120,7 +120,7 @@ pub unsafe fn set_cache_object_limit(kind: ObjectType, size: libc::size_t) -> Re
 /// # Safety
 /// This function is modifying a C global without synchronization, so it is not
 /// thread safe, and should only be called before any thread is spawned.
-pub unsafe fn set_cache_max_size(size: libc::size_t) -> Result<(), Error> {
+pub unsafe fn set_cache_max_size(size: libc::ssize_t) -> Result<(), Error> {
     crate::init();
     try_call!(raw::git_libgit2_opts(
         raw::GIT_OPT_SET_CACHE_MAX_SIZE as libc::c_int,
@@ -134,7 +134,7 @@ pub unsafe fn set_cache_max_size(size: libc::size_t) -> Result<(), Error> {
 /// # Safety
 /// This function is reading a C global without synchronization, so it is not
 /// thread safe, and should only be called before any thread is spawned.
-pub unsafe fn get_cached_memory() -> Result<(libc::size_t, libc::size_t), Error> {
+pub unsafe fn get_cached_memory() -> Result<(libc::ssize_t, libc::ssize_t), Error> {
     crate::init();
     let mut current = 0;
     let mut allowed = 0;
@@ -517,6 +517,14 @@ mod test {
         unsafe {
             assert!(set_server_timeout_in_milliseconds(10_000).is_ok());
             assert!(get_server_timeout_in_milliseconds().unwrap() == 10_000);
+        }
+    }
+
+    #[test]
+    fn cache_size() {
+        unsafe {
+            assert!(set_cache_max_size(20 * 1024 * 1024).is_ok());
+            assert!(get_cached_memory().is_ok_and(|m| m.1 == 20 * 1024 * 1024));
         }
     }
 }
