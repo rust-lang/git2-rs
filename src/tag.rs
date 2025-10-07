@@ -130,7 +130,7 @@ impl<'repo> std::fmt::Debug for Tag<'repo> {
 
 impl<'repo> Binding for Tag<'repo> {
     type Raw = *mut raw::git_tag;
-    unsafe fn from_raw(raw: *mut raw::git_tag) -> Tag<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_tag) -> Self {
         Tag {
             raw,
             _marker: marker::PhantomData,

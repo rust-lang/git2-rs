@@ -55,20 +55,20 @@ pub enum TreeWalkResult {
     Abort = raw::GIT_EUSER,
 }
 
-impl Into<i32> for TreeWalkResult {
-    fn into(self) -> i32 {
-        self as i32
+impl From<TreeWalkResult> for i32 {
+    fn from(val: TreeWalkResult) -> Self {
+        val as Self
     }
 }
 
-impl Into<raw::git_treewalk_mode> for TreeWalkMode {
+impl From<TreeWalkMode> for raw::git_treewalk_mode {
     #[cfg(target_env = "msvc")]
     fn into(self) -> raw::git_treewalk_mode {
         self as i32
     }
     #[cfg(not(target_env = "msvc"))]
-    fn into(self) -> raw::git_treewalk_mode {
-        self as u32
+    fn from(val: TreeWalkMode) -> Self {
+        val as Self
     }
 }
 
@@ -215,7 +215,7 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
     entry: *const raw::git_tree_entry,
     payload: *mut c_void,
 ) -> c_int {
-    match panic::wrap(|| unsafe {
+    panic::wrap(|| unsafe {
         let root = match CStr::from_ptr(root).to_str() {
             Ok(value) => value,
             _ => return -1,
@@ -224,16 +224,14 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
         let payload = &mut *(payload as *mut TreeWalkCbData<'_, T>);
         let callback = &mut payload.callback;
         callback(root, &entry).into()
-    }) {
-        Some(value) => value,
-        None => -1,
-    }
+    })
+    .unwrap_or(-1)
 }
 
 impl<'repo> Binding for Tree<'repo> {
     type Raw = *mut raw::git_tree;
 
-    unsafe fn from_raw(raw: *mut raw::git_tree) -> Tree<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_tree) -> Self {
         Tree {
             raw,
             _marker: marker::PhantomData,
@@ -342,7 +340,7 @@ impl<'tree> TreeEntry<'tree> {
 
 impl<'a> Binding for TreeEntry<'a> {
     type Raw = *mut raw::git_tree_entry;
-    unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> TreeEntry<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_tree_entry) -> Self {
         TreeEntry {
             raw,
             owned: true,
@@ -355,7 +353,7 @@ impl<'a> Binding for TreeEntry<'a> {
 }
 
 impl<'a> Clone for TreeEntry<'a> {
-    fn clone(&self) -> TreeEntry<'a> {
+    fn clone(&self) -> Self {
         let mut ret = ptr::null_mut();
         unsafe {
             assert_eq!(raw::git_tree_entry_dup(&mut ret, &*self.raw()), 0);
@@ -365,18 +363,18 @@ impl<'a> Clone for TreeEntry<'a> {
 }
 
 impl<'a> PartialOrd for TreeEntry<'a> {
-    fn partial_cmp(&self, other: &TreeEntry<'a>) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 impl<'a> Ord for TreeEntry<'a> {
-    fn cmp(&self, other: &TreeEntry<'a>) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         c_cmp_to_ordering(unsafe { raw::git_tree_entry_cmp(&*self.raw(), &*other.raw()) })
     }
 }
 
 impl<'a> PartialEq for TreeEntry<'a> {
-    fn eq(&self, other: &TreeEntry<'a>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }

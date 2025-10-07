@@ -23,7 +23,7 @@ impl<'cb> Default for RebaseOptions<'cb> {
 
 impl<'cb> RebaseOptions<'cb> {
     /// Creates a new default set of rebase options.
-    pub fn new() -> RebaseOptions<'cb> {
+    pub fn new() -> Self {
         let mut opts = RebaseOptions {
             raw: unsafe { mem::zeroed() },
             rewrite_notes_ref: None,
@@ -39,7 +39,7 @@ impl<'cb> RebaseOptions<'cb> {
     /// provide in an application-specific manner. This has no effect upon
     /// libgit2 directly, but is provided for interoperability between Git
     /// tools.
-    pub fn quiet(&mut self, quiet: bool) -> &mut RebaseOptions<'cb> {
+    pub fn quiet(&mut self, quiet: bool) -> &mut Self {
         self.raw.quiet = quiet as i32;
         self
     }
@@ -49,7 +49,7 @@ impl<'cb> RebaseOptions<'cb> {
     /// commit the rebased changes, but will not rewind HEAD or update the
     /// repository to be in a rebasing state.  This will not interfere with
     /// the working directory (if there is one).
-    pub fn inmemory(&mut self, inmemory: bool) -> &mut RebaseOptions<'cb> {
+    pub fn inmemory(&mut self, inmemory: bool) -> &mut Self {
         self.raw.inmemory = inmemory as i32;
         self
     }
@@ -60,13 +60,13 @@ impl<'cb> RebaseOptions<'cb> {
     /// is examined, unless the configuration option `notes.rewrite.rebase`
     /// is set to false.  If `notes.rewriteRef` is also NULL, notes will
     /// not be rewritten.
-    pub fn rewrite_notes_ref(&mut self, rewrite_notes_ref: &str) -> &mut RebaseOptions<'cb> {
+    pub fn rewrite_notes_ref(&mut self, rewrite_notes_ref: &str) -> &mut Self {
         self.rewrite_notes_ref = Some(CString::new(rewrite_notes_ref).unwrap());
         self
     }
 
     /// Options to control how trees are merged during `next()`.
-    pub fn merge_options(&mut self, opts: MergeOptions) -> &mut RebaseOptions<'cb> {
+    pub fn merge_options(&mut self, opts: MergeOptions) -> &mut Self {
         self.merge_options = Some(opts);
         self
     }
@@ -76,7 +76,7 @@ impl<'cb> RebaseOptions<'cb> {
     /// `GIT_CHECKOUT_SAFE` is defaulted in `init` and `next`, and a minimum
     /// strategy of `GIT_CHECKOUT_FORCE` is defaulted in `abort` to match git
     /// semantics.
-    pub fn checkout_options(&mut self, opts: CheckoutBuilder<'cb>) -> &mut RebaseOptions<'cb> {
+    pub fn checkout_options(&mut self, opts: CheckoutBuilder<'cb>) -> &mut Self {
         self.checkout_options = Some(opts);
         self
     }
@@ -84,7 +84,7 @@ impl<'cb> RebaseOptions<'cb> {
     /// Acquire a pointer to the underlying raw options.
     pub fn raw(&mut self) -> *const raw::git_rebase_options {
         unsafe {
-            if let Some(opts) = self.merge_options.as_mut().take() {
+            if let Some(opts) = self.merge_options.as_mut() {
                 ptr::copy_nonoverlapping(opts.raw(), &mut self.raw.merge_options, 1);
             }
             if let Some(opts) = self.checkout_options.as_mut() {
@@ -228,7 +228,7 @@ impl<'rebase> Iterator for Rebase<'rebase> {
 
 impl<'repo> Binding for Rebase<'repo> {
     type Raw = *mut raw::git_rebase;
-    unsafe fn from_raw(raw: *mut raw::git_rebase) -> Rebase<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_rebase) -> Self {
         Rebase {
             raw,
             _marker: marker::PhantomData,
@@ -278,14 +278,14 @@ pub enum RebaseOperationType {
 
 impl RebaseOperationType {
     /// Convert from the int into an enum. Returns None if invalid.
-    pub fn from_raw(raw: raw::git_rebase_operation_t) -> Option<RebaseOperationType> {
+    pub fn from_raw(raw: raw::git_rebase_operation_t) -> Option<Self> {
         match raw {
-            raw::GIT_REBASE_OPERATION_PICK => Some(RebaseOperationType::Pick),
-            raw::GIT_REBASE_OPERATION_REWORD => Some(RebaseOperationType::Reword),
-            raw::GIT_REBASE_OPERATION_EDIT => Some(RebaseOperationType::Edit),
-            raw::GIT_REBASE_OPERATION_SQUASH => Some(RebaseOperationType::Squash),
-            raw::GIT_REBASE_OPERATION_FIXUP => Some(RebaseOperationType::Fixup),
-            raw::GIT_REBASE_OPERATION_EXEC => Some(RebaseOperationType::Exec),
+            raw::GIT_REBASE_OPERATION_PICK => Some(Self::Pick),
+            raw::GIT_REBASE_OPERATION_REWORD => Some(Self::Reword),
+            raw::GIT_REBASE_OPERATION_EDIT => Some(Self::Edit),
+            raw::GIT_REBASE_OPERATION_SQUASH => Some(Self::Squash),
+            raw::GIT_REBASE_OPERATION_FIXUP => Some(Self::Fixup),
+            raw::GIT_REBASE_OPERATION_EXEC => Some(Self::Exec),
             _ => None,
         }
     }
@@ -322,7 +322,7 @@ impl<'rebase> RebaseOperation<'rebase> {
 
 impl<'rebase> Binding for RebaseOperation<'rebase> {
     type Raw = *const raw::git_rebase_operation;
-    unsafe fn from_raw(raw: *const raw::git_rebase_operation) -> RebaseOperation<'rebase> {
+    unsafe fn from_raw(raw: *const raw::git_rebase_operation) -> Self {
         RebaseOperation {
             raw,
             _marker: marker::PhantomData,

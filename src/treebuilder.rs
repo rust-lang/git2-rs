@@ -147,7 +147,7 @@ extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void)
 impl<'repo> Binding for TreeBuilder<'repo> {
     type Raw = *mut raw::git_treebuilder;
 
-    unsafe fn from_raw(raw: *mut raw::git_treebuilder) -> TreeBuilder<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_treebuilder) -> Self {
         TreeBuilder {
             raw,
             _marker: marker::PhantomData,

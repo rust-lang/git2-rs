@@ -110,7 +110,7 @@ impl<'remote> Refspec<'remote> {
 impl<'remote> Binding for Refspec<'remote> {
     type Raw = *const raw::git_refspec;
 
-    unsafe fn from_raw(raw: *const raw::git_refspec) -> Refspec<'remote> {
+    unsafe fn from_raw(raw: *const raw::git_refspec) -> Self {
         Refspec {
             raw,
             _marker: marker::PhantomData,
