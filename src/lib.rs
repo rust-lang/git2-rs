@@ -761,6 +761,7 @@ fn init() {
     unix,
     not(target_os = "macos"),
     not(target_os = "ios"),
+    not(target_os = "freebsd"),
     feature = "https"
 ))]
 fn openssl_env_init() {
@@ -883,6 +884,7 @@ fn openssl_env_init() {
     windows,
     target_os = "macos",
     target_os = "ios",
+    target_os = "freebsd",
     not(feature = "https")
 ))]
 fn openssl_env_init() {}
