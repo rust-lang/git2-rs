@@ -111,6 +111,41 @@ pub unsafe fn set_cache_object_limit(kind: ObjectType, size: libc::size_t) -> Re
     Ok(())
 }
 
+/// Set the maximum total data size that will be cached in memory across all
+/// repositories before libgit2 starts evicting objects from the cache. This
+/// is a soft limit, in that the library might briefly exceed it, but will start
+/// aggressively evicting objects from cache when that happens. The default
+/// cache size is 256MB.
+///
+/// # Safety
+/// This function is modifying a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
+pub unsafe fn set_cache_max_size(size: libc::ssize_t) -> Result<(), Error> {
+    crate::init();
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_CACHE_MAX_SIZE as libc::c_int,
+        size
+    ));
+    Ok(())
+}
+
+/// Get the current bytes in cache and the maximum that would be allowed in the cache.
+///
+/// # Safety
+/// This function is reading a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
+pub unsafe fn get_cached_memory() -> Result<(libc::ssize_t, libc::ssize_t), Error> {
+    crate::init();
+    let mut current = 0;
+    let mut allowed = 0;
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_GET_CACHED_MEMORY as libc::c_int,
+        &mut current,
+        &mut allowed
+    ));
+    Ok((current, allowed))
+}
+
 /// Controls whether or not libgit2 will verify when writing an object that all
 /// objects it references are valid. Enabled by default, but disabling this can
 /// significantly improve performance, at the cost of potentially allowing the
@@ -482,6 +517,14 @@ mod test {
         unsafe {
             assert!(set_server_timeout_in_milliseconds(10_000).is_ok());
             assert!(get_server_timeout_in_milliseconds().unwrap() == 10_000);
+        }
+    }
+
+    #[test]
+    fn cache_size() {
+        unsafe {
+            assert!(set_cache_max_size(20 * 1024 * 1024).is_ok());
+            assert!(get_cached_memory().is_ok_and(|m| m.1 == 20 * 1024 * 1024));
         }
     }
 }
