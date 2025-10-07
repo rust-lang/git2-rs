@@ -132,7 +132,7 @@ impl Transport {
     ///
     /// The `rpc` argument is `true` if the protocol is stateless, false
     /// otherwise. For example `http://` is stateless but `git://` is not.
-    pub fn smart<S>(remote: &Remote<'_>, rpc: bool, subtransport: S) -> Result<Transport, Error>
+    pub fn smart<S>(remote: &Remote<'_>, rpc: bool, subtransport: S) -> Result<Self, Error>
     where
         S: SmartSubtransport,
     {
@@ -170,7 +170,7 @@ impl Transport {
             ));
             mem::forget(raw); // ownership transport to `ret`
         }
-        return Ok(Transport {
+        return Ok(Self {
             raw: ret,
             owned: true,
         });

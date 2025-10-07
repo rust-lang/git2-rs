@@ -218,7 +218,7 @@ impl<'repo> Revwalk<'repo> {
 
 impl<'repo> Binding for Revwalk<'repo> {
     type Raw = *mut raw::git_revwalk;
-    unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Self {
         Revwalk {
             raw,
             _marker: marker::PhantomData,
