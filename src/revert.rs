@@ -14,7 +14,7 @@ pub struct RevertOptions<'cb> {
 
 impl<'cb> RevertOptions<'cb> {
     /// Creates a default set of revert options
-    pub fn new() -> RevertOptions<'cb> {
+    pub fn new() -> Self {
         RevertOptions {
             mainline: 0,
             checkout_builder: None,

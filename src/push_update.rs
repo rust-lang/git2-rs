@@ -11,7 +11,7 @@ pub struct PushUpdate<'a> {
 
 impl<'a> Binding for PushUpdate<'a> {
     type Raw = *const raw::git_push_update;
-    unsafe fn from_raw(raw: *const raw::git_push_update) -> PushUpdate<'a> {
+    unsafe fn from_raw(raw: *const raw::git_push_update) -> Self {
         PushUpdate {
             raw,
             _marker: marker::PhantomData,

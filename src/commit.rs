@@ -291,7 +291,7 @@ impl<'repo> Commit<'repo> {
     /// Get the specified parent of the commit.
     ///
     /// Use the `parents` iterator to return an iterator over all parents.
-    pub fn parent(&self, i: usize) -> Result<Commit<'repo>, Error> {
+    pub fn parent(&self, i: usize) -> Result<Self, Error> {
         unsafe {
             let mut raw = ptr::null_mut();
             try_call!(raw::git_commit_parent(
@@ -334,7 +334,7 @@ impl<'repo> Commit<'repo> {
 
 impl<'repo> Binding for Commit<'repo> {
     type Raw = *mut raw::git_commit;
-    unsafe fn from_raw(raw: *mut raw::git_commit) -> Commit<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_commit) -> Self {
         Commit {
             raw,
             _marker: marker::PhantomData,

@@ -103,8 +103,8 @@ impl Reflog {
 impl Binding for Reflog {
     type Raw = *mut raw::git_reflog;
 
-    unsafe fn from_raw(raw: *mut raw::git_reflog) -> Reflog {
-        Reflog { raw }
+    unsafe fn from_raw(raw: *mut raw::git_reflog) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> *mut raw::git_reflog {
         self.raw
@@ -150,7 +150,7 @@ impl<'reflog> ReflogEntry<'reflog> {
 impl<'reflog> Binding for ReflogEntry<'reflog> {
     type Raw = *const raw::git_reflog_entry;
 
-    unsafe fn from_raw(raw: *const raw::git_reflog_entry) -> ReflogEntry<'reflog> {
+    unsafe fn from_raw(raw: *const raw::git_reflog_entry) -> Self {
         ReflogEntry {
             raw,
             _marker: marker::PhantomData,

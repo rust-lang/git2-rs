@@ -14,7 +14,7 @@ pub struct CherrypickOptions<'cb> {
 
 impl<'cb> CherrypickOptions<'cb> {
     /// Creates a default set of cherrypick options
-    pub fn new() -> CherrypickOptions<'cb> {
+    pub fn new() -> Self {
         CherrypickOptions {
             mainline: 0,
             checkout_builder: None,

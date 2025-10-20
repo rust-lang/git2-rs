@@ -22,7 +22,7 @@ impl Oid {
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
-    pub fn from_str(s: &str) -> Result<Oid, Error> {
+    pub fn from_str(s: &str) -> Result<Self, Error> {
         crate::init();
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -34,13 +34,13 @@ impl Oid {
                 s.len() as libc::size_t
             ));
         }
-        Ok(Oid { raw })
+        Ok(Self { raw })
     }
 
     /// Parse a raw object id into an Oid structure.
     ///
     /// If the array given is not 20 bytes in length, an error is returned.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         crate::init();
         let mut raw = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
@@ -51,22 +51,22 @@ impl Oid {
             unsafe {
                 try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
             }
-            Ok(Oid { raw })
+            Ok(Self { raw })
         }
     }
 
     /// Creates an all zero Oid structure.
-    pub fn zero() -> Oid {
+    pub fn zero() -> Self {
         let out = raw::git_oid {
             id: [0; raw::GIT_OID_RAWSZ],
         };
-        Oid { raw: out }
+        Self { raw: out }
     }
 
     /// Hashes the provided data as an object of the provided type, and returns
     /// an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
-    pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
+    pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Self, Error> {
         crate::init();
 
         let mut out = raw::git_oid {
@@ -81,13 +81,13 @@ impl Oid {
             ));
         }
 
-        Ok(Oid { raw: out })
+        Ok(Self { raw: out })
     }
 
     /// Hashes the content of the provided file as an object of the provided type,
     /// and returns an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
-    pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
+    pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Self, Error> {
         crate::init();
 
         // Normal file path OK (does not need Windows conversion).
@@ -100,7 +100,7 @@ impl Oid {
             try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
         }
 
-        Ok(Oid { raw: out })
+        Ok(Self { raw: out })
     }
 
     /// View this OID as a byte-slice 20 bytes in length.
@@ -117,8 +117,8 @@ impl Oid {
 impl Binding for Oid {
     type Raw = *const raw::git_oid;
 
-    unsafe fn from_raw(oid: *const raw::git_oid) -> Oid {
-        Oid { raw: *oid }
+    unsafe fn from_raw(oid: *const raw::git_oid) -> Self {
+        Self { raw: *oid }
     }
     fn raw(&self) -> *const raw::git_oid {
         &self.raw as *const _
@@ -156,26 +156,26 @@ impl str::FromStr for Oid {
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
-    fn from_str(s: &str) -> Result<Oid, Error> {
-        Oid::from_str(s)
+    fn from_str(s: &str) -> Result<Self, Error> {
+        Self::from_str(s)
     }
 }
 
 impl PartialEq for Oid {
-    fn eq(&self, other: &Oid) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         unsafe { raw::git_oid_equal(&self.raw, &other.raw) != 0 }
     }
 }
 impl Eq for Oid {}
 
 impl PartialOrd for Oid {
-    fn partial_cmp(&self, other: &Oid) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for Oid {
-    fn cmp(&self, other: &Oid) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         c_cmp_to_ordering(unsafe { raw::git_oid_cmp(&self.raw, &other.raw) })
     }
 }

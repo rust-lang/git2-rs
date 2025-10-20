@@ -68,7 +68,7 @@ impl<'repo> Branch<'repo> {
     }
 
     /// Move/rename an existing local branch reference.
-    pub fn rename(&mut self, new_branch_name: &str, force: bool) -> Result<Branch<'repo>, Error> {
+    pub fn rename(&mut self, new_branch_name: &str, force: bool) -> Result<Self, Error> {
         let mut ret = ptr::null_mut();
         let new_branch_name = CString::new(new_branch_name)?;
         unsafe {
@@ -100,7 +100,7 @@ impl<'repo> Branch<'repo> {
 
     /// Return the reference supporting the remote tracking branch, given a
     /// local branch reference.
-    pub fn upstream(&self) -> Result<Branch<'repo>, Error> {
+    pub fn upstream(&self) -> Result<Self, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_branch_upstream(&mut ret, &*self.get().raw()));
@@ -129,7 +129,7 @@ impl<'repo> Branches<'repo> {
     ///
     /// This function is unsafe as it is not guaranteed that `raw` is a valid
     /// pointer.
-    pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Branches<'repo> {
+    pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Self {
         Branches {
             raw,
             _marker: marker::PhantomData,
