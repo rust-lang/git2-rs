@@ -2043,8 +2043,10 @@ impl Repository {
         }
     }
 
-    /// iterate over all tags calling `cb` on each.
-    /// the callback is provided the tag id and name
+    /// Iterate over all tags, calling the callback `cb` on each.
+    /// The arguments of `cb` are the tag id and name, in this order.
+    ///
+    /// Returning `false` from `cb` causes the iteration to break early.
     pub fn tag_foreach<T>(&self, cb: T) -> Result<(), Error>
     where
         T: FnMut(Oid, &[u8]) -> bool,
