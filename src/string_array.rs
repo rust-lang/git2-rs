@@ -36,7 +36,7 @@ impl StringArray {
 
     /// Returns None if `i` is out of bounds.
     pub fn get_bytes(&self, i: usize) -> Option<&[u8]> {
-        if i < self.raw.count as usize {
+        if i < self.raw.count {
             unsafe {
                 let ptr = *self.raw.strings.add(i) as *const _;
                 Some(crate::opt_bytes(self, ptr).unwrap())
@@ -68,7 +68,7 @@ impl StringArray {
 
     /// Returns the number of strings in this array.
     pub fn len(&self) -> usize {
-        self.raw.count as usize
+        self.raw.count
     }
 
     /// Return `true` if this array is empty.
@@ -79,8 +79,8 @@ impl StringArray {
 
 impl Binding for StringArray {
     type Raw = raw::git_strarray;
-    unsafe fn from_raw(raw: raw::git_strarray) -> StringArray {
-        StringArray { raw }
+    unsafe fn from_raw(raw: raw::git_strarray) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> raw::git_strarray {
         self.raw

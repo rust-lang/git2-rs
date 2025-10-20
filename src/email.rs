@@ -23,7 +23,7 @@ impl Default for EmailCreateOptions {
         // Defaults options created in corresponding to `GIT_EMAIL_CREATE_OPTIONS_INIT`
         let default_options = raw::git_email_create_options {
             version: raw::GIT_EMAIL_CREATE_OPTIONS_VERSION,
-            flags: raw::GIT_EMAIL_CREATE_DEFAULT as u32,
+            flags: raw::GIT_EMAIL_CREATE_DEFAULT,
             diff_opts: unsafe { mem::zeroed() },
             diff_find_opts: unsafe { mem::zeroed() },
             subject_prefix: ptr::null(),
@@ -51,7 +51,7 @@ impl EmailCreateOptions {
     }
 
     fn flag(&mut self, opt: raw::git_email_create_flags_t, val: bool) -> &mut Self {
-        let opt = opt as u32;
+        let opt = opt;
         if val {
             self.raw.flags |= opt;
         } else {

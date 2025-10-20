@@ -18,8 +18,8 @@ macro_rules! flag_test {
 
 impl Version {
     /// Returns a [`Version`] which provides information about libgit2.
-    pub fn get() -> Version {
-        let mut v = Version {
+    pub fn get() -> Self {
+        let mut v = Self {
             major: 0,
             minor: 0,
             rev: 0,

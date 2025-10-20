@@ -14,7 +14,7 @@ pub struct Mempack<'odb> {
 impl<'odb> Binding for Mempack<'odb> {
     type Raw = *mut raw::git_odb_backend;
 
-    unsafe fn from_raw(raw: *mut raw::git_odb_backend) -> Mempack<'odb> {
+    unsafe fn from_raw(raw: *mut raw::git_odb_backend) -> Self {
         Mempack {
             raw,
             _marker: marker::PhantomData,

@@ -12,9 +12,15 @@ pub struct RevertOptions<'cb> {
     merge_opts: Option<MergeOptions>,
 }
 
+impl<'cb> Default for RevertOptions<'cb> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'cb> RevertOptions<'cb> {
     /// Creates a default set of revert options
-    pub fn new() -> RevertOptions<'cb> {
+    pub fn new() -> Self {
         RevertOptions {
             mainline: 0,
             checkout_builder: None,

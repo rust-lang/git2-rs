@@ -26,7 +26,7 @@ unsafe impl<'repo> Sync for Odb<'repo> {}
 impl<'repo> Binding for Odb<'repo> {
     type Raw = *mut raw::git_odb;
 
-    unsafe fn from_raw(raw: *mut raw::git_odb) -> Odb<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_odb) -> Self {
         Odb {
             raw,
             _marker: marker::PhantomData,
@@ -280,7 +280,7 @@ pub struct OdbObject<'a> {
 impl<'a> Binding for OdbObject<'a> {
     type Raw = *mut raw::git_odb_object;
 
-    unsafe fn from_raw(raw: *mut raw::git_odb_object) -> OdbObject<'a> {
+    unsafe fn from_raw(raw: *mut raw::git_odb_object) -> Self {
         OdbObject {
             raw,
             _marker: marker::PhantomData,
@@ -315,7 +315,7 @@ impl<'a> OdbObject<'a> {
             let size = self.len();
             let ptr: *const u8 = raw::git_odb_object_data(self.raw) as *const u8;
             let buffer = slice::from_raw_parts(ptr, size);
-            return buffer;
+            buffer
         }
     }
 
@@ -338,7 +338,7 @@ unsafe impl<'repo> Send for OdbReader<'repo> {}
 impl<'repo> Binding for OdbReader<'repo> {
     type Raw = *mut raw::git_odb_stream;
 
-    unsafe fn from_raw(raw: *mut raw::git_odb_stream) -> OdbReader<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_odb_stream) -> Self {
         OdbReader {
             raw,
             _marker: marker::PhantomData,
@@ -362,7 +362,7 @@ impl<'repo> io::Read for OdbReader<'repo> {
             let len = buf.len();
             let res = raw::git_odb_stream_read(self.raw, ptr, len);
             if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Read error"))
+                Err(io::Error::other("Read error"))
             } else {
                 Ok(res as _)
             }
@@ -401,7 +401,7 @@ impl<'repo> OdbWriter<'repo> {
 impl<'repo> Binding for OdbWriter<'repo> {
     type Raw = *mut raw::git_odb_stream;
 
-    unsafe fn from_raw(raw: *mut raw::git_odb_stream) -> OdbWriter<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_odb_stream) -> Self {
         OdbWriter {
             raw,
             _marker: marker::PhantomData,
@@ -425,7 +425,7 @@ impl<'repo> io::Write for OdbWriter<'repo> {
             let len = buf.len();
             let res = raw::git_odb_stream_write(self.raw, ptr, len);
             if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+                Err(io::Error::other("Write error"))
             } else {
                 Ok(buf.len())
             }
@@ -467,7 +467,7 @@ impl<'repo> OdbPackwriter<'repo> {
 
     /// The callback through which progress is monitored. Be aware that this is
     /// called inline, so performance may be affected.
-    pub fn progress<F>(&mut self, cb: F) -> &mut OdbPackwriter<'repo>
+    pub fn progress<F>(&mut self, cb: F) -> &mut Self
     where
         F: FnMut(Progress<'_>) -> bool + 'repo,
     {
@@ -492,7 +492,7 @@ impl<'repo> io::Write for OdbPackwriter<'repo> {
             };
 
             if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+                Err(io::Error::other("Write error"))
             } else {
                 Ok(buf.len())
             }
@@ -507,9 +507,8 @@ impl<'repo> Drop for OdbPackwriter<'repo> {
     fn drop(&mut self) {
         unsafe {
             let writepack = &*self.raw;
-            match writepack.free {
-                Some(free) => free(self.raw),
-                None => (),
+            if let Some(free) = writepack.free {
+                free(self.raw)
             };
 
             drop(Box::from_raw(self.progress_payload_ptr));

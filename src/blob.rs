@@ -54,7 +54,7 @@ impl<'repo> Blob<'repo> {
 impl<'repo> Binding for Blob<'repo> {
     type Raw = *mut raw::git_blob;
 
-    unsafe fn from_raw(raw: *mut raw::git_blob) -> Blob<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_blob) -> Self {
         Blob {
             raw,
             _marker: marker::PhantomData,
@@ -108,7 +108,7 @@ impl<'repo> BlobWriter<'repo> {
 impl<'repo> Binding for BlobWriter<'repo> {
     type Raw = *mut raw::git_writestream;
 
-    unsafe fn from_raw(raw: *mut raw::git_writestream) -> BlobWriter<'repo> {
+    unsafe fn from_raw(raw: *mut raw::git_writestream) -> Self {
         BlobWriter {
             raw,
             need_cleanup: true,
@@ -139,12 +139,12 @@ impl<'repo> io::Write for BlobWriter<'repo> {
             if let Some(f) = (*self.raw).write {
                 let res = f(self.raw, buf.as_ptr() as *const _, buf.len());
                 if res < 0 {
-                    Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+                    Err(io::Error::other("Write error"))
                 } else {
                     Ok(buf.len())
                 }
             } else {
-                Err(io::Error::new(io::ErrorKind::Other, "no write callback"))
+                Err(io::Error::other("no write callback"))
             }
         }
     }

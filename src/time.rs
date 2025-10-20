@@ -19,7 +19,7 @@ pub struct IndexTime {
 
 impl Time {
     /// Creates a new time structure from its components.
-    pub fn new(time: i64, offset: i32) -> Time {
+    pub fn new(time: i64, offset: i32) -> Self {
         unsafe {
             Binding::from_raw(raw::git_time {
                 time: time as raw::git_time_t,
@@ -31,12 +31,12 @@ impl Time {
 
     /// Return the time, in seconds, from epoch
     pub fn seconds(&self) -> i64 {
-        self.raw.time as i64
+        self.raw.time
     }
 
     /// Return the timezone offset, in minutes
     pub fn offset_minutes(&self) -> i32 {
-        self.raw.offset as i32
+        self.raw.offset
     }
 
     /// Return whether the offset was positive or negative. Primarily useful
@@ -47,21 +47,21 @@ impl Time {
 }
 
 impl PartialOrd for Time {
-    fn partial_cmp(&self, other: &Time) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for Time {
-    fn cmp(&self, other: &Time) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         (self.raw.time, self.raw.offset).cmp(&(other.raw.time, other.raw.offset))
     }
 }
 
 impl Binding for Time {
     type Raw = raw::git_time;
-    unsafe fn from_raw(raw: raw::git_time) -> Time {
-        Time { raw }
+    unsafe fn from_raw(raw: raw::git_time) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> raw::git_time {
         self.raw
@@ -70,7 +70,7 @@ impl Binding for Time {
 
 impl IndexTime {
     /// Creates a new time structure from its components.
-    pub fn new(seconds: i32, nanoseconds: u32) -> IndexTime {
+    pub fn new(seconds: i32, nanoseconds: u32) -> Self {
         unsafe {
             Binding::from_raw(raw::git_index_time {
                 seconds,
@@ -91,8 +91,8 @@ impl IndexTime {
 
 impl Binding for IndexTime {
     type Raw = raw::git_index_time;
-    unsafe fn from_raw(raw: raw::git_index_time) -> IndexTime {
-        IndexTime { raw }
+    unsafe fn from_raw(raw: raw::git_index_time) -> Self {
+        Self { raw }
     }
     fn raw(&self) -> raw::git_index_time {
         self.raw
@@ -100,13 +100,13 @@ impl Binding for IndexTime {
 }
 
 impl PartialOrd for IndexTime {
-    fn partial_cmp(&self, other: &IndexTime) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for IndexTime {
-    fn cmp(&self, other: &IndexTime) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         let me = (self.raw.seconds, self.raw.nanoseconds);
         let other = (other.raw.seconds, other.raw.nanoseconds);
         me.cmp(&other)

@@ -116,13 +116,13 @@ pub trait IntoCString {
     fn into_c_string(self) -> Result<CString, Error>;
 }
 
-impl<'a, T: IntoCString + Clone> IntoCString for &'a T {
+impl<T: IntoCString + Clone> IntoCString for &T {
     fn into_c_string(self) -> Result<CString, Error> {
         self.clone().into_c_string()
     }
 }
 
-impl<'a> IntoCString for &'a str {
+impl IntoCString for &str {
     fn into_c_string(self) -> Result<CString, Error> {
         Ok(CString::new(self)?)
     }
@@ -140,7 +140,7 @@ impl IntoCString for CString {
     }
 }
 
-impl<'a> IntoCString for &'a Path {
+impl IntoCString for &Path {
     fn into_c_string(self) -> Result<CString, Error> {
         let s: &OsStr = self.as_ref();
         s.into_c_string()
@@ -154,7 +154,7 @@ impl IntoCString for PathBuf {
     }
 }
 
-impl<'a> IntoCString for &'a OsStr {
+impl IntoCString for &OsStr {
     fn into_c_string(self) -> Result<CString, Error> {
         self.to_os_string().into_c_string()
     }
@@ -178,7 +178,7 @@ impl IntoCString for OsString {
     }
 }
 
-impl<'a> IntoCString for &'a [u8] {
+impl IntoCString for &[u8] {
     fn into_c_string(self) -> Result<CString, Error> {
         Ok(CString::new(self)?)
     }

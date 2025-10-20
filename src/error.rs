@@ -22,7 +22,7 @@ impl Error {
     /// database backends, where it is desirable to propagate an [`Error`]
     /// through `libgit2`.
     pub fn new<S: AsRef<str>>(code: ErrorCode, class: ErrorClass, message: S) -> Self {
-        let mut err = Error::from_str(message.as_ref());
+        let mut err = Self::from_str(message.as_ref());
         err.set_code(code);
         err.set_class(class);
         err
@@ -32,7 +32,7 @@ impl Error {
     ///
     /// The `code` argument typically comes from the return value of a function
     /// call. This code will later be returned from the `code` function.
-    pub fn last_error(code: c_int) -> Error {
+    pub fn last_error(code: c_int) -> Self {
         crate::init();
         unsafe {
             // Note that whenever libgit2 returns an error any negative value
@@ -52,21 +52,21 @@ impl Error {
             // canned error out.
             let ptr = raw::git_error_last();
             let err = if ptr.is_null() {
-                let mut error = Error::from_str("an unknown git error occurred");
+                let mut error = Self::from_str("an unknown git error occurred");
                 error.code = code;
                 error
             } else {
-                Error::from_raw(code, ptr)
+                Self::from_raw(code, ptr)
             };
             raw::git_error_clear();
             err
         }
     }
 
-    unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Error {
+    unsafe fn from_raw(code: c_int, ptr: *const raw::git_error) -> Self {
         let message = CStr::from_ptr((*ptr).message as *const _).to_bytes();
         let message = String::from_utf8_lossy(message).into_owned().into();
-        Error {
+        Self {
             code,
             klass: (*ptr).klass,
             message,
@@ -77,8 +77,8 @@ impl Error {
     ///
     /// The error returned will have the code `GIT_ERROR` and the class
     /// `GIT_ERROR_NONE`.
-    pub fn from_str(s: &str) -> Error {
-        Error {
+    pub fn from_str(s: &str) -> Self {
+        Self {
             code: raw::GIT_ERROR as c_int,
             klass: raw::GIT_ERROR_NONE as c_int,
             message: s.into(),
@@ -384,8 +384,8 @@ impl fmt::Display for Error {
 }
 
 impl From<NulError> for Error {
-    fn from(_: NulError) -> Error {
-        Error::from_str(
+    fn from(_: NulError) -> Self {
+        Self::from_str(
             "data contained a nul byte that could not be \
              represented as a string",
         )
@@ -393,8 +393,8 @@ impl From<NulError> for Error {
 }
 
 impl From<JoinPathsError> for Error {
-    fn from(e: JoinPathsError) -> Error {
-        Error::from_str(&e.to_string())
+    fn from(e: JoinPathsError) -> Self {
+        Self::from_str(&e.to_string())
     }
 }
 
