@@ -95,7 +95,7 @@ impl MergeOptions {
 
     /// Do not write the REUC extension on the generated index
     pub fn skip_reuc(&mut self, skip: bool) -> &mut MergeOptions {
-        self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT as u32, skip)
+        self.flag(raw::GIT_MERGE_SKIP_REUC as u32, skip)
     }
 
     /// If the commits being merged have multiple merge bases, do not build a
