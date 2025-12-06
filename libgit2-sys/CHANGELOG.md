@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.18.3+1.9.2 - 2025-12-06
+[0.18.2...0.18.3](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.2+1.9.1...libgit2-sys-0.18.3+1.9.2)
+
+### Changed
+- Updated to libgit2 [1.9.2](https://github.com/libgit2/libgit2/releases/tag/v1.9.2)
+  [#1195](https://github.com/rust-lang/git2-rs/pull/1195)
+
+  Note that this release fixes two security issues. However, the Rust bindings do not provide direct support for the affected APIs. In particular:
+  - The `libgit2-sys` crate does not support building the vendored C library with the `GIT_SSH_EXEC` setting. This will only be an issue if you are binding to a system-provided library built with this setting.
+  - The `git2` crate does not support custom SSH credentials. However, the `libgit2-sys` crate does export the `git_cred_ssh_custom_new` C-binding. Any projects using the C bindings directly are affected.
+
+## 0.18.2+1.9.1 - 2025-06-21
+[0.18.1...0.18.2](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.1+1.9.0...libgit2-sys-0.18.2+1.9.1)
+
+### Changed
+- Updated to libgit2 [1.9.1](https://github.com/libgit2/libgit2/releases/tag/v1.9.1)
+  [#1169](https://github.com/rust-lang/git2-rs/pull/1169)
+
 ## 0.18.1+1.9.0 - 2025-03-17
 [0.18.0...0.18.1](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.0+1.9.0...libgit2-sys-0.18.1+1.9.0)
 
