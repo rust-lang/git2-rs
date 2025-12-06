@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20.3 - 2025-12-06
+[0.20.2...0.20.3](https://github.com/rust-lang/git2-rs/compare/git2-0.20.2...git2-0.20.3)
+
+### Changed
+
+- Bumped requirement to libgit2-sys 0.18.3, which updates libgit2 from 1.9.0 to 1.9.2.
+  [#1197](https://github.com/rust-lang/git2-rs/pull/1197)
+
 ## 0.20.2 - 2025-05-05
 [0.20.1...0.20.2](https://github.com/rust-lang/git2-rs/compare/git2-0.20.1...git2-0.20.2)
 
