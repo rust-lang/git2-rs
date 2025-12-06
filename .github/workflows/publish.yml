@@ -14,6 +14,10 @@ on:
         description: "Publish libgit2-sys"
         type: boolean
         default: true
+      publish-ref:
+        description: "Branch/tag/SHA to publish from"
+        type: string
+        default: master
 
 permissions:
   contents: write
@@ -26,6 +30,7 @@ jobs:
       - uses: actions/checkout@master
         with:
           submodules: true
+          ref: ${{ inputs.publish-ref }}
       - name: Publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
