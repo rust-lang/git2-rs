@@ -151,7 +151,7 @@ impl StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS, include)
     }
 
-    /// Indicates that the given paths should be treated as literals paths, note
+    /// Indicates that the given paths should be treated as literals paths, not
     /// patterns.
     pub fn disable_pathspec_match(&mut self, include: bool) -> &mut StatusOptions {
         self.flag(raw::GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH, include)
