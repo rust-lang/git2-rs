@@ -39,6 +39,16 @@ macro_rules! git_enum {
         pub type $name = $t;
         git_enum!(gen, $name, 0, $($variants)*);
     };
+    (gen, $name:ident, $val:expr, #[$attr:meta] $variant:ident, $($rest:tt)*) => {
+        #[$attr]
+        pub const $variant: $name = $val;
+        git_enum!(gen, $name, $val+1, $($rest)*);
+    };
+    (gen, $name:ident, $val:expr, #[$attr:meta] $variant:ident = $e:expr, $($rest:tt)*) => {
+        #[$attr]
+        pub const $variant: $name = $e;
+        git_enum!(gen, $name, $e+1, $($rest)*);
+    };
     (gen, $name:ident, $val:expr, $variant:ident, $($rest:tt)*) => {
         pub const $variant: $name = $val;
         git_enum!(gen, $name, $val+1, $($rest)*);
