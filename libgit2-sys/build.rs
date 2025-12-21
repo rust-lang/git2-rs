@@ -29,11 +29,13 @@ fn main() {
             libgit2_vendored,\
         )"
     );
+    println!("cargo:rustc-check-cfg=cfg(libgit2_experimental_sha256)");
 
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
     let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
+    let unstable_sha256 = env::var("CARGO_FEATURE_UNSTABLE_SHA256").is_ok();
 
     // Specify `LIBGIT2_NO_VENDOR` to force to use system libgit2.
     // Due to the additive nature of Cargo features, if some crate in the
@@ -86,6 +88,11 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         .include("libgit2/src/util")
         .out_dir(dst.join("build"))
         .warnings(false);
+
+    if unstable_sha256 {
+        println!("cargo:rustc-cfg=libgit2_experimental_sha256");
+        cfg.define("GIT_EXPERIMENTAL_SHA256", "1");
+    }
 
     // Include all cross-platform C files
     add_c_files(&mut cfg, "libgit2/src/libgit2");
