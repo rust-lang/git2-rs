@@ -49,4 +49,4 @@ zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]
 # DO NOT enable this feature by default in your dependencies.
 # Due to Cargo's additive features,
 # downstream users cannot deactivate it once enabled.
-unstable-sha256 = ["vendored"]
+unstable-sha256 = []
