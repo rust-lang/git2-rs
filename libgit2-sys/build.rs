@@ -7,18 +7,20 @@ use std::process::Command;
 /// Tries to use system libgit2 and emits necessary build script instructions.
 fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
     let mut cfg = pkg_config::Config::new();
-    match cfg.range_version("1.9.2".."1.10.0").probe("libgit2") {
-        Ok(lib) => {
-            for include in &lib.include_paths {
-                println!("cargo:root={}", include.display());
-            }
-            Ok(lib)
-        }
+    let range_version = "1.9.2".."1.10.0";
+
+    let lib = match cfg.range_version(range_version).probe("libgit2") {
+        Ok(lib) => lib,
         Err(e) => {
             println!("cargo:warning=failed to probe system libgit2: {e}");
-            Err(e)
+            return Err(e);
         }
+    };
+
+    for include in &lib.include_paths {
+        println!("cargo:root={}", include.display());
     }
+    Ok(lib)
 }
 
 fn main() {
