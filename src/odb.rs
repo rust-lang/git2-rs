@@ -145,7 +145,7 @@ impl<'repo> Odb<'repo> {
     pub fn write(&self, kind: ObjectType, data: &[u8]) -> Result<Oid, Error> {
         unsafe {
             let mut out = raw::git_oid {
-                id: [0; raw::GIT_OID_RAWSZ],
+                id: [0; raw::GIT_OID_MAX_SIZE],
             };
             try_call!(raw::git_odb_write(
                 &mut out,
@@ -195,7 +195,7 @@ impl<'repo> Odb<'repo> {
     pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
         unsafe {
             let mut out = raw::git_oid {
-                id: [0; raw::GIT_OID_RAWSZ],
+                id: [0; raw::GIT_OID_MAX_SIZE],
             };
             try_call!(raw::git_odb_exists_prefix(
                 &mut out,
@@ -389,7 +389,7 @@ impl<'repo> OdbWriter<'repo> {
     /// Attempting write after finishing will be ignored.
     pub fn finalize(&mut self) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_odb_stream_finalize_write(&mut raw, self.raw));

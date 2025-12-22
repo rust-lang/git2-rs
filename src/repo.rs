@@ -1133,7 +1133,7 @@ impl Repository {
     /// the blob.
     pub fn blob(&self, data: &[u8]) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             let ptr = data.as_ptr() as *const c_void;
@@ -1157,7 +1157,7 @@ impl Repository {
         // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(), path));
@@ -1310,7 +1310,7 @@ impl Repository {
             .collect::<Vec<_>>();
         let message = CString::new(message)?;
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_commit_create(
@@ -1384,7 +1384,7 @@ impl Repository {
         let signature = CString::new(signature)?;
         let signature_field = crate::opt_cstr(signature_field)?;
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_commit_create_with_signature(
@@ -1683,7 +1683,7 @@ impl Repository {
     pub fn refname_to_id(&self, name: &str) -> Result<Oid, Error> {
         let name = CString::new(name)?;
         let mut ret = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_reference_name_to_id(&mut ret, self.raw(), name));
@@ -1911,7 +1911,7 @@ impl Repository {
         let name = CString::new(name)?;
         let message = CString::new(message)?;
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_tag_create(
@@ -1944,7 +1944,7 @@ impl Repository {
         let name = CString::new(name)?;
         let message = CString::new(message)?;
         let mut raw_oid = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_tag_annotation_create(
@@ -1972,7 +1972,7 @@ impl Repository {
     ) -> Result<Oid, Error> {
         let name = CString::new(name)?;
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_tag_create_lightweight(
@@ -2348,7 +2348,7 @@ impl Repository {
         let notes_ref = crate::opt_cstr(notes_ref)?;
         let note = CString::new(note)?;
         let mut ret = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_note_create(
@@ -2464,7 +2464,7 @@ impl Repository {
     /// Find a merge base between two commits
     pub fn merge_base(&self, one: Oid, two: Oid) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_merge_base(
@@ -2512,7 +2512,7 @@ impl Repository {
     /// given commits, use [`Self::merge_base_octopus`].
     pub fn merge_base_many(&self, oids: &[Oid]) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
 
         unsafe {
@@ -2529,7 +2529,7 @@ impl Repository {
     /// Find a common merge base between all given a list of commits
     pub fn merge_base_octopus(&self, oids: &[Oid]) -> Result<Oid, Error> {
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
 
         unsafe {
@@ -2974,7 +2974,7 @@ impl Repository {
     ) -> Result<Oid, Error> {
         unsafe {
             let mut raw_oid = raw::git_oid {
-                id: [0; raw::GIT_OID_RAWSZ],
+                id: [0; raw::GIT_OID_MAX_SIZE],
             };
             let message = crate::opt_cstr(message)?;
             let flags = flags.unwrap_or_else(StashFlags::empty);
@@ -2996,7 +2996,7 @@ impl Repository {
     ) -> Result<Oid, Error> {
         unsafe {
             let mut raw_oid = raw::git_oid {
-                id: [0; raw::GIT_OID_RAWSZ],
+                id: [0; raw::GIT_OID_MAX_SIZE],
             };
             let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_save_with_opts(
