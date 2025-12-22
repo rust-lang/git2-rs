@@ -96,7 +96,7 @@ impl<'repo> BlobWriter<'repo> {
         // After commit we already doesn't need cleanup on drop
         self.need_cleanup = false;
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_blob_create_fromstream_commit(&mut raw, self.raw));

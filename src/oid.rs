@@ -25,7 +25,7 @@ impl Oid {
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         crate::init();
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_oid_fromstrn(
@@ -43,9 +43,9 @@ impl Oid {
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
         crate::init();
         let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
-        if bytes.len() != raw::GIT_OID_RAWSZ {
+        if bytes.len() != raw::GIT_OID_MAX_SIZE {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
             unsafe {
@@ -58,7 +58,7 @@ impl Oid {
     /// Creates an all zero Oid structure.
     pub fn zero() -> Oid {
         let out = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         Oid { raw: out }
     }
@@ -70,7 +70,7 @@ impl Oid {
         crate::init();
 
         let mut out = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_odb_hash(
@@ -94,7 +94,7 @@ impl Oid {
         let rpath = path.as_ref().into_c_string()?;
 
         let mut out = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
@@ -134,7 +134,7 @@ impl fmt::Debug for Oid {
 impl fmt::Display for Oid {
     /// Hex-encode this Oid into a formatter.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut dst = [0u8; raw::GIT_OID_HEXSZ + 1];
+        let mut dst = [0u8; raw::GIT_OID_MAX_HEXSIZE + 1];
         unsafe {
             raw::git_oid_tostr(
                 dst.as_mut_ptr() as *mut libc::c_char,
