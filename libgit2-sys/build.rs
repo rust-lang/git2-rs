@@ -5,26 +5,80 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// Tries to use system libgit2 and emits necessary build script instructions.
-fn try_system_libgit2() -> Result<pkg_config::Library, pkg_config::Error> {
+fn try_system_libgit2(
+    experimental_sha256: bool,
+) -> Result<pkg_config::Library, Box<dyn std::error::Error>> {
     let mut cfg = pkg_config::Config::new();
-    match cfg.range_version("1.9.2".."1.10.0").probe("libgit2") {
-        Ok(lib) => {
-            for include in &lib.include_paths {
-                println!("cargo:root={}", include.display());
+    let range_version = "1.9.2".."1.10.0";
+
+    let lib = if experimental_sha256 {
+        // Determine whether experimental SHA256 object support is enabled.
+        //
+        // Given the SHA256 support is ABI-incompatible,
+        // we take a conservative approach here:
+        //
+        // 1. Only accept if the library name has the `-experimental` suffix
+        // 2. The experimental library must have an `experimental.h` header file
+        //    containing an enabled `GIT_EXPERIMENTAL_SHA256` constant.
+        //
+        // See how libgit2 handles experimental features:
+        // https://github.com/libgit2/libgit2/blob/3ac4c0adb1064bad16a7f980d87e7261753fd07e/cmake/ExperimentalFeatures.cmake
+        match cfg
+            .range_version(range_version.clone())
+            .probe("libgit2-experimental")
+        {
+            Ok(lib) => {
+                let sha256_constant_in_header = lib.include_paths.iter().any(|path| {
+                    let header = path.join("git2/experimental.h");
+                    let contents = match std::fs::read_to_string(header) {
+                        Ok(s) => s,
+                        Err(_) => return false,
+                    };
+                    if contents.contains("#cmakedefine") {
+                        // still template
+                        return false;
+                    }
+                    contents
+                        .lines()
+                        .any(|l| l.starts_with("#define GIT_EXPERIMENTAL_SHA256 1"))
+                });
+                if sha256_constant_in_header {
+                    println!("cargo:rustc-cfg=libgit2_experimental_sha256");
+                    lib
+                } else {
+                    println!("cargo:warning=no GIT_EXPERIMENTAL_SHA256 constant in headers");
+                    return Err(
+                        "GIT_EXPERIMENTAL_SHA256 wasn't enabled for libgit2-experimental library"
+                            .into(),
+                    );
+                }
             }
-            Ok(lib)
+            Err(e) => {
+                println!("cargo:warning=failed to probe system libgit2-experimental: {e}");
+                return Err(e.into());
+            }
         }
-        Err(e) => {
-            println!("cargo:warning=failed to probe system libgit2: {e}");
-            Err(e)
+    } else {
+        match cfg.range_version(range_version).probe("libgit2") {
+            Ok(lib) => lib,
+            Err(e) => {
+                println!("cargo:warning=failed to probe system libgit2: {e}");
+                return Err(e.into());
+            }
         }
+    };
+
+    for include in &lib.include_paths {
+        println!("cargo:root={}", include.display());
     }
+    Ok(lib)
 }
 
 fn main() {
     println!(
         "cargo:rustc-check-cfg=cfg(\
             libgit2_vendored,\
+            libgit2_experimental_sha256,\
         )"
     );
 
@@ -32,6 +86,7 @@ fn main() {
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
     let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
+    let unstable_sha256 = env::var("CARGO_FEATURE_UNSTABLE_SHA256").is_ok();
 
     // Specify `LIBGIT2_NO_VENDOR` to force to use system libgit2.
     // Due to the additive nature of Cargo features, if some crate in the
@@ -41,7 +96,7 @@ fn main() {
     let forced_no_vendor = env::var_os("LIBGIT2_NO_VENDOR").map_or(false, |s| s != "0");
 
     if forced_no_vendor {
-        if try_system_libgit2().is_err() {
+        if try_system_libgit2(unstable_sha256).is_err() {
             panic!(
                 "\
 The environment variable `LIBGIT2_NO_VENDOR` has been set but no compatible system libgit2 could be found.
@@ -56,7 +111,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
-    if try_to_use_system_libgit2 && try_system_libgit2().is_ok() {
+    if try_to_use_system_libgit2 && try_system_libgit2(unstable_sha256).is_ok() {
         // using system libgit2 has worked
         return;
     }
@@ -84,6 +139,11 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         .include("libgit2/src/util")
         .out_dir(dst.join("build"))
         .warnings(false);
+
+    if unstable_sha256 {
+        println!("cargo:rustc-cfg=libgit2_experimental_sha256");
+        cfg.define("GIT_EXPERIMENTAL_SHA256", "1");
+    }
 
     // Include all cross-platform C files
     add_c_files(&mut cfg, "libgit2/src/libgit2");

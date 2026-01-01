@@ -6,6 +6,14 @@ fn main() {
     if let Some(root) = env::var_os("DEP_GIT2_ROOT") {
         cfg.include(PathBuf::from(root).join("include"));
     }
+
+    // Enable the unstable-sha256 rust cfg
+    // so ctest2 sees the correct function signatures
+    if env::var("CARGO_FEATURE_UNSTABLE_SHA256").is_ok() {
+        cfg.cfg("feature", Some("unstable-sha256"));
+        cfg.define("GIT_EXPERIMENTAL_SHA256", Some("1"));
+    }
+
     cfg.header("git2.h")
         .header("git2/sys/errors.h")
         .header("git2/sys/transport.h")

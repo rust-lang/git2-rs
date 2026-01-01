@@ -36,6 +36,7 @@ jobs:
     - run: cargo test --locked
     - run: cargo test --features https,ssh
     - run: cargo run -p systest
+    - run: cargo run -p systest --features unstable-sha256
     - run: cargo test -p git2-curl
 
   rustfmt:

@@ -239,7 +239,7 @@ impl<'repo> Iterator for Revwalk<'repo> {
     type Item = Result<Oid, Error>;
     fn next(&mut self) -> Option<Result<Oid, Error>> {
         let mut out: raw::git_oid = raw::git_oid {
-            id: [0; raw::GIT_OID_RAWSZ],
+            id: [0; raw::GIT_OID_MAX_SIZE],
         };
         unsafe {
             try_call_iter!(raw::git_revwalk_next(&mut out, self.raw()));
