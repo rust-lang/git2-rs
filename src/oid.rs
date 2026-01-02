@@ -8,6 +8,30 @@ use crate::{raw, Error, IntoCString, ObjectType};
 
 use crate::util::{c_cmp_to_ordering, Binding};
 
+/// Object ID format (hash algorithm).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ObjectFormat {
+    /// SHA1 object format (20-byte object IDs)
+    Sha1,
+}
+
+impl Binding for ObjectFormat {
+    type Raw = raw::git_oid_t;
+
+    unsafe fn from_raw(raw: raw::git_oid_t) -> Self {
+        match raw {
+            raw::GIT_OID_SHA1 => ObjectFormat::Sha1,
+            _ => panic!("Unknown git oid type"),
+        }
+    }
+
+    fn raw(&self) -> Self::Raw {
+        match self {
+            ObjectFormat::Sha1 => raw::GIT_OID_SHA1,
+        }
+    }
+}
+
 /// Unique identity of any object (commit, tree, blob, tag).
 #[derive(Copy, Clone)]
 #[repr(C)]

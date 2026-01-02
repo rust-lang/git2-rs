@@ -17,6 +17,7 @@ use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::worktree::{Worktree, WorktreeAddOptions};
 use crate::CherrypickOptions;
+use crate::ObjectFormat;
 use crate::RevertOptions;
 use crate::{mailmap::Mailmap, panic};
 use crate::{
@@ -456,6 +457,12 @@ impl Repository {
             let ptr = raw::git_repository_path(self.raw);
             util::bytes2path(crate::opt_bytes(self, ptr).unwrap())
         }
+    }
+
+    /// Returns the object ID format (hash algorithm) used by this repository.
+    pub fn object_format(&self) -> ObjectFormat {
+        let oid_type = unsafe { raw::git_repository_oid_type(self.raw()) };
+        unsafe { Binding::from_raw(oid_type) }
     }
 
     /// Returns the path of the shared common directory for this repository.
@@ -3557,13 +3564,17 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
+    use crate::ObjectFormat;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
         ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
     };
+
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
+
+    use libgit2_sys as raw;
     use tempfile::TempDir;
 
     #[test]
@@ -3573,6 +3584,11 @@ mod tests {
 
         let repo = Repository::init(path).unwrap();
         assert!(!repo.is_bare());
+        assert_eq!(repo.object_format(), ObjectFormat::Sha1);
+
+        let oid = repo.blob(b"test").unwrap();
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
     }
 
     #[test]
@@ -3583,6 +3599,7 @@ mod tests {
         let repo = Repository::init_bare(path).unwrap();
         assert!(repo.is_bare());
         assert!(repo.namespace().is_none());
+        assert_eq!(repo.object_format(), ObjectFormat::Sha1);
     }
 
     #[test]
@@ -3599,6 +3616,10 @@ mod tests {
             crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
         assert_eq!(repo.state(), crate::RepositoryState::Clean);
+
+        let oid = repo.blob(b"test").unwrap();
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
     }
 
     #[test]
