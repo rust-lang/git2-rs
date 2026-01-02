@@ -616,9 +616,7 @@ impl Index {
     ///
     /// The index must not contain any file in conflict.
     pub fn write_tree(&mut self) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_index_write_tree(&mut raw, self.raw));
             Ok(Binding::from_raw(&raw as *const _))
@@ -630,9 +628,7 @@ impl Index {
     /// This is the same as `write_tree` except that the destination repository
     /// can be chosen.
     pub fn write_tree_to(&mut self, repo: &Repository) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_index_write_tree_to(&mut raw, self.raw, repo.raw()));
             Ok(Binding::from_raw(&raw as *const _))
