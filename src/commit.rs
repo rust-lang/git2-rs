@@ -260,9 +260,7 @@ impl<'repo> Commit<'repo> {
         message: Option<&str>,
         tree: Option<&Tree<'repo>>,
     ) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         let update_ref = crate::opt_cstr(update_ref)?;
         let encoding = crate::opt_cstr(message_encoding)?;
         let message = crate::opt_cstr(message)?;

@@ -723,9 +723,7 @@ impl TreeUpdateBuilder {
         self.paths.push(path);
         self.updates.push(raw::git_tree_update {
             action: raw::GIT_TREE_UPDATE_REMOVE,
-            id: raw::git_oid {
-                id: [0; raw::GIT_OID_MAX_SIZE],
-            },
+            id: crate::util::zeroed_raw_oid(),
             filemode: raw::GIT_FILEMODE_UNREADABLE,
             path: path_ptr,
         });
@@ -754,9 +752,7 @@ impl TreeUpdateBuilder {
     ///
     /// The baseline tree must exist in the specified repository.
     pub fn create_updated(&mut self, repo: &Repository, baseline: &Tree<'_>) -> Result<Oid, Error> {
-        let mut ret = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut ret = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_tree_create_updated(
                 &mut ret,

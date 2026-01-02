@@ -24,9 +24,7 @@ impl Oid {
     /// characters, or contains any non-hex characters.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         crate::init();
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_oid_fromstrn(
                 &mut raw,
@@ -42,9 +40,7 @@ impl Oid {
     /// If the array given is not 20 bytes in length, an error is returned.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
         crate::init();
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         if bytes.len() != raw::GIT_OID_MAX_SIZE {
             Err(Error::from_str("raw byte array must be 20 bytes"))
         } else {
@@ -57,10 +53,9 @@ impl Oid {
 
     /// Creates an all zero Oid structure.
     pub fn zero() -> Oid {
-        let out = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
-        Oid { raw: out }
+        Oid {
+            raw: crate::util::zeroed_raw_oid(),
+        }
     }
 
     /// Hashes the provided data as an object of the provided type, and returns
@@ -69,9 +64,7 @@ impl Oid {
     pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
         crate::init();
 
-        let mut out = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut out = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_odb_hash(
                 &mut out,
@@ -93,9 +86,7 @@ impl Oid {
         // Normal file path OK (does not need Windows conversion).
         let rpath = path.as_ref().into_c_string()?;
 
-        let mut out = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut out = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
         }
@@ -110,7 +101,7 @@ impl Oid {
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {
-        unsafe { raw::git_oid_iszero(&self.raw) == 1 }
+        unsafe { raw::git_oid_is_zero(&self.raw) == 1 }
     }
 }
 

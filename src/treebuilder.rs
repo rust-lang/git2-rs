@@ -114,9 +114,7 @@ impl<'repo> TreeBuilder<'repo> {
     /// Write the contents of the TreeBuilder as a Tree object and
     /// return its Oid
     pub fn write(&self) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_treebuilder_write(&mut raw, self.raw()));
             Ok(Binding::from_raw(&raw as *const _))
