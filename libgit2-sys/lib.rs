@@ -2437,7 +2437,9 @@ extern "C" {
     pub fn git_oid_cmp(a: *const git_oid, b: *const git_oid) -> c_int;
     pub fn git_oid_equal(a: *const git_oid, b: *const git_oid) -> c_int;
     pub fn git_oid_streq(id: *const git_oid, str: *const c_char) -> c_int;
+    #[deprecated = "use `git_oid_is_zero`"]
     pub fn git_oid_iszero(id: *const git_oid) -> c_int;
+    pub fn git_oid_is_zero(id: *const git_oid) -> c_int;
 
     // error
     pub fn git_error_last() -> *const git_error;
