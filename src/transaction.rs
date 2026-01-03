@@ -162,7 +162,8 @@ mod tests {
         t!(tx.lock_ref("refs/heads/main"));
         t!(tx.lock_ref("refs/heads/next"));
 
-        t!(tx.set_target("refs/heads/main", Oid::zero(), None, "set main to zero"));
+        let oid = Oid::from_bytes(&[1u8; 20]).unwrap();
+        t!(tx.set_target("refs/heads/main", oid, None, "set main to all ones"));
         t!(tx.set_symbolic_target(
             "refs/heads/next",
             "refs/heads/main",
@@ -172,7 +173,38 @@ mod tests {
 
         t!(tx.commit());
 
-        assert_eq!(repo.refname_to_id("refs/heads/main").unwrap(), Oid::zero());
+        assert_eq!(repo.refname_to_id("refs/heads/main").unwrap(), oid);
+        assert_eq!(
+            repo.find_reference("refs/heads/next")
+                .unwrap()
+                .symbolic_target()
+                .unwrap(),
+            "refs/heads/main"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+
+        let mut tx = t!(repo.transaction());
+
+        t!(tx.lock_ref("refs/heads/main"));
+        t!(tx.lock_ref("refs/heads/next"));
+
+        let oid = Oid::from_bytes(&[1u8; 32]).unwrap();
+        t!(tx.set_target("refs/heads/main", oid, None, "set main to all ones"));
+        t!(tx.set_symbolic_target(
+            "refs/heads/next",
+            "refs/heads/main",
+            None,
+            "set next to main",
+        ));
+
+        t!(tx.commit());
+
+        assert_eq!(repo.refname_to_id("refs/heads/main").unwrap(), oid);
         assert_eq!(
             repo.find_reference("refs/heads/next")
                 .unwrap()
