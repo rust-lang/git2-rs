@@ -37,6 +37,28 @@ pub fn repo_init() -> (TempDir, Repository) {
     (td, repo)
 }
 
+#[cfg(feature = "unstable-sha256")]
+pub fn repo_init_sha256() -> (TempDir, Repository) {
+    let td = TempDir::new().unwrap();
+    let mut opts = RepositoryInitOptions::new();
+    opts.initial_head("main");
+    opts.object_format(crate::ObjectFormat::Sha256);
+    let repo = Repository::init_opts(td.path(), &opts).unwrap();
+    {
+        let mut config = repo.config().unwrap();
+        config.set_str("user.name", "name").unwrap();
+        config.set_str("user.email", "email").unwrap();
+        let mut index = repo.index().unwrap();
+        let id = index.write_tree().unwrap();
+
+        let tree = repo.find_tree(id).unwrap();
+        let sig = repo.signature().unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial\n\nbody", &tree, &[])
+            .unwrap();
+    }
+    (td, repo)
+}
+
 pub fn commit(repo: &Repository) -> (Oid, Oid) {
     let mut index = t!(repo.index());
     let root = repo.path().parent().unwrap();

@@ -34,6 +34,18 @@ url = "2.5.4"
 
 [features]
 unstable = []
+# Experimental SHA256 OID support,
+# reflecting upstream libgit2's GIT_EXPERIMENTAL_SHA256.
+#
+# This is an ABI-breaking change.
+# Future releases with this feature may introduce breakages without notice
+# Use at your own risk.
+#
+# Library authors:
+# DO NOT enable this feature by default in your dependencies.
+# Due to Cargo's additive features,
+# downstream users cannot deactivate it once enabled.
+unstable-sha256 = ["libgit2-sys/unstable-sha256"]
 default = []
 ssh = ["libgit2-sys/ssh", "cred"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe", "cred"]

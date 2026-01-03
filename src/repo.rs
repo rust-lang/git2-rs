@@ -17,6 +17,7 @@ use crate::tagforeach::{tag_foreach_cb, TagForeachCB, TagForeachData};
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::worktree::{Worktree, WorktreeAddOptions};
 use crate::CherrypickOptions;
+use crate::ObjectFormat;
 use crate::RevertOptions;
 use crate::{mailmap::Mailmap, panic};
 use crate::{
@@ -123,9 +124,17 @@ pub struct RepositoryInitOptions {
     template_path: Option<CString>,
     initial_head: Option<CString>,
     origin_url: Option<CString>,
+    #[cfg(feature = "unstable-sha256")]
+    oid_type: Option<raw::git_oid_t>,
 }
 
 impl Repository {
+    /// Returns the object ID format (hash algorithm) used by this repository.
+    pub fn object_format(&self) -> ObjectFormat {
+        let oid_type = unsafe { raw::git_repository_oid_type(self.raw()) };
+        unsafe { Binding::from_raw(oid_type) }
+    }
+
     /// Attempt to open an already-existing repository at `path`.
     ///
     /// The path can point to either a normal or bare repository.
@@ -1430,7 +1439,13 @@ impl Repository {
             try_call!(raw::git_commit_lookup_prefix(
                 &mut raw,
                 self.raw(),
-                Oid::from_str(prefix_hash)?.raw(),
+                {
+                    #[cfg(not(feature = "unstable-sha256"))]
+                    let oid = Oid::from_str(prefix_hash)?;
+                    #[cfg(feature = "unstable-sha256")]
+                    let oid = Oid::from_str(prefix_hash, self.object_format())?;
+                    oid.raw()
+                },
                 prefix_hash.len()
             ));
             Ok(Binding::from_raw(raw))
@@ -1475,7 +1490,13 @@ impl Repository {
             try_call!(raw::git_object_lookup_prefix(
                 &mut raw,
                 self.raw(),
-                Oid::from_str(prefix_hash)?.raw(),
+                {
+                    #[cfg(not(feature = "unstable-sha256"))]
+                    let oid = Oid::from_str(prefix_hash)?;
+                    #[cfg(feature = "unstable-sha256")]
+                    let oid = Oid::from_str(prefix_hash, self.object_format())?;
+                    oid.raw()
+                },
                 prefix_hash.len(),
                 kind
             ));
@@ -1986,7 +2007,13 @@ impl Repository {
             try_call!(raw::git_tag_lookup_prefix(
                 &mut raw,
                 self.raw,
-                Oid::from_str(prefix_hash)?.raw(),
+                {
+                    #[cfg(not(feature = "unstable-sha256"))]
+                    let oid = Oid::from_str(prefix_hash)?;
+                    #[cfg(feature = "unstable-sha256")]
+                    let oid = Oid::from_str(prefix_hash, self.object_format())?;
+                    oid.raw()
+                },
                 prefix_hash.len()
             ));
             Ok(Binding::from_raw(raw))
@@ -3382,6 +3409,8 @@ impl RepositoryInitOptions {
             template_path: None,
             initial_head: None,
             origin_url: None,
+            #[cfg(feature = "unstable-sha256")]
+            oid_type: None,
         }
     }
 
@@ -3501,6 +3530,17 @@ impl RepositoryInitOptions {
         self
     }
 
+    /// Set the object format (hash algorithm) for the repository.
+    ///
+    /// The default is [`ObjectFormat::Sha1`].
+    /// Setting this to [`ObjectFormat::Sha256`]
+    /// will create a repository that uses SHA256 object IDs.
+    #[cfg(feature = "unstable-sha256")]
+    pub fn object_format(&mut self, format: ObjectFormat) -> &mut RepositoryInitOptions {
+        self.oid_type = Some(format.raw());
+        self
+    }
+
     /// Creates a set of raw init options to be used with
     /// `git_repository_init_ext`.
     ///
@@ -3522,6 +3562,10 @@ impl RepositoryInitOptions {
         opts.template_path = crate::call::convert(&self.template_path);
         opts.initial_head = crate::call::convert(&self.initial_head);
         opts.origin_url = crate::call::convert(&self.origin_url);
+        #[cfg(feature = "unstable-sha256")]
+        if let Some(oid_type) = self.oid_type {
+            opts.oid_type = oid_type;
+        }
         opts
     }
 }
@@ -3529,13 +3573,20 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
+    #[cfg(feature = "unstable-sha256")]
+    use crate::ObjectFormat;
+    #[cfg(feature = "unstable-sha256")]
+    use crate::RepositoryInitOptions;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
         ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
     };
+
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
+
+    use libgit2_sys as raw;
     use tempfile::TempDir;
 
     #[test]
@@ -3545,6 +3596,33 @@ mod tests {
 
         let repo = Repository::init(path).unwrap();
         assert!(!repo.is_bare());
+
+        let oid = repo.blob(b"test content").unwrap();
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        // Verify OID hex string is 40 characters for SHA1
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_init_sha256() {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let mut opts = RepositoryInitOptions::new();
+        opts.object_format(ObjectFormat::Sha256);
+
+        let repo = Repository::init_opts(path, &opts).unwrap();
+        assert!(!repo.is_bare());
+        assert_eq!(repo.object_format(), ObjectFormat::Sha256);
+
+        let oid = repo.blob(b"test content").unwrap();
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+
+        let config = repo.config().unwrap();
+        let format = config.get_string("extensions.objectformat").unwrap();
+        assert_eq!(format, "sha256");
     }
 
     #[test]
@@ -3555,6 +3633,22 @@ mod tests {
         let repo = Repository::init_bare(path).unwrap();
         assert!(repo.is_bare());
         assert!(repo.namespace().is_none());
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_init_bare_sha256() {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let mut opts = RepositoryInitOptions::new();
+        opts.object_format(ObjectFormat::Sha256);
+        opts.bare(true);
+
+        let repo = Repository::init_opts(path, &opts).unwrap();
+        assert!(repo.is_bare());
+        assert!(repo.namespace().is_none());
+        assert_eq!(repo.object_format(), ObjectFormat::Sha256);
     }
 
     #[test]
@@ -3571,6 +3665,39 @@ mod tests {
             crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
         assert_eq!(repo.state(), crate::RepositoryState::Clean);
+
+        let oid = repo.blob(b"test content").unwrap();
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_open_sha256() {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let mut opts = RepositoryInitOptions::new();
+        opts.object_format(ObjectFormat::Sha256);
+        Repository::init_opts(path, &opts).unwrap();
+
+        let repo = Repository::open(path).unwrap();
+        assert_eq!(repo.object_format(), ObjectFormat::Sha256);
+        assert!(!repo.is_bare());
+        assert!(repo.is_empty().unwrap());
+        assert_eq!(
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join(".git/")).unwrap()
+        );
+        assert_eq!(repo.state(), crate::RepositoryState::Clean);
+
+        let oid = repo.blob(b"test content").unwrap();
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+
+        let config = repo.config().unwrap();
+        let format = config.get_string("extensions.objectformat").unwrap();
+        assert_eq!(format, "sha256");
     }
 
     #[test]
@@ -3588,9 +3715,40 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_open_bare_sha256() {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let mut opts = RepositoryInitOptions::new();
+        opts.object_format(ObjectFormat::Sha256);
+        opts.bare(true);
+
+        Repository::init_opts(path, &opts).unwrap();
+
+        let repo = Repository::open(path).unwrap();
+        assert!(repo.is_bare());
+        assert_eq!(
+            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(&td.path().join("")).unwrap()
+        );
+    }
+
+    #[test]
     fn smoke_checkout() {
         let (_td, repo) = crate::test::repo_init();
         repo.checkout_head(None).unwrap();
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_checkout_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        repo.checkout_head(None).unwrap();
+
+        let config = repo.config().unwrap();
+        let format = config.get_string("extensions.objectformat").unwrap();
+        assert_eq!(format, "sha256");
     }
 
     #[test]
@@ -3608,6 +3766,28 @@ mod tests {
         repo.reset(&obj, ResetType::Hard, None).unwrap();
         let mut opts = CheckoutBuilder::new();
         t!(repo.reset(&obj, ResetType::Soft, Some(&mut opts)));
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_revparse_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let rev = repo.revparse("HEAD").unwrap();
+        assert!(rev.to().is_none());
+        let from = rev.from().unwrap();
+        assert!(rev.from().is_some());
+
+        assert_eq!(repo.revparse_single("HEAD").unwrap().id(), from.id());
+        let obj = repo.find_object(from.id(), None).unwrap().clone();
+        obj.peel(ObjectType::Any).unwrap();
+        obj.short_id().unwrap();
+        repo.reset(&obj, ResetType::Hard, None).unwrap();
+        let mut opts = CheckoutBuilder::new();
+        t!(repo.reset(&obj, ResetType::Soft, Some(&mut opts)));
+
+        let config = repo.config().unwrap();
+        let format = config.get_string("extensions.objectformat").unwrap();
+        assert_eq!(format, "sha256");
     }
 
     #[test]
@@ -3788,7 +3968,10 @@ mod tests {
     fn smoke_set_head_detached() {
         let (_td, repo) = crate::test::repo_init();
 
+        #[cfg(not(feature = "unstable-sha256"))]
         let void_oid = Oid::from_bytes(b"00000000000000000000").unwrap();
+        #[cfg(feature = "unstable-sha256")]
+        let void_oid = Oid::from_bytes(b"00000000000000000000000000000000").unwrap();
         assert!(repo.set_head_detached(void_oid).is_err());
 
         let main_oid = repo.revparse_single("main").unwrap().id();
