@@ -266,7 +266,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     }
 
     // Use the CollisionDetection SHA1 implementation.
-    features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
+    features.push_str("#define GIT_SHA1_BUILTIN 1\n");
     cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
