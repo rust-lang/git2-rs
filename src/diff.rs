@@ -289,9 +289,7 @@ impl<'repo> Diff<'repo> {
 
     /// Create a patch ID from a diff.
     pub fn patchid(&self, opts: Option<&mut DiffPatchidOptions>) -> Result<Oid, Error> {
-        let mut raw = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_diff_patchid(
                 &mut raw,

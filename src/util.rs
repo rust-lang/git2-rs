@@ -268,6 +268,12 @@ fn fixup_windows_path(path: CString) -> Result<CString, Error> {
     Ok(path)
 }
 
+/// Creates a zeroed git_oid structure.
+#[inline]
+pub(crate) fn zeroed_raw_oid() -> raw::git_oid {
+    unsafe { std::mem::zeroed() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

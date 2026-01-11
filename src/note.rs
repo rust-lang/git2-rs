@@ -92,9 +92,7 @@ impl<'repo> Binding for Notes<'repo> {
 impl<'repo> Iterator for Notes<'repo> {
     type Item = Result<(Oid, Oid), Error>;
     fn next(&mut self) -> Option<Result<(Oid, Oid), Error>> {
-        let mut note_id = raw::git_oid {
-            id: [0; raw::GIT_OID_MAX_SIZE],
-        };
+        let mut note_id = crate::util::zeroed_raw_oid();
         let mut annotated_id = note_id;
         unsafe {
             try_call_iter!(raw::git_note_next(
