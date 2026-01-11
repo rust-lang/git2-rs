@@ -691,6 +691,7 @@ mod util;
 
 pub mod build;
 pub mod cert;
+pub mod odb_backend;
 pub mod oid_array;
 pub mod opts;
 pub mod string_array;

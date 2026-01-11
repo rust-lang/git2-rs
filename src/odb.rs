@@ -7,6 +7,7 @@ use std::ffi::CString;
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 
+use crate::odb_backend::{CustomOdbBackend, OdbBackend};
 use crate::panic;
 use crate::util::Binding;
 use crate::{
@@ -263,6 +264,26 @@ impl<'repo> Odb<'repo> {
                 priority as c_int
             ));
             Ok(Mempack::from_raw(mempack))
+        }
+    }
+
+    /// Adds a custom backend to this odb with the given priority.
+    /// Returns a handle to the backend.
+    ///
+    /// `backend` will be dropped when this Odb is dropped.
+    pub fn add_custom_backend<'odb, B: OdbBackend + 'odb>(
+        &'odb self,
+        backend: B,
+        priority: i32,
+    ) -> Result<CustomOdbBackend<'odb, B>, Error> {
+        let mut inner = CustomOdbBackend::new_inner(backend);
+        unsafe {
+            try_call!(raw::git_odb_add_backend(
+                self.raw,
+                ptr::from_mut(inner.as_mut()).cast(),
+                priority as c_int
+            ));
+            Ok(CustomOdbBackend::new(inner))
         }
     }
 }
