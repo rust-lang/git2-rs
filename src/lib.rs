@@ -112,6 +112,7 @@ pub use crate::message::{
 pub use crate::note::{Note, Notes};
 pub use crate::object::Object;
 pub use crate::odb::{Odb, OdbObject, OdbPackwriter, OdbReader, OdbWriter};
+pub use crate::oid::ObjectFormat;
 pub use crate::oid::Oid;
 pub use crate::packbuilder::{PackBuilder, PackBuilderStage};
 pub use crate::patch::Patch;
