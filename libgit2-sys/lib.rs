@@ -5,6 +5,14 @@
 extern crate libz_sys as libz;
 
 use libc::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void, size_t};
+
+// libc does not expose mode_t on Windows; use a local alias instead.
+// libgit2 add shims for that, see <libgit2-sys/libgit2/src/util/win32/msvc-compat.h>
+#[cfg(unix)]
+use libc::mode_t;
+#[cfg(not(unix))]
+#[allow(non_camel_case_types)]
+type mode_t = c_uint;
 #[cfg(feature = "ssh")]
 use libssh2_sys as libssh2;
 use std::ffi::CStr;
@@ -1164,6 +1172,7 @@ pub struct git_repository_init_options {
     pub origin_url: *const c_char,
     #[cfg(feature = "unstable-sha256")]
     pub oid_type: git_oid_t,
+    pub refdb_type: git_refdb_t,
 }
 
 pub const GIT_REPOSITORY_INIT_OPTIONS_VERSION: c_uint = 1;
@@ -1372,6 +1381,12 @@ git_enum! {
         GIT_OID_SHA1 = 1,
         #[cfg(feature = "unstable-sha256")]
         GIT_OID_SHA256 = 2,
+    }
+}
+
+git_enum! {
+    pub enum git_refdb_t {
+        GIT_REFDB_FILES = 1,
     }
 }
 
@@ -1816,6 +1831,7 @@ pub struct git_odb_writepack {
 #[repr(C)]
 pub struct git_refdb_backend {
     pub version: c_uint,
+    pub init: Option<extern "C" fn(*mut git_refdb_backend, *const c_char, mode_t, u32) -> c_int>,
     pub exists: Option<extern "C" fn(*mut c_int, *mut git_refdb_backend, *const c_char) -> c_int>,
     pub lookup: Option<
         extern "C" fn(*mut *mut git_reference, *mut git_refdb_backend, *const c_char) -> c_int,
