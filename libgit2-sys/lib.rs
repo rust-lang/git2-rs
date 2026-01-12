@@ -84,12 +84,74 @@ pub enum git_branch_iterator {}
 pub enum git_blame {}
 pub enum git_commit {}
 pub enum git_config {}
-pub enum git_config_iterator {}
+
+#[repr(C)]
+pub struct git_config_backend_entry {
+    pub entry: git_config_entry,
+    pub free: Option<extern "C" fn(*mut git_config_backend_entry)>,
+}
+
+#[repr(C)]
+pub struct git_config_iterator {
+    pub backend: *mut git_config_backend,
+    pub flags: c_uint,
+    pub next: Option<
+        extern "C" fn(*mut *mut git_config_backend_entry, *mut git_config_iterator) -> c_int,
+    >,
+    pub free: Option<extern "C" fn(*mut git_config_iterator)>,
+}
+
+#[repr(C)]
+pub struct git_config_backend {
+    pub version: c_uint,
+    pub readonly: c_int,
+    pub cfg: *mut git_config,
+    pub open: Option<
+        extern "C" fn(*mut git_config_backend, git_config_level_t, *const git_repository) -> c_int,
+    >,
+    pub get: Option<
+        extern "C" fn(
+            *mut git_config_backend,
+            *const c_char,
+            *mut *mut git_config_backend_entry,
+        ) -> c_int,
+    >,
+    pub set: Option<extern "C" fn(*mut git_config_backend, *const c_char, *const c_char) -> c_int>,
+    pub set_multivar: Option<
+        extern "C" fn(
+            *mut git_config_backend,
+            *const c_char,
+            *const c_char,
+            *const c_char,
+        ) -> c_int,
+    >,
+    pub del: Option<extern "C" fn(*mut git_config_backend, *const c_char) -> c_int>,
+    pub del_multivar:
+        Option<extern "C" fn(*mut git_config_backend, *const c_char, *const c_char) -> c_int>,
+    pub iterator:
+        Option<extern "C" fn(*mut *mut git_config_iterator, *mut git_config_backend) -> c_int>,
+    pub snapshot:
+        Option<extern "C" fn(*mut *mut git_config_backend, *mut git_config_backend) -> c_int>,
+    pub lock: Option<extern "C" fn(*mut git_config_backend) -> c_int>,
+    pub unlock: Option<extern "C" fn(*mut git_config_backend, c_int) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_config_backend)>,
+}
+
+pub const GIT_CONFIG_BACKEND_VERSION: c_uint = 1;
+
 pub enum git_index {}
 pub enum git_index_conflict_iterator {}
 pub enum git_object {}
 pub enum git_reference {}
-pub enum git_reference_iterator {}
+
+#[repr(C)]
+pub struct git_reference_iterator {
+    pub db: *mut git_refdb,
+    pub next: Option<extern "C" fn(*mut *mut git_reference, *mut git_reference_iterator) -> c_int>,
+    pub next_name: Option<extern "C" fn(*mut *const c_char, *mut git_reference_iterator) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_reference_iterator)>,
+}
+
 pub enum git_annotated_commit {}
 pub enum git_refdb {}
 pub enum git_refspec {}
@@ -116,7 +178,30 @@ pub enum git_reflog_entry {}
 pub enum git_describe_result {}
 pub enum git_packbuilder {}
 pub enum git_odb {}
-pub enum git_odb_stream {}
+
+#[repr(C)]
+pub struct git_odb_stream {
+    pub backend: *mut git_odb_backend,
+    pub mode: c_uint,
+    pub hash_ctx: *mut c_void,
+    #[cfg(feature = "unstable-sha256")]
+    pub oid_type: git_oid_t,
+    pub declared_size: git_object_size_t,
+    pub received_bytes: git_object_size_t,
+    pub read: Option<extern "C" fn(*mut git_odb_stream, *mut c_char, size_t) -> c_int>,
+    pub write: Option<extern "C" fn(*mut git_odb_stream, *const c_char, size_t) -> c_int>,
+    pub finalize_write: Option<extern "C" fn(*mut git_odb_stream, *const git_oid) -> c_int>,
+    pub free: Option<extern "C" fn(*mut git_odb_stream)>,
+}
+
+git_enum! {
+    pub enum git_odb_stream_t {
+        GIT_STREAM_RDONLY = 2,
+        GIT_STREAM_WRONLY = 4,
+        GIT_STREAM_RW = 6,
+    }
+}
+
 pub enum git_odb_object {}
 pub enum git_worktree {}
 pub enum git_transaction {}
@@ -3053,7 +3138,7 @@ extern "C" {
     pub fn git_commit_message_encoding(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_message_raw(commit: *const git_commit) -> *const c_char;
     pub fn git_commit_nth_gen_ancestor(
-        commit: *mut *mut git_commit,
+        ancestor: *mut *mut git_commit,
         commit: *const git_commit,
         n: c_uint,
     ) -> c_int;
@@ -3304,6 +3389,13 @@ extern "C" {
     ) -> c_int;
 
     // config
+    pub fn git_config_add_backend(
+        cfg: *mut git_config,
+        file: *mut git_config_backend,
+        level: git_config_level_t,
+        repo: *const git_repository,
+        force: c_int,
+    ) -> c_int;
     pub fn git_config_add_file_ondisk(
         cfg: *mut git_config,
         path: *const c_char,
@@ -3357,6 +3449,7 @@ extern "C" {
         cfg: *const git_config,
         name: *const c_char,
     ) -> c_int;
+    pub fn git_config_init_backend(backend: *mut git_config_backend, version: c_uint) -> c_int;
     pub fn git_config_iterator_free(iter: *mut git_config_iterator);
     pub fn git_config_iterator_glob_new(
         out: *mut *mut git_config_iterator,
