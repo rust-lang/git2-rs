@@ -2652,6 +2652,7 @@ extern "C" {
         size: *mut size_t,
         remote: *mut git_remote,
     ) -> c_int;
+    pub fn git_remote_oid_type(out: *mut git_oid_t, remote: *mut git_remote) -> c_int;
     pub fn git_remote_set_autotag(
         repo: *mut git_repository,
         remote: *const c_char,
