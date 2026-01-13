@@ -3418,15 +3418,6 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
-    /// Normally a '/.git/' will be appended to the repo path for non-bare repos
-    /// (if it is not already there), but passing this flag prevents that
-    /// behavior.
-    ///
-    /// Defaults to false.
-    pub fn no_dotgit_dir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
-        self.flag(raw::GIT_REPOSITORY_INIT_NO_DOTGIT_DIR, enabled)
-    }
-
     /// Make the repo path (and workdir path) as needed. The ".git" directory
     /// will always be created regardless of this flag.
     ///
@@ -3458,6 +3449,15 @@ impl RepositoryInitOptions {
     /// Defaults to true.
     pub fn external_template(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE, enabled)
+    }
+
+    /// If set, the gitlink created for a separate git directory will use
+    /// a relative path for the gitdir. This is useful for keeping a portable
+    /// repository.
+    ///
+    /// Defaults to false.
+    pub fn relative_gitlink(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
+        self.flag(raw::GIT_REPOSITORY_INIT_RELATIVE_GITLINK, enabled)
     }
 
     fn flag(
