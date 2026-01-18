@@ -1084,6 +1084,17 @@ impl Repository {
         }
     }
 
+    /// Set the configuration file for this repository.
+    ///
+    /// This configuration file will be used for all configuration queries involving this
+    /// repository.
+    pub fn set_config(&self, config: &Config) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_config(self.raw(), config.raw()));
+        }
+        Ok(())
+    }
+
     /// Get the value of a git attribute for a path as a string.
     ///
     /// This function will return a special string if the attribute is set to a special value.
@@ -3539,7 +3550,7 @@ mod tests {
     use crate::ObjectFormat;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
-        ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
+        Config, ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
     };
 
     use std::ffi::OsStr;
@@ -4310,6 +4321,25 @@ bar
         let config = repo.config().unwrap();
 
         assert!(!config.get_bool("commit.gpgsign").unwrap());
+    }
+
+    #[test]
+    fn smoke_set_config() {
+        let (td, repo) = crate::test::repo_init();
+
+        let config = {
+            let config_file = td.path().join(".gitconfig");
+
+            t!(fs::write(&config_file, "[diff]\nnoPrefix = true"));
+
+            t!(Config::open(&config_file))
+        };
+
+        repo.set_config(&config).unwrap();
+
+        let config = repo.config().unwrap();
+
+        assert!(config.get_bool("diff.noPrefix").unwrap());
     }
 
     #[test]
