@@ -6,9 +6,9 @@ use std::mem;
 use std::ptr;
 use std::str;
 
-use crate::Error;
 use crate::call::Convert;
 use crate::util::Binding;
+use crate::Error;
 use crate::FileMode;
 use crate::IntoCString;
 use crate::{raw, Commit, FileFavor, Oid};
