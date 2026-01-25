@@ -1,3 +1,4 @@
+use libc::c_char;
 use libc::{c_uint, c_ushort};
 use std::ffi::CString;
 use std::marker;
@@ -5,8 +6,10 @@ use std::mem;
 use std::ptr;
 use std::str;
 
+use crate::Error;
 use crate::call::Convert;
 use crate::util::Binding;
+use crate::FileMode;
 use crate::IntoCString;
 use crate::{raw, Commit, FileFavor, Oid};
 
@@ -410,5 +413,103 @@ impl std::fmt::Debug for MergeFileResult {
         ds.field("automergeable", &self.is_automergeable());
         ds.field("mode", &self.mode());
         ds.finish()
+    }
+}
+
+/// Input structure for merging a file.
+pub struct MergeFileInput<'a> {
+    raw: raw::git_merge_file_input,
+    path: Option<CString>,
+    content: Option<&'a [u8]>,
+}
+
+impl Default for MergeFileInput<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Binding for MergeFileInput<'_> {
+    type Raw = *const raw::git_merge_file_input;
+
+    unsafe fn from_raw(raw: *const raw::git_merge_file_input) -> MergeFileInput<'static> {
+        MergeFileInput {
+            raw: *raw,
+            path: None,
+            content: None,
+        }
+    }
+
+    fn raw(&self) -> *const raw::git_merge_file_input {
+        &self.raw as *const _
+    }
+}
+
+impl<'a> MergeFileInput<'a> {
+    /// Creates a new, empty merge file input.
+    pub fn new() -> MergeFileInput<'a> {
+        let mut input = MergeFileInput {
+            raw: unsafe { mem::zeroed() },
+            path: None,
+            content: None,
+        };
+        assert_eq!(
+            unsafe { raw::git_merge_file_init_input(&mut input.raw, 1) },
+            0
+        );
+        input
+    }
+
+    /// Sets the content of the file.
+    pub fn content(&mut self, content: &'a [u8]) -> &mut MergeFileInput<'a> {
+        self.content = Some(content);
+
+        self.raw.ptr = content.as_ptr() as *const c_char;
+        self.raw.size = content.len() as usize;
+
+        self
+    }
+
+    /// Sets the path of the file.
+    pub fn path<T: IntoCString>(&mut self, t: T) -> &mut MergeFileInput<'a> {
+        self.path = Some(t.into_c_string().unwrap());
+
+        self.raw.path = self
+            .path
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
+
+        self
+    }
+
+    /// Sets the mode of the file.
+    pub fn mode(&mut self, mode: Option<FileMode>) -> &mut MergeFileInput<'a> {
+        self.raw.mode = mode.map_or(0, u32::from);
+        self
+    }
+}
+
+/// Merges three versions of a file: an ancestor version, our version, and their version.
+pub fn merge_file(
+    ancestor: &MergeFileInput<'_>,
+    ours: &MergeFileInput<'_>,
+    theirs: &MergeFileInput<'_>,
+    opts: Option<&mut MergeFileOptions>,
+) -> Result<MergeFileResult, Error> {
+    unsafe {
+        let ancestor = ancestor.raw();
+        let ours = ours.raw();
+        let theirs = theirs.raw();
+
+        let mut ret = mem::zeroed();
+        try_call!(raw::git_merge_file(
+            &mut ret,
+            ancestor,
+            ours,
+            theirs,
+            opts.map(|o| o.raw()).unwrap_or(ptr::null())
+        ));
+        Ok(Binding::from_raw(ret))
     }
 }
