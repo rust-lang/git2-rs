@@ -1,4 +1,4 @@
-use libc::c_char;
+use libc::{c_char, size_t};
 use libc::{c_uint, c_ushort};
 use std::ffi::CString;
 use std::marker;
@@ -465,7 +465,7 @@ impl<'a> MergeFileInput<'a> {
         self.content = Some(content);
 
         self.raw.ptr = content.as_ptr() as *const c_char;
-        self.raw.size = content.len() as usize;
+        self.raw.size = content.len() as size_t;
 
         self
     }
@@ -511,5 +511,55 @@ pub fn merge_file(
             opts.map(|o| o.raw()).unwrap_or(ptr::null())
         ));
         Ok(Binding::from_raw(ret))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{MergeFileInput, MergeFileOptions};
+
+    use std::path::Path;
+
+    #[test]
+    fn smoke_merge_file() {
+        let file_path = Path::new("file");
+        let base = {
+            let mut input = MergeFileInput::new();
+            input.content(b"base").path(file_path);
+            input
+        };
+
+        let ours = {
+            let mut input = MergeFileInput::new();
+            input.content(b"foo").path(file_path);
+            input
+        };
+
+        let theirs = {
+            let mut input = MergeFileInput::new();
+            input.content(b"bar").path(file_path);
+            input
+        };
+
+        let mut opts = MergeFileOptions::new();
+        opts.ancestor_label("ancestor");
+        opts.our_label("ours");
+        opts.their_label("theirs");
+        opts.style_diff3(true);
+        let merge_file_result = crate::merge_file(&base, &ours, &theirs, Some(&mut opts)).unwrap();
+
+        assert!(!merge_file_result.is_automergeable());
+        assert_eq!(merge_file_result.path(), Some("file"));
+        assert_eq!(
+            String::from_utf8_lossy(merge_file_result.content()).to_string(),
+            r"<<<<<<< ours
+foo
+||||||| ancestor
+base
+=======
+bar
+>>>>>>> theirs
+",
+        );
     }
 }
