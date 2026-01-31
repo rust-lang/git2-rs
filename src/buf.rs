@@ -44,12 +44,18 @@ impl Buf {
 impl Deref for Buf {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
+        if self.raw.ptr.is_null() {
+            return &[];
+        }
         unsafe { slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.size as usize) }
     }
 }
 
 impl DerefMut for Buf {
     fn deref_mut(&mut self) -> &mut [u8] {
+        if self.raw.ptr.is_null() {
+            return &mut [];
+        }
         unsafe { slice::from_raw_parts_mut(self.raw.ptr as *mut u8, self.raw.size as usize) }
     }
 }
