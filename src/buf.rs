@@ -75,3 +75,12 @@ impl Drop for Buf {
         unsafe { raw::git_buf_dispose(&mut self.raw) }
     }
 }
+
+#[test]
+fn empty_buf() {
+    let mut buf = Buf::new();
+    let x: &[u8] = &*buf;
+    assert_eq!(x.len(), 0);
+    let x: &mut [u8] = &mut *buf;
+    assert_eq!(x.len(), 0);
+}
