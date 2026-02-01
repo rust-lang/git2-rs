@@ -428,12 +428,8 @@ impl Default for MergeFileInput<'_> {
 impl Binding for MergeFileInput<'_> {
     type Raw = *const raw::git_merge_file_input;
 
-    unsafe fn from_raw(raw: *const raw::git_merge_file_input) -> MergeFileInput<'static> {
-        MergeFileInput {
-            raw: *raw,
-            path: None,
-            content: None,
-        }
+    unsafe fn from_raw(_raw: *const raw::git_merge_file_input) -> MergeFileInput<'static> {
+        panic!("unimplemened")
     }
 
     fn raw(&self) -> *const raw::git_merge_file_input {

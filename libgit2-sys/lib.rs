@@ -1561,7 +1561,6 @@ pub struct git_merge_file_options {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub struct git_merge_file_input {
     pub version: c_uint,
     pub ptr: *const c_char,
