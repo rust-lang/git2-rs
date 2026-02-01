@@ -3684,7 +3684,7 @@ extern "C" {
         their_tree: *const git_tree,
         opts: *const git_merge_options,
     ) -> c_int;
-    pub fn git_merge_file_init_input(opts: *mut git_merge_file_input, version: c_uint) -> c_int;
+    pub fn git_merge_file_input_init(opts: *mut git_merge_file_input, version: c_uint) -> c_int;
     pub fn git_merge_file_options_init(opts: *mut git_merge_file_options, version: c_uint)
         -> c_int;
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;

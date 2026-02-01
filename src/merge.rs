@@ -1,5 +1,4 @@
-use libc::{c_char, size_t};
-use libc::{c_uint, c_ushort};
+use libc::{c_char, c_uint, c_ushort, size_t};
 use std::ffi::CString;
 use std::marker;
 use std::mem;
@@ -8,10 +7,7 @@ use std::str;
 
 use crate::call::Convert;
 use crate::util::Binding;
-use crate::Error;
-use crate::FileMode;
-use crate::IntoCString;
-use crate::{raw, Commit, FileFavor, Oid};
+use crate::{raw, Commit, Error, FileFavor, FileMode, IntoCString, Oid};
 
 /// A structure to represent an annotated commit, the input to merge and rebase.
 ///
@@ -454,7 +450,7 @@ impl<'a> MergeFileInput<'a> {
             content: None,
         };
         assert_eq!(
-            unsafe { raw::git_merge_file_init_input(&mut input.raw, 1) },
+            unsafe { raw::git_merge_file_input_init(&mut input.raw, 1) },
             0
         );
         input
