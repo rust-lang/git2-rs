@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20.4 - 2026-02-02
+[0.20.3...0.20.4](https://github.com/rust-lang/git2-rs/compare/git2-0.20.3...git2-0.20.4)
+
+### Fixed
+
+- Fix undefined behavior when dereferencing empty `Buf`.
+  [#1213](https://github.com/rust-lang/git2-rs/pull/1213)
+
 ## 0.20.3 - 2025-12-06
 [0.20.2...0.20.3](https://github.com/rust-lang/git2-rs/compare/git2-0.20.2...git2-0.20.3)
 

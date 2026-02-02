@@ -357,7 +357,7 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.20.3"
+version = "0.20.4"
 dependencies = [
  "bitflags 2.6.0",
  "clap",
