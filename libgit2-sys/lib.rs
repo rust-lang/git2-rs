@@ -1561,6 +1561,15 @@ pub struct git_merge_file_options {
 }
 
 #[repr(C)]
+pub struct git_merge_file_input {
+    pub version: c_uint,
+    pub ptr: *const c_char,
+    pub size: size_t,
+    pub path: *const c_char,
+    pub mode: c_uint,
+}
+
+#[repr(C)]
 pub struct git_merge_file_result {
     pub automergeable: c_uint,
     pub path: *const c_char,
@@ -3674,6 +3683,7 @@ extern "C" {
         their_tree: *const git_tree,
         opts: *const git_merge_options,
     ) -> c_int;
+    pub fn git_merge_file_input_init(opts: *mut git_merge_file_input, version: c_uint) -> c_int;
     pub fn git_merge_file_options_init(opts: *mut git_merge_file_options, version: c_uint)
         -> c_int;
     pub fn git_repository_state_cleanup(repo: *mut git_repository) -> c_int;
@@ -3830,6 +3840,14 @@ extern "C" {
         ancestor: *const git_index_entry,
         ours: *const git_index_entry,
         theirs: *const git_index_entry,
+        opts: *const git_merge_file_options,
+    ) -> c_int;
+
+    pub fn git_merge_file(
+        out: *mut git_merge_file_result,
+        ancestor: *const git_merge_file_input,
+        ours: *const git_merge_file_input,
+        theirs: *const git_merge_file_input,
         opts: *const git_merge_file_options,
     ) -> c_int;
 
