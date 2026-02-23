@@ -15,6 +15,7 @@
 #![deny(warnings)]
 
 use clap::Parser;
+use git2::ObjectFormat;
 use git2::{Error, Repository, RepositoryInitMode, RepositoryInitOptions};
 use std::path::{Path, PathBuf};
 
@@ -40,6 +41,9 @@ struct Args {
     #[structopt(name = "perms", long = "shared")]
     /// permissions to create the repository with
     flag_shared: Option<String>,
+    #[structopt(name = "object-format", long, value_parser = parse_object_format)]
+    /// object format to use (sha1 or sha256, requires unstable-sha256 feature)
+    flag_object_format: Option<ObjectFormat>,
 }
 
 fn run(args: &Args) -> Result<(), Error> {
@@ -48,6 +52,7 @@ fn run(args: &Args) -> Result<(), Error> {
         && args.flag_template.is_none()
         && args.flag_shared.is_none()
         && args.flag_separate_git_dir.is_none()
+        && args.flag_object_format.is_none()
     {
         Repository::init(&path)?
     } else {
@@ -68,6 +73,12 @@ fn run(args: &Args) -> Result<(), Error> {
         if let Some(ref s) = args.flag_shared {
             opts.mode(parse_shared(s)?);
         }
+
+        #[cfg(feature = "unstable-sha256")]
+        if let Some(format) = args.flag_object_format {
+            opts.object_format(format);
+        }
+
         Repository::init_opts(&path, &opts)?
     };
 
@@ -133,6 +144,15 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
                 Err(Error::from_str("unknown value for --shared"))
             }
         }
+    }
+}
+
+fn parse_object_format(format: &str) -> Result<ObjectFormat, Error> {
+    match format {
+        "sha1" => Ok(ObjectFormat::Sha1),
+        #[cfg(feature = "unstable-sha256")]
+        "sha256" => Ok(ObjectFormat::Sha256),
+        _ => Err(Error::from_str("object format must be 'sha1' or 'sha256'")),
     }
 }
 

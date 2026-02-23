@@ -319,7 +319,13 @@ fn tree_to_treeish<'a>(
 
 fn resolve_blob<'a>(repo: &'a Repository, arg: Option<&String>) -> Result<Option<Blob<'a>>, Error> {
     let arg = match arg {
-        Some(s) => Oid::from_str(s)?,
+        Some(s) => {
+            #[cfg(not(feature = "unstable-sha256"))]
+            let oid = Oid::from_str(s)?;
+            #[cfg(feature = "unstable-sha256")]
+            let oid = Oid::from_str(s, repo.object_format())?;
+            oid
+        }
         None => return Ok(None),
     };
     repo.find_blob(arg).map(|b| Some(b))
