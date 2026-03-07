@@ -9,7 +9,7 @@
 //! The git2-rs library strives to be as close to libgit2 as possible, but also
 //! strives to make using libgit2 as safe as possible. All resource management
 //! is automatic as well as adding strong types to all interfaces (including
-//! `Result`)
+//! `Result`).
 //!
 //! ## Creating a `Repository`
 //!
