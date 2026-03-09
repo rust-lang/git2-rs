@@ -1234,6 +1234,20 @@ impl Repository {
         Ok(())
     }
 
+    /// Suggests that the reference database compress or optimize its
+    /// references. This mechanism is implementation specific. For on-disk
+    /// reference databases, for example, this may pack all loose references.
+    pub fn refdb_compress(&self) -> Result<(), Error> {
+        let mut refdb = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_repository_refdb(&mut refdb, self.raw()));
+            let result = crate::call::c_try(raw::git_refdb_compress(refdb));
+            raw::git_refdb_free(refdb);
+            result?;
+        }
+        Ok(())
+    }
+
     /// Create a new branch pointing at a target commit
     ///
     /// A new direct reference will be created pointing to this target commit.
@@ -4558,5 +4572,78 @@ Committer Name <committer.proper@email> <committer@email>"#,
             crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(worktree_repo.commondir()).unwrap()
         );
+    }
+
+    #[test]
+    fn smoke_refdb_compress() {
+        let (_td, repo) = crate::test::repo_init();
+        // Compressing an empty-ish refdb should succeed.
+        repo.refdb_compress().unwrap();
+    }
+
+    #[test]
+    fn refdb_compress_with_loose_refs() {
+        let (_td, repo) = crate::test::repo_init();
+        let head_id = repo.refname_to_id("HEAD").unwrap();
+
+        // Create several loose refs.
+        for i in 0..20 {
+            repo.reference(&format!("refs/tags/test-{}", i), head_id, false, "test ref")
+                .unwrap();
+        }
+
+        // Verify refs exist.
+        assert!(repo.references_glob("refs/tags/test-*").unwrap().count() == 20);
+
+        // packed-refs should not exist yet (refs are still loose).
+        let packed_refs = repo.path().join("packed-refs");
+        assert!(
+            !packed_refs.exists(),
+            "packed-refs should not exist before compress"
+        );
+
+        // Compress should pack them without error.
+        repo.refdb_compress().unwrap();
+
+        // packed-refs should now exist after compressing.
+        assert!(
+            packed_refs.exists(),
+            "packed-refs should exist after compress"
+        );
+
+        // Refs should still be resolvable after packing.
+        assert!(repo.references_glob("refs/tags/test-*").unwrap().count() == 20);
+        for i in 0..20 {
+            let r = repo
+                .find_reference(&format!("refs/tags/test-{}", i))
+                .unwrap();
+            assert_eq!(r.target().unwrap(), head_id);
+        }
+    }
+
+    #[test]
+    fn refdb_compress_bare_repo() {
+        let td = TempDir::new().unwrap();
+        let repo = Repository::init_bare(td.path()).unwrap();
+        // Compressing a bare repo with no refs should succeed.
+        repo.refdb_compress().unwrap();
+    }
+
+    #[test]
+    fn refdb_compress_idempotent() {
+        let (_td, repo) = crate::test::repo_init();
+        let head_id = repo.refname_to_id("HEAD").unwrap();
+
+        for i in 0..5 {
+            repo.reference(&format!("refs/tags/idem-{}", i), head_id, false, "test")
+                .unwrap();
+        }
+
+        // Compress multiple times — should be safe and idempotent.
+        repo.refdb_compress().unwrap();
+        repo.refdb_compress().unwrap();
+        repo.refdb_compress().unwrap();
+
+        assert!(repo.references_glob("refs/tags/idem-*").unwrap().count() == 5);
     }
 }
