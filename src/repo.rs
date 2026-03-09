@@ -4595,13 +4595,19 @@ Committer Name <committer.proper@email> <committer@email>"#,
 
         // packed-refs should not exist yet (refs are still loose).
         let packed_refs = repo.path().join("packed-refs");
-        assert!(!packed_refs.exists(), "packed-refs should not exist before compress");
+        assert!(
+            !packed_refs.exists(),
+            "packed-refs should not exist before compress"
+        );
 
         // Compress should pack them without error.
         repo.refdb_compress().unwrap();
 
         // packed-refs should now exist after compressing.
-        assert!(packed_refs.exists(), "packed-refs should exist after compress");
+        assert!(
+            packed_refs.exists(),
+            "packed-refs should exist after compress"
+        );
 
         // Refs should still be resolvable after packing.
         assert!(repo.references_glob("refs/tags/test-*").unwrap().count() == 20);
