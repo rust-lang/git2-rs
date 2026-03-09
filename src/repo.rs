@@ -970,7 +970,9 @@ impl Repository {
                 let data = &mut *(data as *mut Data<'_, '_>);
                 let mut raw = ptr::null_mut();
                 let rc = raw::git_submodule_lookup(&mut raw, data.repo.raw(), name);
-                assert_eq!(rc, 0);
+                if rc != 0 {
+                    return rc;
+                }
                 data.ret.push(Binding::from_raw(raw));
             }
             0
