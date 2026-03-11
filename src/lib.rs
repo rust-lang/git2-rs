@@ -152,7 +152,7 @@ pub use crate::worktree::{Worktree, WorktreeAddOptions, WorktreeLockStatus, Work
 // Create a convinience method on bitflag struct which checks the given flag
 macro_rules! is_bit_set {
     ($name:ident, $flag:expr) => {
-        #[allow(missing_docs)]
+        #[doc = concat!("Check if the ", stringify!($flag), " is set.")]
         pub fn $name(&self) -> bool {
             self.intersects($flag)
         }
