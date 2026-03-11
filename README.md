@@ -53,13 +53,8 @@ $ cargo build
 ### Automating Testing
 
 Running tests and handling all of the associated edge cases on every commit
-proves tedious very quickly.  To automate tests and handle proper stashing and
-unstashing of unstaged changes and thus avoid nasty surprises, use the
-pre-commit hook found [here][pre-commit-hook] and place it into the
-`.git/hooks/` with the name `pre-commit`.  You may need to add execution
-permissions with `chmod +x`.
-
-To skip tests on a simple commit or doc-fixes, use `git commit --no-verify`.
+proves tedious very quickly.  You can use GitHub's automated CI to run the
+tests on your commit(s) if you do not run them locally.
 
 ## Building on macOS 10.10+
 
