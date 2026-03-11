@@ -137,6 +137,13 @@ pub struct git_config_backend {
     pub free: Option<extern "C" fn(*mut git_config_backend)>,
 }
 
+#[repr(C)]
+pub struct git_config_backend_memory_options {
+    pub version: c_uint,
+    pub backend_type: *const c_char,
+    pub origin_path: *const c_char,
+}
+
 pub const GIT_CONFIG_BACKEND_VERSION: c_uint = 1;
 
 pub enum git_index {}
@@ -3459,6 +3466,12 @@ extern "C" {
         name: *const c_char,
     ) -> c_int;
     pub fn git_config_init_backend(backend: *mut git_config_backend, version: c_uint) -> c_int;
+    pub fn git_config_backend_from_string(
+        backend: *mut *mut git_config_backend,
+        cfg: *const c_char,
+        len: size_t,
+        opts: *mut git_config_backend_memory_options,
+    ) -> c_int;
     pub fn git_config_iterator_free(iter: *mut git_config_iterator);
     pub fn git_config_iterator_glob_new(
         out: *mut *mut git_config_iterator,
