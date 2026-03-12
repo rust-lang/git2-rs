@@ -791,6 +791,7 @@ mod tests {
             dump(signed.entries(Some("commit.gpgsign")).unwrap()),
             ["commit.gpgsign = true"]
         );
+        assert_eq!(true, signed.get_bool("commit.gpgsign").unwrap());
 
         // A few entries
         let big_config = Config::from_str(
