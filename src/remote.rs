@@ -1,4 +1,3 @@
-use raw::git_strarray;
 use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
@@ -9,9 +8,19 @@ use std::slice;
 use std::str;
 use std::{ffi::CString, os::raw::c_char};
 
+use crate::call;
+use crate::raw;
+use crate::raw::git_strarray;
 use crate::string_array::StringArray;
 use crate::util::Binding;
-use crate::{call, raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
+use crate::Buf;
+use crate::Direction;
+use crate::Error;
+use crate::FetchPrune;
+use crate::ObjectFormat;
+use crate::Oid;
+use crate::ProxyOptions;
+use crate::Refspec;
 use crate::{AutotagOption, Progress, RemoteCallbacks, RemoteUpdateFlags, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -175,6 +184,27 @@ impl<'repo> Remote<'repo> {
             let buf = Buf::new();
             try_call!(raw::git_remote_default_branch(buf.raw(), self.raw));
             Ok(buf)
+        }
+    }
+
+    /// Get the remote's object ID format (hash algorithm).
+    ///
+    /// The remote (or more exactly its transport) must have connected to the
+    /// remote repository. The format is available as soon as the connection to
+    /// the remote is initiated and it remains available after disconnecting.
+    pub fn object_format(&self) -> Result<ObjectFormat, Error> {
+        let mut oid_type = raw::GIT_OID_SHA1;
+        unsafe {
+            try_call!(raw::git_remote_oid_type(&mut oid_type, self.raw));
+        }
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = oid_type;
+            Ok(ObjectFormat::Sha1)
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            Ok(unsafe { Binding::from_raw(oid_type) })
         }
     }
 
@@ -795,7 +825,7 @@ impl RemoteRedirect {
 #[cfg(test)]
 mod tests {
     use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
-    use crate::{Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
+    use crate::{Direction, FetchOptions, ObjectFormat, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
     use tempfile::TempDir;
 
@@ -865,6 +895,7 @@ mod tests {
 
         origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
+        assert_eq!(origin.object_format().unwrap(), ObjectFormat::Sha1);
         origin.download(&[] as &[&str], None).unwrap();
         origin.disconnect().unwrap();
 
