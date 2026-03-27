@@ -22,20 +22,20 @@ const GIT_REFNAME_MAX: usize = 1024;
 /// [`marker::PhantomData`], since all that matters is that it is tied to the
 /// lifetime of the [`Repository`], but this helps distinguish the actual
 /// references involved.
-struct Refdb<'repo>(#[allow(dead_code)] &'repo Repository);
+struct RefdbMarker<'repo>(#[allow(dead_code)] &'repo Repository);
 
 /// A structure to represent a git [reference][1].
 ///
 /// [1]: http://git-scm.com/book/en/Git-Internals-Git-References
 pub struct Reference<'repo> {
     raw: *mut raw::git_reference,
-    _marker: marker::PhantomData<Refdb<'repo>>,
+    _marker: marker::PhantomData<RefdbMarker<'repo>>,
 }
 
 /// An iterator over the references in a repository.
 pub struct References<'repo> {
     raw: *mut raw::git_reference_iterator,
-    _marker: marker::PhantomData<Refdb<'repo>>,
+    _marker: marker::PhantomData<RefdbMarker<'repo>>,
 }
 
 /// An iterator over the names of references in a repository.
