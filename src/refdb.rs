@@ -52,6 +52,15 @@ mod tests {
     }
 
     #[test]
+    fn set_refdb_roundtrip() {
+        let (_td, repo) = crate::test::repo_init();
+        let refdb = repo.refdb().unwrap();
+        repo.set_refdb(&refdb).unwrap();
+        // References should still be resolvable after setting the same refdb back.
+        repo.refname_to_id("HEAD").unwrap();
+    }
+
+    #[test]
     fn compress_with_loose_refs() {
         let (_td, repo) = crate::test::repo_init();
         let head_id = repo.refname_to_id("HEAD").unwrap();

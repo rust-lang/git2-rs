@@ -1241,6 +1241,14 @@ impl Repository {
         }
     }
 
+    /// Override the reference database for this repository
+    pub fn set_refdb(&self, refdb: &Refdb<'_>) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_refdb(self.raw(), refdb.raw()));
+        }
+        Ok(())
+    }
+
     /// Suggests that the reference database compress or optimize its
     /// references. This mechanism is implementation specific. For on-disk
     /// reference databases, for example, this may pack all loose references.
