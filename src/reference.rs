@@ -67,7 +67,10 @@ impl<'repo> Reference<'repo> {
     /// [`Reference::normalize_name`]: struct.Reference#method.normalize_name
     pub fn is_valid_name(refname: &str) -> bool {
         crate::init();
-        let refname = CString::new(refname).unwrap();
+        let refname = match CString::new(refname) {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
         let mut valid: libc::c_int = 0;
         unsafe {
             call::c_try(raw::git_reference_name_is_valid(
@@ -513,12 +516,9 @@ mod tests {
 
         assert!(!Reference::is_valid_name("foo"));
         assert!(!Reference::is_valid_name("_FOO_BAR"));
-    }
 
-    #[test]
-    #[should_panic]
-    fn is_valid_name_for_invalid_ref() {
-        Reference::is_valid_name("ab\012");
+        // Previously would panic, see #1218
+        assert!(!Reference::is_valid_name("ab\012"));
     }
 
     #[test]
