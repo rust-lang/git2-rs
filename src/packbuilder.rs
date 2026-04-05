@@ -293,10 +293,7 @@ extern "C" fn progress_c(
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buf, Oid};
-
-    // hash of a packfile constructed without any objects in it
-    const EMPTY_PACKFILE_OID: &str = "029d08823bd8a8eab510ad6ac75c823cfd3ed31e";
+    use crate::Buf;
 
     fn pack_header(len: u8) -> Vec<u8> {
         [].iter()
@@ -314,8 +311,25 @@ mod tests {
                 0x02, 0x9d, 0x08, 0x82, 0x3b, // ^
                 0xd8, 0xa8, 0xea, 0xb5, 0x10, // | SHA-1 of the zero
                 0xad, 0x6a, 0xc7, 0x5c, 0x82, // | object pack header
-                0x3c, 0xfd, 0x3e, 0xd3, 0x1e,
-            ]) // v
+                0x3c, 0xfd, 0x3e, 0xd3, 0x1e, // v
+            ])
+            .cloned()
+            .collect::<Vec<u8>>()
+    }
+
+    #[cfg(feature = "unstable-sha256")]
+    fn empty_pack_header_sha256() -> Vec<u8> {
+        pack_header(0)
+            .iter()
+            .chain(&[
+                0x7e, 0xd8, 0x90, 0xd8, 0xa4, // ^
+                0x57, 0x60, 0xf3, 0xee, 0xcf, // | SHA-256 of the zero
+                0x73, 0x04, 0x5b, 0x1d, 0x10, // | object pack header
+                0x47, 0x08, 0x5a, 0xf4, 0x77, // |
+                0x6d, 0xc6, 0x83, 0xd7, 0x8e, // |
+                0xac, 0x82, 0x20, 0x3d, 0xf1, // |
+                0x99, 0x3f, // v
+            ])
             .cloned()
             .collect::<Vec<u8>>()
     }
@@ -341,15 +355,45 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_write_buf_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut builder = t!(repo.packbuilder());
+        let mut buf = Buf::new();
+        t!(builder.write_buf(&mut buf));
+        assert!(builder.name().is_none());
+        assert_eq!(&*buf, &*empty_pack_header_sha256());
+    }
+
+    #[test]
     fn smoke_write() {
+        // SHA1 hash of a packfile constructed without any objects in it
+        const EMPTY_PACKFILE_OID: &str = "029d08823bd8a8eab510ad6ac75c823cfd3ed31e";
+
         let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         t!(builder.write(repo.path(), 0));
+        #[cfg(not(feature = "unstable-sha256"))]
         #[allow(deprecated)]
         {
-            assert!(builder.hash().unwrap() == Oid::from_str(EMPTY_PACKFILE_OID).unwrap());
+            let oid = crate::Oid::from_str(EMPTY_PACKFILE_OID).unwrap();
+            assert_eq!(builder.hash().unwrap(), oid);
         }
-        assert!(builder.name().unwrap() == EMPTY_PACKFILE_OID);
+        assert_eq!(builder.name().unwrap(), EMPTY_PACKFILE_OID);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    #[ignore = "git_packbuilder_write hasnt yet supported sha256; see https://github.com/libgit2/libgit2/pull/7179"]
+    fn smoke_write_object_format() {
+        // SHA256 hash of a packfile constructed without any objects in it
+        const EMPTY_PACKFILE_OID_SHA256: &str =
+            "7ed890d8a45760f3eecf73045b1d1047085af4776dc683d78eac82203df1993f";
+
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut builder = t!(repo.packbuilder());
+        t!(builder.write(repo.path(), 0));
+        assert_eq!(builder.name().unwrap(), EMPTY_PACKFILE_OID_SHA256);
     }
 
     #[test]
@@ -362,6 +406,19 @@ mod tests {
             true
         }));
         assert_eq!(&*buf, &*empty_pack_header());
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_foreach_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut builder = t!(repo.packbuilder());
+        let mut buf = Vec::<u8>::new();
+        t!(builder.foreach(|bytes| {
+            buf.extend(bytes);
+            true
+        }));
+        assert_eq!(&*buf, &*empty_pack_header_sha256());
     }
 
     #[test]
@@ -378,8 +435,37 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn insert_write_buf_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut builder = t!(repo.packbuilder());
+        let mut buf = Buf::new();
+        let (commit, _tree) = crate::test::commit(&repo);
+        t!(builder.insert_object(commit, None));
+        assert_eq!(builder.object_count(), 1);
+        t!(builder.write_buf(&mut buf));
+        // Just check that the correct number of objects are written
+        assert_eq!(&buf[0..12], &*pack_header(1));
+    }
+
+    #[test]
     fn insert_tree_write_buf() {
         let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let mut buf = Buf::new();
+        let (_commit, tree) = crate::test::commit(&repo);
+        // will insert the tree itself and the blob, 2 objects
+        t!(builder.insert_tree(tree));
+        assert_eq!(builder.object_count(), 2);
+        t!(builder.write_buf(&mut buf));
+        // Just check that the correct number of objects are written
+        assert_eq!(&buf[0..12], &*pack_header(2));
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn insert_tree_write_buf_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         let (_commit, tree) = crate::test::commit(&repo);
@@ -406,8 +492,36 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn insert_commit_write_buf_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut builder = t!(repo.packbuilder());
+        let mut buf = Buf::new();
+        let (commit, _tree) = crate::test::commit(&repo);
+        // will insert the commit, its tree and the blob, 3 objects
+        t!(builder.insert_commit(commit));
+        assert_eq!(builder.object_count(), 3);
+        t!(builder.write_buf(&mut buf));
+        // Just check that the correct number of objects are written
+        assert_eq!(&buf[0..12], &*pack_header(3));
+    }
+
+    #[test]
     fn insert_write() {
         let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let (commit, _tree) = crate::test::commit(&repo);
+        t!(builder.insert_object(commit, None));
+        assert_eq!(builder.object_count(), 1);
+        t!(builder.write(repo.path(), 0));
+        t!(repo.find_commit(commit));
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    #[ignore = "git_packbuilder_write hasnt yet supported sha256; see https://github.com/libgit2/libgit2/pull/7179"]
+    fn insert_write_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
         let (commit, _tree) = crate::test::commit(&repo);
         t!(builder.insert_object(commit, None));
@@ -429,8 +543,36 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-sha256")]
+    #[ignore = "git_packbuilder_write hasnt yet supported sha256; see https://github.com/libgit2/libgit2/pull/7179"]
+    fn insert_tree_write_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut builder = t!(repo.packbuilder());
+        let (_commit, tree) = crate::test::commit(&repo);
+        // will insert the tree itself and the blob, 2 objects
+        t!(builder.insert_tree(tree));
+        assert_eq!(builder.object_count(), 2);
+        t!(builder.write(repo.path(), 0));
+        t!(repo.find_tree(tree));
+    }
+
+    #[test]
     fn insert_commit_write() {
         let (_td, repo) = crate::test::repo_init();
+        let mut builder = t!(repo.packbuilder());
+        let (commit, _tree) = crate::test::commit(&repo);
+        // will insert the commit, its tree and the blob, 3 objects
+        t!(builder.insert_commit(commit));
+        assert_eq!(builder.object_count(), 3);
+        t!(builder.write(repo.path(), 0));
+        t!(repo.find_commit(commit));
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    #[ignore = "git_packbuilder_write hasnt yet supported sha256; see https://github.com/libgit2/libgit2/pull/7179"]
+    fn insert_commit_write_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
         let (commit, _tree) = crate::test::commit(&repo);
         // will insert the commit, its tree and the blob, 3 objects
