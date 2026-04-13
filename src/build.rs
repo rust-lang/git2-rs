@@ -418,8 +418,8 @@ impl<'cb> CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_UPDATE_ONLY, update)
     }
 
-    /// Prevents checkout from writing the updated files' information to the
-    /// index.
+    /// When set to false, prevents checkout from writing the updated files'
+    /// information to the index.
     ///
     /// Defaults to true.
     pub fn update_index(&mut self, update: bool) -> &mut CheckoutBuilder<'cb> {
