@@ -106,9 +106,18 @@ impl<'blame> BlameHunk<'blame> {
         unsafe { Oid::from_raw(&(*self.raw).final_commit_id) }
     }
 
-    /// Returns signature of the commit.
+    /// Returns signature for the author of the final commit.
+    ///
+    /// The final commit is the one identified by [Self::final_commit_id()].
     pub fn final_signature(&self) -> Signature<'_> {
         unsafe { signature::from_raw_const(self, (*self.raw).final_signature) }
+    }
+
+    /// Returns signature for the committer of the final commit.
+    ///
+    /// The final commit is the one identified by [Self::final_commit_id()].
+    pub fn final_committer(&self) -> Signature<'_> {
+        unsafe { signature::from_raw_const(self, (*self.raw).final_committer) }
     }
 
     /// Returns line number where this hunk begins.
@@ -127,9 +136,18 @@ impl<'blame> BlameHunk<'blame> {
         unsafe { Oid::from_raw(&(*self.raw).orig_commit_id) }
     }
 
-    /// Returns signature of the commit.
+    /// Returns signature of the author of the original commit.
+    ///
+    /// The original commit is the one identified by [Self::orig_commit_id()].
     pub fn orig_signature(&self) -> Signature<'_> {
         unsafe { signature::from_raw_const(self, (*self.raw).orig_signature) }
+    }
+
+    /// Returns signature of the committer of the original commit.
+    ///
+    /// The original commit is the one identified by [Self::orig_commit_id()].
+    pub fn orig_committer(&self) -> Signature<'_> {
+        unsafe { signature::from_raw_const(self, (*self.raw).orig_committer) }
     }
 
     /// Returns line number where this hunk begins.
@@ -161,6 +179,27 @@ impl<'blame> BlameHunk<'blame> {
     /// Returns number of lines in this hunk.
     pub fn lines_in_hunk(&self) -> usize {
         unsafe { (*self.raw).lines_in_hunk as usize }
+    }
+
+    /// Get the short "summary" of the git commit message for the hunk.
+    ///
+    /// The returned message is the summary of the commit, comprising the first
+    /// paragraph of the message with whitespace trimmed and squashed.
+    ///
+    /// `None` may be returned if an error occurs or if the summary is not valid
+    /// utf-8.
+    pub fn summary(&self) -> Option<&str> {
+        self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
+    }
+
+    /// Get the short "summary" of the git commit message for the hunk.
+    ///
+    /// The returned message is the summary of the commit, comprising the first
+    /// paragraph of the message with whitespace trimmed and squashed.
+    ///
+    /// `None` may be returned if an error occurs
+    pub fn summary_bytes(&self) -> Option<&[u8]> {
+        unsafe { crate::opt_bytes(self, (*self.raw).summary) }
     }
 }
 
@@ -346,13 +385,23 @@ mod tests {
         File::create(&root.join("foo/bar")).unwrap();
         index.add_path(Path::new("foo/bar")).unwrap();
 
+        let committer_sig = crate::Signature::now("FizzBuzz", "bar@example.com")
+            .expect("Signature creation should succeed");
+
         let id = index.write_tree().unwrap();
         let tree = repo.find_tree(id).unwrap();
         let sig = repo.signature().unwrap();
         let id = repo.refname_to_id("HEAD").unwrap();
         let parent = repo.find_commit(id).unwrap();
         let commit = repo
-            .commit(Some("HEAD"), &sig, &sig, "commit", &tree, &[&parent])
+            .commit(
+                Some("HEAD"),
+                &sig,
+                &committer_sig,
+                "commit",
+                &tree,
+                &[&parent],
+            )
             .unwrap();
 
         let blame = repo.blame_file(Path::new("foo/bar"), None).unwrap();
@@ -364,9 +413,16 @@ mod tests {
         assert_eq!(hunk.final_commit_id(), commit);
         assert_eq!(hunk.final_signature().name(), sig.name());
         assert_eq!(hunk.final_signature().email(), sig.email());
+        assert_eq!(hunk.orig_signature().name(), sig.name());
+        assert_eq!(hunk.orig_signature().email(), sig.email());
+        assert_eq!(hunk.final_committer().name(), committer_sig.name());
+        assert_eq!(hunk.final_committer().email(), committer_sig.email());
+        assert_eq!(hunk.orig_committer().name(), committer_sig.name());
+        assert_eq!(hunk.orig_committer().email(), committer_sig.email());
         assert_eq!(hunk.final_start_line(), 1);
         assert_eq!(hunk.path(), Some(Path::new("foo/bar")));
         assert_eq!(hunk.lines_in_hunk(), 0);
+        assert_eq!(hunk.summary(), Some("commit"));
         assert!(!hunk.is_boundary());
 
         let blame_buffer = blame.blame_buffer("\n".as_bytes()).unwrap();
