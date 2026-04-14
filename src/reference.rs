@@ -429,6 +429,17 @@ impl<'repo> PartialEq for Reference<'repo> {
 
 impl<'repo> Eq for Reference<'repo> {}
 
+impl<'repo> Clone for Reference<'repo> {
+    fn clone(&self) -> Reference<'repo> {
+        let mut raw = ptr::null_mut();
+        unsafe {
+            let rc = raw::git_reference_dup(&mut raw, self.raw);
+            assert_eq!(rc, 0);
+            Binding::from_raw(raw)
+        }
+    }
+}
+
 impl<'repo> Binding for Reference<'repo> {
     type Raw = *mut raw::git_reference;
     unsafe fn from_raw(raw: *mut raw::git_reference) -> Reference<'repo> {
@@ -549,6 +560,14 @@ mod tests {
         assert_eq!(head.shorthand(), Some("main"));
         assert!(head.resolve().unwrap() == head);
 
+        // In a block so that it gets dropped before proceeding and we can
+        // confirm that `head` still works
+        {
+            let cloned = head.clone();
+            assert_eq!(head.kind(), cloned.kind());
+            assert_eq!(head.target(), cloned.target());
+        }
+
         let mut tag1 = repo
             .reference("refs/tags/tag1", head.target().unwrap(), false, "test")
             .unwrap();
@@ -558,6 +577,14 @@ mod tests {
         let peeled_commit = tag1.peel(ObjectType::Commit).unwrap();
         assert_eq!(ObjectType::Commit, peeled_commit.kind().unwrap());
         assert_eq!(tag1.target().unwrap(), peeled_commit.id());
+
+        // In a block so that it gets dropped before proceeding and we can
+        // confirm that `tag1` still works
+        {
+            let cloned = tag1.clone();
+            assert_eq!(tag1.kind(), cloned.kind());
+            assert_eq!(tag1.target(), cloned.target());
+        }
 
         tag1.delete().unwrap();
 
@@ -572,6 +599,19 @@ mod tests {
             .unwrap();
         assert_eq!(sym2.kind().unwrap(), ReferenceType::Symbolic);
         assert_eq!(sym2.symbolic_target().unwrap(), "refs/tags/tag1");
+
+        // In a block so that it gets dropped before proceeding and we can
+        // confirm that `sym1` and `sym2` still work
+        {
+            let cloned = sym1.clone();
+            assert_eq!(sym1.kind(), cloned.kind());
+            assert_eq!(sym1.target(), cloned.target());
+
+            let cloned = sym2.clone();
+            assert_eq!(sym2.kind(), cloned.kind());
+            assert_eq!(sym2.target(), cloned.target());
+        }
+
         sym2.delete().unwrap();
         sym1.delete().unwrap();
 
