@@ -305,19 +305,30 @@ pub enum ErrorClass {
 
 /// A listing of the possible states that a repository can be in.
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
-#[allow(missing_docs)]
 pub enum RepositoryState {
+    /// No operation is currently in progress
     Clean,
+    /// A merge is currently in progress
     Merge,
+    /// A revert is currently in progress
     Revert,
+    /// A revert of multiple commits is currently in progress
     RevertSequence,
+    /// A cherry pick is currently in progress
     CherryPick,
+    /// A cherry pick of multiple commits is currently in progress
     CherryPickSequence,
+    /// A bisect is currently in progress
     Bisect,
+    /// A rebase is currently in progress
     Rebase,
+    /// An interactive rebase is currently in progress
     RebaseInteractive,
+    /// A rebase with a merge conflict is currently in progress
     RebaseMerge,
+    /// An apply operation is currently in progress
     ApplyMailbox,
+    /// A rebase or apply operation is currently in progress
     ApplyMailboxOrRebase,
 }
 
