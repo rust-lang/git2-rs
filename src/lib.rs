@@ -1506,10 +1506,13 @@ impl Default for StashApplyFlags {
 }
 
 bitflags! {
-    #[allow(missing_docs)]
+    /// Flags for use when stashing changes
+    ///
+    /// See [`StashSaveOptions::flags()`] and [`Repository::stash_save()`] for
+    /// further details.
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct StashFlags: u32 {
-        #[allow(missing_docs)]
+        /// Default options if no additional customization is desired.
         const DEFAULT = raw::GIT_STASH_DEFAULT as u32;
         /// All changes already added to the index are left intact in
         /// the working directory
