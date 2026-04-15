@@ -305,19 +305,30 @@ pub enum ErrorClass {
 
 /// A listing of the possible states that a repository can be in.
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
-#[allow(missing_docs)]
 pub enum RepositoryState {
+    /// No operation is currently in progress
     Clean,
+    /// A merge is currently in progress
     Merge,
+    /// A revert is currently in progress
     Revert,
+    /// A revert of multiple commits is currently in progress
     RevertSequence,
+    /// A cherry pick is currently in progress
     CherryPick,
+    /// A cherry pick of multiple commits is currently in progress
     CherryPickSequence,
+    /// A bisect is currently in progress
     Bisect,
+    /// A rebase is currently in progress
     Rebase,
+    /// An interactive rebase is currently in progress
     RebaseInteractive,
+    /// A rebase with a merge conflict is currently in progress
     RebaseMerge,
+    /// An apply operation is currently in progress
     ApplyMailbox,
+    /// A rebase or apply operation is currently in progress
     ApplyMailboxOrRebase,
 }
 
@@ -1448,7 +1459,9 @@ pub enum FetchPrune {
     Off,
 }
 
-#[allow(missing_docs)]
+/// Current progress of an operation to apply a stashed change
+///
+/// See [`StashApplyOptions::progress_cb()`] for further details.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StashApplyProgress {
     /// None
@@ -1470,10 +1483,10 @@ pub enum StashApplyProgress {
 }
 
 bitflags! {
-    #[allow(missing_docs)]
+    /// Flags for applying stashed changes
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct StashApplyFlags: u32 {
-        #[allow(missing_docs)]
+        /// Default options if no additional customization is desired.
         const DEFAULT = raw::GIT_STASH_APPLY_DEFAULT as u32;
         /// Try to reinstate not only the working tree's changes,
         /// but also the index's changes.
@@ -1493,10 +1506,13 @@ impl Default for StashApplyFlags {
 }
 
 bitflags! {
-    #[allow(missing_docs)]
+    /// Flags for use when stashing changes
+    ///
+    /// See [`StashSaveOptions::flags()`] and [`Repository::stash_save()`] for
+    /// further details.
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct StashFlags: u32 {
-        #[allow(missing_docs)]
+        /// Default options if no additional customization is desired.
         const DEFAULT = raw::GIT_STASH_DEFAULT as u32;
         /// All changes already added to the index are left intact in
         /// the working directory
@@ -1547,7 +1563,7 @@ impl Default for AttrCheckFlags {
 }
 
 bitflags! {
-    #[allow(missing_docs)]
+    /// Flags for a [`DiffDelta`]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct DiffFlags: u32 {
         /// File(s) treated as binary data.
