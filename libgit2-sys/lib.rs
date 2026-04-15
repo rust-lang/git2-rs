@@ -2751,6 +2751,7 @@ extern "C" {
     ) -> c_int;
 
     // reference
+    pub fn git_reference_dup(dest: *mut *mut git_reference, src: *mut git_reference) -> c_int;
     pub fn git_reference_cmp(ref1: *const git_reference, ref2: *const git_reference) -> c_int;
     pub fn git_reference_delete(r: *mut git_reference) -> c_int;
     pub fn git_reference_free(r: *mut git_reference);
