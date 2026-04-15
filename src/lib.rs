@@ -1483,10 +1483,10 @@ pub enum StashApplyProgress {
 }
 
 bitflags! {
-    #[allow(missing_docs)]
+    /// Flags for applying stashed changes
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct StashApplyFlags: u32 {
-        #[allow(missing_docs)]
+        /// Default options if no additional customization is desired.
         const DEFAULT = raw::GIT_STASH_APPLY_DEFAULT as u32;
         /// Try to reinstate not only the working tree's changes,
         /// but also the index's changes.
