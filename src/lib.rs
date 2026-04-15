@@ -1558,7 +1558,7 @@ impl Default for AttrCheckFlags {
 }
 
 bitflags! {
-    #[allow(missing_docs)]
+    /// Flags for a [`DiffDelta`]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct DiffFlags: u32 {
         /// File(s) treated as binary data.
