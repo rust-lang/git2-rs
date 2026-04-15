@@ -1459,7 +1459,9 @@ pub enum FetchPrune {
     Off,
 }
 
-#[allow(missing_docs)]
+/// Current progress of an operation to apply a stashed change
+///
+/// See [`StashApplyOptions::progress_cb()`] for further details.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StashApplyProgress {
     /// None
