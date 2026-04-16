@@ -14,10 +14,17 @@ fn main() {
         cfg.define("GIT_EXPERIMENTAL_SHA256", Some("1"));
     }
 
+    // Ensure mode_t exists for MSVC when compiling public headers.
+    // This header is a no-op on non-MSVC toolchains.
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    cfg.include(manifest_dir.join("include"))
+        .header("git2-systest-win32.h");
+
     cfg.header("git2.h")
         .header("git2/sys/errors.h")
         .header("git2/sys/transport.h")
         .header("git2/sys/refs.h")
+        .header("git2/refdb.h")
         .header("git2/sys/refdb_backend.h")
         .header("git2/sys/odb_backend.h")
         .header("git2/sys/mempack.h")
