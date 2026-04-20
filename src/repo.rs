@@ -34,7 +34,7 @@ use crate::{
     Blob, BlobWriter, Branch, BranchType, Branches, Commit, Config, Index, IndexEntry, Oid, Tree,
 };
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
-use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
+use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, Refdb, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
 
 type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
@@ -1238,12 +1238,22 @@ impl Repository {
     /// references. This mechanism is implementation specific. For on-disk
     /// reference databases, for example, this may pack all loose references.
     pub fn refdb_compress(&self) -> Result<(), Error> {
+        self.refdb()?.compress()
+    }
+
+    /// Get the reference database for this repository.
+    pub fn refdb(&self) -> Result<Refdb<'_>, Error> {
         let mut refdb = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_refdb(&mut refdb, self.raw()));
-            let result = crate::call::c_try(raw::git_refdb_compress(refdb));
-            raw::git_refdb_free(refdb);
-            result?;
+            Ok(Binding::from_raw(refdb))
+        }
+    }
+
+    /// Override the reference database for this repository
+    pub fn set_refdb(&self, refdb: &Refdb<'_>) -> Result<(), Error> {
+        unsafe {
+            try_call!(raw::git_repository_set_refdb(self.raw(), refdb.raw()));
         }
         Ok(())
     }
