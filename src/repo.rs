@@ -1232,6 +1232,13 @@ impl Repository {
         Ok(())
     }
 
+    /// Suggests that the reference database compress or optimize its
+    /// references. This mechanism is implementation specific. For on-disk
+    /// reference databases, for example, this may pack all loose references.
+    pub fn refdb_compress(&self) -> Result<(), Error> {
+        self.refdb()?.compress()
+    }
+
     /// Get the reference database for this repository.
     pub fn refdb(&self) -> Result<Refdb<'_>, Error> {
         let mut refdb = ptr::null_mut();
@@ -1247,13 +1254,6 @@ impl Repository {
             try_call!(raw::git_repository_set_refdb(self.raw(), refdb.raw()));
         }
         Ok(())
-    }
-
-    /// Suggests that the reference database compress or optimize its
-    /// references. This mechanism is implementation specific. For on-disk
-    /// reference databases, for example, this may pack all loose references.
-    pub fn refdb_compress(&self) -> Result<(), Error> {
-        self.refdb()?.compress()
     }
 
     /// Create a new branch pointing at a target commit
