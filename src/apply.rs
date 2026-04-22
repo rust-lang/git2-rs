@@ -102,7 +102,10 @@ impl<'cb> ApplyOptions<'cb> {
     }
 
     fn flag(&mut self, opt: raw::git_apply_flags_t, val: bool) -> &mut Self {
-        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
         let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
