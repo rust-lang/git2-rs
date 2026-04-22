@@ -1,3 +1,4 @@
+use std::cmp;
 use std::ffi::CString;
 use std::marker;
 use std::ptr;
@@ -124,6 +125,26 @@ impl<'repo> Branch<'repo> {
     }
 }
 
+impl<'repo> PartialOrd for Branch<'repo> {
+    fn partial_cmp(&self, other: &Branch<'repo>) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'repo> Ord for Branch<'repo> {
+    fn cmp(&self, other: &Branch<'repo>) -> cmp::Ordering {
+        self.inner.cmp(&other.inner)
+    }
+}
+
+impl<'repo> PartialEq for Branch<'repo> {
+    fn eq(&self, other: &Branch<'repo>) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<'repo> Eq for Branch<'repo> {}
+
 impl<'repo> Branches<'repo> {
     /// Creates a new iterator from the raw pointer given.
     ///
@@ -173,7 +194,9 @@ mod tests {
 
         let mut b1 = repo.branch("foo", &commit, false).unwrap();
         assert!(!b1.is_head());
-        repo.branch("foo2", &commit, false).unwrap();
+        let b2 = repo.branch("foo2", &commit, false).unwrap();
+
+        assert!(b1 == b2);
 
         assert_eq!(repo.branches(None).unwrap().count(), 3);
         repo.find_branch("foo", BranchType::Local).unwrap();
@@ -185,6 +208,27 @@ mod tests {
         b1.set_upstream(None).unwrap();
 
         b1.delete().unwrap();
+    }
+
+    #[test]
+    fn test_unequal() {
+        let (_td, repo) = crate::test::repo_init();
+        let head1 = repo.head().unwrap();
+        let target1 = head1.target().unwrap();
+        let commit1 = repo.find_commit(target1).unwrap();
+
+        let b1 = repo.branch("foo", &commit1, false).unwrap();
+
+        crate::test::commit(&repo);
+        let head2 = repo.head().unwrap();
+        let target2 = head2.target().unwrap();
+        let commit2 = repo.find_commit(target2).unwrap();
+
+        assert!(commit1.id() != commit2.id());
+
+        let b2 = repo.branch("bar", &commit2, false).unwrap();
+
+        assert!(b1 != b2);
     }
 
     #[test]
