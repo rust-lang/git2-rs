@@ -8,9 +8,10 @@ use std::ptr;
 use tempfile::TempDir;
 
 // Skip on MacOS, where git cannot even create a branch with a non-UTF8 name
+// Same on Windows
 
 #[test]
-#[cfg_attr(target_os = "macos", ignore)]
+#[cfg_attr(any(windows, target_os = "macos"), ignore)]
 fn non_utf8_branch() {
     let td = TempDir::new().unwrap();
     let path = td.path();
@@ -46,19 +47,11 @@ fn non_utf8_branch() {
             };
         }
         // based on util.rs IntoCString for OsString
-        #[cfg(unix)]
         fn ostr_to_cstr(s: OsString) -> CString {
             use std::ffi::OsStr;
             use std::os::unix::prelude::*;
             let s: &OsStr = s.as_ref();
             CString::new(s.as_bytes()).unwrap()
-        }
-        #[cfg(windows)]
-        fn ostr_to_cstr(s: OsString) -> CString {
-            match s.to_str() {
-                Some(s) => CString::new(s).unwrap(),
-                None => panic!("only valid unicode paths are accepted on windows"),
-            }
         }
 
         let path = ostr_to_cstr(path.into());
