@@ -325,7 +325,7 @@ extern "C" fn stream_read(
 ) -> c_int {
     let ret = panic::wrap(|| {
         let transport = unsafe { &mut *(stream as *mut RawSmartSubtransportStream) };
-        let buf = unsafe { slice::from_raw_parts_mut(buffer as *mut u8, buf_size as usize) };
+        let buf = unsafe { slice::from_raw_parts_mut(buffer as *mut u8, buf_size) };
         match transport.obj.read(buf) {
             Ok(n) => {
                 unsafe {
@@ -357,7 +357,7 @@ extern "C" fn stream_write(
 ) -> c_int {
     let ret = panic::wrap(|| {
         let transport = unsafe { &mut *(stream as *mut RawSmartSubtransportStream) };
-        let buf = unsafe { slice::from_raw_parts(buffer as *const u8, len as usize) };
+        let buf = unsafe { slice::from_raw_parts(buffer as *const u8, len) };
         transport.obj.write_all(buf)
     });
     match ret {
