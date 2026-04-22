@@ -3,7 +3,7 @@ use std::env::JoinPathsError;
 use std::error;
 use std::ffi::{CStr, CString, NulError};
 use std::fmt;
-use std::str;
+use std::str::{self, Utf8Error};
 
 use crate::{raw, ErrorClass, ErrorCode};
 
@@ -389,6 +389,12 @@ impl From<NulError> for Error {
             "data contained a nul byte that could not be \
              represented as a string",
         )
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Error {
+        Error::from_str(&e.to_string())
     }
 }
 
