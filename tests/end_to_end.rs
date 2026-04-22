@@ -47,11 +47,18 @@ fn non_utf8_branch() {
             };
         }
         // based on util.rs IntoCString for OsString
+        // Need cfg() guards since the file is compiled on Windows even when
+        // the test is skipped
+        #[cfg(unix)]
         fn ostr_to_cstr(s: OsString) -> CString {
             use std::ffi::OsStr;
             use std::os::unix::prelude::*;
             let s: &OsStr = s.as_ref();
             CString::new(s.as_bytes()).unwrap()
+        }
+        #[cfg(windows)]
+        fn ostr_to_cstr(s: OsString) -> CString {
+            panic!("Test is skipped on Windows");
         }
 
         let path = ostr_to_cstr(path.into());
