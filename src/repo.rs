@@ -1770,10 +1770,74 @@ impl Repository {
     /// uses the current time as the timestamp, and creates a new signature
     /// based on that information. It will return `NotFound` if either the
     /// user.name or user.email are not set.
+    ///
+    /// This method does not check any environmental variables; to apply those,
+    /// use [`Repository::author_from_env()`] or
+    /// [`Repository::committer_from_env()`].
     pub fn signature(&self) -> Result<Signature<'static>, Error> {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_signature_default(&mut ret, self.raw()));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a new action signature with default user and now timestamp,
+    /// supporting environmental overrides.
+    ///
+    /// The signature name is read from user.name from the configuration, but
+    /// can be overridden with the GIT_AUTHOR_NAME environmental variable.
+    ///
+    /// The signature email is read from user.email from the configuration, but
+    /// can be overridden with the GIT_AUTHOR_EMAIL environmental variable; the
+    /// EMAIL environmental variable is used if *both* GIT_AUTHOR_EMAIL and
+    /// user.email are not set.
+    ///
+    /// The signature time will be the current time, but can be overridden with
+    /// the GIT_AUTHOR_DATE environmental variable.
+    ///
+    /// This method will return `NotFound` if either the user name or email
+    /// cannot be set.
+    pub fn author_from_env(&self) -> Result<Signature<'static>, Error> {
+        let mut ret = ptr::null_mut();
+        // Marked as mutable for signature support, but isn't going to be used
+        let mut committer = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_signature_default_from_env(
+                &mut ret,
+                &mut committer,
+                self.raw()
+            ));
+            Ok(Binding::from_raw(ret))
+        }
+    }
+
+    /// Create a new action signature with default user and now timestamp,
+    /// supporting environmental overrides.
+    ///
+    /// The signature name is read from user.name from the configuration, but
+    /// can be overridden with the GIT_COMMITTER_NAME environmental variable.
+    ///
+    /// The signature email is read from user.email from the configuration, but
+    /// can be overridden with the GIT_COMMITTER_EMAIL environmental variable;
+    /// the EMAIL environmental variable is used if *both* GIT_COMMITTER_EMAIL
+    /// and user.email are not set.
+    ///
+    /// The signature time will be the current time, but can be overridden with
+    /// the GIT_COMMITTER_DATE environmental variable.
+    ///
+    /// This method will return `NotFound` if either the user name or email
+    /// cannot be set.
+    pub fn committer_from_env(&self) -> Result<Signature<'static>, Error> {
+        let mut ret = ptr::null_mut();
+        // Marked as mutable for signature support, but isn't going to be used
+        let mut author = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_signature_default_from_env(
+                &mut author,
+                &mut ret,
+                self.raw()
+            ));
             Ok(Binding::from_raw(ret))
         }
     }
@@ -4655,5 +4719,149 @@ Committer Name <committer.proper@email> <committer@email>"#,
         repo.refdb_compress().unwrap();
 
         assert!(repo.references_glob("refs/tags/idem-*").unwrap().count() == 5);
+    }
+
+    #[test]
+    fn author_from_env() {
+        let (_td, repo) = crate::test::repo_init();
+        // This is going to be the tested author date, 2026-04-21T17:59:06-07:00
+        const AUTHOR_DATE: &str = "2026-04-21T17:59:06-07:00";
+        let time = crate::Time::new(1776819546, -7 * 60);
+
+        macro_rules! expect {
+            ($name:literal, $email:literal, ==) => {
+                let sig = repo.author_from_env().unwrap();
+                assert_eq!(Some($name), sig.name());
+                assert_eq!(Some($email), sig.email());
+                assert_eq!(time, sig.when());
+            };
+            ($name:literal, $email:literal, !=) => {
+                let sig = repo.author_from_env().unwrap();
+                assert_eq!(Some($name), sig.name());
+                assert_eq!(Some($email), sig.email());
+                assert_ne!(time, sig.when());
+            };
+        }
+
+        // See repo_init() for the default user.name "name" and user.email "email"
+        expect!("name", "email", !=);
+
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::set_var("GIT_AUTHOR_DATE", AUTHOR_DATE);
+        }
+        expect!("name", "email", ==);
+
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::set_var("GIT_AUTHOR_NAME", "Daniel Scherzer");
+        }
+        expect!("Daniel Scherzer", "email", ==);
+
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::set_var("GIT_AUTHOR_EMAIL", "daniel.e.scherzer@gmail.com");
+        }
+        expect!("Daniel Scherzer", "daniel.e.scherzer@gmail.com", ==);
+
+        // Clear afterwards, otherwise could pollute other tests
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::remove_var("GIT_AUTHOR_DATE");
+            std::env::remove_var("GIT_AUTHOR_NAME");
+            std::env::remove_var("GIT_AUTHOR_EMAIL");
+        }
+    }
+
+    #[test]
+    fn committer_from_env() {
+        let (_td, repo) = crate::test::repo_init();
+        // This is going to be the tested commit date, 2026-04-21T17:59:06-07:00
+        const COMMIT_DATE: &str = "2026-04-21T17:59:06-07:00";
+        let time = crate::Time::new(1776819546, -7 * 60);
+
+        macro_rules! expect {
+            ($name:literal, $email:literal, ==) => {
+                let sig = repo.committer_from_env().unwrap();
+                assert_eq!(Some($name), sig.name());
+                assert_eq!(Some($email), sig.email());
+                assert_eq!(time, sig.when());
+            };
+            ($name:literal, $email:literal, !=) => {
+                let sig = repo.committer_from_env().unwrap();
+                assert_eq!(Some($name), sig.name());
+                assert_eq!(Some($email), sig.email());
+                assert_ne!(time, sig.when());
+            };
+        }
+
+        // See repo_init() for the default user.name "name" and user.email "email"
+        expect!("name", "email", !=);
+
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::set_var("GIT_COMMITTER_DATE", COMMIT_DATE);
+        }
+        expect!("name", "email", ==);
+
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::set_var("GIT_COMMITTER_NAME", "Daniel Scherzer");
+        }
+        expect!("Daniel Scherzer", "email", ==);
+
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::set_var("GIT_COMMITTER_EMAIL", "daniel.e.scherzer@gmail.com");
+        }
+
+        expect!("Daniel Scherzer", "daniel.e.scherzer@gmail.com", ==);
+
+        // Clear afterwards, otherwise could pollute other tests
+        // SAFETY: no other tests are writing to these variables
+        unsafe {
+            std::env::remove_var("GIT_COMMITTER_DATE");
+            std::env::remove_var("GIT_COMMITTER_NAME");
+            std::env::remove_var("GIT_COMMITTER_EMAIL");
+        }
+    }
+
+    #[test]
+    fn email_env_var() {
+        // Fallback to EMAIL when GIT_AUTHOR_EMAIL or GIT_COMMITTER_EMAIL are
+        // not set *and* user.email is not set
+        let (_td, repo) = crate::test::repo_init();
+
+        // See repo_init() for the default user.name "name" and user.email "email"
+        let author_defaults = repo.author_from_env().unwrap();
+        assert_eq!(Some("email"), author_defaults.email());
+
+        let committer_defaults = repo.committer_from_env().unwrap();
+        assert_eq!(Some("email"), committer_defaults.email());
+
+        // SAFETY: no other tests are writing to this variable
+        unsafe {
+            std::env::set_var("EMAIL", "daniel.e.scherzer@gmail.com");
+        }
+
+        let mut config = repo.config().unwrap();
+        config.remove("user.email").unwrap();
+
+        let author_overridden = repo.author_from_env().unwrap();
+        assert_eq!(
+            Some("daniel.e.scherzer@gmail.com"),
+            author_overridden.email()
+        );
+
+        let committer_overridden = repo.committer_from_env().unwrap();
+        assert_eq!(
+            Some("daniel.e.scherzer@gmail.com"),
+            committer_overridden.email()
+        );
+
+        // Clear afterwards, otherwise could pollute other tests
+        unsafe {
+            std::env::remove_var("EMAIL");
+        }
     }
 }
