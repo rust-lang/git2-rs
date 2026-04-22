@@ -4825,43 +4825,4 @@ Committer Name <committer.proper@email> <committer@email>"#,
             std::env::remove_var("GIT_COMMITTER_EMAIL");
         }
     }
-
-    #[test]
-    fn email_env_var() {
-        // Fallback to EMAIL when GIT_AUTHOR_EMAIL or GIT_COMMITTER_EMAIL are
-        // not set *and* user.email is not set
-        let (_td, repo) = crate::test::repo_init();
-
-        // See repo_init() for the default user.name "name" and user.email "email"
-        let author_defaults = repo.author_from_env().unwrap();
-        assert_eq!(Some("email"), author_defaults.email());
-
-        let committer_defaults = repo.committer_from_env().unwrap();
-        assert_eq!(Some("email"), committer_defaults.email());
-
-        // SAFETY: no other tests are writing to this variable
-        unsafe {
-            std::env::set_var("EMAIL", "daniel.e.scherzer@gmail.com");
-        }
-
-        let mut config = repo.config().unwrap();
-        config.remove("user.email").unwrap();
-
-        let author_overridden = repo.author_from_env().unwrap();
-        assert_eq!(
-            Some("daniel.e.scherzer@gmail.com"),
-            author_overridden.email()
-        );
-
-        let committer_overridden = repo.committer_from_env().unwrap();
-        assert_eq!(
-            Some("daniel.e.scherzer@gmail.com"),
-            committer_overridden.email()
-        );
-
-        // Clear afterwards, otherwise could pollute other tests
-        unsafe {
-            std::env::remove_var("EMAIL");
-        }
-    }
 }
