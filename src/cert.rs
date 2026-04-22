@@ -105,6 +105,7 @@ impl<'a> CertHostkey<'a> {
     /// Returns the md5 hash of the hostkey, if available.
     pub fn hash_md5(&self) -> Option<&[u8; 16]> {
         let kind = unsafe { (*self.raw).kind };
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if kind as u32 & raw::GIT_CERT_SSH_MD5 as u32 == 0 {
             None
         } else {
@@ -115,6 +116,7 @@ impl<'a> CertHostkey<'a> {
     /// Returns the SHA-1 hash of the hostkey, if available.
     pub fn hash_sha1(&self) -> Option<&[u8; 20]> {
         let kind = unsafe { (*self.raw).kind };
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if kind as u32 & raw::GIT_CERT_SSH_SHA1 as u32 == 0 {
             None
         } else {
@@ -125,6 +127,7 @@ impl<'a> CertHostkey<'a> {
     /// Returns the SHA-256 hash of the hostkey, if available.
     pub fn hash_sha256(&self) -> Option<&[u8; 32]> {
         let kind = unsafe { (*self.raw).kind };
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if kind as u32 & raw::GIT_CERT_SSH_SHA256 as u32 == 0 {
             None
         } else {
@@ -141,7 +144,7 @@ impl<'a> CertHostkey<'a> {
         Some(unsafe {
             slice::from_raw_parts(
                 (*self.raw).hostkey as *const u8,
-                (*self.raw).hostkey_len as usize,
+                (*self.raw).hostkey_len,
             )
         })
     }
@@ -170,7 +173,7 @@ impl<'a> CertHostkey<'a> {
 impl<'a> CertX509<'a> {
     /// Return the X.509 certificate data as a byte slice
     pub fn data(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).len as usize) }
+        unsafe { slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).len) }
     }
 }
 
