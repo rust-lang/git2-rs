@@ -178,7 +178,7 @@ impl<'blame> BlameHunk<'blame> {
 
     /// Returns number of lines in this hunk.
     pub fn lines_in_hunk(&self) -> usize {
-        unsafe { (*self.raw).lines_in_hunk as usize }
+        unsafe { (*self.raw).lines_in_hunk }
     }
 
     /// Get the short "summary" of the git commit message for the hunk.

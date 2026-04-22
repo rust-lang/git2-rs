@@ -567,7 +567,10 @@ impl<'cfg> ConfigEntry<'cfg> {
 
     /// Depth of includes where this variable was found
     pub fn include_depth(&self) -> u32 {
-        unsafe { (*self.raw).include_depth as u32 }
+        #[allow(clippy::unnecessary_cast, reason = "c_uint is not always u32")]
+        unsafe {
+            (*self.raw).include_depth as u32
+        }
     }
 }
 
