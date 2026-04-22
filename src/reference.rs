@@ -509,7 +509,10 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
         unsafe {
             try_call_iter!(raw::git_reference_next_name(&mut out, self.inner.raw));
             let bytes = crate::opt_bytes(self, out).unwrap();
-            let s = str::from_utf8(bytes).unwrap();
+            let s = match str::from_utf8(bytes) {
+                Ok(s) => s,
+                Err(e) => return Some(Err(e.into())),
+            };
             Some(Ok(mem::transmute::<&str, &'references str>(s)))
         }
     }
