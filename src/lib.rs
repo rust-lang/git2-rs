@@ -1216,19 +1216,40 @@ pub enum FileMode {
 impl From<FileMode> for i32 {
     fn from(mode: FileMode) -> i32 {
         match mode {
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as i32,
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::Tree => raw::GIT_FILEMODE_TREE as i32,
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as i32,
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as i32,
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as i32,
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::Link => raw::GIT_FILEMODE_LINK as i32,
-            #[allow(clippy::unnecessary_cast, reason = "only i32 when compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "only i32 when compiling for msvc target env"
+            )]
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as i32,
         }
     }
@@ -1237,19 +1258,40 @@ impl From<FileMode> for i32 {
 impl From<FileMode> for u32 {
     fn from(mode: FileMode) -> u32 {
         match mode {
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as u32,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::Tree => raw::GIT_FILEMODE_TREE as u32,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as u32,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as u32,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as u32,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::Link => raw::GIT_FILEMODE_LINK as u32,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as u32,
         }
     }
