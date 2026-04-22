@@ -2702,6 +2702,11 @@ extern "C" {
         name: *const c_char,
         email: *const c_char,
     ) -> c_int;
+    pub fn git_signature_default_from_env(
+        author_out: *mut *mut git_signature,
+        committer_out: *mut *mut git_signature,
+        repo: *mut git_repository,
+    ) -> c_int;
     pub fn git_signature_dup(dest: *mut *mut git_signature, sig: *const git_signature) -> c_int;
 
     // status
