@@ -20,7 +20,7 @@ impl<'repo> Revspec<'repo> {
     /// Convert a Revspec into the underlying components
     ///
     /// If only references to `from` or `to` are needed, use the corresponding
-    /// [Self::from()] and [Self::to()] methods.
+    /// [`Revspec::from()`] and [`Revspec::to()`] methods.
     pub fn into_objects(self) -> (Option<Object<'repo>>, Option<Object<'repo>>, RevparseMode) {
         (self.from, self.to, self.mode)
     }
