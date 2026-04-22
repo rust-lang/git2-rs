@@ -23,7 +23,10 @@ impl Default for EmailCreateOptions {
         // Defaults options created in corresponding to `GIT_EMAIL_CREATE_OPTIONS_INIT`
         let default_options = raw::git_email_create_options {
             version: raw::GIT_EMAIL_CREATE_OPTIONS_VERSION,
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             flags: raw::GIT_EMAIL_CREATE_DEFAULT as u32,
             diff_opts: unsafe { mem::zeroed() },
             diff_find_opts: unsafe { mem::zeroed() },
@@ -52,7 +55,10 @@ impl EmailCreateOptions {
     }
 
     fn flag(&mut self, opt: raw::git_email_create_flags_t, val: bool) -> &mut Self {
-        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
         let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
