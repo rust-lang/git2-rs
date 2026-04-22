@@ -33,6 +33,15 @@ fn non_utf8_branch() {
     // underlying binding
     // For that we also have to recreate the underlying `git_repository` pointer
     {
+        macro_rules! check_result {
+            ($result:ident) => {
+                if $result != 0 {
+                    let e = Error::last_error($result);
+                    // Show the error details in the assertion failure
+                    assert_eq!("", format!("{:?}", e));
+                }
+            };
+        }
         use std::os::unix::prelude::*;
         let os_path: &OsStr = path.as_ref();
         let path = CString::new(os_path.as_bytes()).unwrap();
@@ -48,7 +57,7 @@ fn non_utf8_branch() {
         let mut head_reference = ptr::null_mut();
         unsafe {
             let result = raw::git_repository_head(&mut head_reference, repo);
-            assert_eq!(0, result);
+            check_result!(result);
         }
 
         // Reference::peel()
@@ -56,7 +65,7 @@ fn non_utf8_branch() {
         unsafe {
             let result =
                 raw::git_reference_peel(&mut peeled, head_reference, raw::GIT_OBJECT_COMMIT);
-            assert_eq!(0, result);
+            check_result!(result);
             assert_eq!(raw::GIT_OBJECT_COMMIT, raw::git_object_type(&*peeled));
         }
 
@@ -73,7 +82,7 @@ fn non_utf8_branch() {
                 as_commit,
                 0,
             );
-            assert_eq!(0, result);
+            check_result!(result);
         }
 
         unsafe {
