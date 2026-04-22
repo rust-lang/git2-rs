@@ -17,7 +17,7 @@ on:
       publish-ref:
         description: "Branch/tag/SHA to publish from"
         type: string
-        default: master
+        default: main
 
 permissions:
   contents: write

@@ -8,16 +8,16 @@ The following steps can be used to update libgit2:
    There are several ways to go about this.
    One way is to go to the `libgit2-sys/libgit2` directory and run `git fetch origin` to download the latest updates, and then check out a specific tag (such as `git checkout v1.4.1`).
 2. Update all the references to the version:
-    * Update [`libgit2-sys/build.rs`](https://github.com/rust-lang/git2-rs/blob/master/libgit2-sys/build.rs).
+    * Update [`libgit2-sys/build.rs`](https://github.com/rust-lang/git2-rs/blob/main/libgit2-sys/build.rs).
       There is a version probe (search for `cfg.range_version`) which should be updated.
     * Update the version in
-      [`libgit2-sys/Cargo.toml`](https://github.com/rust-lang/git2-rs/blob/master/libgit2-sys/Cargo.toml).
+      [`libgit2-sys/Cargo.toml`](https://github.com/rust-lang/git2-rs/blob/main/libgit2-sys/Cargo.toml).
       Update the metadata portion (the part after the `+`) to match libgit2.
       Also bump the Cargo version (the part before the `+`), keeping in mind
       if this will be a SemVer breaking change or not.
-    * Update the dependency version in [`Cargo.toml`](https://github.com/rust-lang/git2-rs/blob/master/Cargo.toml) to match the version in the last step (do not include the `+` metadata).
+    * Update the dependency version in [`Cargo.toml`](https://github.com/rust-lang/git2-rs/blob/main/Cargo.toml) to match the version in the last step (do not include the `+` metadata).
       Also update the version of the `git2` crate itself so it will pick up the change to `libgit2-sys` (also keeping in mind if it is a SemVer breaking release).
-    * Update the version in [`README.md`](https://github.com/rust-lang/git2-rs/blob/master/README.md) if needed.
+    * Update the version in [`README.md`](https://github.com/rust-lang/git2-rs/blob/main/README.md) if needed.
       There are two places, the `Cargo.toml` example and the description of the libgit2 version it binds with.
     * If there was a SemVer-breaking version bump for either library, also update the `html_root_url` attribute in the `lib.rs` of each library.
 3. Run tests.
@@ -48,9 +48,9 @@ Checklist for preparing for a release:
     - Update the version in `README.md`
     - Check the `html_root_url` values in the source code.
 - Update the change logs:
-    - [`CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/master/CHANGELOG.md)
-    - [`libgit2-sys/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/master/libgit2-sys/CHANGELOG.md)
-    - [`git2-curl/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/master/git2-curl/CHANGELOG.md)
+    - [`CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/main/CHANGELOG.md)
+    - [`libgit2-sys/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/main/libgit2-sys/CHANGELOG.md)
+    - [`git2-curl/CHANGELOG.md`](https://github.com/rust-lang/git2-rs/blob/main/git2-curl/CHANGELOG.md)
 
 There is a GitHub workflow to handle publishing to crates.io and tagging the release. There are two different ways to run it:
 
