@@ -2,7 +2,7 @@
 use git2::{Error, Repository, RepositoryInitOptions};
 
 use libgit2_sys as raw;
-use std::ffi::{CString, OsStr, OsString};
+use std::ffi::{CString, OsString};
 use std::ptr;
 
 use tempfile::TempDir;
@@ -48,6 +48,7 @@ fn non_utf8_branch() {
         // based on util.rs IntoCString for OsString
         #[cfg(unix)]
         fn ostr_to_cstr(s: OsString) -> CString {
+            use std::ffi::OsStr;
             use std::os::unix::prelude::*;
             let s: &OsStr = s.as_ref();
             CString::new(s.as_bytes()).unwrap()
@@ -56,7 +57,7 @@ fn non_utf8_branch() {
         fn ostr_to_cstr(s: OsString) -> CString {
             match s.to_str() {
                 Some(s) => CString::new(s).unwrap(),
-                Err(e) => panic!("only valid unicode paths are accepted on windows"),
+                None => panic!("only valid unicode paths are accepted on windows"),
             }
         }
 
