@@ -338,6 +338,7 @@ impl<'cb> CheckoutBuilder<'cb> {
             ancestor_label: None,
             our_label: None,
             their_label: None,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             checkout_opts: raw::GIT_CHECKOUT_SAFE as u32,
             progress: None,
             notify: None,
@@ -347,6 +348,7 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Indicate that this checkout should perform a dry run by checking for
     /// conflicts but not make any actual changes.
+    #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
     pub fn dry_run(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
         self.checkout_opts |= raw::GIT_CHECKOUT_NONE as u32;
@@ -355,6 +357,7 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Take any action necessary to get the working directory to match the
     /// target including potentially discarding modified files.
+    #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
     pub fn force(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
         self.checkout_opts |= raw::GIT_CHECKOUT_FORCE as u32;
@@ -365,6 +368,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// files to be created but not overwriting existing files or changes.
     ///
     /// This is the default.
+    #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
     pub fn safe(&mut self) -> &mut CheckoutBuilder<'cb> {
         self.checkout_opts &= !((1 << 4) - 1);
         self.checkout_opts |= raw::GIT_CHECKOUT_SAFE as u32;
@@ -372,6 +376,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     }
 
     fn flag(&mut self, bit: raw::git_checkout_strategy_t, on: bool) -> &mut CheckoutBuilder<'cb> {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if on {
             self.checkout_opts |= bit as u32;
         } else {
@@ -645,7 +650,7 @@ extern "C" fn progress_cb(
         } else {
             Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
         };
-        callback(path, completed as usize, total as usize)
+        callback(path, completed, total)
     });
 }
 
@@ -688,6 +693,7 @@ extern "C" fn notify_cb(
             Some(DiffFile::from_raw(workdir))
         };
 
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         let why = CheckoutNotificationType::from_bits_truncate(why as u32);
         let keep_going = callback(why, path, baseline, target, workdir);
         if keep_going {

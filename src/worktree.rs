@@ -232,6 +232,7 @@ impl WorktreePruneOptions {
     }
 
     fn flag(&mut self, flag: raw::git_worktree_prune_t, on: bool) -> &mut WorktreePruneOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if on {
             self.raw.flags |= flag as u32;
         } else {

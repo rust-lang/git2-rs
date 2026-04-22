@@ -442,22 +442,26 @@ bitflags! {
         ///
         /// This sorting is arbitrary, implementation-specific, and subject to
         /// change at any time. This is the default sorting for new walkers.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NONE = raw::GIT_SORT_NONE as u32;
 
         /// Sort the repository contents in topological order (children before
         /// parents).
         ///
         /// This sorting mode can be combined with time sorting.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const TOPOLOGICAL = raw::GIT_SORT_TOPOLOGICAL as u32;
 
         /// Sort the repository contents by commit time.
         ///
         /// This sorting mode can be combined with topological sorting.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const TIME = raw::GIT_SORT_TIME as u32;
 
         /// Iterate through the repository contents in reverse order.
         ///
         /// This sorting mode can be combined with any others.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const REVERSE = raw::GIT_SORT_REVERSE as u32;
     }
 }
@@ -474,18 +478,25 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct CredentialType: u32 {
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const USER_PASS_PLAINTEXT = raw::GIT_CREDTYPE_USERPASS_PLAINTEXT as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SSH_KEY = raw::GIT_CREDTYPE_SSH_KEY as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SSH_MEMORY = raw::GIT_CREDTYPE_SSH_MEMORY as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SSH_CUSTOM = raw::GIT_CREDTYPE_SSH_CUSTOM as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DEFAULT = raw::GIT_CREDTYPE_DEFAULT as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SSH_INTERACTIVE = raw::GIT_CREDTYPE_SSH_INTERACTIVE as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const USERNAME = raw::GIT_CREDTYPE_USERNAME as u32;
     }
 }
@@ -547,13 +558,17 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct IndexAddOption: u32 {
         /// Adds files that are not ignored to the index
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DEFAULT = raw::GIT_INDEX_ADD_DEFAULT as u32;
         /// Allows adding otherwise ignored files to the index
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const FORCE = raw::GIT_INDEX_ADD_FORCE as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DISABLE_PATHSPEC_MATCH =
                 raw::GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const CHECK_PATHSPEC = raw::GIT_INDEX_ADD_CHECK_PATHSPEC as u32;
     }
 }
@@ -579,14 +594,19 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct RepositoryOpenFlags: u32 {
         /// Only open the specified path; don't walk upward searching.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NO_SEARCH = raw::GIT_REPOSITORY_OPEN_NO_SEARCH as u32;
         /// Search across filesystem boundaries.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const CROSS_FS = raw::GIT_REPOSITORY_OPEN_CROSS_FS as u32;
         /// Force opening as bare repository, and defer loading its config.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const BARE = raw::GIT_REPOSITORY_OPEN_BARE as u32;
         /// Don't try appending `/.git` to the specified repository path.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NO_DOTGIT = raw::GIT_REPOSITORY_OPEN_NO_DOTGIT as u32;
         /// Respect environment variables like `$GIT_DIR`.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const FROM_ENV = raw::GIT_REPOSITORY_OPEN_FROM_ENV as u32;
     }
 }
@@ -604,10 +624,13 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct RevparseMode: u32 {
         /// The spec targeted a single object
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SINGLE = raw::GIT_REVPARSE_SINGLE as u32;
         /// The spec targeted a range of commits
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const RANGE = raw::GIT_REVPARSE_RANGE as u32;
         /// The spec used the `...` operator, which invokes special semantics.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const MERGE_BASE = raw::GIT_REVPARSE_MERGE_BASE as u32;
     }
 }
@@ -623,20 +646,25 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct MergeAnalysis: u32 {
         /// No merge is possible.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const ANALYSIS_NONE = raw::GIT_MERGE_ANALYSIS_NONE as u32;
         /// A "normal" merge; both HEAD and the given merge input have diverged
         /// from their common ancestor. The divergent commits must be merged.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const ANALYSIS_NORMAL = raw::GIT_MERGE_ANALYSIS_NORMAL as u32;
         /// All given merge inputs are reachable from HEAD, meaning the
         /// repository is up-to-date and no merge needs to be performed.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const ANALYSIS_UP_TO_DATE = raw::GIT_MERGE_ANALYSIS_UP_TO_DATE as u32;
         /// The given merge input is a fast-forward from HEAD and no merge
         /// needs to be performed.  Instead, the client can check out the
         /// given merge input.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const ANALYSIS_FASTFORWARD = raw::GIT_MERGE_ANALYSIS_FASTFORWARD as u32;
         /// The HEAD of the current repository is "unborn" and does not point to
         /// a valid commit.  No merge can be performed, but the caller may wish
         /// to simply set HEAD to the target commit(s).
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const ANALYSIS_UNBORN = raw::GIT_MERGE_ANALYSIS_UNBORN as u32;
     }
 }
@@ -655,12 +683,15 @@ bitflags! {
     pub struct MergePreference: u32 {
         /// No configuration was found that suggests a preferred behavior for
         /// merge.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NONE = raw::GIT_MERGE_PREFERENCE_NONE as u32;
         /// There is a `merge.ff=false` configuration setting, suggesting that
         /// the user does not want to allow a fast-forward merge.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NO_FAST_FORWARD = raw::GIT_MERGE_PREFERENCE_NO_FASTFORWARD as u32;
         /// There is a `merge.ff=only` configuration setting, suggesting that
         /// the user only wants fast-forward merges.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const FASTFORWARD_ONLY = raw::GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY as u32;
     }
 }
@@ -679,6 +710,7 @@ bitflags! {
         /// a batch of lookup operations for objects that may legitimately not
         /// exist. When using this flag, you may wish to manually call
         /// `git_odb_refresh` before processing a batch of objects.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NO_REFRESH = raw::GIT_ODB_LOOKUP_NO_REFRESH as u32;
     }
 }
@@ -688,8 +720,10 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct RemoteUpdateFlags: u32 {
        /// Write the fetch results to FETCH_HEAD.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
        const UPDATE_FETCHHEAD = raw::GIT_REMOTE_UPDATE_FETCHHEAD as u32;
        /// Report unchanged tips in the update_tips callback.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
        const REPORT_UNCHANGED = raw::GIT_REMOTE_UPDATE_REPORT_UNCHANGED as u32;
     }
 }
@@ -1045,35 +1079,49 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct Status: u32 {
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const CURRENT = raw::GIT_STATUS_CURRENT as u32;
 
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_NEW = raw::GIT_STATUS_INDEX_NEW as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_MODIFIED = raw::GIT_STATUS_INDEX_MODIFIED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_DELETED = raw::GIT_STATUS_INDEX_DELETED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_RENAMED = raw::GIT_STATUS_INDEX_RENAMED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_TYPECHANGE = raw::GIT_STATUS_INDEX_TYPECHANGE as u32;
 
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WT_NEW = raw::GIT_STATUS_WT_NEW as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WT_MODIFIED = raw::GIT_STATUS_WT_MODIFIED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WT_DELETED = raw::GIT_STATUS_WT_DELETED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WT_TYPECHANGE = raw::GIT_STATUS_WT_TYPECHANGE as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WT_RENAMED = raw::GIT_STATUS_WT_RENAMED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WT_UNREADABLE = raw::GIT_STATUS_WT_UNREADABLE as u32;
 
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IGNORED = raw::GIT_STATUS_IGNORED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const CONFLICTED = raw::GIT_STATUS_CONFLICTED as u32;
     }
 }
@@ -1098,11 +1146,14 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct RepositoryInitMode: u32 {
         /// Use permissions configured by umask - the default
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SHARED_UMASK = raw::GIT_REPOSITORY_INIT_SHARED_UMASK as u32;
         /// Use `--shared=group` behavior, chmod'ing the new repo to be
         /// group writable and \"g+sx\" for sticky group assignment
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SHARED_GROUP = raw::GIT_REPOSITORY_INIT_SHARED_GROUP as u32;
         /// Use `--shared=all` behavior, adding world readability.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const SHARED_ALL = raw::GIT_REPOSITORY_INIT_SHARED_ALL as u32;
     }
 }
@@ -1176,12 +1227,19 @@ impl From<FileMode> for i32 {
 impl From<FileMode> for u32 {
     fn from(mode: FileMode) -> u32 {
         match mode {
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::Unreadable => raw::GIT_FILEMODE_UNREADABLE as u32,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::Tree => raw::GIT_FILEMODE_TREE as u32,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::Blob => raw::GIT_FILEMODE_BLOB as u32,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::BlobGroupWritable => raw::GIT_FILEMODE_BLOB_GROUP_WRITABLE as u32,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::BlobExecutable => raw::GIT_FILEMODE_BLOB_EXECUTABLE as u32,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::Link => raw::GIT_FILEMODE_LINK as u32,
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             FileMode::Commit => raw::GIT_FILEMODE_COMMIT as u32,
         }
     }
@@ -1231,34 +1289,48 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct SubmoduleStatus: u32 {
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IN_HEAD = raw::GIT_SUBMODULE_STATUS_IN_HEAD as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IN_INDEX = raw::GIT_SUBMODULE_STATUS_IN_INDEX as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IN_CONFIG = raw::GIT_SUBMODULE_STATUS_IN_CONFIG as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IN_WD = raw::GIT_SUBMODULE_STATUS_IN_WD as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_ADDED = raw::GIT_SUBMODULE_STATUS_INDEX_ADDED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_DELETED = raw::GIT_SUBMODULE_STATUS_INDEX_DELETED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INDEX_MODIFIED = raw::GIT_SUBMODULE_STATUS_INDEX_MODIFIED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_UNINITIALIZED =
                 raw::GIT_SUBMODULE_STATUS_WD_UNINITIALIZED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_ADDED = raw::GIT_SUBMODULE_STATUS_WD_ADDED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_DELETED = raw::GIT_SUBMODULE_STATUS_WD_DELETED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_MODIFIED = raw::GIT_SUBMODULE_STATUS_WD_MODIFIED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_INDEX_MODIFIED =
                 raw::GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_WD_MODIFIED = raw::GIT_SUBMODULE_STATUS_WD_WD_MODIFIED as u32;
         #[allow(missing_docs)]
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const WD_UNTRACKED = raw::GIT_SUBMODULE_STATUS_WD_UNTRACKED as u32;
     }
 }
@@ -1328,27 +1400,34 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct PathspecFlags: u32 {
         /// Use the default pathspec matching configuration.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DEFAULT = raw::GIT_PATHSPEC_DEFAULT as u32;
         /// Force matching to ignore case, otherwise matching will use native
         /// case sensitivity of the platform filesystem.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IGNORE_CASE = raw::GIT_PATHSPEC_IGNORE_CASE as u32;
         /// Force case sensitive matches, otherwise match will use the native
         /// case sensitivity of the platform filesystem.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const USE_CASE = raw::GIT_PATHSPEC_USE_CASE as u32;
         /// Disable glob patterns and just use simple string comparison for
         /// matching.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NO_GLOB = raw::GIT_PATHSPEC_NO_GLOB as u32;
         /// Means that match functions return the error code `NotFound` if no
         /// matches are found. By default no matches is a success.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NO_MATCH_ERROR = raw::GIT_PATHSPEC_NO_MATCH_ERROR as u32;
         /// Means that the list returned should track which patterns matched
         /// which files so that at the end of the match we can identify patterns
         /// that did not match any files.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const FIND_FAILURES = raw::GIT_PATHSPEC_FIND_FAILURES as u32;
         /// Means that the list returned does not need to keep the actual
         /// matching filenames. Use this to just test if there were any matches
         /// at all or in combination with `PATHSPEC_FAILURES` to validate a
         /// pathspec.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const FAILURES_ONLY = raw::GIT_PATHSPEC_FAILURES_ONLY as u32;
     }
 }
@@ -1374,14 +1453,19 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct CheckoutNotificationType: u32 {
         /// Notification about a conflict.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const CONFLICT = raw::GIT_CHECKOUT_NOTIFY_CONFLICT as u32;
         /// Notification about a dirty file.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DIRTY = raw::GIT_CHECKOUT_NOTIFY_DIRTY as u32;
         /// Notification about an updated file.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const UPDATED = raw::GIT_CHECKOUT_NOTIFY_UPDATED as u32;
         /// Notification about an untracked file.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const UNTRACKED = raw::GIT_CHECKOUT_NOTIFY_UNTRACKED as u32;
         /// Notification about an ignored file.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const IGNORED = raw::GIT_CHECKOUT_NOTIFY_IGNORED as u32;
     }
 }
@@ -1489,9 +1573,11 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct StashApplyFlags: u32 {
         /// Default options if no additional customization is desired.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DEFAULT = raw::GIT_STASH_APPLY_DEFAULT as u32;
         /// Try to reinstate not only the working tree's changes,
         /// but also the index's changes.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const REINSTATE_INDEX = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32;
     }
 }
@@ -1515,17 +1601,22 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct StashFlags: u32 {
         /// Default options if no additional customization is desired.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const DEFAULT = raw::GIT_STASH_DEFAULT as u32;
         /// All changes already added to the index are left intact in
         /// the working directory
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const KEEP_INDEX = raw::GIT_STASH_KEEP_INDEX as u32;
         /// All untracked files are also stashed and then cleaned up
         /// from the working directory
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INCLUDE_UNTRACKED = raw::GIT_STASH_INCLUDE_UNTRACKED as u32;
         /// All ignored files are also stashed and then cleaned up from
         /// the working directory
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const INCLUDE_IGNORED = raw::GIT_STASH_INCLUDE_IGNORED as u32;
         /// All changes in the index and working directory are left intact
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const KEEP_ALL = raw::GIT_STASH_KEEP_ALL as u32;
     }
 }
@@ -1548,13 +1639,13 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct AttrCheckFlags: u32 {
         /// Check the working directory, then the index.
-        const FILE_THEN_INDEX = raw::GIT_ATTR_CHECK_FILE_THEN_INDEX as u32;
+        const FILE_THEN_INDEX = raw::GIT_ATTR_CHECK_FILE_THEN_INDEX;
         /// Check the index, then the working directory.
-        const INDEX_THEN_FILE = raw::GIT_ATTR_CHECK_INDEX_THEN_FILE as u32;
+        const INDEX_THEN_FILE = raw::GIT_ATTR_CHECK_INDEX_THEN_FILE;
         /// Check the index only.
-        const INDEX_ONLY = raw::GIT_ATTR_CHECK_INDEX_ONLY as u32;
+        const INDEX_ONLY = raw::GIT_ATTR_CHECK_INDEX_ONLY;
         /// Do not use the system gitattributes file.
-        const NO_SYSTEM = raw::GIT_ATTR_CHECK_NO_SYSTEM as u32;
+        const NO_SYSTEM = raw::GIT_ATTR_CHECK_NO_SYSTEM;
     }
 }
 
@@ -1569,12 +1660,16 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct DiffFlags: u32 {
         /// File(s) treated as binary data.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const BINARY = raw::GIT_DIFF_FLAG_BINARY as u32;
         /// File(s) treated as text data.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NOT_BINARY = raw::GIT_DIFF_FLAG_NOT_BINARY as u32;
         /// `id` value is known correct.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const VALID_ID = raw::GIT_DIFF_FLAG_VALID_ID as u32;
         /// File exists at this side of the delta.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const EXISTS = raw::GIT_DIFF_FLAG_EXISTS as u32;
     }
 }
@@ -1591,20 +1686,24 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
     pub struct ReferenceFormat: u32 {
         /// No particular normalization.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const NORMAL = raw::GIT_REFERENCE_FORMAT_NORMAL as u32;
         /// Control whether one-level refname are accepted (i.e., refnames that
         /// do not contain multiple `/`-separated components). Those are
         /// expected to be written only using uppercase letters and underscore
         /// (e.g. `HEAD`, `FETCH_HEAD`).
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const ALLOW_ONELEVEL = raw::GIT_REFERENCE_FORMAT_ALLOW_ONELEVEL as u32;
         /// Interpret the provided name as a reference pattern for a refspec (as
         /// used with remote repositories). If this option is enabled, the name
         /// is allowed to contain a single `*` in place of a full pathname
         /// components (e.g., `foo/*/bar` but not `foo/bar*`).
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const REFSPEC_PATTERN = raw::GIT_REFERENCE_FORMAT_REFSPEC_PATTERN as u32;
         /// Interpret the name as part of a refspec in shorthand form so the
         /// `ALLOW_ONELEVEL` naming rules aren't enforced and `main` becomes a
         /// valid name.
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         const REFSPEC_SHORTHAND = raw::GIT_REFERENCE_FORMAT_REFSPEC_SHORTHAND as u32;
     }
 }

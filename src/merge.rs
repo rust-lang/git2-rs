@@ -83,17 +83,20 @@ impl MergeOptions {
 
     /// Detect file renames
     pub fn find_renames(&mut self, find: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.flag(raw::GIT_MERGE_FIND_RENAMES as u32, find)
     }
 
     /// If a conflict occurs, exit immediately instead of attempting to continue
     /// resolving conflicts
     pub fn fail_on_conflict(&mut self, fail: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.flag(raw::GIT_MERGE_FAIL_ON_CONFLICT as u32, fail)
     }
 
     /// Do not write the REUC extension on the generated index
     pub fn skip_reuc(&mut self, skip: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.flag(raw::GIT_MERGE_SKIP_REUC as u32, skip)
     }
 
@@ -101,6 +104,7 @@ impl MergeOptions {
     /// recursive merge base (by merging the multiple merge bases), instead
     /// simply use the first base.
     pub fn no_recursive(&mut self, disable: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.flag(raw::GIT_MERGE_NO_RECURSIVE as u32, disable)
     }
 
@@ -145,41 +149,49 @@ impl MergeOptions {
 
     /// Create standard conflicted merge files
     pub fn standard_style(&mut self, standard: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_STYLE_MERGE as u32, standard)
     }
 
     /// Create diff3-style file
     pub fn diff3_style(&mut self, diff3: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_STYLE_DIFF3 as u32, diff3)
     }
 
     /// Condense non-alphanumeric regions for simplified diff file
     pub fn simplify_alnum(&mut self, simplify: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_SIMPLIFY_ALNUM as u32, simplify)
     }
 
     /// Ignore all whitespace
     pub fn ignore_whitespace(&mut self, ignore: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE as u32, ignore)
     }
 
     /// Ignore changes in amount of whitespace
     pub fn ignore_whitespace_change(&mut self, ignore: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE as u32, ignore)
     }
 
     /// Ignore whitespace at end of line
     pub fn ignore_whitespace_eol(&mut self, ignore: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL as u32, ignore)
     }
 
     /// Use the "patience diff" algorithm
     pub fn patience(&mut self, patience: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_DIFF_PATIENCE as u32, patience)
     }
 
     /// Take extra time to find minimal diff
     pub fn minimal(&mut self, minimal: bool) -> &mut MergeOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         self.file_flag(raw::GIT_MERGE_FILE_DIFF_MINIMAL as u32, minimal)
     }
 
@@ -279,6 +291,7 @@ impl MergeFileOptions {
     }
 
     fn flag(&mut self, opt: raw::git_merge_file_flag_t, val: bool) -> &mut MergeFileOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if val {
             self.raw.flags |= opt as u32;
         } else {
@@ -374,13 +387,14 @@ impl MergeFileResult {
     }
 
     /// The mode that the resultant merge file should use.
+    #[allow(clippy::unnecessary_cast, reason = "c_uint is not always u32")]
     pub fn mode(&self) -> u32 {
         self.raw.mode as u32
     }
 
     /// The contents of the merge.
     pub fn content(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize) }
+        unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len) }
     }
 }
 

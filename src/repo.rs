@@ -388,6 +388,7 @@ impl Repository {
             try_call!(raw::git_revparse(&mut raw, self.raw, spec));
             let to = Binding::from_raw_opt(raw.to);
             let from = Binding::from_raw_opt(raw.from);
+            #[allow(clippy::unnecessary_cast, reason = "c_uint is not always u32")]
             let mode = RevparseMode::from_bits_truncate(raw.flags as u32);
             Ok(Revspec::from_objects(from, to, mode))
         }
@@ -1902,6 +1903,7 @@ impl Repository {
         unsafe {
             try_call!(raw::git_submodule_status(&mut ret, self.raw, name, ignore));
         }
+        #[allow(clippy::unnecessary_cast, reason = "c_uint is not always u32")]
         Ok(SubmoduleStatus::from_bits_truncate(ret as u32))
     }
 
@@ -3481,6 +3483,7 @@ impl RepositoryInitOptions {
     /// and initializing a directory from the user-configured templates path.
     pub fn new() -> RepositoryInitOptions {
         RepositoryInitOptions {
+            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
             flags: raw::GIT_REPOSITORY_INIT_MKDIR as u32
                 | raw::GIT_REPOSITORY_INIT_MKPATH as u32
                 | raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE as u32,
@@ -3555,6 +3558,7 @@ impl RepositoryInitOptions {
         flag: raw::git_repository_init_flag_t,
         on: bool,
     ) -> &mut RepositoryInitOptions {
+        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
         if on {
             self.flags |= flag as u32;
         } else {

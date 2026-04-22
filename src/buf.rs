@@ -47,7 +47,7 @@ impl Deref for Buf {
         if self.raw.ptr.is_null() {
             return &[];
         }
-        unsafe { slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.size as usize) }
+        unsafe { slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.size) }
     }
 }
 
@@ -56,7 +56,7 @@ impl DerefMut for Buf {
         if self.raw.ptr.is_null() {
             return &mut [];
         }
-        unsafe { slice::from_raw_parts_mut(self.raw.ptr as *mut u8, self.raw.size as usize) }
+        unsafe { slice::from_raw_parts_mut(self.raw.ptr as *mut u8, self.raw.size) }
     }
 }
 

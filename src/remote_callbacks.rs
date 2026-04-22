@@ -328,6 +328,7 @@ extern "C" fn credentials_cb(
                 None => None,
             };
 
+            #[allow(clippy::unnecessary_cast, reason = "c_uint is not always u32")]
             let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
 
             callback(url, username_from_url, cred_type).map_err(|e| e.raw_set_git_error())
@@ -475,7 +476,7 @@ extern "C" fn push_transfer_progress_cb(
             None => return 0,
         };
 
-        callback(progress as usize, total as usize, bytes as usize);
+        callback(progress as usize, total as usize, bytes);
 
         0
     })

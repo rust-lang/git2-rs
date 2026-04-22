@@ -108,6 +108,7 @@ impl<'cb> StashApplyOptions<'cb> {
     }
 
     /// Set stash application flag to GIT_STASH_APPLY_REINSTATE_INDEX
+    #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
     pub fn reinstantiate_index(&mut self) -> &mut StashApplyOptions<'cb> {
         self.raw_opts.flags = raw::GIT_STASH_APPLY_REINSTATE_INDEX as u32;
         self

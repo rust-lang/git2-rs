@@ -57,7 +57,7 @@ impl<'a> Progress<'a> {
     }
     /// Size of the packfile received up to now
     pub fn received_bytes(&self) -> usize {
-        unsafe { (*self.raw()).received_bytes as usize }
+        unsafe { (*self.raw()).received_bytes }
     }
 
     /// Convert this to an owned version of `Progress`.
@@ -176,7 +176,7 @@ impl<'a> Indexer<'a> {
         F: FnMut(Progress<'_>) -> bool + 'a,
     {
         let progress_payload =
-            unsafe { &mut *(self.progress_payload_ptr as *mut OdbPackwriterCb<'_>) };
+            unsafe { &mut *self.progress_payload_ptr };
         progress_payload.cb = Some(Box::new(cb) as Box<IndexerProgress<'a>>);
 
         self
