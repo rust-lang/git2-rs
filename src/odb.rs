@@ -465,8 +465,7 @@ impl<'repo> OdbPackwriter<'repo> {
     where
         F: FnMut(Progress<'_>) -> bool + 'repo,
     {
-        let progress_payload =
-            unsafe { &mut *self.progress_payload_ptr };
+        let progress_payload = unsafe { &mut *self.progress_payload_ptr };
 
         progress_payload.cb = Some(Box::new(cb) as Box<IndexerProgress<'repo>>);
         self

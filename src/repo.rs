@@ -3483,7 +3483,10 @@ impl RepositoryInitOptions {
     /// and initializing a directory from the user-configured templates path.
     pub fn new() -> RepositoryInitOptions {
         RepositoryInitOptions {
-            #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+            #[allow(
+                clippy::unnecessary_cast,
+                reason = "u32 unless compiling for msvc target env"
+            )]
             flags: raw::GIT_REPOSITORY_INIT_MKDIR as u32
                 | raw::GIT_REPOSITORY_INIT_MKPATH as u32
                 | raw::GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE as u32,
@@ -3558,7 +3561,10 @@ impl RepositoryInitOptions {
         flag: raw::git_repository_init_flag_t,
         on: bool,
     ) -> &mut RepositoryInitOptions {
-        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
         if on {
             self.flags |= flag as u32;
         } else {

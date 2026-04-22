@@ -337,7 +337,10 @@ impl<'statuses> StatusEntry<'statuses> {
 
     /// Access the status flags for this file
     pub fn status(&self) -> Status {
-        #[allow(clippy::unnecessary_cast, reason = "u32 unless compiling for msvc target env")]
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
         Status::from_bits_truncate(unsafe { (*self.raw).status as u32 })
     }
 
