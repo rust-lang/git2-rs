@@ -7,7 +7,10 @@ use std::ptr;
 
 use tempfile::TempDir;
 
+// Skip on MacOS, where git cannot even create a branch with a non-UTF8 name
+
 #[test]
+#[cfg_attr(target_os = "macos", ignore)]
 fn non_utf8_branch() {
     let td = TempDir::new().unwrap();
     let path = td.path();
