@@ -845,9 +845,9 @@ mod tests {
             let mut specs = origin.refspecs();
             let spec = specs.next().unwrap();
             assert!(specs.next().is_none());
-            assert_eq!(spec.str(), Some("+refs/heads/*:refs/remotes/origin/*"));
-            assert_eq!(spec.dst(), Some("refs/remotes/origin/*"));
-            assert_eq!(spec.src(), Some("refs/heads/*"));
+            assert_eq!(spec.str(), Ok("+refs/heads/*:refs/remotes/origin/*"));
+            assert_eq!(spec.dst(), Ok("refs/remotes/origin/*"));
+            assert_eq!(spec.src(), Ok("refs/heads/*"));
             assert!(spec.is_force());
         }
         assert!(origin.refspecs().next_back().is_some());
