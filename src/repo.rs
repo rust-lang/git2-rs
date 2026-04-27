@@ -4511,11 +4511,14 @@ bar
 
         // url
         repo2.submodule_set_url(name, "fake-url")?;
-        assert_eq!(repo2.find_submodule(name)?.url(), Some("fake-url"));
+        assert_eq!(repo2.find_submodule(name)?.url(), Ok(Some("fake-url")));
 
         // branch
         repo2.submodule_set_branch(name, "fake-branch")?;
-        assert_eq!(repo2.find_submodule(name)?.branch(), Some("fake-branch"));
+        assert_eq!(
+            repo2.find_submodule(name)?.branch(),
+            Ok(Some("fake-branch"))
+        );
 
         Ok(())
     }
