@@ -44,10 +44,8 @@ impl<'repo> AnnotatedCommit<'repo> {
     }
 
     /// Get the refname that the given git_annotated_commit refers to
-    ///
-    /// Returns None if it is not valid utf8
-    pub fn refname(&self) -> Option<&str> {
-        str::from_utf8(self.refname_bytes()).ok()
+    pub fn refname(&self) -> Result<&str, Error> {
+        str::from_utf8(self.refname_bytes()).map_err(|e| e.into())
     }
 
     /// Get the refname that the given git_annotated_commit refers to.
