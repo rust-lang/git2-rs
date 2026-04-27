@@ -857,9 +857,9 @@ mod tests {
         {
             let remotes = repo.remotes().unwrap();
             assert_eq!(remotes.len(), 1);
-            assert_eq!(remotes.get(0), Some("origin"));
+            assert_eq!(remotes.get(0), Ok(Some("origin")));
             assert_eq!(remotes.iter().count(), 1);
-            assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
+            assert_eq!(remotes.iter().next().unwrap(), Ok(Some("origin")));
         }
 
         origin.connect(Direction::Push).unwrap();
