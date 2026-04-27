@@ -113,10 +113,13 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Gets the original `HEAD` ref name for merge rebases.
-    pub fn orig_head_name(&self) -> Option<&str> {
+    pub fn orig_head_name(&self) -> Result<Option<&str>, Error> {
         let name_bytes =
             unsafe { crate::opt_bytes(self, raw::git_rebase_orig_head_name(self.raw)) };
-        name_bytes.and_then(|s| str::from_utf8(s).ok())
+        match name_bytes {
+            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Gets the original HEAD id for merge rebases.
@@ -363,7 +366,7 @@ mod tests {
             .rebase(Some(&branch), Some(&upstream), None, None)
             .unwrap();
 
-        assert_eq!(Some("refs/heads/main"), rebase.orig_head_name());
+        assert_eq!(Ok(Some("refs/heads/main")), rebase.orig_head_name());
         assert_eq!(Some(c2), rebase.orig_head_id());
 
         assert_eq!(rebase.len(), 2);
