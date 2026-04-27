@@ -318,8 +318,12 @@ impl<'rebase> RebaseOperation<'rebase> {
 
     ///The executable the user has requested be run.  This will only
     /// be populated for operations of type RebaseOperationType::Exec
-    pub fn exec(&self) -> Option<&str> {
-        unsafe { str::from_utf8(crate::opt_bytes(self, (*self.raw).exec).unwrap()).ok() }
+    pub fn exec(&self) -> Result<Option<&str>, Error> {
+        let exec_bytes = unsafe { crate::opt_bytes(self, (*self.raw).exec) };
+        match exec_bytes {
+            Some(eb) => str::from_utf8(eb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 }
 
