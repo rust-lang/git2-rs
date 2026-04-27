@@ -539,10 +539,12 @@ impl Repository {
 
     /// Get the currently active namespace for this repository.
     ///
-    /// If there is no namespace, or the namespace is not a valid utf8 string,
-    /// `None` is returned.
-    pub fn namespace(&self) -> Option<&str> {
-        self.namespace_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// If there is no namespace, Ok(None) is returned.
+    pub fn namespace(&self) -> Result<Option<&str>, Error> {
+        match self.namespace_bytes() {
+            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the currently active namespace for this repository as a byte array.
@@ -3671,7 +3673,7 @@ mod tests {
 
         let repo = Repository::init_bare(path).unwrap();
         assert!(repo.is_bare());
-        assert!(repo.namespace().is_none());
+        assert!(repo.namespace().expect("Okay even if none").is_none());
         assert_eq!(repo.object_format(), ObjectFormat::Sha1);
     }
 
