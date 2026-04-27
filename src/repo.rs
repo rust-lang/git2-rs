@@ -4239,7 +4239,7 @@ mod tests {
             .unwrap();
 
         assert!(!merge_file_result.is_automergeable());
-        assert_eq!(merge_file_result.path(), Some("file"));
+        assert_eq!(merge_file_result.path(), Ok(Some("file")));
         assert_eq!(
             String::from_utf8_lossy(merge_file_result.content()).to_string(),
             r"<<<<<<< ours
