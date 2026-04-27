@@ -219,10 +219,10 @@ fn branch_name_on_init() {
 
         let head_ref = repo.find_reference("HEAD").unwrap();
         assert_eq!(Some(ReferenceType::Symbolic), head_ref.kind());
-        assert_eq!(Some("HEAD"), head_ref.name());
+        assert_eq!(Ok("HEAD"), head_ref.name());
 
         let target = head_ref.symbolic_target();
-        assert_eq!(Some("refs/heads/main"), target);
+        assert_eq!(Ok(Some("refs/heads/main")), target);
     }
     // Test with "somerandombranchnamehere"
     {
@@ -235,10 +235,10 @@ fn branch_name_on_init() {
 
         let head_ref = repo.find_reference("HEAD").unwrap();
         assert_eq!(Some(ReferenceType::Symbolic), head_ref.kind());
-        assert_eq!(Some("HEAD"), head_ref.name());
+        assert_eq!(Ok("HEAD"), head_ref.name());
 
         let target = head_ref.symbolic_target();
-        assert_eq!(Some("refs/heads/somerandombranchnamehere"), target);
+        assert_eq!(Ok(Some("refs/heads/somerandombranchnamehere")), target);
     }
 }
 

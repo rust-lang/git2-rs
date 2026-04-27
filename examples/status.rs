@@ -134,7 +134,7 @@ fn show_branch(repo: &Repository, format: &Format) -> Result<(), Error> {
         }
         Err(e) => return Err(e),
     };
-    let head = head.as_ref().and_then(|h| h.shorthand());
+    let head = head.as_ref().and_then(|h| h.shorthand().ok());
 
     if format == &Format::Long {
         println!(
