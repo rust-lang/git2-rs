@@ -423,7 +423,7 @@ mod tests {
             rebase.next().unwrap().unwrap();
             let id = rebase.commit(None, &sig, None).unwrap();
             let commit = repo.find_commit(id).unwrap();
-            assert_eq!(commit.message(), Some("A"));
+            assert_eq!(commit.message(), Ok("A"));
             assert_eq!(commit.author().name(), Some("testname"));
             assert_eq!(commit.author().email(), Some("testemail"));
         }
@@ -432,7 +432,7 @@ mod tests {
             rebase.next().unwrap().unwrap();
             let id = rebase.commit(None, &sig, None).unwrap();
             let commit = repo.find_commit(id).unwrap();
-            assert_eq!(commit.message(), Some("B"));
+            assert_eq!(commit.message(), Ok("B"));
             assert_eq!(commit.author().name(), Some("testname"));
             assert_eq!(commit.author().email(), Some("testemail"));
         }

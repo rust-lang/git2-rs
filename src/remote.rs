@@ -1033,7 +1033,7 @@ mod tests {
         let repo = Repository::clone(&url, td3.path()).unwrap();
         let commit = repo.head().unwrap().target().unwrap();
         let commit = repo.find_commit(commit).unwrap();
-        assert_eq!(commit.message(), Some("initial\n\nbody"));
+        assert_eq!(commit.message(), Ok("initial\n\nbody"));
     }
 
     #[test]

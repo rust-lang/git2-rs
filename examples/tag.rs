@@ -92,7 +92,7 @@ fn print_tag(tag: &Tag, args: &Args) {
 fn print_commit(commit: &Commit, name: &str, args: &Args) {
     print!("{:<16}", name);
     if args.flag_n.is_some() {
-        print_list_lines(commit.message(), args);
+        print_list_lines(commit.message().ok(), args);
     } else {
         println!();
     }
