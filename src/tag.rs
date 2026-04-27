@@ -194,7 +194,7 @@ mod tests {
 
         let tags = repo.tag_names(None).unwrap();
         assert_eq!(tags.len(), 1);
-        assert_eq!(tags.get(0), Some("foo"));
+        assert_eq!(tags.get(0), Ok(Some("foo")));
 
         assert_eq!(tag.name(), Some("foo"));
         assert_eq!(tag.message(), Some("msg"));

@@ -65,7 +65,7 @@ fn run(args: &Args) -> Result<(), Error> {
     } else if args.flag_list {
         let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
         for name in repo.tag_names(Some(pattern))?.iter() {
-            let name = name.unwrap();
+            let name = name.expect("Not invalid utf8").expect("Not None");
             let obj = repo.revparse_single(name)?;
 
             if let Some(tag) = obj.as_tag() {
