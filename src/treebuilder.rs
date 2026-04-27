@@ -196,7 +196,7 @@ mod tests {
         let tree = builder.write().unwrap();
         let tree = repo.find_tree(tree).unwrap();
         let entry = tree.get(0).unwrap();
-        assert_eq!(entry.name(), Some("name"));
+        assert_eq!(entry.name(), Ok("name"));
         let blob = entry.to_object(&repo).unwrap();
         let blob = blob.as_blob().unwrap();
         assert_eq!(blob.content(), b"data");
