@@ -20,10 +20,12 @@ pub struct Submodule<'repo> {
 impl<'repo> Submodule<'repo> {
     /// Get the submodule's branch.
     ///
-    /// Returns `None` if the branch is not valid utf-8 or if the branch is not
-    /// yet available.
-    pub fn branch(&self) -> Option<&str> {
-        self.branch_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// Returns `Ok(None)` if the branch is not yet available.
+    pub fn branch(&self) -> Result<Option<&str>, Error> {
+        match self.branch_bytes() {
+            Some(bb) => str::from_utf8(bb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the branch for the submodule.
@@ -54,9 +56,12 @@ impl<'repo> Submodule<'repo> {
 
     /// Get the submodule's URL.
     ///
-    /// Returns `None` if the URL is not valid utf-8 or if the URL isn't present
-    pub fn url(&self) -> Option<&str> {
-        self.opt_url_bytes().and_then(|b| str::from_utf8(b).ok())
+    /// Returns `Ok(None)` if the URL isn't present
+    pub fn url(&self) -> Result<Option<&str>, Error> {
+        match self.opt_url_bytes() {
+            Some(oub) => str::from_utf8(oub).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the URL for the submodule.
@@ -76,10 +81,8 @@ impl<'repo> Submodule<'repo> {
     }
 
     /// Get the submodule's name.
-    ///
-    /// Returns `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes()).ok()
+    pub fn name(&self) -> Result<&str, Error> {
+        str::from_utf8(self.name_bytes()).map_err(|e| e.into())
     }
 
     /// Get the name for the submodule.
@@ -353,9 +356,9 @@ mod tests {
         let mut submodules = repo.submodules().unwrap();
         assert_eq!(submodules.len(), 2);
         let mut s = submodules.remove(0);
-        assert_eq!(s.name(), Some("bar"));
-        assert_eq!(s.url(), Some("/path/to/nowhere"));
-        assert_eq!(s.branch(), None);
+        assert_eq!(s.name(), Ok("bar"));
+        assert_eq!(s.url(), Ok(Some("/path/to/nowhere")));
+        assert_eq!(s.branch(), Ok(None));
         assert!(s.head_id().is_none());
         assert!(s.index_id().is_none());
         assert!(s.workdir_id().is_none());
@@ -461,7 +464,10 @@ mod tests {
 
         // First init child
         t!(child.init(false));
-        assert_eq!(child.url().unwrap(), url_child.as_str());
+        assert_eq!(
+            child.url().expect("Should be okay").unwrap(),
+            url_child.as_str()
+        );
 
         // open() is not possible before initializing the repo
         assert!(child.open().is_err());
