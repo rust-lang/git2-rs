@@ -100,7 +100,7 @@ fn show_tag(tag: &Tag) {
     println!("tag {}", tag.name().unwrap());
     show_sig("tagger", tag.tagger());
 
-    if let Some(msg) = tag.message() {
+    if let Ok(Some(msg)) = tag.message() {
         println!("\n{}", msg);
     }
 }
