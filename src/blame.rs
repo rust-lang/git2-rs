@@ -186,10 +186,12 @@ impl<'blame> BlameHunk<'blame> {
     /// The returned message is the summary of the commit, comprising the first
     /// paragraph of the message with whitespace trimmed and squashed.
     ///
-    /// `None` may be returned if an error occurs or if the summary is not valid
-    /// utf-8.
-    pub fn summary(&self) -> Option<&str> {
-        self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// `Ok(None)` may be returned if there is no summary.
+    pub fn summary(&self) -> Result<Option<&str>, Error> {
+        match self.summary_bytes() {
+            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the short "summary" of the git commit message for the hunk.
@@ -422,7 +424,7 @@ mod tests {
         assert_eq!(hunk.final_start_line(), 1);
         assert_eq!(hunk.path(), Some(Path::new("foo/bar")));
         assert_eq!(hunk.lines_in_hunk(), 0);
-        assert_eq!(hunk.summary(), Some("commit"));
+        assert_eq!(hunk.summary(), Ok(Some("commit")));
         assert!(!hunk.is_boundary());
 
         let blame_buffer = blame.blame_buffer("\n".as_bytes()).unwrap();
