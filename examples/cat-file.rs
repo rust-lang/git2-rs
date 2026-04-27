@@ -89,7 +89,7 @@ fn show_commit(commit: &Commit) {
     }
     show_sig("author", Some(commit.author()));
     show_sig("committer", Some(commit.committer()));
-    if let Some(msg) = commit.message() {
+    if let Ok(msg) = commit.message() {
         println!("\n{}", msg);
     }
 }

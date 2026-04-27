@@ -63,10 +63,8 @@ impl<'repo> Commit<'repo> {
     ///
     /// The returned message will be slightly prettified by removing any
     /// potential leading newlines.
-    ///
-    /// `None` will be returned if the message is not valid utf-8
-    pub fn message(&self) -> Option<&str> {
-        str::from_utf8(self.message_bytes()).ok()
+    pub fn message(&self) -> Result<&str, Error> {
+        str::from_utf8(self.message_bytes()).map_err(|e| e.into())
     }
 
     /// Get the full message of a commit as a byte slice.
@@ -80,17 +78,18 @@ impl<'repo> Commit<'repo> {
     /// Get the encoding for the message of a commit, as a string representing a
     /// standard encoding name.
     ///
-    /// `None` will be returned if the encoding is not known
-    pub fn message_encoding(&self) -> Option<&str> {
+    /// `Ok(None)` will be returned if the encoding is not known
+    pub fn message_encoding(&self) -> Result<Option<&str>, Error> {
         let bytes = unsafe { crate::opt_bytes(self, raw::git_commit_message_encoding(&*self.raw)) };
-        bytes.and_then(|b| str::from_utf8(b).ok())
+        match bytes {
+            Some(b) => str::from_utf8(b).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the full raw message of a commit.
-    ///
-    /// `None` will be returned if the message is not valid utf-8
-    pub fn message_raw(&self) -> Option<&str> {
-        str::from_utf8(self.message_raw_bytes()).ok()
+    pub fn message_raw(&self) -> Result<&str, Error> {
+        str::from_utf8(self.message_raw_bytes()).map_err(|e| e.into())
     }
 
     /// Get the full raw message of a commit.
@@ -99,10 +98,8 @@ impl<'repo> Commit<'repo> {
     }
 
     /// Get the full raw text of the commit header.
-    ///
-    /// `None` will be returned if the message is not valid utf-8
-    pub fn raw_header(&self) -> Option<&str> {
-        str::from_utf8(self.raw_header_bytes()).ok()
+    pub fn raw_header(&self) -> Result<&str, Error> {
+        str::from_utf8(self.raw_header_bytes()).map_err(|e| e.into())
     }
 
     /// Get an arbitrary header field.
@@ -129,10 +126,12 @@ impl<'repo> Commit<'repo> {
     /// The returned message is the summary of the commit, comprising the first
     /// paragraph of the message with whitespace trimmed and squashed.
     ///
-    /// `None` may be returned if an error occurs or if the summary is not valid
-    /// utf-8.
-    pub fn summary(&self) -> Option<&str> {
-        self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// `Ok(None)` may be returned if there is no summary
+    pub fn summary(&self) -> Result<Option<&str>, Error> {
+        match self.summary_bytes() {
+            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the short "summary" of the git commit message.
@@ -151,10 +150,12 @@ impl<'repo> Commit<'repo> {
     /// but the first paragraph of the message. Leading and trailing whitespaces
     /// are trimmed.
     ///
-    /// `None` may be returned if an error occurs or if the summary is not valid
-    /// utf-8.
-    pub fn body(&self) -> Option<&str> {
-        self.body_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// `Ok(None)` may be returned if there is no body.
+    pub fn body(&self) -> Result<Option<&str>, Error> {
+        match self.body_bytes() {
+            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the long "body" of the git commit message.
@@ -347,7 +348,7 @@ impl<'repo> std::fmt::Debug for Commit<'repo> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Commit");
         ds.field("id", &self.id());
-        if let Some(summary) = self.summary() {
+        if let Ok(Some(summary)) = self.summary() {
             ds.field("summary", &summary);
         }
         ds.finish()
@@ -424,12 +425,12 @@ mod tests {
         let head = repo.head().unwrap();
         let target = head.target().unwrap();
         let commit = repo.find_commit(target).unwrap();
-        assert_eq!(commit.message(), Some("initial\n\nbody"));
-        assert_eq!(commit.body(), Some("body"));
+        assert_eq!(commit.message(), Ok("initial\n\nbody"));
+        assert_eq!(commit.body(), Ok(Some("body")));
         assert_eq!(commit.id(), target);
         commit.message_raw().unwrap();
         commit.raw_header().unwrap();
-        commit.message_encoding();
+        commit.message_encoding().expect("Should not be invalid");
         commit.summary().unwrap();
         commit.body().unwrap();
         commit.tree_id();
@@ -457,7 +458,7 @@ mod tests {
             .amend(Some("HEAD"), None, None, None, Some("new message"), None)
             .unwrap();
         let new_head = repo.find_commit(new_head).unwrap();
-        assert_eq!(new_head.message(), Some("new message"));
+        assert_eq!(new_head.message(), Ok("new message"));
         new_head.into_object();
 
         repo.find_object(target, None).unwrap().as_commit().unwrap();
