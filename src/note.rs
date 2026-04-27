@@ -38,9 +38,9 @@ impl<'repo> Note<'repo> {
         unsafe { crate::opt_bytes(self, raw::git_note_message(&*self.raw)).unwrap() }
     }
 
-    /// Get the note message as a string, returning `None` if it is not UTF-8.
-    pub fn message(&self) -> Option<&str> {
-        str::from_utf8(self.message_bytes()).ok()
+    /// Get the note message as a string.
+    pub fn message(&self) -> Result<&str, Error> {
+        str::from_utf8(self.message_bytes()).map_err(|e| e.into())
     }
 
     /// Get the note object's id
@@ -130,7 +130,7 @@ mod tests {
 
         let note_obj = repo.find_note(None, head).unwrap();
         assert_eq!(note_obj.id(), note);
-        assert_eq!(note_obj.message(), Some("foo"));
+        assert_eq!(note_obj.message(), Ok("foo"));
 
         let (a, b) = repo.notes(None).unwrap().next().unwrap().unwrap();
         assert_eq!(a, note);
