@@ -83,7 +83,7 @@ fn run(args: &Args) -> Result<(), Error> {
 fn print_tag(tag: &Tag, args: &Args) {
     print!("{:<16}", tag.name().unwrap());
     if args.flag_n.is_some() {
-        print_list_lines(tag.message(), args);
+        print_list_lines(tag.message().unwrap(), args);
     } else {
         println!();
     }
