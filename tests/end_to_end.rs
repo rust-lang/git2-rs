@@ -430,7 +430,7 @@ fn repo_status_clean() {
         let status = repo.statuses(Some(&mut opts)).unwrap();
         assert_eq!(1, status.len());
         let entry = status.get(0).unwrap();
-        assert_eq!(Some("OtherFile"), entry.path());
+        assert_eq!(Ok("OtherFile"), entry.path());
         assert_eq!(Status::WT_NEW, entry.status());
     }
 
@@ -442,7 +442,7 @@ fn repo_status_clean() {
         let status = repo.statuses(Some(&mut opts)).unwrap();
         assert_eq!(1, status.len());
         let entry = status.get(0).unwrap();
-        assert_eq!(Some("OtherFile"), entry.path());
+        assert_eq!(Ok("OtherFile"), entry.path());
         assert_eq!(Status::INDEX_NEW, entry.status());
     }
 
@@ -454,7 +454,7 @@ fn repo_status_clean() {
         let status = repo.statuses(Some(&mut opts)).unwrap();
         assert_eq!(1, status.len());
         let entry = status.get(0).unwrap();
-        assert_eq!(Some("OtherFile"), entry.path());
+        assert_eq!(Ok("OtherFile"), entry.path());
         assert_eq!(Status::INDEX_NEW | Status::WT_DELETED, entry.status());
     }
 
