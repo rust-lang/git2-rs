@@ -431,8 +431,8 @@ mod tests {
             let id = rebase.commit(None, &sig, None).unwrap();
             let commit = repo.find_commit(id).unwrap();
             assert_eq!(commit.message(), Ok("A"));
-            assert_eq!(commit.author().name(), Some("testname"));
-            assert_eq!(commit.author().email(), Some("testemail"));
+            assert_eq!(commit.author().name(), Ok("testname"));
+            assert_eq!(commit.author().email(), Ok("testemail"));
         }
 
         {
@@ -440,8 +440,8 @@ mod tests {
             let id = rebase.commit(None, &sig, None).unwrap();
             let commit = repo.find_commit(id).unwrap();
             assert_eq!(commit.message(), Ok("B"));
-            assert_eq!(commit.author().name(), Some("testname"));
-            assert_eq!(commit.author().email(), Some("testemail"));
+            assert_eq!(commit.author().name(), Ok("testname"));
+            assert_eq!(commit.author().email(), Ok("testemail"));
         }
         rebase.finish(None).unwrap();
     }

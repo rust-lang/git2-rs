@@ -493,20 +493,20 @@ mod tests {
 
         {
             let final_author = hunk.final_signature().unwrap();
-            assert_eq!(Some("name"), final_author.name());
-            assert_eq!(Some("email"), final_author.email());
+            assert_eq!(Ok("name"), final_author.name());
+            assert_eq!(Ok("email"), final_author.email());
 
             let final_committer = hunk.final_committer().unwrap();
-            assert_eq!(Some("name"), final_committer.name());
-            assert_eq!(Some("email"), final_committer.email());
+            assert_eq!(Ok("name"), final_committer.name());
+            assert_eq!(Ok("email"), final_committer.email());
 
             let original_author = hunk.orig_signature().unwrap();
-            assert_eq!(Some("name"), original_author.name());
-            assert_eq!(Some("email"), original_author.email());
+            assert_eq!(Ok("name"), original_author.name());
+            assert_eq!(Ok("email"), original_author.email());
 
             let original_committer = hunk.orig_committer().unwrap();
-            assert_eq!(Some("name"), original_committer.name());
-            assert_eq!(Some("email"), original_committer.email());
+            assert_eq!(Ok("name"), original_committer.name());
+            assert_eq!(Ok("email"), original_committer.email());
         }
 
         let arbitrary = blame.blame_buffer(b"abc123").unwrap();

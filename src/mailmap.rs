@@ -105,8 +105,8 @@ mod tests {
         let mut mm = t!(Mailmap::new());
 
         let mailmapped_sig = t!(mm.resolve_signature(&sig));
-        assert_eq!(mailmapped_sig.name(), Some(sig_name));
-        assert_eq!(mailmapped_sig.email(), Some(sig_email));
+        assert_eq!(mailmapped_sig.name(), Ok(sig_name));
+        assert_eq!(mailmapped_sig.email(), Ok(sig_email));
 
         t!(mm.add_entry(None, None, None, sig_email));
         t!(mm.add_entry(
@@ -117,8 +117,8 @@ mod tests {
         ));
 
         let mailmapped_sig = t!(mm.resolve_signature(&sig));
-        assert_eq!(mailmapped_sig.name(), Some("real name"));
-        assert_eq!(mailmapped_sig.email(), Some("real@email"));
+        assert_eq!(mailmapped_sig.name(), Ok("real name"));
+        assert_eq!(mailmapped_sig.email(), Ok("real@email"));
     }
 
     #[test]
@@ -128,7 +128,7 @@ mod tests {
 
         let sig = t!(Signature::now("name", "email"));
         let mailmapped_sig = t!(mm.resolve_signature(&sig));
-        assert_eq!(mailmapped_sig.name(), Some("name"));
-        assert_eq!(mailmapped_sig.email(), Some("prøper@emæil"));
+        assert_eq!(mailmapped_sig.name(), Ok("name"));
+        assert_eq!(mailmapped_sig.email(), Ok("prøper@emæil"));
     }
 }

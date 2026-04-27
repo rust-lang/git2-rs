@@ -442,10 +442,10 @@ mod tests {
             crate::Oid::from_str(tree_header_bytes.as_str().unwrap()).unwrap(),
             commit.tree_id()
         );
-        assert_eq!(commit.author().name(), Some("name"));
-        assert_eq!(commit.author().email(), Some("email"));
-        assert_eq!(commit.committer().name(), Some("name"));
-        assert_eq!(commit.committer().email(), Some("email"));
+        assert_eq!(commit.author().name(), Ok("name"));
+        assert_eq!(commit.author().email(), Ok("email"));
+        assert_eq!(commit.committer().name(), Ok("name"));
+        assert_eq!(commit.committer().email(), Ok("email"));
 
         let sig = repo.signature().unwrap();
         let tree = repo.find_tree(commit.tree_id()).unwrap();
