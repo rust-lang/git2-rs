@@ -1,5 +1,5 @@
 use crate::util::Binding;
-use crate::{raw, Oid};
+use crate::{raw, Error, Oid};
 use std::marker;
 use std::str;
 
@@ -28,9 +28,9 @@ impl PushUpdate<'_> {
         unsafe { crate::opt_bytes(self, (*self.raw).src_refname).unwrap() }
     }
 
-    /// Returns the source name of the reference, or None if it is not valid UTF-8.
-    pub fn src_refname(&self) -> Option<&str> {
-        str::from_utf8(self.src_refname_bytes()).ok()
+    /// Returns the source name of the reference.
+    pub fn src_refname(&self) -> Result<&str, Error> {
+        str::from_utf8(self.src_refname_bytes()).map_err(|e| e.into())
     }
 
     /// Returns the name of the reference to update on the server as a byte slice.
@@ -38,9 +38,9 @@ impl PushUpdate<'_> {
         unsafe { crate::opt_bytes(self, (*self.raw).dst_refname).unwrap() }
     }
 
-    /// Returns the name of the reference to update on the server, or None if it is not valid UTF-8.
-    pub fn dst_refname(&self) -> Option<&str> {
-        str::from_utf8(self.dst_refname_bytes()).ok()
+    /// Returns the name of the reference to update on the server.
+    pub fn dst_refname(&self) -> Result<&str, Error> {
+        str::from_utf8(self.dst_refname_bytes()).map_err(|e| e.into())
     }
 
     /// Returns the current target of the reference.
