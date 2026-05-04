@@ -1240,6 +1240,7 @@ git_enum! {
         GIT_REPOSITORY_INIT_MKDIR             = 1 << 3,
         GIT_REPOSITORY_INIT_MKPATH            = 1 << 4,
         GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = 1 << 5,
+        GIT_REPOSITORY_INIT_RELATIVE_GITLINK  = 1 << 6,
     }
 }
 
