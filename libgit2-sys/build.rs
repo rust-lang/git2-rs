@@ -9,7 +9,7 @@ fn try_system_libgit2(
     experimental_sha256: bool,
 ) -> Result<pkg_config::Library, Box<dyn std::error::Error>> {
     let mut cfg = pkg_config::Config::new();
-    let range_version = "1.9.2".."1.10.0";
+    let range_version = "1.9.3".."1.10.0";
 
     let lib = if experimental_sha256 {
         // Determine whether experimental SHA256 object support is enabled.
