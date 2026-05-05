@@ -1240,6 +1240,7 @@ git_enum! {
         GIT_REPOSITORY_INIT_MKDIR             = 1 << 3,
         GIT_REPOSITORY_INIT_MKPATH            = 1 << 4,
         GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = 1 << 5,
+        GIT_REPOSITORY_INIT_RELATIVE_GITLINK  = 1 << 6,
     }
 }
 
@@ -2651,6 +2652,7 @@ extern "C" {
         size: *mut size_t,
         remote: *mut git_remote,
     ) -> c_int;
+    pub fn git_remote_oid_type(out: *mut git_oid_t, remote: *mut git_remote) -> c_int;
     pub fn git_remote_set_autotag(
         repo: *mut git_repository,
         remote: *const c_char,

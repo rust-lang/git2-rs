@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.4+1.9.3 - 2026-05-04
+[0.18.3...0.18.4](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.3+1.9.2...libgit2-sys-0.18.4+1.9.3)
+
+### Changed
+
+- Updated to libgit2 [1.9.3](https://github.com/libgit2/libgit2/releases/tag/v1.9.3)
+  [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
+
+### Added
+
+- Added binding for `git_remote_oid_type`
+  [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
+- Added `GIT_REPOSITORY_INIT_RELATIVE_GITLINK` flag
+  [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
+
 ## 0.18.3+1.9.2 - 2025-12-06
 [0.18.2...0.18.3](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.2+1.9.1...libgit2-sys-0.18.3+1.9.2)
 
