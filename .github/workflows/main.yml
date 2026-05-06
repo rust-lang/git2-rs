@@ -35,9 +35,13 @@ jobs:
       shell: bash
     - run: cargo test --locked
     - run: cargo test --features https,ssh
+    # Single-threaded: libgit2's builtin SHA256 is not thread-safe.
+    # See https://github.com/rust-lang/git2-rs/issues/1255.
+    - run: cargo test --features unstable-sha256 -- --test-threads=1
+    - run: cargo test --features https,ssh,unstable-sha256
+    - run: cargo test -p git2-curl
     - run: cargo run -p systest
     - run: cargo run -p systest --features unstable-sha256
-    - run: cargo test -p git2-curl
 
   rustfmt:
     name: Rustfmt
