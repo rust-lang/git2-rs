@@ -1591,7 +1591,7 @@ mod tests {
         assert_eq!(stats.deletions(), 0);
         assert_eq!(stats.files_changed(), 0);
         let patchid = diff.patchid(None).unwrap();
-        assert_ne!(patchid, Oid::zero());
+        assert_ne!(patchid, Oid::ZERO_SHA1);
     }
 
     #[test]
