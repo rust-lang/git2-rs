@@ -1,8 +1,9 @@
 //! Tests for some end-to-end logic about certain operations
-use git2::{Error, Repository, RepositoryInitOptions};
+use git2::{Error, Repository, RepositoryInitOptions, StashFlags};
 
 use libgit2_sys as raw;
 use std::ffi::{CString, OsString};
+use std::fs;
 use std::ptr;
 
 use tempfile::TempDir;
@@ -133,4 +134,69 @@ fn non_utf8_branch() {
     );
     assert_eq!(Some(Ok("refs/heads/main")), names.next());
     assert_eq!(None, names.next());
+}
+
+#[test]
+fn stash_length() {
+    // Test that reflog() and len() allow tracking the number of stashed entries
+    let td = TempDir::new().unwrap();
+    let path = td.path();
+
+    let mut opts = RepositoryInitOptions::new();
+    opts.initial_head("main");
+    let mut repo = Repository::init_opts(path, &opts).unwrap();
+
+    let initial_reflog = repo.reflog("refs/stash").expect("Should work");
+    assert_eq!(0, initial_reflog.len());
+
+    let mut config = repo.config().unwrap();
+    config.set_str("user.name", "name").unwrap();
+    config.set_str("user.email", "email").unwrap();
+    let sig = repo.signature().unwrap();
+
+    // Need an initial commit before changes can be stashed
+    let mut index = repo.index().unwrap();
+    let id = index.write_tree().unwrap();
+    {
+        let tree = repo.find_tree(id).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "initial\n\nbody", &tree, &[])
+            .unwrap();
+    }
+
+    fs::write(path.join("README.md"), "README content").unwrap();
+    repo.stash_save(&sig, "Stashed", Some(StashFlags::INCLUDE_UNTRACKED))
+        .unwrap();
+
+    // Existing reflog references are not updated
+    assert_eq!(0, initial_reflog.len());
+
+    let after_stash1 = repo.reflog("refs/stash").expect("Should work");
+    assert_eq!(1, after_stash1.len());
+
+    fs::write(path.join("README.md2"), "README content").unwrap();
+    repo.stash_save(&sig, "Stashed2", Some(StashFlags::INCLUDE_UNTRACKED))
+        .unwrap();
+
+    assert_eq!(0, initial_reflog.len());
+    assert_eq!(1, after_stash1.len());
+
+    let after_stash2 = repo.reflog("refs/stash").expect("Should work");
+    assert_eq!(2, after_stash2.len());
+
+    repo.stash_drop(1).expect("Should succeed");
+
+    assert_eq!(0, initial_reflog.len());
+    assert_eq!(1, after_stash1.len());
+    assert_eq!(2, after_stash2.len());
+    let after_drop1 = repo.reflog("refs/stash").expect("Should work");
+    assert_eq!(1, after_drop1.len());
+
+    repo.stash_drop(0).expect("Should succeed");
+
+    assert_eq!(0, initial_reflog.len());
+    assert_eq!(1, after_stash1.len());
+    assert_eq!(2, after_stash2.len());
+    assert_eq!(1, after_drop1.len());
+    let after_drop2 = repo.reflog("refs/stash").expect("Should work");
+    assert_eq!(0, after_drop2.len());
 }
