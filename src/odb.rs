@@ -648,7 +648,7 @@ mod tests {
         let db = repo.odb().unwrap();
         let id = db.write(ObjectType::Blob, &dat).unwrap();
         let id_prefix_str = &id.to_string()[0..10];
-        let id_prefix = Oid::from_str(id_prefix_str).unwrap();
+        let id_prefix = Oid::from_str_ext(id_prefix_str, repo.object_format()).unwrap();
         let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
         assert_eq!(found_oid, id);
     }

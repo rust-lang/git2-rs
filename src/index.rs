@@ -869,7 +869,9 @@ mod tests {
     use std::path::Path;
     use tempfile::TempDir;
 
-    use crate::{ErrorCode, Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
+    use crate::{
+        ErrorCode, Index, IndexEntry, IndexTime, ObjectFormat, Oid, Repository, ResetType,
+    };
 
     #[test]
     fn smoke() {
@@ -972,7 +974,7 @@ mod tests {
 
     #[test]
     fn add_then_read() {
-        let mut index = Index::new().unwrap();
+        let mut index = Index::new_ext(ObjectFormat::Sha1).unwrap();
         let mut e = entry();
         e.path = b"foobar".to_vec();
         index.add(&e).unwrap();
@@ -982,7 +984,7 @@ mod tests {
 
     #[test]
     fn add_then_find() {
-        let mut index = Index::new().unwrap();
+        let mut index = Index::new_ext(ObjectFormat::Sha1).unwrap();
         let mut e = entry();
         e.path = b"foo/bar".to_vec();
         index.add(&e).unwrap();

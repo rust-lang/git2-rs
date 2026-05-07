@@ -437,10 +437,11 @@ mod tests {
         assert_eq!(commit.parents().count(), 0);
 
         let tree_header_bytes = commit.header_field_bytes("tree").unwrap();
-        assert_eq!(
-            crate::Oid::from_str(tree_header_bytes.as_str().unwrap()).unwrap(),
-            commit.tree_id()
-        );
+        let tree_oid = {
+            let str = tree_header_bytes.as_str().unwrap();
+            crate::Oid::from_str_ext(str, repo.object_format()).unwrap()
+        };
+        assert_eq!(tree_oid, commit.tree_id());
         assert_eq!(commit.author().name(), Some("name"));
         assert_eq!(commit.author().email(), Some("email"));
         assert_eq!(commit.committer().name(), Some("name"));
