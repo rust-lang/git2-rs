@@ -105,8 +105,18 @@ impl Index {
         crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
-            let _ = format;
-            try_call!(raw::git_index_new(&mut raw));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_index_new(&mut raw));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_index_options = std::mem::zeroed();
+                opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_index_new(&mut raw, &opts));
+            }
             Ok(Binding::from_raw(raw))
         }
     }
@@ -135,8 +145,18 @@ impl Index {
         // Normal file path OK (does not need Windows conversion).
         let index_path = index_path.into_c_string()?;
         unsafe {
-            let _ = format;
-            try_call!(raw::git_index_open(&mut raw, index_path));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_index_open(&mut raw, index_path));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_index_options = std::mem::zeroed();
+                opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_index_open(&mut raw, index_path, &opts));
+            }
             Ok(Binding::from_raw(raw))
         }
     }
@@ -1029,10 +1049,38 @@ mod tests {
             uid: 0,
             gid: 0,
             file_size: 0,
+            #[cfg(not(feature = "unstable-sha256"))]
             id: Oid::from_bytes(&[0; 20]).unwrap(),
+            #[cfg(feature = "unstable-sha256")]
+            id: Oid::from_bytes(&[0; 32]).unwrap(),
             flags: 0,
             flags_extended: 0,
             path: Vec::new(),
         }
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn index_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut index = repo.index().unwrap();
+
+        // Test opening with correct format
+        Index::open_ext(&repo.path().join("index"), ObjectFormat::Sha256).unwrap();
+
+        // Test basic operations with SHA256
+        index.clear().unwrap();
+        index.read(true).unwrap();
+        index.write().unwrap();
+        let tree_id = index.write_tree().unwrap();
+
+        // Verify OID is 32 bytes (SHA256)
+        assert_eq!(tree_id.as_bytes().len(), 32);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_in_memory_index_sha256() {
+        let _index = Index::new_ext(ObjectFormat::Sha256).unwrap();
     }
 }
