@@ -9,6 +9,7 @@ use std::ptr;
 use std::slice;
 
 use crate::util::{self, Binding};
+use crate::ObjectFormat;
 use crate::{panic, raw, Buf, Delta, DiffFormat, Error, FileMode, Oid, Repository};
 use crate::{DiffFlags, DiffStatsFormat, IntoCString};
 
@@ -310,16 +311,26 @@ impl Diff<'static> {
     /// two trees, however there may be subtle differences. For example,
     /// a patch file likely contains abbreviated object IDs, so the
     /// object IDs parsed by this function will also be abbreviated.
+    ///
+    /// This parses the diff assuming SHA1 object IDs. Use
+    /// [`Diff::from_buffer_ext`] to specify a different format.
     pub fn from_buffer(buffer: &[u8]) -> Result<Diff<'static>, Error> {
+        Self::from_buffer_ext(buffer, ObjectFormat::Sha1)
+    }
+
+    /// Reads the contents of a git patch file into a `git_diff` object,
+    /// with a specific object format.
+    ///
+    /// See [`Diff::from_buffer`] for more details.
+    pub fn from_buffer_ext(buffer: &[u8], format: ObjectFormat) -> Result<Diff<'static>, Error> {
         crate::init();
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
+        let data = buffer.as_ptr() as *const c_char;
+        let len = buffer.len();
         unsafe {
+            let _ = format;
             // NOTE: Doesn't depend on repo, so lifetime can be 'static
-            try_call!(raw::git_diff_from_buffer(
-                &mut diff,
-                buffer.as_ptr() as *const c_char,
-                buffer.len()
-            ));
+            try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
             Ok(Diff::from_raw(diff))
         }
     }

@@ -6,6 +6,7 @@ use libc::c_void;
 
 use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
+use crate::ObjectFormat;
 use crate::{raw, Error, IntoCString, Odb};
 
 /// Struct representing the progress by an in-flight transfer.
@@ -123,7 +124,23 @@ impl<'a> Indexer<'a> {
     /// `mode` is the permissions to use for the output files, use `0` for defaults.
     ///
     /// If `verify` is `false`, the indexer will bypass object connectivity checks.
+    ///
+    /// This creates an indexer assuming SHA1 object format. Use
+    /// [`Indexer::new_ext`] to specify a different format.
     pub fn new(odb: Option<&Odb<'a>>, path: &Path, mode: u32, verify: bool) -> Result<Self, Error> {
+        Self::new_ext(odb, path, mode, verify, ObjectFormat::Sha1)
+    }
+
+    /// Creates a new indexer with a specific object format.
+    ///
+    /// See [`Indexer::new`] for more details.
+    pub fn new_ext(
+        odb: Option<&Odb<'a>>,
+        path: &Path,
+        mode: u32,
+        verify: bool,
+        format: ObjectFormat,
+    ) -> Result<Self, Error> {
         crate::init();
         let path = path.into_c_string()?;
 
@@ -144,6 +161,7 @@ impl<'a> Indexer<'a> {
             opts.progress_cb_payload = progress_payload_ptr as *mut c_void;
             opts.verify = verify.into();
 
+            let _ = format;
             try_call!(raw::git_indexer_new(&mut out, path, mode, odb, &mut opts));
         }
 

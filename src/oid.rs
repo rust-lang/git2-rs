@@ -42,19 +42,35 @@ pub struct Oid {
 impl Oid {
     /// Parse a hex-formatted object id into an Oid structure.
     ///
+    /// This always parses as SHA1 (up to 40 hex characters). Use
+    /// [`Oid::from_str_ext`] to parse with a specific format.
+    ///
     /// # Errors
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
+        Self::from_str_ext(s, ObjectFormat::Sha1)
+    }
+
+    /// Parses a hex-formatted object id with a specific object format.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is
+    ///
+    /// * is empty
+    /// * is longer than 40 hex with SHA1 object format
+    /// * is longer than 64 hex with SHA256 object format
+    /// * contains any non-hex characters
+    pub fn from_str_ext(s: &str, format: ObjectFormat) -> Result<Oid, Error> {
         crate::init();
         let mut raw = crate::util::zeroed_raw_oid();
+        let data = s.as_bytes().as_ptr() as *const libc::c_char;
+        let len = s.len() as libc::size_t;
         unsafe {
-            try_call!(raw::git_oid_fromstrn(
-                &mut raw,
-                s.as_bytes().as_ptr() as *const libc::c_char,
-                s.len() as libc::size_t
-            ));
+            let _ = format;
+            try_call!(raw::git_oid_fromstrn(&mut raw, data, len));
         }
         Ok(Oid { raw })
     }
@@ -86,17 +102,29 @@ impl Oid {
     /// Hashes the provided data as an object of the provided type, and returns
     /// an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
+    ///
+    /// This always hashes using SHA1. Use [`Oid::hash_object_ext`]
+    /// to hash with a specific format.
     pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
+        Self::hash_object_ext(kind, bytes, ObjectFormat::Sha1)
+    }
+
+    /// Hashes the provided data as an object of the provided type,
+    /// with a specific object format.
+    ///
+    /// See [`Oid::hash_object`] for more details.
+    pub fn hash_object_ext(
+        kind: ObjectType,
+        bytes: &[u8],
+        format: ObjectFormat,
+    ) -> Result<Oid, Error> {
         crate::init();
 
         let mut out = crate::util::zeroed_raw_oid();
+        let data = bytes.as_ptr() as *const libc::c_void;
         unsafe {
-            try_call!(raw::git_odb_hash(
-                &mut out,
-                bytes.as_ptr() as *const libc::c_void,
-                bytes.len(),
-                kind.raw()
-            ));
+            let _ = format;
+            try_call!(raw::git_odb_hash(&mut out, data, bytes.len(), kind.raw()));
         }
 
         Ok(Oid { raw: out })
@@ -105,7 +133,22 @@ impl Oid {
     /// Hashes the content of the provided file as an object of the provided type,
     /// and returns an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
+    ///
+    /// This always hashes using SHA1. Use [`Oid::hash_file_ext`]
+    /// to hash with a specific format.
     pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
+        Self::hash_file_ext(kind, path, ObjectFormat::Sha1)
+    }
+
+    /// Hashes the content of a file as an object of the provided type,
+    /// with a specific object format.
+    ///
+    /// See [`Oid::hash_file`] for more details.
+    pub fn hash_file_ext<P: AsRef<Path>>(
+        kind: ObjectType,
+        path: P,
+        format: ObjectFormat,
+    ) -> Result<Oid, Error> {
         crate::init();
 
         // Normal file path OK (does not need Windows conversion).
@@ -113,6 +156,7 @@ impl Oid {
 
         let mut out = crate::util::zeroed_raw_oid();
         unsafe {
+            let _ = format;
             try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
         }
 
