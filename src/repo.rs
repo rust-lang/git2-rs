@@ -3071,7 +3071,7 @@ impl Repository {
         }
     }
 
-    /// Like `stash_save` but with more options like selective statshing via path patterns.
+    /// Like `stash_save` but with more options like selective stashing via path patterns.
     pub fn stash_save_ext(
         &mut self,
         opts: Option<&mut StashSaveOptions<'_>>,
