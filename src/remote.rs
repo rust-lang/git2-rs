@@ -825,7 +825,7 @@ impl RemoteRedirect {
 #[cfg(test)]
 mod tests {
     use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
-    use crate::{Direction, FetchOptions, Remote, RemoteCallbacks, Repository};
+    use crate::{Direction, FetchOptions, ObjectFormat, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
     use tempfile::TempDir;
 
@@ -895,6 +895,7 @@ mod tests {
 
         origin.connect(Direction::Fetch).unwrap();
         assert!(origin.connected());
+        assert_eq!(origin.object_format().unwrap(), ObjectFormat::Sha1);
         origin.download(&[] as &[&str], None).unwrap();
         origin.disconnect().unwrap();
 

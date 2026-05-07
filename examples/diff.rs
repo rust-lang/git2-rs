@@ -319,7 +319,7 @@ fn tree_to_treeish<'a>(
 
 fn resolve_blob<'a>(repo: &'a Repository, arg: Option<&String>) -> Result<Option<Blob<'a>>, Error> {
     let arg = match arg {
-        Some(s) => Oid::from_str(s)?,
+        Some(s) => Oid::from_str_ext(s, repo.object_format())?,
         None => return Ok(None),
     };
     repo.find_blob(arg).map(|b| Some(b))

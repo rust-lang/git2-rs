@@ -1473,11 +1473,12 @@ impl Repository {
     /// Lookup a reference to one of the commits in a repository by short hash.
     pub fn find_commit_by_prefix(&self, prefix_hash: &str) -> Result<Commit<'_>, Error> {
         let mut raw = ptr::null_mut();
+        let oid = Oid::from_str_ext(prefix_hash, self.object_format())?;
         unsafe {
             try_call!(raw::git_commit_lookup_prefix(
                 &mut raw,
                 self.raw(),
-                Oid::from_str(prefix_hash)?.raw(),
+                oid.raw(),
                 prefix_hash.len()
             ));
             Ok(Binding::from_raw(raw))
@@ -1518,11 +1519,12 @@ impl Repository {
         kind: Option<ObjectType>,
     ) -> Result<Object<'_>, Error> {
         let mut raw = ptr::null_mut();
+        let oid = Oid::from_str_ext(prefix_hash, self.object_format())?;
         unsafe {
             try_call!(raw::git_object_lookup_prefix(
                 &mut raw,
                 self.raw(),
-                Oid::from_str(prefix_hash)?.raw(),
+                oid.raw(),
                 prefix_hash.len(),
                 kind
             ));
@@ -2093,11 +2095,12 @@ impl Repository {
     /// Lookup a tag object by prefix hash from the repository.
     pub fn find_tag_by_prefix(&self, prefix_hash: &str) -> Result<Tag<'_>, Error> {
         let mut raw = ptr::null_mut();
+        let oid = Oid::from_str_ext(prefix_hash, self.object_format())?;
         unsafe {
             try_call!(raw::git_tag_lookup_prefix(
                 &mut raw,
                 self.raw,
-                Oid::from_str(prefix_hash)?.raw(),
+                oid.raw(),
                 prefix_hash.len()
             ));
             Ok(Binding::from_raw(raw))
