@@ -124,6 +124,7 @@ pub struct RepositoryInitOptions {
     template_path: Option<CString>,
     initial_head: Option<CString>,
     origin_url: Option<CString>,
+    oid_type: Option<raw::git_oid_t>,
 }
 
 impl Repository {
@@ -459,7 +460,7 @@ impl Repository {
         }
     }
 
-    /// Returns the object ID format (hash algorithm) used by this repository.
+    /// Returns the object format (hash algorithm) of this repository.
     pub fn object_format(&self) -> ObjectFormat {
         let oid_type = unsafe { raw::git_repository_oid_type(self.raw()) };
         unsafe { Binding::from_raw(oid_type) }
@@ -3490,6 +3491,7 @@ impl RepositoryInitOptions {
             template_path: None,
             initial_head: None,
             origin_url: None,
+            oid_type: None,
         }
     }
 
@@ -3606,6 +3608,15 @@ impl RepositoryInitOptions {
     /// completed an `origin` remote will be added pointing to this URL.
     pub fn origin_url(&mut self, url: &str) -> &mut RepositoryInitOptions {
         self.origin_url = Some(CString::new(url).unwrap());
+        self
+    }
+
+    /// Set the object format (hash algorithm) for the repository.
+    ///
+    /// Note: Without the `unstable-sha256` feature, this stores the format
+    /// but does not pass it to libgit2 (which only supports SHA1).
+    pub fn object_format(&mut self, format: ObjectFormat) -> &mut RepositoryInitOptions {
+        self.oid_type = Some(format.raw());
         self
     }
 

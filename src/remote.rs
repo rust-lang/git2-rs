@@ -11,7 +11,9 @@ use std::{ffi::CString, os::raw::c_char};
 
 use crate::string_array::StringArray;
 use crate::util::Binding;
-use crate::{call, raw, Buf, Direction, Error, FetchPrune, Oid, ProxyOptions, Refspec};
+use crate::{
+    call, raw, Buf, Direction, Error, FetchPrune, ObjectFormat, Oid, ProxyOptions, Refspec,
+};
 use crate::{AutotagOption, Progress, RemoteCallbacks, RemoteUpdateFlags, Repository};
 
 /// A structure representing a [remote][1] of a git repository.
@@ -175,6 +177,19 @@ impl<'repo> Remote<'repo> {
             let buf = Buf::new();
             try_call!(raw::git_remote_default_branch(buf.raw(), self.raw));
             Ok(buf)
+        }
+    }
+
+    /// Get the remote's object format (hash algorithm).
+    ///
+    /// The remote (or more exactly its transport) must have connected to the
+    /// remote repository. The format is available as soon as the connection to
+    /// the remote is initiated and it remains available after disconnecting.
+    pub fn object_format(&self) -> Result<ObjectFormat, Error> {
+        let mut oid_type = raw::GIT_OID_SHA1;
+        unsafe {
+            try_call!(raw::git_remote_oid_type(&mut oid_type, self.raw));
+            Ok(Binding::from_raw(oid_type))
         }
     }
 
