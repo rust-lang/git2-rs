@@ -1,5 +1,5 @@
 //! Tests for some end-to-end logic about certain operations
-use git2::{Error, Repository, RepositoryInitOptions, StashFlags};
+use git2::{Error, ReferenceType, Repository, RepositoryInitOptions, StashFlags};
 
 use libgit2_sys as raw;
 use std::ffi::{CString, OsString};
@@ -199,4 +199,42 @@ fn stash_length() {
     assert_eq!(1, after_drop1.len());
     let after_drop2 = repo.reflog("refs/stash").expect("Should work");
     assert_eq!(0, after_drop2.len());
+}
+
+#[test]
+fn branch_name_on_init() {
+    // Confirm that the branch name is available via find_reference() even when
+    // no commits are made yet and the branch doesn't exist
+    // Test with "main"
+    {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let mut opts = RepositoryInitOptions::new();
+        opts.initial_head("main");
+        let repo = Repository::init_opts(path, &opts).unwrap();
+
+        let head_ref = repo.find_reference("HEAD").unwrap();
+        assert_eq!(Some(ReferenceType::Symbolic), head_ref.kind());
+        assert_eq!(Some("HEAD"), head_ref.name());
+
+        let target = head_ref.symbolic_target();
+        assert_eq!(Some("refs/heads/main"), target);
+    }
+    // Test with "somerandombranchnamehere"
+    {
+        let td = TempDir::new().unwrap();
+        let path = td.path();
+
+        let mut opts = RepositoryInitOptions::new();
+        opts.initial_head("somerandombranchnamehere");
+        let repo = Repository::init_opts(path, &opts).unwrap();
+
+        let head_ref = repo.find_reference("HEAD").unwrap();
+        assert_eq!(Some(ReferenceType::Symbolic), head_ref.kind());
+        assert_eq!(Some("HEAD"), head_ref.name());
+
+        let target = head_ref.symbolic_target();
+        assert_eq!(Some("refs/heads/somerandombranchnamehere"), target);
+    }
 }
