@@ -1050,9 +1050,9 @@ mod tests {
             gid: 0,
             file_size: 0,
             #[cfg(not(feature = "unstable-sha256"))]
-            id: Oid::from_bytes(&[0; 20]).unwrap(),
+            id: Oid::ZERO_SHA1,
             #[cfg(feature = "unstable-sha256")]
-            id: Oid::from_bytes(&[0; 32]).unwrap(),
+            id: Oid::ZERO_SHA256,
             flags: 0,
             flags_extended: 0,
             path: Vec::new(),

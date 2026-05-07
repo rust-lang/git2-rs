@@ -4052,9 +4052,9 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
 
         let void_oid = match repo.object_format() {
-            ObjectFormat::Sha1 => Oid::from_bytes(&[0; raw::GIT_OID_SHA1_SIZE]).unwrap(),
+            ObjectFormat::Sha1 => Oid::ZERO_SHA1,
             #[cfg(feature = "unstable-sha256")]
-            ObjectFormat::Sha256 => Oid::from_bytes(&[0; raw::GIT_OID_SHA256_SIZE]).unwrap(),
+            ObjectFormat::Sha256 => Oid::ZERO_SHA256,
         };
         assert!(repo.set_head_detached(void_oid).is_err());
 

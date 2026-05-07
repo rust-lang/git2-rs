@@ -48,6 +48,24 @@ pub struct Oid {
 }
 
 impl Oid {
+    /// An all-zero SHA1 OID.
+    pub const ZERO_SHA1: Oid = Oid {
+        raw: raw::git_oid {
+            #[cfg(feature = "unstable-sha256")]
+            kind: raw::GIT_OID_SHA1 as libc::c_uchar,
+            id: [0; raw::GIT_OID_MAX_SIZE],
+        },
+    };
+
+    /// An all-zero SHA256 OID.
+    #[cfg(feature = "unstable-sha256")]
+    pub const ZERO_SHA256: Oid = Oid {
+        raw: raw::git_oid {
+            kind: raw::GIT_OID_SHA256 as libc::c_uchar,
+            id: [0; raw::GIT_OID_MAX_SIZE],
+        },
+    };
+
     /// Parse a hex-formatted object id into an Oid structure.
     ///
     /// This always parses as SHA1 (up to 40 hex characters). Use
@@ -128,11 +146,10 @@ impl Oid {
         Ok(Oid { raw })
     }
 
-    /// Creates an all zero Oid structure.
+    /// Creates an all-zero SHA1 OID.
+    #[deprecated(since = "0.21.0", note = "use `Oid::ZERO_SHA1` instead")]
     pub fn zero() -> Oid {
-        Oid {
-            raw: crate::util::zeroed_raw_oid(),
-        }
+        Self::ZERO_SHA1
     }
 
     /// Hashes the provided data as an object of the provided type, and returns
@@ -394,8 +411,8 @@ mod tests {
 
         assert!(Oid::from_bytes(b"foo").is_err());
 
-        let sha1_from_bytes = Oid::from_bytes(&[0u8; 20]).unwrap();
-        let sha256_from_bytes = Oid::from_bytes(&[0u8; 32]).unwrap();
+        let sha1_from_bytes = Oid::ZERO_SHA1;
+        let sha256_from_bytes = Oid::ZERO_SHA256;
 
         // as_bytes() returns logical length per OID type
         assert_eq!(sha1_from_bytes.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
@@ -418,7 +435,7 @@ mod tests {
 
     #[test]
     fn object_format_always_sha1() {
-        let oid = Oid::from_bytes(&[0u8; 20]).unwrap();
+        let oid = Oid::ZERO_SHA1;
         assert_eq!(oid.object_format(), crate::ObjectFormat::Sha1);
     }
 
@@ -427,10 +444,10 @@ mod tests {
     fn object_format_from_oid() {
         use crate::ObjectFormat;
 
-        let sha1 = Oid::from_bytes(&[0u8; 20]).unwrap();
+        let sha1 = Oid::ZERO_SHA1;
         assert_eq!(sha1.object_format(), ObjectFormat::Sha1);
 
-        let sha256 = Oid::from_bytes(&[0u8; 32]).unwrap();
+        let sha256 = Oid::ZERO_SHA256;
         assert_eq!(sha256.object_format(), ObjectFormat::Sha256);
 
         let sha1_from_str = Oid::from_str_ext(
@@ -580,7 +597,18 @@ mod tests {
 
     #[test]
     fn zero_is_zero() {
-        assert!(Oid::zero().is_zero());
+        assert!(Oid::ZERO_SHA1.is_zero());
+        assert_eq!(Oid::ZERO_SHA1.object_format(), crate::ObjectFormat::Sha1);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn zero_sha256_is_zero() {
+        assert!(Oid::ZERO_SHA256.is_zero());
+        assert_eq!(
+            Oid::ZERO_SHA256.object_format(),
+            crate::ObjectFormat::Sha256
+        );
     }
 
     #[test]
