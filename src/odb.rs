@@ -9,6 +9,7 @@ use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
+use crate::ObjectFormat;
 use crate::{
     raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
 };
@@ -45,10 +46,22 @@ impl<'repo> Drop for Odb<'repo> {
 
 impl<'repo> Odb<'repo> {
     /// Creates an object database without any backends.
+    ///
+    /// This always creates a SHA1 object database.
+    /// Use [`Odb::new_ext`] to create one with a specific object format.
     pub fn new<'a>() -> Result<Odb<'a>, Error> {
+        Self::new_ext(ObjectFormat::Sha1)
+    }
+
+    /// Creates an object database without any backends,
+    /// with a specific object format.
+    ///
+    /// See [`Odb::new`] for more details.
+    pub fn new_ext<'a>(format: ObjectFormat) -> Result<Odb<'a>, Error> {
         crate::init();
         unsafe {
             let mut out = ptr::null_mut();
+            let _ = format;
             try_call!(raw::git_odb_new(&mut out));
             Ok(Odb::from_raw(out))
         }

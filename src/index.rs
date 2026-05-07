@@ -9,6 +9,7 @@ use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::IntoCString;
+use crate::ObjectFormat;
 use crate::{panic, raw, Error, IndexAddOption, IndexTime, Oid, Repository, Tree};
 
 /// A structure to represent a git [index][1]
@@ -90,10 +91,21 @@ impl Index {
     ///
     /// This index object cannot be read/written to the filesystem, but may be
     /// used to perform in-memory index operations.
+    ///
+    /// This always creates a SHA1 index.
+    /// Use [`Index::new_ext`] to create an index with a specific object format.
     pub fn new() -> Result<Index, Error> {
+        Self::new_ext(ObjectFormat::Sha1)
+    }
+
+    /// Creates a new in-memory index with a specific object format.
+    ///
+    /// See [`Index::new`] for more details.
+    pub fn new_ext(format: ObjectFormat) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
+            let _ = format;
             try_call!(raw::git_index_new(&mut raw));
             Ok(Binding::from_raw(raw))
         }
@@ -107,12 +119,23 @@ impl Index {
     ///
     /// If you need an index attached to a repository, use the `index()` method
     /// on `Repository`.
+    ///
+    /// This opens the index assuming SHA1 object format. Use
+    /// [`Index::open_ext`] to specify a different format.
     pub fn open(index_path: &Path) -> Result<Index, Error> {
+        Self::open_ext(index_path, ObjectFormat::Sha1)
+    }
+
+    /// Opens a Git index with a specific object format.
+    ///
+    /// See [`Index::open`] for more details.
+    pub fn open_ext(index_path: &Path, format: ObjectFormat) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         // Normal file path OK (does not need Windows conversion).
         let index_path = index_path.into_c_string()?;
         unsafe {
+            let _ = format;
             try_call!(raw::git_index_open(&mut raw, index_path));
             Ok(Binding::from_raw(raw))
         }
