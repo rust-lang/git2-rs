@@ -61,8 +61,18 @@ impl<'repo> Odb<'repo> {
         crate::init();
         unsafe {
             let mut out = ptr::null_mut();
-            let _ = format;
-            try_call!(raw::git_odb_new(&mut out));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_odb_new(&mut out));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_odb_options = std::mem::zeroed();
+                opts.version = raw::GIT_ODB_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_odb_new(&mut out, &opts));
+            }
             Ok(Odb::from_raw(out))
         }
     }
@@ -252,7 +262,10 @@ impl<'repo> Odb<'repo> {
     /// ```compile_fail
     /// use git2::Odb;
     /// let mempack = {
+    ///     #[cfg(not(feature = "unstable-sha256"))]
     ///     let odb = Odb::new().unwrap();
+    ///     #[cfg(feature = "unstable-sha256")]
+    ///     let odb = Odb::new_ext(git2::ObjectFormat::Sha1).unwrap();
     ///     odb.add_new_mempack_backend(1000).unwrap()
     /// };
     /// ```

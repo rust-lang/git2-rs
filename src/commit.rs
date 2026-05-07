@@ -468,4 +468,45 @@ mod tests {
             .ok()
             .unwrap();
     }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+
+        // Verify SHA256 OID (32 bytes)
+        assert_eq!(commit.id().as_bytes().len(), 32);
+        assert_eq!(commit.tree_id().as_bytes().len(), 32);
+
+        assert_eq!(commit.message(), Some("initial\n\nbody"));
+        assert_eq!(commit.body(), Some("body"));
+        assert_eq!(commit.id(), target);
+        commit.summary().unwrap();
+        commit.tree().unwrap();
+        assert_eq!(commit.parents().count(), 0);
+
+        let tree_header_bytes = commit.header_field_bytes("tree").unwrap();
+        let tree_oid = {
+            let str = tree_header_bytes.as_str().unwrap();
+            let oid = crate::Oid::from_str_ext(str, repo.object_format()).unwrap();
+            oid
+        };
+        assert_eq!(tree_oid, commit.tree_id());
+
+        // Create child commit with parent
+        let sig = repo.signature().unwrap();
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        let id = repo
+            .commit(Some("HEAD"), &sig, &sig, "bar", &tree, &[&commit])
+            .unwrap();
+        let head = repo.find_commit(id).unwrap();
+
+        // Verify child commit ID is also SHA256
+        assert_eq!(head.id().as_bytes().len(), 32);
+        assert_eq!(head.parent_count(), 1);
+        assert_eq!(head.parent_id(0).unwrap(), commit.id());
+    }
 }

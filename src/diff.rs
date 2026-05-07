@@ -327,10 +327,20 @@ impl Diff<'static> {
         let mut diff: *mut raw::git_diff = std::ptr::null_mut();
         let data = buffer.as_ptr() as *const c_char;
         let len = buffer.len();
+        // NOTE: Doesn't depend on repo, so lifetime can be 'static
         unsafe {
-            let _ = format;
-            // NOTE: Doesn't depend on repo, so lifetime can be 'static
-            try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_diff_parse_options = std::mem::zeroed();
+                opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_diff_from_buffer(&mut diff, data, len, &mut opts));
+            }
             Ok(Diff::from_raw(diff))
         }
     }
@@ -1563,6 +1573,8 @@ impl DiffPatchidOptions {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "unstable-sha256")]
+    use crate::Diff;
     use crate::{DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
@@ -1868,5 +1880,38 @@ mod tests {
         );
 
         assert_eq!(result.unwrap_err().code(), crate::ErrorCode::User);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn diff_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let diff = repo.diff_tree_to_workdir(None, None).unwrap();
+        assert_eq!(diff.deltas().len(), 0);
+        let stats = diff.stats().unwrap();
+        assert_eq!(stats.insertions(), 0);
+        assert_eq!(stats.deletions(), 0);
+        assert_eq!(stats.files_changed(), 0);
+        let patchid = diff.patchid(None).unwrap();
+
+        // Verify SHA256 OID (32 bytes)
+        assert_eq!(patchid.as_bytes().len(), 32);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn diff_from_buffer_sha256() {
+        // Minimal patch with SHA256 OID (64 chars)
+        let patch = b"diff --git a/file.txt b/file.txt
+index 0000000000000000000000000000000000000000000000000000000000000000..1111111111111111111111111111111111111111111111111111111111111111 100644
+--- a/file.txt
++++ b/file.txt
+@@ -1 +1 @@
+-old
++new
+";
+
+        let diff = Diff::from_buffer_ext(patch, crate::ObjectFormat::Sha256).unwrap();
+        assert_eq!(diff.deltas().len(), 1);
     }
 }
