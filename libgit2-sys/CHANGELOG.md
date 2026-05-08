@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.18.4+1.9.3 - 2026-05-04
+## 0.18.4+1.9.3 - 2026-05-07
 [0.18.3...0.18.4](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.3+1.9.2...libgit2-sys-0.18.4+1.9.3)
 
 ### Changed
@@ -8,12 +8,42 @@
 - Updated to libgit2 [1.9.3](https://github.com/libgit2/libgit2/releases/tag/v1.9.3)
   [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
 
+### Fixed
+
+- Fixed the signature of `git_config_backend::unlock`.
+  Previously the second `c_int` argument was missing
+  and the declaration was unusable.
+  [#1181](https://github.com/rust-lang/git2-rs/pull/1181)
+
 ### Added
 
-- Added binding for `git_remote_oid_type`
+- Added experimental SHA256 OID support behind a new `unstable-sha256` Cargo feature.
+  This reflects upstream libgit2's `GIT_EXPERIMENTAL_SHA256` feature gate,
+  and requires the linked libgit2 C library to be built with the experimental flag.
+  When enabled, the build supports linking against a system `libgit2-experimental.so`.
+  See the feature description in `Cargo.toml` for ABI-stability caveats.
+  [#1201](https://github.com/rust-lang/git2-rs/pull/1201)
+- Added binding for `git_repository_oid_type`.
+  [#1204](https://github.com/rust-lang/git2-rs/pull/1204)
+- Added binding for `git_oid_is_zero`, replacing the deprecated `git_oid_iszero`.
+  [#1205](https://github.com/rust-lang/git2-rs/pull/1205)
+- Added binding for `git_remote_oid_type`.
   [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
-- Added `GIT_REPOSITORY_INIT_RELATIVE_GITLINK` flag
+- Added `GIT_REPOSITORY_INIT_RELATIVE_GITLINK` flag.
   [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
+- Added bindings for the `git_merge_file_input` API, including `git_merge_file_input_init`.
+  [#1210](https://github.com/rust-lang/git2-rs/pull/1210)
+- Added bindings for `git_odb_stream` and `git_odb_stream_t`.
+  [#1181](https://github.com/rust-lang/git2-rs/pull/1181)
+- Added bindings for `git_reference_iterator`.
+  [#1181](https://github.com/rust-lang/git2-rs/pull/1181)
+- Added bindings for APIs from `git2/sys/config.h`,
+  including the missing `iterator` function on `git_config_backend`.
+  [#1181](https://github.com/rust-lang/git2-rs/pull/1181)
+- Added binding for `git_reference_dup`.
+  [#1233](https://github.com/rust-lang/git2-rs/pull/1233)
+- Added binding for `git_signature_default_from_env`.
+  [#1237](https://github.com/rust-lang/git2-rs/pull/1237)
 
 ## 0.18.3+1.9.2 - 2025-12-06
 [0.18.2...0.18.3](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.2+1.9.1...libgit2-sys-0.18.3+1.9.2)
