@@ -1,5 +1,111 @@
 # Changelog
 
+## 0.21.0 - TBD
+[0.20.4...main](https://github.com/rust-lang/git2-rs/compare/git2-0.20.4...main)
+
+### Added
+
+- Added `opts::set_cache_max_size()` and `opts::get_cached_memory()`.
+  [#1188](https://github.com/rust-lang/git2-rs/pull/1188)
+- Added `Repository::object_format()` and a new `ObjectFormat` enum.
+  [#1204](https://github.com/rust-lang/git2-rs/pull/1204)
+- Added `Repository::set_config()`.
+  [#1208](https://github.com/rust-lang/git2-rs/pull/1208)
+- Added `merge_file()` along with `MergeFileInput`.
+  [#1210](https://github.com/rust-lang/git2-rs/pull/1210)
+- Added `Repository::refdb_compress()` for packing loose refs.
+  [#1221](https://github.com/rust-lang/git2-rs/pull/1221)
+- Added public `Refdb` type, along with `Repository::refdb()` and `Repository::set_refdb()`. `Repository::refdb_compress()` now delegates to `Refdb::compress()`.
+  [#1228](https://github.com/rust-lang/git2-rs/pull/1228)
+- Added `Revspec::into_objects()`.
+  [#1230](https://github.com/rust-lang/git2-rs/pull/1230)
+- Added `BlameHunk::final_committer()`, `BlameHunk::orig_committer()`, `BlameHunk::summary()`, and `BlameHunk::summary_bytes()`.
+  [#1231](https://github.com/rust-lang/git2-rs/pull/1231)
+- Implemented `Clone` for `Reference`.
+  [#1233](https://github.com/rust-lang/git2-rs/pull/1233)
+- Added `Repository::author_from_env()` and `Repository::committer_from_env()`.
+  [#1237](https://github.com/rust-lang/git2-rs/pull/1237)
+- Added `impl From<Utf8Error> for Error`.
+  [#1239](https://github.com/rust-lang/git2-rs/pull/1239)
+
+### Changed
+
+- ❗ The `ssh`, `https`, and `cred` Cargo features are no longer enabled by default.
+  Previously `default = ["ssh", "https"]`; now `default = []`.
+  Enable them explicitly if you rely on credential helpers or transport support.
+  [#1168](https://github.com/rust-lang/git2-rs/pull/1168)
+- ❗ `CredentialHelper` and the `url` dependency are now gated behind the new `cred` Cargo feature.
+  Enabling `ssh` or `https` transitively enables `cred`.
+  [#1168](https://github.com/rust-lang/git2-rs/pull/1168)
+- ❗ Updated to the 2021 edition.
+  [#1173](https://github.com/rust-lang/git2-rs/pull/1173)
+- `ReferenceNames` now returns an `Err` for non-UTF-8 branch names instead of panicking.
+  [#1239](https://github.com/rust-lang/git2-rs/pull/1239)
+- Bumped requirement to libgit2-sys 0.18.4, which updates libgit2 to 1.9.3.
+  [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
+
+### Fixed
+
+- Fixed `MergeOptions::skip_reuc()` to use the correct `GIT_MERGE_SKIP_REUC` flag.
+  [#1194](https://github.com/rust-lang/git2-rs/pull/1194)
+- `Repository::submodules()` now returns an `Error` when the underlying `git_submodule_lookup()` call to libgit2 fails, rather than panicking with a failed assertion.
+  [#1220](https://github.com/rust-lang/git2-rs/pull/1220)
+- `Reference::is_valid_name()` now propagates errors from `CString` conversion instead of panicking.
+  [#1229](https://github.com/rust-lang/git2-rs/pull/1229)
+
+### Documentation
+
+- Added note regarding potentially confusing behavior of `git_checkout_head`.
+  [#1149](https://github.com/rust-lang/git2-rs/pull/1149)
+- Added comments describing the `IndexAddOption` flags.
+  [#1163](https://github.com/rust-lang/git2-rs/pull/1163)
+- Updated README note about the `ssh` feature.
+  [#1187](https://github.com/rust-lang/git2-rs/pull/1187)
+- Improved function docs for `Repository::tag_foreach()`.
+  [#1190](https://github.com/rust-lang/git2-rs/pull/1190)
+- Fixed doc comment typo in `StatusOptions`.
+  [#1199](https://github.com/rust-lang/git2-rs/pull/1199)
+- Fixed missing period in module documentation.
+  [#1219](https://github.com/rust-lang/git2-rs/pull/1219)
+- Small wording fix in `Signature::from_raw_const()` docs.
+  [#1222](https://github.com/rust-lang/git2-rs/pull/1222)
+- Replaced discussion of missing gist in README.
+  [#1223](https://github.com/rust-lang/git2-rs/pull/1223)
+- Documented the bitflag methods for checking flags.
+  [#1224](https://github.com/rust-lang/git2-rs/pull/1224)
+- Clarified `CheckoutBuilder::update_index()` documentation.
+  [#1232](https://github.com/rust-lang/git2-rs/pull/1232)
+- Added more missing documentation.
+  [#1235](https://github.com/rust-lang/git2-rs/pull/1235)
+- Fixed typo in `Repository::stash_save_ext()` docs.
+  [#1245](https://github.com/rust-lang/git2-rs/pull/1245)
+- Added example showing retrieval of the latest commit for a file.
+  [#1243](https://github.com/rust-lang/git2-rs/pull/1243)
+
+### Internals
+
+- Dropped `civet`/`conduit` from dev-dependencies.
+  [#1170](https://github.com/rust-lang/git2-rs/pull/1170)
+- Updated dependencies.
+  [#1171](https://github.com/rust-lang/git2-rs/pull/1171)
+- Fixed lockfile verification in CI.
+  [#1177](https://github.com/rust-lang/git2-rs/pull/1177)
+- Updated CI and documentation to cover feature combinations.
+  [#1182](https://github.com/rust-lang/git2-rs/pull/1182)
+- Listed all examples that may need HTTP and SSH.
+  [#1196](https://github.com/rust-lang/git2-rs/pull/1196)
+- Allowed publishing from any ref in the publish workflow.
+  [#1198](https://github.com/rust-lang/git2-rs/pull/1198)
+- Bumped `time` from 0.3.41 to 0.3.47.
+  [#1215](https://github.com/rust-lang/git2-rs/pull/1215)
+- Added end-to-end test for branch name on initialization.
+  [#1244](https://github.com/rust-lang/git2-rs/pull/1244)
+- Added end-to-end test for stash count.
+  [#1246](https://github.com/rust-lang/git2-rs/pull/1246)
+- Internal refactors preparing for experimental SHA256 OID support.
+  [#1201](https://github.com/rust-lang/git2-rs/pull/1201)
+  [#1205](https://github.com/rust-lang/git2-rs/pull/1205)
+
 ## 0.20.4 - 2026-02-02
 [0.20.3...0.20.4](https://github.com/rust-lang/git2-rs/compare/git2-0.20.3...git2-0.20.4)
 
