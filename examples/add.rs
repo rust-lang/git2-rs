@@ -38,7 +38,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = Repository::open(&Path::new("."))?;
     let mut index = repo.index()?;
 
-    let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
+    let cb = &mut |path: &Path, _matched_spec: Option<&[u8]>| -> i32 {
         let status = repo.status_file(path).unwrap();
 
         let ret = if status.contains(git2::Status::WT_MODIFIED)

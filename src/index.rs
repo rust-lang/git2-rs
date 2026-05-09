@@ -48,7 +48,7 @@ pub struct IndexConflict {
 /// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
 /// path, and the second is the pathspec that matched it.  Return 0 to confirm
 /// the operation on the item, > 0 to skip the item, and < 0 to abort the scan.
-pub type IndexMatchedPath<'a> = dyn FnMut(&Path, &[u8]) -> i32 + 'a;
+pub type IndexMatchedPath<'a> = dyn FnMut(&Path, Option<&[u8]>) -> i32 + 'a;
 
 /// A structure to represent an entry or a file inside of an index.
 ///
@@ -773,8 +773,7 @@ extern "C" fn index_matched_path_cb(
     unsafe {
         panic::wrap(|| {
             let path = crate::opt_bytes(&payload, path).unwrap();
-            let matched_pathspec =
-                crate::opt_bytes(&payload, matched_pathspec).expect("no matched pathspec");
+            let matched_pathspec = crate::opt_bytes(&payload, matched_pathspec);
             let payload = payload as *mut &mut IndexMatchedPath<'_>;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         })
@@ -934,10 +933,10 @@ mod tests {
             .add_all(
                 ["foo"].iter(),
                 crate::IndexAddOption::DEFAULT,
-                Some(&mut |a: &Path, b: &[u8]| {
+                Some(&mut |a: &Path, b: Option<&[u8]>| {
                     assert!(!called);
                     called = true;
-                    assert_eq!(b, b"foo");
+                    assert_eq!(b.unwrap(), b"foo");
                     assert_eq!(a, Path::new("foo/bar"));
                     0
                 }),
@@ -949,10 +948,10 @@ mod tests {
         index
             .remove_all(
                 ["."].iter(),
-                Some(&mut |a: &Path, b: &[u8]| {
+                Some(&mut |a: &Path, b: Option<&[u8]>| {
                     assert!(!called);
                     called = true;
-                    assert_eq!(b, b".");
+                    assert_eq!(b.unwrap(), b".");
                     assert_eq!(a, Path::new("foo/bar"));
                     0
                 }),
@@ -1085,7 +1084,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic = "no matched pathspec"]
     fn empty_pathspec_with_cb() {
         let (td, repo) = crate::test::repo_init();
         crate::test::commit(&repo);
@@ -1096,7 +1094,11 @@ mod tests {
             .add_all(
                 pathspecs,
                 Default::default(),
-                Some(&mut |_path, _matched_pathspec| 0),
+                Some(&mut |path, matched_pathspec| {
+                    assert_eq!(path, Path::new("foo"));
+                    assert_eq!(matched_pathspec, None);
+                    0
+                }),
             )
             .unwrap();
     }
