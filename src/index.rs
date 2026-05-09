@@ -771,10 +771,10 @@ extern "C" fn index_matched_path_cb(
     payload: *mut c_void,
 ) -> c_int {
     unsafe {
-        let path = CStr::from_ptr(path).to_bytes();
-        let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
-
         panic::wrap(|| {
+            let path = crate::opt_bytes(&payload, path).unwrap();
+            let matched_pathspec =
+                crate::opt_bytes(&payload, matched_pathspec).expect("no matched pathspec");
             let payload = payload as *mut &mut IndexMatchedPath<'_>;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         })
@@ -1085,6 +1085,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic = "no matched pathspec"]
     fn empty_pathspec_with_cb() {
         let (td, repo) = crate::test::repo_init();
         crate::test::commit(&repo);
