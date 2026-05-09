@@ -1083,4 +1083,20 @@ mod tests {
     fn smoke_in_memory_index_sha256() {
         let _index = Index::new_ext(ObjectFormat::Sha256).unwrap();
     }
+
+    #[test]
+    fn empty_pathspec_with_cb() {
+        let (td, repo) = crate::test::repo_init();
+        crate::test::commit(&repo);
+        fs::write(td.path().join("foo"), "modified").unwrap();
+        let pathspecs: &[&str] = &[];
+        let mut index = repo.index().unwrap();
+        index
+            .add_all(
+                pathspecs,
+                Default::default(),
+                Some(&mut |_path, _matched_pathspec| 0),
+            )
+            .unwrap();
+    }
 }
