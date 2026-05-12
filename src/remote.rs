@@ -922,6 +922,27 @@ mod tests {
     }
 
     #[test]
+    fn empty_remote_list() {
+        // Regression tests for issue #1217
+        let td = TempDir::new().unwrap();
+        let repo = Repository::init(td.path()).unwrap();
+
+        let remote_dir = TempDir::new().unwrap();
+        let _remote_repo = Repository::init_bare(remote_dir.path()).unwrap();
+        let remote_url = if cfg!(unix) {
+            format!("file://{}", remote_dir.path().display())
+        } else {
+            format!(
+                "file:///{}",
+                remote_dir.path().display().to_string().replace("\\", "/")
+            )
+        };
+        let mut remote = repo.remote("origin", &remote_url).unwrap();
+        remote.connect(Direction::Fetch).unwrap();
+        assert_eq!(0, remote.list().unwrap().len());
+    }
+
+    #[test]
     fn is_valid_name() {
         assert!(Remote::is_valid_name("foobar"));
         assert!(!Remote::is_valid_name("\x01"));
