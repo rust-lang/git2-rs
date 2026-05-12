@@ -791,6 +791,7 @@ mod tests {
             dump(signed.entries(Some("commit.gpgsign")).unwrap()),
             ["commit.gpgsign = true"]
         );
+        assert_eq!(true, signed.get_bool("commit.gpgsign").unwrap());
 
         // A few entries
         let big_config = Config::from_str(
@@ -800,7 +801,10 @@ mod tests {
             [remote \"origin\"]\n
                 \turl = https://github.com/rust-lang/rust.git\n
             [branch \"main\"]\n
-                remote = origin",
+                remote = origin\n
+            [foo]\n
+                \tbar = 123\n
+                \tbaz = -123\n",
         )
         .unwrap();
         assert_eq!(
@@ -809,9 +813,23 @@ mod tests {
                 "branch.main.remote = origin",
                 "core.bare = false",
                 "core.ignorecase = true",
+                "foo.bar = 123",
+                "foo.baz = -123",
                 "remote.origin.url = https://github.com/rust-lang/rust.git",
             ]
         );
+        assert_eq!(
+            "origin",
+            big_config.get_string("branch.main.remote").unwrap()
+        );
+        assert_eq!(false, big_config.get_bool("core.bare").unwrap());
+        assert_eq!(true, big_config.get_bool("core.ignorecase").unwrap());
+        assert_eq!(
+            "https://github.com/rust-lang/rust.git",
+            big_config.get_string("remote.origin.url").unwrap()
+        );
+        assert_eq!(123, big_config.get_i32("foo.bar").unwrap());
+        assert_eq!(-123, big_config.get_i32("foo.baz").unwrap());
     }
 
     #[test]
