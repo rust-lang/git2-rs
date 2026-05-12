@@ -384,6 +384,18 @@ impl<'repo> Remote<'repo> {
                 mem::size_of::<RemoteHead<'_>>(),
                 mem::size_of::<*const raw::git_remote_head>()
             );
+            if base.is_null() {
+                // We cannot use slice::from_raw_parts() since that requires
+                // that the pointer be non-null, but that is fine since the size
+                // should be zero
+                if size != 0 {
+                    return Err(Error::from_str(&format!(
+                        "git_remote_ls() set a null pointer for a list of size {}",
+                        size
+                    )));
+                }
+                return Ok(&[]);
+            }
             let slice = slice::from_raw_parts(base as *const _, size as usize);
             Ok(mem::transmute::<
                 &[*const raw::git_remote_head],
