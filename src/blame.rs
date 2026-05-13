@@ -432,4 +432,93 @@ mod tests {
         assert_eq!(blame_buffer.iter().count(), 2);
         assert!(line.final_commit_id().is_zero());
     }
+
+    #[test]
+    fn buffer_signatures() {
+        // Regression tests for #1253
+        let td = tempfile::TempDir::new().unwrap();
+        let path = td.path();
+
+        let repo = crate::Repository::init(path).unwrap();
+
+        {
+            let mut config = repo.config().unwrap();
+            config.set_str("user.name", "name").unwrap();
+            config.set_str("user.email", "email").unwrap();
+
+            fs::write(&path.join("README.md"), "Testing").unwrap();
+
+            let mut index = repo.index().unwrap();
+            index.add_path(&Path::new("README.md")).unwrap();
+            index.write().unwrap();
+
+            let id = index.write_tree().unwrap();
+            let tree = repo.find_tree(id).unwrap();
+            let sig = repo.signature().unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "Add README.md", &tree, &[])
+                .unwrap();
+        }
+
+        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        // This hunk is safe to use
+        let hunk = blame.get_index(0).unwrap();
+
+        {
+            let final_author = hunk.final_signature();
+            assert_eq!(Some("name"), final_author.name());
+            assert_eq!(Some("email"), final_author.email());
+
+            let final_committer = hunk.final_committer();
+            assert_eq!(Some("name"), final_committer.name());
+            assert_eq!(Some("email"), final_committer.email());
+
+            let original_author = hunk.orig_signature();
+            assert_eq!(Some("name"), original_author.name());
+            assert_eq!(Some("email"), original_author.email());
+
+            let original_committer = hunk.orig_committer();
+            assert_eq!(Some("name"), original_committer.name());
+            assert_eq!(Some("email"), original_committer.email());
+        }
+
+        let arbitrary = blame.blame_buffer(b"abc123").unwrap();
+        let hunk = arbitrary.get_index(0).unwrap();
+        // This hunk is NOT safe to use
+        // the final_signature, final_committer, orig_signature, and
+        // orig_committer pointers are all NULL
+        // But the other methods still work
+        {
+            let final_commit_id = hunk.final_commit_id();
+            assert!(final_commit_id.is_zero());
+
+            let original_commit_id = hunk.orig_commit_id();
+            assert!(original_commit_id.is_zero());
+
+            assert_eq!(1, hunk.final_start_line());
+            assert_eq!(0, hunk.orig_start_line());
+            assert_eq!(Some(Path::new("README.md")), hunk.path());
+            assert_eq!(false, hunk.is_boundary());
+            assert_eq!(1, hunk.lines_in_hunk());
+            assert_eq!(None, hunk.summary());
+            assert_eq!(None, hunk.summary_bytes());
+        }
+
+        {
+            let final_author = hunk.final_signature();
+            assert_eq!(Some("name"), final_author.name());
+            assert_eq!(Some("email"), final_author.email());
+
+            let final_committer = hunk.final_committer();
+            assert_eq!(Some("name"), final_committer.name());
+            assert_eq!(Some("email"), final_committer.email());
+
+            let original_author = hunk.orig_signature();
+            assert_eq!(Some("name"), original_author.name());
+            assert_eq!(Some("email"), original_author.email());
+
+            let original_committer = hunk.orig_committer();
+            assert_eq!(Some("name"), original_committer.name());
+            assert_eq!(Some("email"), original_committer.email());
+        }
+    }
 }
