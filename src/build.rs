@@ -429,7 +429,7 @@ impl<'cb> CheckoutBuilder<'cb> {
     /// Indicate whether the index and git attributes should be refreshed from
     /// disk before any operations.
     ///
-    /// Defaults to true,
+    /// Defaults to true.
     pub fn refresh(&mut self, refresh: bool) -> &mut CheckoutBuilder<'cb> {
         self.flag(raw::GIT_CHECKOUT_NO_REFRESH, !refresh)
     }
