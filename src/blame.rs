@@ -106,18 +106,28 @@ impl<'blame> BlameHunk<'blame> {
         unsafe { Oid::from_raw(&(*self.raw).final_commit_id) }
     }
 
-    /// Returns signature for the author of the final commit.
+    /// Returns signature for the author of the final commit, if present.
     ///
     /// The final commit is the one identified by [Self::final_commit_id()].
-    pub fn final_signature(&self) -> Signature<'_> {
-        unsafe { signature::from_raw_const(self, (*self.raw).final_signature) }
+    pub fn final_signature(&self) -> Option<Signature<'_>> {
+        let ptr = unsafe { (*self.raw).final_signature };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { signature::from_raw_const(self, ptr) })
+        }
     }
 
-    /// Returns signature for the committer of the final commit.
+    /// Returns signature for the committer of the final commit, if present.
     ///
     /// The final commit is the one identified by [Self::final_commit_id()].
-    pub fn final_committer(&self) -> Signature<'_> {
-        unsafe { signature::from_raw_const(self, (*self.raw).final_committer) }
+    pub fn final_committer(&self) -> Option<Signature<'_>> {
+        let ptr = unsafe { (*self.raw).final_committer };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { signature::from_raw_const(self, ptr) })
+        }
     }
 
     /// Returns line number where this hunk begins.
@@ -136,18 +146,28 @@ impl<'blame> BlameHunk<'blame> {
         unsafe { Oid::from_raw(&(*self.raw).orig_commit_id) }
     }
 
-    /// Returns signature of the author of the original commit.
+    /// Returns signature of the author of the original commit, if present.
     ///
     /// The original commit is the one identified by [Self::orig_commit_id()].
-    pub fn orig_signature(&self) -> Signature<'_> {
-        unsafe { signature::from_raw_const(self, (*self.raw).orig_signature) }
+    pub fn orig_signature(&self) -> Option<Signature<'_>> {
+        let ptr = unsafe { (*self.raw).orig_signature };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { signature::from_raw_const(self, ptr) })
+        }
     }
 
-    /// Returns signature of the committer of the original commit.
+    /// Returns signature of the committer of the original commit, if present.
     ///
     /// The original commit is the one identified by [Self::orig_commit_id()].
-    pub fn orig_committer(&self) -> Signature<'_> {
-        unsafe { signature::from_raw_const(self, (*self.raw).orig_committer) }
+    pub fn orig_committer(&self) -> Option<Signature<'_>> {
+        let ptr = unsafe { (*self.raw).orig_committer };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { signature::from_raw_const(self, ptr) })
+        }
     }
 
     /// Returns line number where this hunk begins.
@@ -411,14 +431,20 @@ mod tests {
 
         let hunk = blame.get_index(0).unwrap();
         assert_eq!(hunk.final_commit_id(), commit);
-        assert_eq!(hunk.final_signature().name(), sig.name());
-        assert_eq!(hunk.final_signature().email(), sig.email());
-        assert_eq!(hunk.orig_signature().name(), sig.name());
-        assert_eq!(hunk.orig_signature().email(), sig.email());
-        assert_eq!(hunk.final_committer().name(), committer_sig.name());
-        assert_eq!(hunk.final_committer().email(), committer_sig.email());
-        assert_eq!(hunk.orig_committer().name(), committer_sig.name());
-        assert_eq!(hunk.orig_committer().email(), committer_sig.email());
+        assert_eq!(hunk.final_signature().unwrap().name(), sig.name());
+        assert_eq!(hunk.final_signature().unwrap().email(), sig.email());
+        assert_eq!(hunk.orig_signature().unwrap().name(), sig.name());
+        assert_eq!(hunk.orig_signature().unwrap().email(), sig.email());
+        assert_eq!(hunk.final_committer().unwrap().name(), committer_sig.name());
+        assert_eq!(
+            hunk.final_committer().unwrap().email(),
+            committer_sig.email()
+        );
+        assert_eq!(hunk.orig_committer().unwrap().name(), committer_sig.name());
+        assert_eq!(
+            hunk.orig_committer().unwrap().email(),
+            committer_sig.email()
+        );
         assert_eq!(hunk.final_start_line(), 1);
         assert_eq!(hunk.path(), Some(Path::new("foo/bar")));
         assert_eq!(hunk.lines_in_hunk(), 0);
@@ -464,19 +490,19 @@ mod tests {
         let hunk = blame.get_index(0).unwrap();
 
         {
-            let final_author = hunk.final_signature();
+            let final_author = hunk.final_signature().unwrap();
             assert_eq!(Some("name"), final_author.name());
             assert_eq!(Some("email"), final_author.email());
 
-            let final_committer = hunk.final_committer();
+            let final_committer = hunk.final_committer().unwrap();
             assert_eq!(Some("name"), final_committer.name());
             assert_eq!(Some("email"), final_committer.email());
 
-            let original_author = hunk.orig_signature();
+            let original_author = hunk.orig_signature().unwrap();
             assert_eq!(Some("name"), original_author.name());
             assert_eq!(Some("email"), original_author.email());
 
-            let original_committer = hunk.orig_committer();
+            let original_committer = hunk.orig_committer().unwrap();
             assert_eq!(Some("name"), original_committer.name());
             assert_eq!(Some("email"), original_committer.email());
         }
@@ -505,20 +531,16 @@ mod tests {
 
         {
             let final_author = hunk.final_signature();
-            assert_eq!(Some("name"), final_author.name());
-            assert_eq!(Some("email"), final_author.email());
+            assert!(final_author.is_none());
 
             let final_committer = hunk.final_committer();
-            assert_eq!(Some("name"), final_committer.name());
-            assert_eq!(Some("email"), final_committer.email());
+            assert!(final_committer.is_none());
 
             let original_author = hunk.orig_signature();
-            assert_eq!(Some("name"), original_author.name());
-            assert_eq!(Some("email"), original_author.email());
+            assert!(original_author.is_none());
 
             let original_committer = hunk.orig_committer();
-            assert_eq!(Some("name"), original_committer.name());
-            assert_eq!(Some("email"), original_committer.email());
+            assert!(original_committer.is_none());
         }
     }
 }
