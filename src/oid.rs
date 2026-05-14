@@ -420,8 +420,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
-    fn conversions_object_format() {
+    fn conversions_ext_sha1() {
         use crate::ObjectFormat;
 
         assert!(Oid::from_str_ext("foo", ObjectFormat::Sha1).is_err());
@@ -431,6 +430,16 @@ mod tests {
         )
         .is_ok());
 
+        let sha1 = Oid::ZERO_SHA1;
+        assert_eq!(sha1.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        assert_eq!(sha1.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn conversions_ext_sha256() {
+        use crate::ObjectFormat;
+
         assert!(Oid::from_str_ext("foo", ObjectFormat::Sha256).is_err());
         assert!(Oid::from_str_ext(
             "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
@@ -438,28 +447,13 @@ mod tests {
         )
         .is_ok());
 
-        assert!(Oid::from_bytes(b"foo").is_err());
+        let sha256 = Oid::ZERO_SHA256;
+        assert_eq!(sha256.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+        assert_eq!(sha256.raw_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(sha256.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
 
-        let sha1_from_bytes = Oid::ZERO_SHA1;
-        let sha256_from_bytes = Oid::ZERO_SHA256;
-
-        // as_bytes() returns logical length per OID type
-        assert_eq!(sha1_from_bytes.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
-        assert_eq!(sha256_from_bytes.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
-
-        // raw_bytes() always returns the full buffer
-        assert_eq!(sha1_from_bytes.raw_bytes().len(), raw::GIT_OID_MAX_SIZE);
-        assert_eq!(sha256_from_bytes.raw_bytes().len(), raw::GIT_OID_MAX_SIZE);
-
-        // Hex string output should differ based on OID type
-        assert_eq!(sha1_from_bytes.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
-        assert_eq!(
-            sha256_from_bytes.to_string().len(),
-            raw::GIT_OID_SHA256_HEXSIZE
-        );
-
-        // Verify they're not equal despite being all zeros
-        assert_ne!(sha1_from_bytes, sha256_from_bytes);
+        // SHA1 zero and SHA256 zero are not equal despite both being all zeros.
+        assert_ne!(Oid::ZERO_SHA1, sha256);
     }
 
     #[test]
@@ -469,33 +463,33 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
-    fn object_format_from_oid() {
+    fn object_format_from_oid_ext_sha1() {
         use crate::ObjectFormat;
 
-        let sha1 = Oid::ZERO_SHA1;
-        assert_eq!(sha1.object_format(), ObjectFormat::Sha1);
-
-        let sha256 = Oid::ZERO_SHA256;
-        assert_eq!(sha256.object_format(), ObjectFormat::Sha256);
-
-        let sha1_from_str = Oid::from_str_ext(
+        let sha1 = Oid::from_str_ext(
             "decbf2be529ab6557d5429922251e5ee36519817",
             ObjectFormat::Sha1,
         )
         .unwrap();
-        assert_eq!(sha1_from_str.object_format(), ObjectFormat::Sha1);
+        assert_eq!(sha1.object_format(), ObjectFormat::Sha1);
+    }
 
-        let sha256_from_str = Oid::from_str_ext(
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn object_format_from_oid_ext_sha256() {
+        use crate::ObjectFormat;
+
+        assert_eq!(Oid::ZERO_SHA256.object_format(), ObjectFormat::Sha256);
+
+        let sha256 = Oid::from_str_ext(
             "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
             ObjectFormat::Sha256,
         )
         .unwrap();
-        assert_eq!(sha256_from_str.object_format(), ObjectFormat::Sha256);
+        assert_eq!(sha256.object_format(), ObjectFormat::Sha256);
     }
 
     #[test]
-    #[cfg(not(feature = "unstable-sha256"))]
     fn comparisons() -> Result<(), Error> {
         assert_eq!(Oid::from_str("decbf2b")?, Oid::from_str("decbf2b")?);
         assert!(Oid::from_str("decbf2b")? <= Oid::from_str("decbf2b")?);
@@ -522,84 +516,34 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
-    fn comparisons_object_format() -> Result<(), Error> {
+    fn comparisons_ext_sha1() -> Result<(), Error> {
         use crate::ObjectFormat;
 
-        // SHA1 OID comparisons with explicit format
-        assert_eq!(
-            Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?,
-            Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?
-        );
-        assert!(
-            Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?
-                <= Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?
-        );
-        assert!(
-            Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?
-                >= Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?
-        );
-        {
-            let o = Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?;
-            assert_eq!(o, o);
-            assert!(o <= o);
-            assert!(o >= o);
-        }
-        assert_eq!(
-            Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?,
-            Oid::from_str_ext(
-                "decbf2b000000000000000000000000000000000",
-                ObjectFormat::Sha1
-            )?
-        );
+        let a = Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?;
+        let b = Oid::from_str_ext(
+            "decbf2b000000000000000000000000000000000",
+            ObjectFormat::Sha1,
+        )?;
+        assert_eq!(a, b);
+        assert!(a <= b);
+        assert!(a >= b);
+        assert!(Oid::from_bytes(b"00000000000000000000")? < a);
+        Ok(())
+    }
 
-        // SHA1 byte comparisons (20 bytes)
-        assert!(
-            Oid::from_bytes(b"00000000000000000000")? < Oid::from_bytes(b"00000000000000000001")?
-        );
-        assert!(
-            Oid::from_bytes(b"00000000000000000000")?
-                < Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?
-        );
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn comparisons_ext_sha256() -> Result<(), Error> {
+        use crate::ObjectFormat;
 
-        // SHA256 OID comparisons with explicit format (using full 64-char hex strings)
-        assert_eq!(
-            Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256
-            )?,
-            Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256
-            )?
-        );
-        assert!(
-            Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256
-            )? <= Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256
-            )?
-        );
-        assert!(
-            Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256
-            )? >= Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256
-            )?
-        );
-        {
-            let o = Oid::from_str_ext(
-                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                ObjectFormat::Sha256,
-            )?;
-            assert_eq!(o, o);
-            assert!(o <= o);
-            assert!(o >= o);
-        }
+        const HEX: &str = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+
+        let a = Oid::from_str_ext(HEX, ObjectFormat::Sha256)?;
+        let b = Oid::from_str_ext(HEX, ObjectFormat::Sha256)?;
+        assert_eq!(a, b);
+        assert!(a <= b);
+        assert!(a >= b);
+
         assert_eq!(
             Oid::from_str_ext("abcdef12", ObjectFormat::Sha256)?,
             Oid::from_str_ext(
@@ -613,14 +557,7 @@ mod tests {
             Oid::from_bytes(b"00000000000000000000000000000000")?
                 < Oid::from_bytes(b"00000000000000000000000000000001")?
         );
-        assert!(
-            Oid::from_bytes(b"00000000000000000000000000000000")?
-                < Oid::from_str_ext(
-                    "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-                    ObjectFormat::Sha256
-                )?
-        );
-
+        assert!(Oid::from_bytes(b"00000000000000000000000000000000")? < a);
         Ok(())
     }
 
@@ -649,23 +586,26 @@ mod tests {
     }
 
     #[test]
+    fn hash_object_ext_sha1() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        let oid = Oid::hash_object_ext(ObjectType::Blob, b"hello world", ObjectFormat::Sha1)?;
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        Ok(())
+    }
+
+    #[test]
     #[cfg(feature = "unstable-sha256")]
-    fn hash_object_with_format() -> Result<(), Error> {
+    fn hash_object_ext_sha256() -> Result<(), Error> {
         use crate::ObjectFormat;
 
         let bytes = b"hello world";
-
-        let sha1_oid = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha1)?;
-        assert_eq!(sha1_oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
-        assert_eq!(sha1_oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
-
-        let sha256_oid = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha256)?;
-        assert_eq!(sha256_oid.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
-        assert_eq!(sha256_oid.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
-
-        // Different formats produce different OIDs
-        assert_ne!(sha1_oid, sha256_oid);
-
+        let sha1 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha1)?;
+        let sha256 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha256)?;
+        assert_eq!(sha256.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+        assert_eq!(sha256.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+        assert_ne!(sha1, sha256);
         Ok(())
     }
 
@@ -681,8 +621,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
-    fn hash_file_object_format() -> Result<(), Error> {
+    fn hash_file_ext_sha1() -> Result<(), Error> {
         use crate::ObjectFormat;
 
         let td = TempDir::new().unwrap();
@@ -690,17 +629,27 @@ mod tests {
         let mut file = File::create(&path).unwrap();
         file.write_all(b"test content").unwrap();
 
-        let sha1_oid = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha1)?;
-        assert_eq!(sha1_oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
-        assert_eq!(sha1_oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        let oid = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha1)?;
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        Ok(())
+    }
 
-        let sha256_oid = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha256)?;
-        assert_eq!(sha256_oid.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
-        assert_eq!(sha256_oid.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn hash_file_ext_sha256() -> Result<(), Error> {
+        use crate::ObjectFormat;
 
-        // Different formats produce different OIDs
-        assert_ne!(sha1_oid, sha256_oid);
+        let td = TempDir::new().unwrap();
+        let path = td.path().join("test.txt");
+        let mut file = File::create(&path).unwrap();
+        file.write_all(b"test content").unwrap();
 
+        let sha1 = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha1)?;
+        let sha256 = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha256)?;
+        assert_eq!(sha256.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+        assert_eq!(sha256.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+        assert_ne!(sha1, sha256);
         Ok(())
     }
 }
