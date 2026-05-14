@@ -387,6 +387,18 @@ impl AsRef<[u8]> for Oid {
     }
 }
 
+// Sanity-check libgit2's OID size constants to keep the docs and the
+// public API surface honest. If any of these break, the doc comments on
+// `Oid::as_bytes` / `Oid::raw_bytes` need to be revisited.
+#[cfg(not(feature = "unstable-sha256"))]
+const _: () = assert!(raw::GIT_OID_MAX_SIZE == 20);
+#[cfg(feature = "unstable-sha256")]
+const _: () = {
+    assert!(raw::GIT_OID_SHA1_SIZE == 20);
+    assert!(raw::GIT_OID_SHA256_SIZE == 32);
+    assert!(raw::GIT_OID_MAX_SIZE == 32);
+};
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
