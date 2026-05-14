@@ -19,6 +19,23 @@ pub enum ObjectFormat {
     Sha256,
 }
 
+impl ObjectFormat {
+    /// Convert an object format to its string representation.
+    pub fn str(&self) -> &'static str {
+        match self {
+            ObjectFormat::Sha1 => "sha1",
+            #[cfg(feature = "unstable-sha256")]
+            ObjectFormat::Sha256 => "sha256",
+        }
+    }
+}
+
+impl fmt::Display for ObjectFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.str().fmt(f)
+    }
+}
+
 impl Binding for ObjectFormat {
     type Raw = raw::git_oid_t;
 
