@@ -6,7 +6,7 @@ use std::ptr;
 use tempfile::TempDir;
 use url::Url;
 
-use crate::{Branch, Oid, Repository, RepositoryInitOptions};
+use crate::{Branch, ObjectFormat, Oid, Repository, RepositoryInitOptions};
 
 macro_rules! t {
     ($e:expr) => {
@@ -17,10 +17,11 @@ macro_rules! t {
     };
 }
 
-pub fn repo_init() -> (TempDir, Repository) {
+fn repo_init_ext(format: ObjectFormat) -> (TempDir, Repository) {
     let td = TempDir::new().unwrap();
     let mut opts = RepositoryInitOptions::new();
     opts.initial_head("main");
+    opts.object_format(format);
     let repo = Repository::init_opts(td.path(), &opts).unwrap();
     {
         let mut config = repo.config().unwrap();
@@ -35,6 +36,15 @@ pub fn repo_init() -> (TempDir, Repository) {
             .unwrap();
     }
     (td, repo)
+}
+
+pub fn repo_init() -> (TempDir, Repository) {
+    repo_init_ext(ObjectFormat::Sha1)
+}
+
+#[cfg(feature = "unstable-sha256")]
+pub fn repo_init_sha256() -> (TempDir, Repository) {
+    repo_init_ext(ObjectFormat::Sha256)
 }
 
 pub fn commit(repo: &Repository) -> (Oid, Oid) {

@@ -9,6 +9,7 @@ use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::util::{self, path_to_repo_path, Binding};
 use crate::IntoCString;
+use crate::ObjectFormat;
 use crate::{panic, raw, Error, IndexAddOption, IndexTime, Oid, Repository, Tree};
 
 /// A structure to represent a git [index][1]
@@ -90,11 +91,32 @@ impl Index {
     ///
     /// This index object cannot be read/written to the filesystem, but may be
     /// used to perform in-memory index operations.
+    ///
+    /// This always creates a SHA1 index.
+    /// Use [`Index::new_ext`] to create an index with a specific object format.
     pub fn new() -> Result<Index, Error> {
+        Self::new_ext(ObjectFormat::Sha1)
+    }
+
+    /// Creates a new in-memory index with a specific object format.
+    ///
+    /// See [`Index::new`] for more details.
+    pub fn new_ext(format: ObjectFormat) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_index_new(&mut raw));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_index_new(&mut raw));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_index_options = std::mem::zeroed();
+                opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_index_new(&mut raw, &opts));
+            }
             Ok(Binding::from_raw(raw))
         }
     }
@@ -107,13 +129,34 @@ impl Index {
     ///
     /// If you need an index attached to a repository, use the `index()` method
     /// on `Repository`.
+    ///
+    /// This opens the index assuming SHA1 object format. Use
+    /// [`Index::open_ext`] to specify a different format.
     pub fn open(index_path: &Path) -> Result<Index, Error> {
+        Self::open_ext(index_path, ObjectFormat::Sha1)
+    }
+
+    /// Opens a Git index with a specific object format.
+    ///
+    /// See [`Index::open`] for more details.
+    pub fn open_ext(index_path: &Path, format: ObjectFormat) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
         // Normal file path OK (does not need Windows conversion).
         let index_path = index_path.into_c_string()?;
         unsafe {
-            try_call!(raw::git_index_open(&mut raw, index_path));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_index_open(&mut raw, index_path));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_index_options = std::mem::zeroed();
+                opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_index_open(&mut raw, index_path, &opts));
+            }
             Ok(Binding::from_raw(raw))
         }
     }
@@ -846,7 +889,9 @@ mod tests {
     use std::path::Path;
     use tempfile::TempDir;
 
-    use crate::{ErrorCode, Index, IndexEntry, IndexTime, Oid, Repository, ResetType};
+    use crate::{
+        ErrorCode, Index, IndexEntry, IndexTime, ObjectFormat, Oid, Repository, ResetType,
+    };
 
     #[test]
     fn smoke() {
@@ -949,7 +994,7 @@ mod tests {
 
     #[test]
     fn add_then_read() {
-        let mut index = Index::new().unwrap();
+        let mut index = Index::new_ext(ObjectFormat::Sha1).unwrap();
         let mut e = entry();
         e.path = b"foobar".to_vec();
         index.add(&e).unwrap();
@@ -959,7 +1004,7 @@ mod tests {
 
     #[test]
     fn add_then_find() {
-        let mut index = Index::new().unwrap();
+        let mut index = Index::new_ext(ObjectFormat::Sha1).unwrap();
         let mut e = entry();
         e.path = b"foo/bar".to_vec();
         index.add(&e).unwrap();
@@ -1004,10 +1049,38 @@ mod tests {
             uid: 0,
             gid: 0,
             file_size: 0,
-            id: Oid::from_bytes(&[0; 20]).unwrap(),
+            #[cfg(not(feature = "unstable-sha256"))]
+            id: Oid::ZERO_SHA1,
+            #[cfg(feature = "unstable-sha256")]
+            id: Oid::ZERO_SHA256,
             flags: 0,
             flags_extended: 0,
             path: Vec::new(),
         }
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn index_sha256() {
+        let (_td, repo) = crate::test::repo_init_sha256();
+        let mut index = repo.index().unwrap();
+
+        // Test opening with correct format
+        Index::open_ext(&repo.path().join("index"), ObjectFormat::Sha256).unwrap();
+
+        // Test basic operations with SHA256
+        index.clear().unwrap();
+        index.read(true).unwrap();
+        index.write().unwrap();
+        let tree_id = index.write_tree().unwrap();
+
+        // Verify OID is 32 bytes (SHA256)
+        assert_eq!(tree_id.as_bytes().len(), 32);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn smoke_in_memory_index_sha256() {
+        let _index = Index::new_ext(ObjectFormat::Sha256).unwrap();
     }
 }

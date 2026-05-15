@@ -268,10 +268,18 @@ fn fixup_windows_path(path: CString) -> Result<CString, Error> {
     Ok(path)
 }
 
-/// Creates a zeroed git_oid structure.
+/// Creates a zeroed `git_oid` to be used as an output buffer
+/// that libgit2 overwrites before any read.
+///
+/// Defaults `kind` to `GIT_OID_SHA1` so the value is a valid
+/// `git_oid_t` even transiently.
 #[inline]
 pub(crate) fn zeroed_raw_oid() -> raw::git_oid {
-    unsafe { std::mem::zeroed() }
+    raw::git_oid {
+        #[cfg(feature = "unstable-sha256")]
+        kind: raw::GIT_OID_SHA1 as libc::c_uchar,
+        id: [0; raw::GIT_OID_MAX_SIZE],
+    }
 }
 
 #[cfg(test)]

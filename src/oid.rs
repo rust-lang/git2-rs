@@ -10,9 +10,30 @@ use crate::util::{c_cmp_to_ordering, Binding};
 
 /// Object ID format (hash algorithm).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(not(feature = "unstable-sha256"), non_exhaustive)]
 pub enum ObjectFormat {
     /// SHA1 object format (20-byte object IDs)
     Sha1,
+    /// SHA256 object format (32-byte object IDs)
+    #[cfg(feature = "unstable-sha256")]
+    Sha256,
+}
+
+impl ObjectFormat {
+    /// Convert an object format to its string representation.
+    pub fn str(&self) -> &'static str {
+        match self {
+            ObjectFormat::Sha1 => "sha1",
+            #[cfg(feature = "unstable-sha256")]
+            ObjectFormat::Sha256 => "sha256",
+        }
+    }
+}
+
+impl fmt::Display for ObjectFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.str().fmt(f)
+    }
 }
 
 impl Binding for ObjectFormat {
@@ -21,6 +42,8 @@ impl Binding for ObjectFormat {
     unsafe fn from_raw(raw: raw::git_oid_t) -> Self {
         match raw {
             raw::GIT_OID_SHA1 => ObjectFormat::Sha1,
+            #[cfg(feature = "unstable-sha256")]
+            raw::GIT_OID_SHA256 => ObjectFormat::Sha256,
             _ => panic!("Unknown git oid type"),
         }
     }
@@ -28,6 +51,8 @@ impl Binding for ObjectFormat {
     fn raw(&self) -> Self::Raw {
         match self {
             ObjectFormat::Sha1 => raw::GIT_OID_SHA1,
+            #[cfg(feature = "unstable-sha256")]
+            ObjectFormat::Sha256 => raw::GIT_OID_SHA256,
         }
     }
 }
@@ -40,21 +65,60 @@ pub struct Oid {
 }
 
 impl Oid {
+    /// An all-zero SHA1 OID.
+    pub const ZERO_SHA1: Oid = Oid {
+        raw: raw::git_oid {
+            #[cfg(feature = "unstable-sha256")]
+            kind: raw::GIT_OID_SHA1 as libc::c_uchar,
+            id: [0; raw::GIT_OID_MAX_SIZE],
+        },
+    };
+
+    /// An all-zero SHA256 OID.
+    #[cfg(feature = "unstable-sha256")]
+    pub const ZERO_SHA256: Oid = Oid {
+        raw: raw::git_oid {
+            kind: raw::GIT_OID_SHA256 as libc::c_uchar,
+            id: [0; raw::GIT_OID_MAX_SIZE],
+        },
+    };
+
     /// Parse a hex-formatted object id into an Oid structure.
+    ///
+    /// This always parses as SHA1 (up to 40 hex characters). Use
+    /// [`Oid::from_str_ext`] to parse with a specific format.
     ///
     /// # Errors
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
     pub fn from_str(s: &str) -> Result<Oid, Error> {
+        Self::from_str_ext(s, ObjectFormat::Sha1)
+    }
+
+    /// Parses a hex-formatted object id with a specific object format.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is
+    ///
+    /// * is empty
+    /// * is longer than 40 hex with SHA1 object format
+    /// * is longer than 64 hex with SHA256 object format
+    /// * contains any non-hex characters
+    pub fn from_str_ext(s: &str, format: ObjectFormat) -> Result<Oid, Error> {
         crate::init();
         let mut raw = crate::util::zeroed_raw_oid();
+        let data = s.as_bytes().as_ptr() as *const libc::c_char;
+        let len = s.len() as libc::size_t;
         unsafe {
-            try_call!(raw::git_oid_fromstrn(
-                &mut raw,
-                s.as_bytes().as_ptr() as *const libc::c_char,
-                s.len() as libc::size_t
-            ));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_oid_fromstrn(&mut raw, data, len));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            try_call!(raw::git_oid_fromstrn(&mut raw, data, len, format.raw()));
         }
         Ok(Oid { raw })
     }
@@ -65,36 +129,82 @@ impl Oid {
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
         crate::init();
         let mut raw = crate::util::zeroed_raw_oid();
-        if bytes.len() != raw::GIT_OID_MAX_SIZE {
-            Err(Error::from_str("raw byte array must be 20 bytes"))
-        } else {
+
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            if bytes.len() != raw::GIT_OID_SHA1_SIZE {
+                return Err(Error::from_str(&format!(
+                    "raw byte array must be 20 bytes, but got {}",
+                    bytes.len()
+                )));
+            }
             unsafe {
                 try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
             }
-            Ok(Oid { raw })
         }
+
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let oid_type = match bytes.len() {
+                raw::GIT_OID_SHA1_SIZE => raw::GIT_OID_SHA1,
+                raw::GIT_OID_SHA256_SIZE => raw::GIT_OID_SHA256,
+                _ => {
+                    return Err(Error::from_str(&format!(
+                        "raw byte array must be 20 bytes (SHA1) or 32 bytes (SHA256), but got {}",
+                        bytes.len()
+                    )));
+                }
+            };
+            unsafe {
+                try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr(), oid_type));
+            }
+        }
+
+        Ok(Oid { raw })
     }
 
-    /// Creates an all zero Oid structure.
+    /// Creates an all-zero SHA1 OID.
+    #[deprecated(since = "0.21.0", note = "use `Oid::ZERO_SHA1` instead")]
     pub fn zero() -> Oid {
-        Oid {
-            raw: crate::util::zeroed_raw_oid(),
-        }
+        Self::ZERO_SHA1
     }
 
     /// Hashes the provided data as an object of the provided type, and returns
     /// an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
+    ///
+    /// This always hashes using SHA1. Use [`Oid::hash_object_ext`]
+    /// to hash with a specific format.
     pub fn hash_object(kind: ObjectType, bytes: &[u8]) -> Result<Oid, Error> {
+        Self::hash_object_ext(kind, bytes, ObjectFormat::Sha1)
+    }
+
+    /// Hashes the provided data as an object of the provided type,
+    /// with a specific object format.
+    ///
+    /// See [`Oid::hash_object`] for more details.
+    pub fn hash_object_ext(
+        kind: ObjectType,
+        bytes: &[u8],
+        format: ObjectFormat,
+    ) -> Result<Oid, Error> {
         crate::init();
 
         let mut out = crate::util::zeroed_raw_oid();
+        let data = bytes.as_ptr() as *const libc::c_void;
         unsafe {
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_odb_hash(&mut out, data, bytes.len(), kind.raw()));
+            }
+            #[cfg(feature = "unstable-sha256")]
             try_call!(raw::git_odb_hash(
                 &mut out,
-                bytes.as_ptr() as *const libc::c_void,
+                data,
                 bytes.len(),
-                kind.raw()
+                kind.raw(),
+                format.raw()
             ));
         }
 
@@ -104,7 +214,22 @@ impl Oid {
     /// Hashes the content of the provided file as an object of the provided type,
     /// and returns an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
+    ///
+    /// This always hashes using SHA1. Use [`Oid::hash_file_ext`]
+    /// to hash with a specific format.
     pub fn hash_file<P: AsRef<Path>>(kind: ObjectType, path: P) -> Result<Oid, Error> {
+        Self::hash_file_ext(kind, path, ObjectFormat::Sha1)
+    }
+
+    /// Hashes the content of a file as an object of the provided type,
+    /// with a specific object format.
+    ///
+    /// See [`Oid::hash_file`] for more details.
+    pub fn hash_file_ext<P: AsRef<Path>>(
+        kind: ObjectType,
+        path: P,
+        format: ObjectFormat,
+    ) -> Result<Oid, Error> {
         crate::init();
 
         // Normal file path OK (does not need Windows conversion).
@@ -112,20 +237,70 @@ impl Oid {
 
         let mut out = crate::util::zeroed_raw_oid();
         unsafe {
-            try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            try_call!(raw::git_odb_hashfile(
+                &mut out,
+                rpath,
+                kind.raw(),
+                format.raw()
+            ));
         }
 
         Ok(Oid { raw: out })
     }
 
-    /// View this OID as a byte-slice 20 bytes in length.
+    /// View this OID as a byte-slice in its logical length:
+    /// 20 bytes for SHA1, 32 bytes for SHA256.
     pub fn as_bytes(&self) -> &[u8] {
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            &self.raw.id
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let size = match self.raw.kind as raw::git_oid_t {
+                raw::GIT_OID_SHA1 => raw::GIT_OID_SHA1_SIZE,
+                raw::GIT_OID_SHA256 => raw::GIT_OID_SHA256_SIZE,
+                _ => panic!("Unknown git oid type"),
+            };
+            &self.raw.id[..size]
+        }
+    }
+
+    /// View the full underlying byte buffer of this OID.
+    ///
+    /// The buffer is always `GIT_OID_MAX_SIZE` bytes long:
+    ///
+    /// * 20 bytes if the feature `unstable-sha256` is not enabled.
+    /// * 32 bytes if the feature `unstable-sha256` is enabled,
+    ///   even when the OID is SHA1. The trailing bytes are zero-padding.
+    pub fn raw_bytes(&self) -> &[u8] {
         &self.raw.id
     }
 
     /// Test if this OID is all zeros.
     pub fn is_zero(&self) -> bool {
         unsafe { raw::git_oid_is_zero(&self.raw) == 1 }
+    }
+
+    /// Returns the [`ObjectFormat`] of this OID.
+    ///
+    /// Without the `unstable-sha256` feature, this always returns
+    /// [`ObjectFormat::Sha1`].
+    pub fn object_format(&self) -> ObjectFormat {
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            ObjectFormat::Sha1
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            unsafe { Binding::from_raw(self.raw.kind as raw::git_oid_t) }
+        }
     }
 }
 
@@ -167,6 +342,9 @@ impl str::FromStr for Oid {
 
     /// Parse a hex-formatted object id into an Oid structure.
     ///
+    /// This always parses as SHA1.
+    /// Use [`Oid::from_str_ext`] for format-aware parsing.
+    ///
     /// # Errors
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
@@ -197,6 +375,8 @@ impl Ord for Oid {
 
 impl Hash for Oid {
     fn hash<H: Hasher>(&self, into: &mut H) {
+        #[cfg(feature = "unstable-sha256")]
+        self.raw.kind.hash(into);
         self.raw.id.hash(into)
     }
 }
@@ -207,10 +387,24 @@ impl AsRef<[u8]> for Oid {
     }
 }
 
+// Sanity-check libgit2's OID size constants to keep the docs and the
+// public API surface honest. If any of these break, the doc comments on
+// `Oid::as_bytes` / `Oid::raw_bytes` need to be revisited.
+#[cfg(not(feature = "unstable-sha256"))]
+const _: () = assert!(raw::GIT_OID_MAX_SIZE == 20);
+#[cfg(feature = "unstable-sha256")]
+const _: () = {
+    assert!(raw::GIT_OID_SHA1_SIZE == 20);
+    assert!(raw::GIT_OID_SHA256_SIZE == 32);
+    assert!(raw::GIT_OID_MAX_SIZE == 32);
+};
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
     use std::io::prelude::*;
+
+    use libgit2_sys as raw;
 
     use super::Error;
     use super::Oid;
@@ -223,6 +417,76 @@ mod tests {
         assert!(Oid::from_str("decbf2be529ab6557d5429922251e5ee36519817").is_ok());
         assert!(Oid::from_bytes(b"foo").is_err());
         assert!(Oid::from_bytes(b"00000000000000000000").is_ok());
+    }
+
+    #[test]
+    fn conversions_ext_sha1() {
+        use crate::ObjectFormat;
+
+        assert!(Oid::from_str_ext("foo", ObjectFormat::Sha1).is_err());
+        assert!(Oid::from_str_ext(
+            "decbf2be529ab6557d5429922251e5ee36519817",
+            ObjectFormat::Sha1
+        )
+        .is_ok());
+
+        let sha1 = Oid::ZERO_SHA1;
+        assert_eq!(sha1.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        assert_eq!(sha1.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn conversions_ext_sha256() {
+        use crate::ObjectFormat;
+
+        assert!(Oid::from_str_ext("foo", ObjectFormat::Sha256).is_err());
+        assert!(Oid::from_str_ext(
+            "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            ObjectFormat::Sha256
+        )
+        .is_ok());
+
+        let sha256 = Oid::ZERO_SHA256;
+        assert_eq!(sha256.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+        assert_eq!(sha256.raw_bytes().len(), raw::GIT_OID_MAX_SIZE);
+        assert_eq!(sha256.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+
+        // SHA1 zero and SHA256 zero are not equal despite both being all zeros.
+        assert_ne!(Oid::ZERO_SHA1, sha256);
+    }
+
+    #[test]
+    fn object_format_always_sha1() {
+        let oid = Oid::ZERO_SHA1;
+        assert_eq!(oid.object_format(), crate::ObjectFormat::Sha1);
+    }
+
+    #[test]
+    fn object_format_from_oid_ext_sha1() {
+        use crate::ObjectFormat;
+
+        let sha1 = Oid::from_str_ext(
+            "decbf2be529ab6557d5429922251e5ee36519817",
+            ObjectFormat::Sha1,
+        )
+        .unwrap();
+        assert_eq!(sha1.object_format(), ObjectFormat::Sha1);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn object_format_from_oid_ext_sha256() {
+        use crate::ObjectFormat;
+
+        assert_eq!(Oid::ZERO_SHA256.object_format(), ObjectFormat::Sha256);
+
+        let sha256 = Oid::from_str_ext(
+            "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            ObjectFormat::Sha256,
+        )
+        .unwrap();
+        assert_eq!(sha256.object_format(), ObjectFormat::Sha256);
     }
 
     #[test]
@@ -252,14 +516,97 @@ mod tests {
     }
 
     #[test]
+    fn comparisons_ext_sha1() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        let a = Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?;
+        let b = Oid::from_str_ext(
+            "decbf2b000000000000000000000000000000000",
+            ObjectFormat::Sha1,
+        )?;
+        assert_eq!(a, b);
+        assert!(a <= b);
+        assert!(a >= b);
+        assert!(Oid::from_bytes(b"00000000000000000000")? < a);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn comparisons_ext_sha256() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        const HEX: &str = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+
+        let a = Oid::from_str_ext(HEX, ObjectFormat::Sha256)?;
+        let b = Oid::from_str_ext(HEX, ObjectFormat::Sha256)?;
+        assert_eq!(a, b);
+        assert!(a <= b);
+        assert!(a >= b);
+
+        assert_eq!(
+            Oid::from_str_ext("abcdef12", ObjectFormat::Sha256)?,
+            Oid::from_str_ext(
+                "abcdef1200000000000000000000000000000000000000000000000000000000",
+                ObjectFormat::Sha256
+            )?
+        );
+
+        // SHA256 byte comparisons (32 bytes)
+        assert!(
+            Oid::from_bytes(b"00000000000000000000000000000000")?
+                < Oid::from_bytes(b"00000000000000000000000000000001")?
+        );
+        assert!(Oid::from_bytes(b"00000000000000000000000000000000")? < a);
+        Ok(())
+    }
+
+    #[test]
     fn zero_is_zero() {
-        assert!(Oid::zero().is_zero());
+        assert!(Oid::ZERO_SHA1.is_zero());
+        assert_eq!(Oid::ZERO_SHA1.object_format(), crate::ObjectFormat::Sha1);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn zero_sha256_is_zero() {
+        assert!(Oid::ZERO_SHA256.is_zero());
+        assert_eq!(
+            Oid::ZERO_SHA256.object_format(),
+            crate::ObjectFormat::Sha256
+        );
     }
 
     #[test]
     fn hash_object() {
         let bytes = "Hello".as_bytes();
-        assert!(Oid::hash_object(ObjectType::Blob, bytes).is_ok());
+        let oid = Oid::hash_object(ObjectType::Blob, bytes).unwrap();
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+    }
+
+    #[test]
+    fn hash_object_ext_sha1() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        let oid = Oid::hash_object_ext(ObjectType::Blob, b"hello world", ObjectFormat::Sha1)?;
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn hash_object_ext_sha256() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        let bytes = b"hello world";
+        let sha1 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha1)?;
+        let sha256 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha256)?;
+        assert_eq!(sha256.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+        assert_eq!(sha256.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+        assert_ne!(sha1, sha256);
+        Ok(())
     }
 
     #[test]
@@ -268,6 +615,41 @@ mod tests {
         let path = td.path().join("hello.txt");
         let mut file = File::create(&path).unwrap();
         file.write_all("Hello".as_bytes()).unwrap();
-        assert!(Oid::hash_file(ObjectType::Blob, &path).is_ok());
+        let oid = Oid::hash_file(ObjectType::Blob, &path).unwrap();
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+    }
+
+    #[test]
+    fn hash_file_ext_sha1() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        let td = TempDir::new().unwrap();
+        let path = td.path().join("test.txt");
+        let mut file = File::create(&path).unwrap();
+        file.write_all(b"test content").unwrap();
+
+        let oid = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha1)?;
+        assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
+        assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn hash_file_ext_sha256() -> Result<(), Error> {
+        use crate::ObjectFormat;
+
+        let td = TempDir::new().unwrap();
+        let path = td.path().join("test.txt");
+        let mut file = File::create(&path).unwrap();
+        file.write_all(b"test content").unwrap();
+
+        let sha1 = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha1)?;
+        let sha256 = Oid::hash_file_ext(ObjectType::Blob, &path, ObjectFormat::Sha256)?;
+        assert_eq!(sha256.to_string().len(), raw::GIT_OID_SHA256_HEXSIZE);
+        assert_eq!(sha256.as_bytes().len(), raw::GIT_OID_SHA256_SIZE);
+        assert_ne!(sha1, sha256);
+        Ok(())
     }
 }

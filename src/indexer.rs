@@ -6,6 +6,7 @@ use libc::c_void;
 
 use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
+use crate::ObjectFormat;
 use crate::{raw, Error, IntoCString, Odb};
 
 /// Struct representing the progress by an in-flight transfer.
@@ -123,7 +124,23 @@ impl<'a> Indexer<'a> {
     /// `mode` is the permissions to use for the output files, use `0` for defaults.
     ///
     /// If `verify` is `false`, the indexer will bypass object connectivity checks.
+    ///
+    /// This creates an indexer assuming SHA1 object format. Use
+    /// [`Indexer::new_ext`] to specify a different format.
     pub fn new(odb: Option<&Odb<'a>>, path: &Path, mode: u32, verify: bool) -> Result<Self, Error> {
+        Self::new_ext(odb, path, mode, verify, ObjectFormat::Sha1)
+    }
+
+    /// Creates a new indexer with a specific object format.
+    ///
+    /// See [`Indexer::new`] for more details.
+    pub fn new_ext(
+        odb: Option<&Odb<'a>>,
+        path: &Path,
+        mode: u32,
+        verify: bool,
+        format: ObjectFormat,
+    ) -> Result<Self, Error> {
         crate::init();
         let path = path.into_c_string()?;
 
@@ -144,7 +161,18 @@ impl<'a> Indexer<'a> {
             opts.progress_cb_payload = progress_payload_ptr as *mut c_void;
             opts.verify = verify.into();
 
-            try_call!(raw::git_indexer_new(&mut out, path, mode, odb, &mut opts));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_indexer_new(&mut out, path, mode, odb, &mut opts));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                opts.mode = mode;
+                opts.oid_type = format.raw();
+                opts.odb = odb;
+                try_call!(raw::git_indexer_new(&mut out, path, &mut opts));
+            }
         }
 
         Ok(Self {
@@ -238,6 +266,44 @@ mod tests {
             repo_target.path().join("objects").join("pack").as_path(),
             0o644,
             true,
+        )
+        .unwrap();
+        indexer.progress(|_| {
+            progress_called = true;
+            true
+        });
+        indexer.write(&buf).unwrap();
+        indexer.commit().unwrap();
+
+        // Assert that target repo picks it up as valid
+        let commit_target = repo_target.find_commit(commit_source_id).unwrap();
+        assert_eq!(commit_target.id(), commit_source_id);
+        assert!(progress_called);
+    }
+
+    #[test]
+    #[cfg(feature = "unstable-sha256")]
+    fn indexer_sha256() {
+        let (_td, repo_source) = crate::test::repo_init_sha256();
+        let (_td, repo_target) = crate::test::repo_init_sha256();
+
+        let mut progress_called = false;
+
+        // Create an in-memory packfile
+        let mut builder = t!(repo_source.packbuilder());
+        let mut buf = Buf::new();
+        let (commit_source_id, _tree) = crate::test::commit(&repo_source);
+        t!(builder.insert_object(commit_source_id, None));
+        t!(builder.write_buf(&mut buf));
+
+        // Write it to the standard location in the target repo, but via indexer
+        let odb = repo_source.odb().unwrap();
+        let mut indexer = Indexer::new_ext(
+            Some(&odb),
+            repo_target.path().join("objects").join("pack").as_path(),
+            0o644,
+            true,
+            crate::ObjectFormat::Sha256,
         )
         .unwrap();
         indexer.progress(|_| {
