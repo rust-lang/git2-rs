@@ -245,6 +245,10 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     if ssh {
         if let Some(path) = env::var_os("DEP_SSH2_INCLUDE") {
             cfg.include(path);
+        } else if let Ok(lib) = pkg_config::find_library("libssh2") {
+            for path in &lib.include_paths {
+                cfg.include(path);
+            }
         }
         features.push_str("#define GIT_SSH 1\n");
         features.push_str("#define GIT_SSH_LIBSSH2 1\n");
@@ -261,6 +265,10 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
             features.push_str("#define GIT_OPENSSL 1\n");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
+            } else if let Ok(lib) = pkg_config::find_library("openssl") {
+                for path in &lib.include_paths {
+                    cfg.include(path);
+                }
             }
         }
     }
@@ -293,6 +301,10 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
         cfg.include(path);
+    } else if let Ok(lib) = pkg_config::find_library("zlib") {
+        for path in &lib.include_paths {
+            cfg.include(path);
+        }
     }
 
     if target.contains("apple") {
