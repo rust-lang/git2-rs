@@ -81,7 +81,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
 
     for (i, line) in reader.lines().enumerate() {
         if let (Ok(line), Some(hunk)) = (line, blame.get_line(i + 1)) {
-            let sig = hunk.final_signature();
+            let sig = hunk.final_signature().expect("Should have a signature");
             println!(
                 "{} {} <{}> {}",
                 hunk.final_commit_id(),
