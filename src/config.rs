@@ -84,6 +84,30 @@ impl Config {
         }
     }
 
+    /// Create a new config instance based on the provided string contents
+    pub fn from_str(contents: &str) -> Result<Config, Error> {
+        let config = Self::new()?;
+
+        let mut raw_backend = ptr::null_mut();
+        unsafe {
+            try_call!(raw::git_config_backend_from_string(
+                &mut raw_backend,
+                contents.into_c_string()?,
+                contents.len(),
+                ptr::null_mut()
+            ));
+            try_call!(raw::git_config_add_backend(
+                config.raw,
+                raw_backend,
+                // Match the level used by git_config_open_ondisk()
+                ConfigLevel::Local,
+                ptr::null(),
+                0 as libc::c_int
+            ));
+        }
+        Ok(config)
+    }
+
     /// Open the global, XDG and system configuration files
     ///
     /// Utility wrapper that finds the global, XDG and system configuration
@@ -738,6 +762,74 @@ mod tests {
 
         assert_eq!(count(cfg.entries(Some("foo.bar")).unwrap()), 0);
         assert_eq!(count(cfg.multivar("foo.bar", None).unwrap()), 0);
+    }
+
+    #[test]
+    fn cfg_from_str() {
+        // Empty string, no entries
+        let empty = Config::from_str("").unwrap();
+        let mut entries = empty.entries(None).unwrap();
+        // Should start with None because it is empty
+        assert!(entries.next().is_none());
+
+        let dump = |entries: super::ConfigEntries<'_>| -> Vec<String> {
+            let mut string_entries = vec![];
+            let _ = entries.for_each(|ent| {
+                string_entries.push(format!(
+                    "{} = {}",
+                    ent.name().unwrap(),
+                    ent.value().unwrap()
+                ));
+            });
+            string_entries.sort();
+            string_entries
+        };
+
+        // One entry
+        let signed = Config::from_str("[commit]\ngpgsign=true\n").unwrap();
+        assert_eq!(
+            dump(signed.entries(Some("commit.gpgsign")).unwrap()),
+            ["commit.gpgsign = true"]
+        );
+        assert_eq!(true, signed.get_bool("commit.gpgsign").unwrap());
+
+        // A few entries
+        let big_config = Config::from_str(
+            "[core]\n
+                \tbare=false\n
+                \tignorecase=true\n
+            [remote \"origin\"]\n
+                \turl = https://github.com/rust-lang/rust.git\n
+            [branch \"main\"]\n
+                remote = origin\n
+            [foo]\n
+                \tbar = 123\n
+                \tbaz = -123\n",
+        )
+        .unwrap();
+        assert_eq!(
+            dump(big_config.entries(None).unwrap()),
+            [
+                "branch.main.remote = origin",
+                "core.bare = false",
+                "core.ignorecase = true",
+                "foo.bar = 123",
+                "foo.baz = -123",
+                "remote.origin.url = https://github.com/rust-lang/rust.git",
+            ]
+        );
+        assert_eq!(
+            "origin",
+            big_config.get_string("branch.main.remote").unwrap()
+        );
+        assert_eq!(false, big_config.get_bool("core.bare").unwrap());
+        assert_eq!(true, big_config.get_bool("core.ignorecase").unwrap());
+        assert_eq!(
+            "https://github.com/rust-lang/rust.git",
+            big_config.get_string("remote.origin.url").unwrap()
+        );
+        assert_eq!(123, big_config.get_i32("foo.bar").unwrap());
+        assert_eq!(-123, big_config.get_i32("foo.baz").unwrap());
     }
 
     #[test]
