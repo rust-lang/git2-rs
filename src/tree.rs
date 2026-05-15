@@ -289,10 +289,8 @@ impl<'tree> TreeEntry<'tree> {
     }
 
     /// Get the filename of a tree entry
-    ///
-    /// Returns `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes()).ok()
+    pub fn name(&self) -> Result<&str, Error> {
+        str::from_utf8(self.name_bytes()).map_err(|e| e.into())
     }
 
     /// Get the filename of a tree entry
@@ -498,7 +496,7 @@ mod tests {
         assert_eq!(tree.len(), 8);
         let mut it = tree.iter();
         let e = it.nth(4).unwrap();
-        assert_eq!(e.name(), Some("f4"));
+        assert_eq!(e.name(), Ok("f4"));
     }
 
     fn setup_repo(td: &TempDir, repo: &Repository) {
@@ -547,7 +545,7 @@ mod tests {
             assert!(e0 == tree.get_name("f0").unwrap());
             assert!(e0 == tree.get_name_bytes(b"f0").unwrap());
             assert!(e0 == tree.get_path(Path::new("f0")).unwrap());
-            assert_eq!(e0.name(), Some("f0"));
+            assert_eq!(e0.name(), Ok("f0"));
             e0.to_object(&repo).unwrap();
 
             let e1 = tree.get(1).unwrap();
@@ -555,7 +553,7 @@ mod tests {
             assert!(e1 == tree.get_name("f1").unwrap());
             assert!(e1 == tree.get_name_bytes(b"f1").unwrap());
             assert!(e1 == tree.get_path(Path::new("f1")).unwrap());
-            assert_eq!(e1.name(), Some("f1"));
+            assert_eq!(e1.name(), Ok("f1"));
             e1.to_object(&repo).unwrap();
         }
         tree.into_object();
@@ -584,7 +582,7 @@ mod tests {
 
         let mut ct = 0;
         tree.walk(TreeWalkMode::PreOrder, |_, entry| {
-            assert_eq!(entry.name(), Some(format!("f{ct}").as_str()));
+            assert_eq!(entry.name(), Ok(format!("f{ct}").as_str()));
             ct += 1;
             0
         })
@@ -593,7 +591,7 @@ mod tests {
 
         let mut ct = 0;
         tree.walk(TreeWalkMode::PreOrder, |_, entry| {
-            assert_eq!(entry.name(), Some(format!("f{ct}").as_str()));
+            assert_eq!(entry.name(), Ok(format!("f{ct}").as_str()));
             ct += 1;
             TreeWalkResult::Ok
         })

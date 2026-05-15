@@ -56,7 +56,7 @@ fn do_fetch<'a>(
     // Always fetch all tags.
     // Perform a download and also update tips
     fo.download_tags(git2::AutotagOption::All);
-    println!("Fetching {} for repo", remote.name().unwrap());
+    println!("Fetching {} for repo", remote.name().unwrap().unwrap());
     remote.fetch(refs, Some(&mut fo), None)?;
 
     // If there are local objects (we got a thin pack), then tell the user
@@ -90,8 +90,8 @@ fn fast_forward(
     rc: &git2::AnnotatedCommit,
 ) -> Result<(), git2::Error> {
     let name = match lb.name() {
-        Some(s) => s.to_string(),
-        None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
+        Ok(s) => s.to_string(),
+        Err(_) => String::from_utf8_lossy(lb.name_bytes()).to_string(),
     };
     let msg = format!("Fast-Forward: Setting {} to id: {}", name, rc.id());
     println!("{}", msg);

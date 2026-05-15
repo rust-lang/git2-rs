@@ -217,10 +217,8 @@ impl<'repo> Reference<'repo> {
     }
 
     /// Get the full name of a reference.
-    ///
-    /// Returns `None` if the name is not valid utf-8.
-    pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes()).ok()
+    pub fn name(&self) -> Result<&str, Error> {
+        str::from_utf8(self.name_bytes()).map_err(|e| e.into())
     }
 
     /// Get the full name of a reference.
@@ -232,10 +230,8 @@ impl<'repo> Reference<'repo> {
     ///
     /// This will transform the reference name into a name "human-readable"
     /// version. If no shortname is appropriate, it will return the full name.
-    ///
-    /// Returns `None` if the shorthand is not valid utf-8.
-    pub fn shorthand(&self) -> Option<&str> {
-        str::from_utf8(self.shorthand_bytes()).ok()
+    pub fn shorthand(&self) -> Result<&str, Error> {
+        str::from_utf8(self.shorthand_bytes()).map_err(|e| e.into())
     }
 
     /// Get the full shorthand of a reference.
@@ -261,11 +257,12 @@ impl<'repo> Reference<'repo> {
 
     /// Get full name to the reference pointed to by a symbolic reference.
     ///
-    /// May return `None` if the reference is either not symbolic or not a
-    /// valid utf-8 string.
-    pub fn symbolic_target(&self) -> Option<&str> {
-        self.symbolic_target_bytes()
-            .and_then(|s| str::from_utf8(s).ok())
+    /// May return `Ok(None)` if the reference is not symbolic.
+    pub fn symbolic_target(&self) -> Result<Option<&str>, Error> {
+        match self.symbolic_target_bytes() {
+            Some(stb) => str::from_utf8(stb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get full name to the reference pointed to by a symbolic reference.
@@ -549,7 +546,7 @@ mod tests {
         assert_eq!(head.kind().unwrap(), ReferenceType::Direct);
 
         assert!(head == repo.head().unwrap());
-        assert_eq!(head.name(), Some("refs/heads/main"));
+        assert_eq!(head.name(), Ok("refs/heads/main"));
 
         assert!(head == repo.find_reference("refs/heads/main").unwrap());
         assert_eq!(
@@ -557,10 +554,13 @@ mod tests {
             head.target().unwrap()
         );
 
-        assert!(head.symbolic_target().is_none());
+        assert!(head
+            .symbolic_target()
+            .expect("Should be okay even if None")
+            .is_none());
         assert!(head.target_peel().is_none());
 
-        assert_eq!(head.shorthand(), Some("main"));
+        assert_eq!(head.shorthand(), Ok("main"));
         assert!(head.resolve().unwrap() == head);
 
         // In a block so that it gets dropped before proceeding and we can
@@ -601,7 +601,7 @@ mod tests {
             .symbolic_set_target("refs/tags/tag1", "test")
             .unwrap();
         assert_eq!(sym2.kind().unwrap(), ReferenceType::Symbolic);
-        assert_eq!(sym2.symbolic_target().unwrap(), "refs/tags/tag1");
+        assert_eq!(sym2.symbolic_target().unwrap(), Some("refs/tags/tag1"));
 
         // In a block so that it gets dropped before proceeding and we can
         // confirm that `sym1` and `sym2` still work

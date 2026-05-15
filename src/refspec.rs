@@ -26,10 +26,8 @@ impl<'remote> Refspec<'remote> {
     }
 
     /// Get the destination specifier.
-    ///
-    /// If the destination is not utf-8, None is returned.
-    pub fn dst(&self) -> Option<&str> {
-        str::from_utf8(self.dst_bytes()).ok()
+    pub fn dst(&self) -> Result<&str, Error> {
+        str::from_utf8(self.dst_bytes()).map_err(|e| e.into())
     }
 
     /// Get the destination specifier, in bytes.
@@ -44,10 +42,8 @@ impl<'remote> Refspec<'remote> {
     }
 
     /// Get the source specifier.
-    ///
-    /// If the source is not utf-8, None is returned.
-    pub fn src(&self) -> Option<&str> {
-        str::from_utf8(self.src_bytes()).ok()
+    pub fn src(&self) -> Result<&str, Error> {
+        str::from_utf8(self.src_bytes()).map_err(|e| e.into())
     }
 
     /// Get the source specifier, in bytes.
@@ -67,10 +63,8 @@ impl<'remote> Refspec<'remote> {
     }
 
     /// Get the refspec's string.
-    ///
-    /// Returns None if the string is not valid utf8.
-    pub fn str(&self) -> Option<&str> {
-        str::from_utf8(self.bytes()).ok()
+    pub fn str(&self) -> Result<&str, Error> {
+        str::from_utf8(self.bytes()).map_err(|e| e.into())
     }
 
     /// Get the refspec's string as a byte array

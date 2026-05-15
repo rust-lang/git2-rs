@@ -125,10 +125,12 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's name.
     ///
-    /// Returns `None` if this remote has not yet been named or if the name is
-    /// not valid utf-8
-    pub fn name(&self) -> Option<&str> {
-        self.name_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// Returns `Ok(None)` if this remote has not yet been named.
+    pub fn name(&self) -> Result<Option<&str>, Error> {
+        match self.name_bytes() {
+            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the remote's name, in bytes.
@@ -139,10 +141,8 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Get the remote's URL.
-    ///
-    /// Returns `None` if the URL is not valid utf-8
-    pub fn url(&self) -> Option<&str> {
-        str::from_utf8(self.url_bytes()).ok()
+    pub fn url(&self) -> Result<&str, Error> {
+        str::from_utf8(self.url_bytes()).map_err(|e| e.into())
     }
 
     /// Get the remote's URL as a byte array.
@@ -152,9 +152,12 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's pushurl.
     ///
-    /// Returns `None` if the pushurl is not valid utf-8 or no special url for pushing is set.
-    pub fn pushurl(&self) -> Option<&str> {
-        self.pushurl_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// Returns `Ok(None)` if no special url for pushing is set.
+    pub fn pushurl(&self) -> Result<Option<&str>, Error> {
+        match self.pushurl_bytes() {
+            Some(pb) => str::from_utf8(pb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the remote's pushurl as a byte array.
@@ -819,9 +822,9 @@ mod tests {
 
         let repo = t!(Repository::init(td.path()));
         let mut origin = t!(repo.find_remote("origin"));
-        assert_eq!(origin.name(), Some("origin"));
-        assert_eq!(origin.url(), Some("/path/to/nowhere"));
-        assert_eq!(origin.pushurl(), None);
+        assert_eq!(origin.name(), Ok(Some("origin")));
+        assert_eq!(origin.url(), Ok("/path/to/nowhere"));
+        assert_eq!(origin.pushurl(), Ok(None));
 
         t!(repo.remote_set_url("origin", "/path/to/elsewhere"));
         t!(repo.remote_set_pushurl("origin", Some("/path/to/elsewhere")));
@@ -849,26 +852,26 @@ mod tests {
         };
 
         let mut origin = repo.remote("origin", &url).unwrap();
-        assert_eq!(origin.name(), Some("origin"));
-        assert_eq!(origin.url(), Some(&url[..]));
-        assert_eq!(origin.pushurl(), None);
+        assert_eq!(origin.name(), Ok(Some("origin")));
+        assert_eq!(origin.url(), Ok(&url[..]));
+        assert_eq!(origin.pushurl(), Ok(None));
 
         {
             let mut specs = origin.refspecs();
             let spec = specs.next().unwrap();
             assert!(specs.next().is_none());
-            assert_eq!(spec.str(), Some("+refs/heads/*:refs/remotes/origin/*"));
-            assert_eq!(spec.dst(), Some("refs/remotes/origin/*"));
-            assert_eq!(spec.src(), Some("refs/heads/*"));
+            assert_eq!(spec.str(), Ok("+refs/heads/*:refs/remotes/origin/*"));
+            assert_eq!(spec.dst(), Ok("refs/remotes/origin/*"));
+            assert_eq!(spec.src(), Ok("refs/heads/*"));
             assert!(spec.is_force());
         }
         assert!(origin.refspecs().next_back().is_some());
         {
             let remotes = repo.remotes().unwrap();
             assert_eq!(remotes.len(), 1);
-            assert_eq!(remotes.get(0), Some("origin"));
+            assert_eq!(remotes.get(0), Ok(Some("origin")));
             assert_eq!(remotes.iter().count(), 1);
-            assert_eq!(remotes.iter().next().unwrap(), Some("origin"));
+            assert_eq!(remotes.iter().next().unwrap(), Ok(Some("origin")));
         }
 
         origin.connect(Direction::Push).unwrap();
@@ -929,7 +932,7 @@ mod tests {
         let repo = Repository::init(td.path()).unwrap();
 
         let origin = repo.remote_anonymous("/path/to/nowhere").unwrap();
-        assert_eq!(origin.name(), None);
+        assert_eq!(origin.name(), Ok(None));
         drop(origin.clone());
     }
 
@@ -1066,7 +1069,7 @@ mod tests {
         let repo = Repository::clone(&url, td3.path()).unwrap();
         let commit = repo.head().unwrap().target().unwrap();
         let commit = repo.find_commit(commit).unwrap();
-        assert_eq!(commit.message(), Some("initial\n\nbody"));
+        assert_eq!(commit.message(), Ok("initial\n\nbody"));
     }
 
     #[test]

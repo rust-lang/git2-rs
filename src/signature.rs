@@ -62,10 +62,8 @@ impl<'a> Signature<'a> {
     }
 
     /// Gets the name on the signature.
-    ///
-    /// Returns `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes()).ok()
+    pub fn name(&self) -> Result<&str, Error> {
+        str::from_utf8(self.name_bytes()).map_err(|e| e.into())
     }
 
     /// Gets the name on the signature as a byte slice.
@@ -74,10 +72,8 @@ impl<'a> Signature<'a> {
     }
 
     /// Gets the email on the signature.
-    ///
-    /// Returns `None` if the email is not valid utf-8
-    pub fn email(&self) -> Option<&str> {
-        str::from_utf8(self.email_bytes()).ok()
+    pub fn email(&self) -> Result<&str, Error> {
+        str::from_utf8(self.email_bytes()).map_err(|e| e.into())
     }
 
     /// Gets the email on the signature as a byte slice.
@@ -179,8 +175,8 @@ mod tests {
         assert!(Signature::now("<foo>", "bar").is_err());
 
         let s = Signature::now("foo", "bar").unwrap();
-        assert_eq!(s.name(), Some("foo"));
-        assert_eq!(s.email(), Some("bar"));
+        assert_eq!(s.name(), Ok("foo"));
+        assert_eq!(s.email(), Ok("bar"));
 
         drop(s.clone());
         drop(s.to_owned());

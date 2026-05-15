@@ -522,10 +522,8 @@ impl Drop for Config {
 
 impl<'cfg> ConfigEntry<'cfg> {
     /// Gets the name of this entry.
-    ///
-    /// May return `None` if the name is not valid utf-8
-    pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes()).ok()
+    pub fn name(&self) -> Result<&str, Error> {
+        str::from_utf8(self.name_bytes()).map_err(|e| e.into())
     }
 
     /// Gets the name of this entry as a byte slice.
@@ -535,13 +533,11 @@ impl<'cfg> ConfigEntry<'cfg> {
 
     /// Gets the value of this entry.
     ///
-    /// May return `None` if the value is not valid utf-8
-    ///
     /// # Panics
     ///
     /// Panics when no value is defined.
-    pub fn value(&self) -> Option<&str> {
-        str::from_utf8(self.value_bytes()).ok()
+    pub fn value(&self) -> Result<&str, Error> {
+        str::from_utf8(self.value_bytes()).map_err(|e| e.into())
     }
 
     /// Gets the value of this entry as a byte slice.
@@ -683,8 +679,8 @@ mod tests {
         let mut entries = cfg.entries(None).unwrap();
         while let Some(entry) = entries.next() {
             let entry = entry.unwrap();
-            entry.name();
-            entry.value();
+            entry.name().unwrap();
+            entry.value().unwrap();
             entry.level();
         }
     }

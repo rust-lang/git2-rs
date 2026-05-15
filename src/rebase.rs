@@ -113,10 +113,13 @@ impl<'repo> Rebase<'repo> {
     }
 
     /// Gets the original `HEAD` ref name for merge rebases.
-    pub fn orig_head_name(&self) -> Option<&str> {
+    pub fn orig_head_name(&self) -> Result<Option<&str>, Error> {
         let name_bytes =
             unsafe { crate::opt_bytes(self, raw::git_rebase_orig_head_name(self.raw)) };
-        name_bytes.and_then(|s| str::from_utf8(s).ok())
+        match name_bytes {
+            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Gets the original HEAD id for merge rebases.
@@ -315,8 +318,12 @@ impl<'rebase> RebaseOperation<'rebase> {
 
     ///The executable the user has requested be run.  This will only
     /// be populated for operations of type RebaseOperationType::Exec
-    pub fn exec(&self) -> Option<&str> {
-        unsafe { str::from_utf8(crate::opt_bytes(self, (*self.raw).exec).unwrap()).ok() }
+    pub fn exec(&self) -> Result<Option<&str>, Error> {
+        let exec_bytes = unsafe { crate::opt_bytes(self, (*self.raw).exec) };
+        match exec_bytes {
+            Some(eb) => str::from_utf8(eb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 }
 
@@ -363,7 +370,7 @@ mod tests {
             .rebase(Some(&branch), Some(&upstream), None, None)
             .unwrap();
 
-        assert_eq!(Some("refs/heads/main"), rebase.orig_head_name());
+        assert_eq!(Ok(Some("refs/heads/main")), rebase.orig_head_name());
         assert_eq!(Some(c2), rebase.orig_head_id());
 
         assert_eq!(rebase.len(), 2);
@@ -423,18 +430,18 @@ mod tests {
             rebase.next().unwrap().unwrap();
             let id = rebase.commit(None, &sig, None).unwrap();
             let commit = repo.find_commit(id).unwrap();
-            assert_eq!(commit.message(), Some("A"));
-            assert_eq!(commit.author().name(), Some("testname"));
-            assert_eq!(commit.author().email(), Some("testemail"));
+            assert_eq!(commit.message(), Ok("A"));
+            assert_eq!(commit.author().name(), Ok("testname"));
+            assert_eq!(commit.author().email(), Ok("testemail"));
         }
 
         {
             rebase.next().unwrap().unwrap();
             let id = rebase.commit(None, &sig, None).unwrap();
             let commit = repo.find_commit(id).unwrap();
-            assert_eq!(commit.message(), Some("B"));
-            assert_eq!(commit.author().name(), Some("testname"));
-            assert_eq!(commit.author().email(), Some("testemail"));
+            assert_eq!(commit.message(), Ok("B"));
+            assert_eq!(commit.author().name(), Ok("testname"));
+            assert_eq!(commit.author().email(), Ok("testemail"));
         }
         rebase.finish(None).unwrap();
     }
