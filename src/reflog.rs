@@ -136,9 +136,12 @@ impl<'reflog> ReflogEntry<'reflog> {
         unsafe { Binding::from_raw(raw::git_reflog_entry_id_old(self.raw)) }
     }
 
-    /// Get the log message, returning `None` on invalid UTF-8.
-    pub fn message(&self) -> Option<&str> {
-        self.message_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// Get the log message.
+    pub fn message(&self) -> Result<Option<&str>, Error> {
+        match self.message_bytes() {
+            Some(mb) => str::from_utf8(mb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the log message as a byte array.
@@ -188,7 +191,7 @@ mod tests {
         reflog.write().unwrap();
 
         let entry = reflog.iter().next().unwrap();
-        assert!(entry.message().is_some());
+        assert!(entry.message().expect("Should be ok").is_some());
 
         repo.reflog_rename("HEAD", "refs/heads/foo").unwrap();
         repo.reflog_delete("refs/heads/foo").unwrap();

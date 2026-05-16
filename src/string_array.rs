@@ -6,6 +6,7 @@ use std::str;
 
 use crate::raw;
 use crate::util::Binding;
+use crate::Error;
 
 /// A string array structure used by libgit2
 ///
@@ -29,9 +30,12 @@ pub struct IterBytes<'a> {
 }
 
 impl StringArray {
-    /// Returns None if the i'th string is not utf8 or if i is out of bounds.
-    pub fn get(&self, i: usize) -> Option<&str> {
-        self.get_bytes(i).and_then(|s| str::from_utf8(s).ok())
+    /// Returns Ok(None) if i is out of bounds.
+    pub fn get(&self, i: usize) -> Result<Option<&str>, Error> {
+        match self.get_bytes(i) {
+            Some(gb) => str::from_utf8(gb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Returns None if `i` is out of bounds.
@@ -88,7 +92,7 @@ impl Binding for StringArray {
 }
 
 impl<'a> IntoIterator for &'a StringArray {
-    type Item = Option<&'a str>;
+    type Item = Result<Option<&'a str>, Error>;
     type IntoIter = Iter<'a>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -96,8 +100,8 @@ impl<'a> IntoIterator for &'a StringArray {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = Option<&'a str>;
-    fn next(&mut self) -> Option<Option<&'a str>> {
+    type Item = Result<Option<&'a str>, Error>;
+    fn next(&mut self) -> Option<Result<Option<&'a str>, Error>> {
         self.range.next().map(|i| self.arr.get(i))
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -105,7 +109,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 impl<'a> DoubleEndedIterator for Iter<'a> {
-    fn next_back(&mut self) -> Option<Option<&'a str>> {
+    fn next_back(&mut self) -> Option<Result<Option<&'a str>, Error>> {
         self.range.next_back().map(|i| self.arr.get(i))
     }
 }

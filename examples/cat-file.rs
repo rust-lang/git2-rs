@@ -89,7 +89,7 @@ fn show_commit(commit: &Commit) {
     }
     show_sig("author", Some(commit.author()));
     show_sig("committer", Some(commit.committer()));
-    if let Some(msg) = commit.message() {
+    if let Ok(msg) = commit.message() {
         println!("\n{}", msg);
     }
 }
@@ -100,7 +100,7 @@ fn show_tag(tag: &Tag) {
     println!("tag {}", tag.name().unwrap());
     show_sig("tagger", tag.tagger());
 
-    if let Some(msg) = tag.message() {
+    if let Ok(Some(msg)) = tag.message() {
         println!("\n{}", msg);
     }
 }

@@ -539,10 +539,12 @@ impl Repository {
 
     /// Get the currently active namespace for this repository.
     ///
-    /// If there is no namespace, or the namespace is not a valid utf8 string,
-    /// `None` is returned.
-    pub fn namespace(&self) -> Option<&str> {
-        self.namespace_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// If there is no namespace, Ok(None) is returned.
+    pub fn namespace(&self) -> Result<Option<&str>, Error> {
+        match self.namespace_bytes() {
+            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the currently active namespace for this repository as a byte array.
@@ -3671,7 +3673,7 @@ mod tests {
 
         let repo = Repository::init_bare(path).unwrap();
         assert!(repo.is_bare());
-        assert!(repo.namespace().is_none());
+        assert!(repo.namespace().expect("Okay even if none").is_none());
         assert_eq!(repo.object_format(), ObjectFormat::Sha1);
     }
 
@@ -4239,7 +4241,7 @@ mod tests {
             .unwrap();
 
         assert!(!merge_file_result.is_automergeable());
-        assert_eq!(merge_file_result.path(), Some("file"));
+        assert_eq!(merge_file_result.path(), Ok(Some("file")));
         assert_eq!(
             String::from_utf8_lossy(merge_file_result.content()).to_string(),
             r"<<<<<<< ours
@@ -4509,11 +4511,14 @@ bar
 
         // url
         repo2.submodule_set_url(name, "fake-url")?;
-        assert_eq!(repo2.find_submodule(name)?.url(), Some("fake-url"));
+        assert_eq!(repo2.find_submodule(name)?.url(), Ok(Some("fake-url")));
 
         // branch
         repo2.submodule_set_branch(name, "fake-branch")?;
-        assert_eq!(repo2.find_submodule(name)?.branch(), Some("fake-branch"));
+        assert_eq!(
+            repo2.find_submodule(name)?.branch(),
+            Ok(Some("fake-branch"))
+        );
 
         Ok(())
     }
@@ -4530,10 +4535,10 @@ bar
         // This is our baseline for HEAD.
         let author = commit.author();
         let committer = commit.committer();
-        assert_eq!(author.name(), Some("name"));
-        assert_eq!(author.email(), Some("email"));
-        assert_eq!(committer.name(), Some("name"));
-        assert_eq!(committer.email(), Some("email"));
+        assert_eq!(author.name(), Ok("name"));
+        assert_eq!(author.email(), Ok("email"));
+        assert_eq!(committer.name(), Ok("name"));
+        assert_eq!(committer.email(), Ok("email"));
 
         // There is no .mailmap file in the test repo so all signature identities are equal.
         let mailmap = t!(repo.mailmap());
@@ -4579,10 +4584,10 @@ Committer Name <committer.proper@email> <committer@email>"#,
         let committer = commit.committer();
         assert_ne!(author.name(), committer.name());
         assert_ne!(author.email(), committer.email());
-        assert_eq!(author.name(), Some("name"));
-        assert_eq!(author.email(), Some("email"));
-        assert_eq!(committer.name(), Some("committer"));
-        assert_eq!(committer.email(), Some("committer@email"));
+        assert_eq!(author.name(), Ok("name"));
+        assert_eq!(author.email(), Ok("email"));
+        assert_eq!(committer.name(), Ok("committer"));
+        assert_eq!(committer.email(), Ok("committer@email"));
 
         // Fetch the newly added .mailmap from the repository.
         let mailmap = t!(repo.mailmap());
@@ -4598,10 +4603,10 @@ Committer Name <committer.proper@email> <committer@email>"#,
         drop(commit);
 
         // author_with_mailmap() + committer_with_mailmap() work
-        assert_eq!(mailmapped_author.name(), Some("Author Name"));
-        assert_eq!(mailmapped_author.email(), Some("author.proper@email"));
-        assert_eq!(mailmapped_committer.name(), Some("Committer Name"));
-        assert_eq!(mailmapped_committer.email(), Some("committer.proper@email"));
+        assert_eq!(mailmapped_author.name(), Ok("Author Name"));
+        assert_eq!(mailmapped_author.email(), Ok("author.proper@email"));
+        assert_eq!(mailmapped_committer.name(), Ok("Committer Name"));
+        assert_eq!(mailmapped_committer.email(), Ok("committer.proper@email"));
 
         // resolve_signature() works
         assert_eq!(mm_resolve_author.email(), mailmapped_author.email());
@@ -4731,14 +4736,14 @@ Committer Name <committer.proper@email> <committer@email>"#,
         macro_rules! expect {
             ($name:literal, $email:literal, ==) => {
                 let sig = repo.author_from_env().unwrap();
-                assert_eq!(Some($name), sig.name());
-                assert_eq!(Some($email), sig.email());
+                assert_eq!(Ok($name), sig.name());
+                assert_eq!(Ok($email), sig.email());
                 assert_eq!(time, sig.when());
             };
             ($name:literal, $email:literal, !=) => {
                 let sig = repo.author_from_env().unwrap();
-                assert_eq!(Some($name), sig.name());
-                assert_eq!(Some($email), sig.email());
+                assert_eq!(Ok($name), sig.name());
+                assert_eq!(Ok($email), sig.email());
                 assert_ne!(time, sig.when());
             };
         }
@@ -4783,14 +4788,14 @@ Committer Name <committer.proper@email> <committer@email>"#,
         macro_rules! expect {
             ($name:literal, $email:literal, ==) => {
                 let sig = repo.committer_from_env().unwrap();
-                assert_eq!(Some($name), sig.name());
-                assert_eq!(Some($email), sig.email());
+                assert_eq!(Ok($name), sig.name());
+                assert_eq!(Ok($email), sig.email());
                 assert_eq!(time, sig.when());
             };
             ($name:literal, $email:literal, !=) => {
                 let sig = repo.committer_from_env().unwrap();
-                assert_eq!(Some($name), sig.name());
-                assert_eq!(Some($email), sig.email());
+                assert_eq!(Ok($name), sig.name());
+                assert_eq!(Ok($email), sig.email());
                 assert_ne!(time, sig.when());
             };
         }

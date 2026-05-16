@@ -5,6 +5,7 @@ use std::str;
 
 use crate::raw;
 use crate::util::Binding;
+use crate::Error;
 
 /// A structure to wrap an intermediate buffer used by libgit2.
 ///
@@ -34,10 +35,8 @@ impl Buf {
     }
 
     /// Attempt to view this buffer as a string slice.
-    ///
-    /// Returns `None` if the buffer is not valid utf-8.
-    pub fn as_str(&self) -> Option<&str> {
-        str::from_utf8(&**self).ok()
+    pub fn as_str(&self) -> Result<&str, Error> {
+        str::from_utf8(&**self).map_err(|e| e.into())
     }
 }
 

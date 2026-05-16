@@ -18,7 +18,8 @@ fn test_remove_extensions() -> Result<(), Error> {
     }
 
     let extensions = unsafe { get_extensions() }?;
-    let extensions: Vec<_> = extensions.iter().collect();
+    let extensions: Result<Vec<_>, Error> = extensions.iter().collect();
+    let extensions = extensions.unwrap();
 
     assert_eq!(extensions, [Some("custom"), Some("other")]);
 

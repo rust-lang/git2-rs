@@ -199,10 +199,12 @@ impl<'repo> PackBuilder<'repo> {
     /// The packfile's name is derived from the packfile's content. This is only
     /// correct after the packfile has been written.
     ///
-    /// Returns `None` if the packfile has not been written or if the name is
-    /// not valid utf-8.
-    pub fn name(&self) -> Option<&str> {
-        self.name_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// Returns `Ok(None)` if the packfile has not been written.
+    pub fn name(&self) -> Result<Option<&str>, Error> {
+        match self.name_bytes() {
+            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the unique name for the resulting packfile, in bytes.
@@ -336,7 +338,7 @@ mod tests {
         {
             assert!(builder.hash().unwrap().is_zero());
         }
-        assert!(builder.name().is_none());
+        assert!(builder.name().expect("Should return Ok result").is_none());
         assert_eq!(&*buf, &*empty_pack_header());
     }
 
@@ -349,7 +351,7 @@ mod tests {
         {
             assert!(builder.hash().unwrap() == Oid::from_str(EMPTY_PACKFILE_OID).unwrap());
         }
-        assert!(builder.name().unwrap() == EMPTY_PACKFILE_OID);
+        assert!(builder.name().unwrap() == Some(EMPTY_PACKFILE_OID));
     }
 
     #[test]

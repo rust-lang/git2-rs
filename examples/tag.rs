@@ -65,7 +65,7 @@ fn run(args: &Args) -> Result<(), Error> {
     } else if args.flag_list {
         let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
         for name in repo.tag_names(Some(pattern))?.iter() {
-            let name = name.unwrap();
+            let name = name.expect("Not invalid utf8").expect("Not None");
             let obj = repo.revparse_single(name)?;
 
             if let Some(tag) = obj.as_tag() {
@@ -83,7 +83,7 @@ fn run(args: &Args) -> Result<(), Error> {
 fn print_tag(tag: &Tag, args: &Args) {
     print!("{:<16}", tag.name().unwrap());
     if args.flag_n.is_some() {
-        print_list_lines(tag.message(), args);
+        print_list_lines(tag.message().unwrap(), args);
     } else {
         println!();
     }
@@ -92,7 +92,7 @@ fn print_tag(tag: &Tag, args: &Args) {
 fn print_commit(commit: &Commit, name: &str, args: &Args) {
     print!("{:<16}", name);
     if args.flag_n.is_some() {
-        print_list_lines(commit.message(), args);
+        print_list_lines(commit.message().ok(), args);
     } else {
         println!();
     }

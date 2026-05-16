@@ -36,9 +36,12 @@ impl<'repo> Tag<'repo> {
 
     /// Get the message of a tag
     ///
-    /// Returns None if there is no message or if it is not valid utf8
-    pub fn message(&self) -> Option<&str> {
-        self.message_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// Returns Ok(None) if there is no message
+    pub fn message(&self) -> Result<Option<&str>, Error> {
+        match self.message_bytes() {
+            Some(mb) => str::from_utf8(mb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the message of a tag
@@ -49,10 +52,8 @@ impl<'repo> Tag<'repo> {
     }
 
     /// Get the name of a tag
-    ///
-    /// Returns None if it is not valid utf8
-    pub fn name(&self) -> Option<&str> {
-        str::from_utf8(self.name_bytes()).ok()
+    pub fn name(&self) -> Result<&str, Error> {
+        str::from_utf8(self.name_bytes()).map_err(|e| e.into())
     }
 
     /// Get the name of a tag
@@ -120,7 +121,7 @@ impl<'repo> Tag<'repo> {
 impl<'repo> std::fmt::Debug for Tag<'repo> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let mut ds = f.debug_struct("Tag");
-        if let Some(name) = self.name() {
+        if let Ok(name) = self.name() {
             ds.field("name", &name);
         }
         ds.field("id", &self.id());
@@ -194,10 +195,10 @@ mod tests {
 
         let tags = repo.tag_names(None).unwrap();
         assert_eq!(tags.len(), 1);
-        assert_eq!(tags.get(0), Some("foo"));
+        assert_eq!(tags.get(0), Ok(Some("foo")));
 
-        assert_eq!(tag.name(), Some("foo"));
-        assert_eq!(tag.message(), Some("msg"));
+        assert_eq!(tag.name(), Ok("foo"));
+        assert_eq!(tag.message(), Ok(Some("msg")));
         assert_eq!(tag.peel().unwrap().id(), obj.id());
         assert_eq!(tag.target_id(), obj.id());
         assert_eq!(tag.target_type(), Some(crate::ObjectType::Commit));

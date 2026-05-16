@@ -178,7 +178,7 @@ mod tests {
                 .unwrap()
                 .symbolic_target()
                 .unwrap(),
-            "refs/heads/main"
+            Some("refs/heads/main")
         );
     }
 

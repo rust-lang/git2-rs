@@ -56,10 +56,11 @@ impl Worktree {
     /// This is the name that can be passed to repo::Repository::find_worktree
     /// to reopen the worktree. This is also the name that would appear in the
     /// list returned by repo::Repository::worktrees
-    pub fn name(&self) -> Option<&str> {
-        unsafe {
-            crate::opt_bytes(self, raw::git_worktree_name(self.raw))
-                .and_then(|s| str::from_utf8(s).ok())
+    pub fn name(&self) -> Result<Option<&str>, Error> {
+        let opt_bytes = unsafe { crate::opt_bytes(self, raw::git_worktree_name(self.raw)) };
+        match opt_bytes {
+            Some(ob) => str::from_utf8(ob).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
         }
     }
 
@@ -278,7 +279,7 @@ mod tests {
         let opts = WorktreeAddOptions::new();
 
         let wt = repo.worktree("tree-no-ref", &wt_path, Some(&opts)).unwrap();
-        assert_eq!(wt.name(), Some("tree-no-ref"));
+        assert_eq!(wt.name(), Ok(Some("tree-no-ref")));
         assert_eq!(
             wt.path().canonicalize().unwrap(),
             wt_path.canonicalize().unwrap()
@@ -299,7 +300,7 @@ mod tests {
         let wt = repo.worktree("locked-tree", &wt_path, Some(&opts)).unwrap();
         // shouldn't be able to lock a worktree that was created locked
         assert!(wt.lock(Some("my reason")).is_err());
-        assert_eq!(wt.name(), Some("locked-tree"));
+        assert_eq!(wt.name(), Ok(Some("locked-tree")));
         assert_eq!(
             wt.path().canonicalize().unwrap(),
             wt_path.canonicalize().unwrap()
@@ -326,7 +327,7 @@ mod tests {
         let wt = repo
             .worktree("test-worktree", &wt_path, Some(&opts))
             .unwrap();
-        assert_eq!(wt.name(), Some("test-worktree"));
+        assert_eq!(wt.name(), Ok(Some("test-worktree")));
         assert_eq!(
             wt.path().canonicalize().unwrap(),
             wt_path.canonicalize().unwrap()

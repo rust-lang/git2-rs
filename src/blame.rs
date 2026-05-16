@@ -206,10 +206,12 @@ impl<'blame> BlameHunk<'blame> {
     /// The returned message is the summary of the commit, comprising the first
     /// paragraph of the message with whitespace trimmed and squashed.
     ///
-    /// `None` may be returned if an error occurs or if the summary is not valid
-    /// utf-8.
-    pub fn summary(&self) -> Option<&str> {
-        self.summary_bytes().and_then(|s| str::from_utf8(s).ok())
+    /// `Ok(None)` may be returned if there is no summary.
+    pub fn summary(&self) -> Result<Option<&str>, Error> {
+        match self.summary_bytes() {
+            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Get the short "summary" of the git commit message for the hunk.
@@ -448,7 +450,7 @@ mod tests {
         assert_eq!(hunk.final_start_line(), 1);
         assert_eq!(hunk.path(), Some(Path::new("foo/bar")));
         assert_eq!(hunk.lines_in_hunk(), 0);
-        assert_eq!(hunk.summary(), Some("commit"));
+        assert_eq!(hunk.summary(), Ok(Some("commit")));
         assert!(!hunk.is_boundary());
 
         let blame_buffer = blame.blame_buffer("\n".as_bytes()).unwrap();
@@ -491,20 +493,20 @@ mod tests {
 
         {
             let final_author = hunk.final_signature().unwrap();
-            assert_eq!(Some("name"), final_author.name());
-            assert_eq!(Some("email"), final_author.email());
+            assert_eq!(Ok("name"), final_author.name());
+            assert_eq!(Ok("email"), final_author.email());
 
             let final_committer = hunk.final_committer().unwrap();
-            assert_eq!(Some("name"), final_committer.name());
-            assert_eq!(Some("email"), final_committer.email());
+            assert_eq!(Ok("name"), final_committer.name());
+            assert_eq!(Ok("email"), final_committer.email());
 
             let original_author = hunk.orig_signature().unwrap();
-            assert_eq!(Some("name"), original_author.name());
-            assert_eq!(Some("email"), original_author.email());
+            assert_eq!(Ok("name"), original_author.name());
+            assert_eq!(Ok("email"), original_author.email());
 
             let original_committer = hunk.orig_committer().unwrap();
-            assert_eq!(Some("name"), original_committer.name());
-            assert_eq!(Some("email"), original_committer.email());
+            assert_eq!(Ok("name"), original_committer.name());
+            assert_eq!(Ok("email"), original_committer.email());
         }
 
         let arbitrary = blame.blame_buffer(b"abc123").unwrap();
@@ -525,7 +527,7 @@ mod tests {
             assert_eq!(Some(Path::new("README.md")), hunk.path());
             assert_eq!(false, hunk.is_boundary());
             assert_eq!(1, hunk.lines_in_hunk());
-            assert_eq!(None, hunk.summary());
+            assert_eq!(Ok(None), hunk.summary());
             assert_eq!(None, hunk.summary_bytes());
         }
 

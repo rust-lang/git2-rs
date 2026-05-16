@@ -44,10 +44,8 @@ impl<'repo> AnnotatedCommit<'repo> {
     }
 
     /// Get the refname that the given git_annotated_commit refers to
-    ///
-    /// Returns None if it is not valid utf8
-    pub fn refname(&self) -> Option<&str> {
-        str::from_utf8(self.refname_bytes()).ok()
+    pub fn refname(&self) -> Result<&str, Error> {
+        str::from_utf8(self.refname_bytes()).map_err(|e| e.into())
     }
 
     /// Get the refname that the given git_annotated_commit refers to.
@@ -361,11 +359,12 @@ impl MergeFileResult {
 
     /// The path that the resultant merge file should use.
     ///
-    /// returns `None` if a filename conflict would occur,
-    /// or if the path is not valid utf-8
-    pub fn path(&self) -> Option<&str> {
-        self.path_bytes()
-            .and_then(|bytes| str::from_utf8(bytes).ok())
+    /// returns `Ok(None)` if a filename conflict would occur
+    pub fn path(&self) -> Result<Option<&str>, Error> {
+        match self.path_bytes() {
+            Some(pb) => str::from_utf8(pb).map(|s| Some(s)).map_err(|e| e.into()),
+            None => Ok(None),
+        }
     }
 
     /// Gets the path as a byte slice.
@@ -403,7 +402,7 @@ impl Drop for MergeFileResult {
 impl std::fmt::Debug for MergeFileResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ds = f.debug_struct("MergeFileResult");
-        if let Some(path) = &self.path() {
+        if let Ok(Some(path)) = &self.path() {
             ds.field("path", path);
         }
         ds.field("automergeable", &self.is_automergeable());
@@ -541,7 +540,7 @@ mod tests {
         let merge_file_result = crate::merge_file(&base, &ours, &theirs, Some(&mut opts)).unwrap();
 
         assert!(!merge_file_result.is_automergeable());
-        assert_eq!(merge_file_result.path(), Some("file"));
+        assert_eq!(merge_file_result.path(), Ok(Some("file")));
         assert_eq!(
             String::from_utf8_lossy(merge_file_result.content()).to_string(),
             r"<<<<<<< ours

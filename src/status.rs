@@ -7,7 +7,7 @@ use std::ops::Range;
 use std::str;
 
 use crate::util::{self, Binding};
-use crate::{raw, DiffDelta, IntoCString, Repository, Status};
+use crate::{raw, DiffDelta, Error, IntoCString, Repository, Status};
 
 /// Options that can be provided to `repo.statuses()` to control how the status
 /// information is gathered.
@@ -329,10 +329,8 @@ impl<'statuses> StatusEntry<'statuses> {
     }
 
     /// Access this entry's path name as a string.
-    ///
-    /// Returns `None` if the path is not valid utf-8.
-    pub fn path(&self) -> Option<&str> {
-        str::from_utf8(self.path_bytes()).ok()
+    pub fn path(&self) -> Result<&str, Error> {
+        str::from_utf8(self.path_bytes()).map_err(|e| e.into())
     }
 
     /// Access the status flags for this file
@@ -382,7 +380,7 @@ mod tests {
         let statuses = repo.statuses(None).unwrap();
         assert_eq!(statuses.iter().count(), 1);
         let status = statuses.iter().next().unwrap();
-        assert_eq!(status.path(), Some("foo"));
+        assert_eq!(status.path(), Ok("foo"));
         assert!(status.status().contains(crate::Status::WT_NEW));
         assert!(!status.status().contains(crate::Status::INDEX_NEW));
         assert!(status.head_to_index().is_none());
@@ -402,7 +400,7 @@ mod tests {
         let statuses = t!(repo.statuses(Some(&mut opts)));
         assert_eq!(statuses.iter().count(), 1);
         let status = statuses.iter().next().unwrap();
-        assert_eq!(status.path(), Some("foo"));
+        assert_eq!(status.path(), Ok("foo"));
     }
 
     #[test]
