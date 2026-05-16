@@ -5,6 +5,9 @@
 
 ### Added
 
+- Added experimental SHA256 repository support behind the new `unstable-sha256` Cargo feature,
+  along with `*_ext` API variants that accept an `ObjectFormat`.
+  [#1206](https://github.com/rust-lang/git2-rs/pull/1206)
 - Added `opts::set_cache_max_size()` and `opts::get_cached_memory()`.
   [#1188](https://github.com/rust-lang/git2-rs/pull/1188)
 - Added `Repository::object_format()` and a new `ObjectFormat` enum.
@@ -39,8 +42,13 @@
   [#1168](https://github.com/rust-lang/git2-rs/pull/1168)
 - ❗ Updated to the 2021 edition.
   [#1173](https://github.com/rust-lang/git2-rs/pull/1173)
-- `ReferenceNames` now returns an `Err` for non-UTF-8 branch names instead of panicking.
-  [#1239](https://github.com/rust-lang/git2-rs/pull/1239)
+- ❗ Many string accessors that previously returned `Option<&str>`
+  now return `Result<&str, Error>` or `Result<Option<&str>, Error>`,
+  so callers can distinguish a missing value from a non-UTF-8 one.
+  [#1241](https://github.com/rust-lang/git2-rs/pull/1241)
+- ❗ `BlameHunk::final_signature`, `BlameHunk::final_committer`, `BlameHunk::orig_signature`, and `BlameHunk::orig_committer`
+  now return `Option` to avoid segfaults when signature information is missing.
+  [#1254](https://github.com/rust-lang/git2-rs/pull/1254)
 - Bumped requirement to libgit2-sys 0.18.4, which updates libgit2 to 1.9.3.
   [#1242](https://github.com/rust-lang/git2-rs/pull/1242)
 
@@ -52,6 +60,11 @@
   [#1220](https://github.com/rust-lang/git2-rs/pull/1220)
 - `Reference::is_valid_name()` now propagates errors from `CString` conversion instead of panicking.
   [#1229](https://github.com/rust-lang/git2-rs/pull/1229)
+- Fixed `Remote::list()` to return an empty list instead of erroring
+  when the remote advertises no refs.
+  [#1250](https://github.com/rust-lang/git2-rs/pull/1250)
+- `ReferenceNames` now returns an `Err` for non-UTF-8 branch names instead of panicking.
+  [#1239](https://github.com/rust-lang/git2-rs/pull/1239)
 
 ### Documentation
 
@@ -81,6 +94,8 @@
   [#1245](https://github.com/rust-lang/git2-rs/pull/1245)
 - Added example showing retrieval of the latest commit for a file.
   [#1243](https://github.com/rust-lang/git2-rs/pull/1243)
+- Replaced comma with period in `CheckoutBuilder::refresh()` docs.
+  [#1252](https://github.com/rust-lang/git2-rs/pull/1252)
 
 ### Internals
 
@@ -102,6 +117,8 @@
   [#1244](https://github.com/rust-lang/git2-rs/pull/1244)
 - Added end-to-end test for stash count.
   [#1246](https://github.com/rust-lang/git2-rs/pull/1246)
+- Added end-to-end tests demonstrating use of `Repository::statuses()`.
+  [#1251](https://github.com/rust-lang/git2-rs/pull/1251)
 - Internal refactors preparing for experimental SHA256 OID support.
   [#1201](https://github.com/rust-lang/git2-rs/pull/1201)
   [#1205](https://github.com/rust-lang/git2-rs/pull/1205)
