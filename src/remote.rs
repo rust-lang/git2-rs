@@ -884,13 +884,13 @@ mod tests {
         origin.disconnect().unwrap();
 
         {
-            let mut connection = origin.connect_auth(Direction::Push, None, None).unwrap();
+            let connection = origin.connect_auth(Direction::Push, None, None).unwrap();
             assert!(connection.connected());
         }
         assert!(!origin.connected());
 
         {
-            let mut connection = origin.connect_auth(Direction::Fetch, None, None).unwrap();
+            let connection = origin.connect_auth(Direction::Fetch, None, None).unwrap();
             assert!(connection.connected());
         }
         assert!(!origin.connected());
@@ -1021,7 +1021,7 @@ mod tests {
         let mut origin = repo.remote("origin", &url).unwrap();
 
         {
-            let mut connection = origin
+            let connection = origin
                 .connect_auth(Direction::Fetch, Some(callbacks), None)
                 .unwrap();
             assert!(connection.connected());
