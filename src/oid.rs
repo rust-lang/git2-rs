@@ -397,6 +397,7 @@ mod tests {
 
     use super::Error;
     use super::Oid;
+    use crate::ObjectFormat;
     use crate::ObjectType;
     use tempfile::TempDir;
 
@@ -410,8 +411,6 @@ mod tests {
 
     #[test]
     fn conversions_ext_sha1() {
-        use crate::ObjectFormat;
-
         assert!(Oid::from_str_ext("foo", ObjectFormat::Sha1).is_err());
         assert!(Oid::from_str_ext(
             "decbf2be529ab6557d5429922251e5ee36519817",
@@ -427,8 +426,6 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn conversions_ext_sha256() {
-        use crate::ObjectFormat;
-
         assert!(Oid::from_str_ext("foo", ObjectFormat::Sha256).is_err());
         assert!(Oid::from_str_ext(
             "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
@@ -447,13 +444,11 @@ mod tests {
     #[test]
     fn object_format_always_sha1() {
         let oid = Oid::ZERO_SHA1;
-        assert_eq!(oid.object_format(), crate::ObjectFormat::Sha1);
+        assert_eq!(oid.object_format(), ObjectFormat::Sha1);
     }
 
     #[test]
     fn object_format_from_oid_ext_sha1() {
-        use crate::ObjectFormat;
-
         let sha1 = Oid::from_str_ext(
             "decbf2be529ab6557d5429922251e5ee36519817",
             ObjectFormat::Sha1,
@@ -465,8 +460,6 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn object_format_from_oid_ext_sha256() {
-        use crate::ObjectFormat;
-
         assert_eq!(Oid::ZERO_SHA256.object_format(), ObjectFormat::Sha256);
 
         let sha256 = Oid::from_str_ext(
@@ -505,8 +498,6 @@ mod tests {
 
     #[test]
     fn comparisons_ext_sha1() -> Result<(), Error> {
-        use crate::ObjectFormat;
-
         let a = Oid::from_str_ext("decbf2b", ObjectFormat::Sha1)?;
         let b = Oid::from_str_ext(
             "decbf2b000000000000000000000000000000000",
@@ -522,8 +513,6 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn comparisons_ext_sha256() -> Result<(), Error> {
-        use crate::ObjectFormat;
-
         const HEX: &str = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
         let a = Oid::from_str_ext(HEX, ObjectFormat::Sha256)?;
@@ -552,17 +541,14 @@ mod tests {
     #[test]
     fn zero_is_zero() {
         assert!(Oid::ZERO_SHA1.is_zero());
-        assert_eq!(Oid::ZERO_SHA1.object_format(), crate::ObjectFormat::Sha1);
+        assert_eq!(Oid::ZERO_SHA1.object_format(), ObjectFormat::Sha1);
     }
 
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn zero_sha256_is_zero() {
         assert!(Oid::ZERO_SHA256.is_zero());
-        assert_eq!(
-            Oid::ZERO_SHA256.object_format(),
-            crate::ObjectFormat::Sha256
-        );
+        assert_eq!(Oid::ZERO_SHA256.object_format(), ObjectFormat::Sha256);
     }
 
     #[test]
@@ -575,8 +561,6 @@ mod tests {
 
     #[test]
     fn hash_object_ext_sha1() -> Result<(), Error> {
-        use crate::ObjectFormat;
-
         let oid = Oid::hash_object_ext(ObjectType::Blob, b"hello world", ObjectFormat::Sha1)?;
         assert_eq!(oid.to_string().len(), raw::GIT_OID_SHA1_HEXSIZE);
         assert_eq!(oid.as_bytes().len(), raw::GIT_OID_SHA1_SIZE);
@@ -586,8 +570,6 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn hash_object_ext_sha256() -> Result<(), Error> {
-        use crate::ObjectFormat;
-
         let bytes = b"hello world";
         let sha1 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha1)?;
         let sha256 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha256)?;
@@ -610,8 +592,6 @@ mod tests {
 
     #[test]
     fn hash_file_ext_sha1() -> Result<(), Error> {
-        use crate::ObjectFormat;
-
         let td = TempDir::new().unwrap();
         let path = td.path().join("test.txt");
         let mut file = File::create(&path).unwrap();
@@ -626,8 +606,6 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn hash_file_ext_sha256() -> Result<(), Error> {
-        use crate::ObjectFormat;
-
         let td = TempDir::new().unwrap();
         let path = td.path().join("test.txt");
         let mut file = File::create(&path).unwrap();
