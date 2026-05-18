@@ -9,6 +9,7 @@ use libc::{c_char, c_int, c_uint, c_void, size_t};
 
 use crate::panic;
 use crate::util::Binding;
+use crate::ObjectFormat;
 use crate::{
     raw, Error, IndexerProgress, Mempack, Object, ObjectType, OdbLookupFlags, Oid, Progress,
 };
@@ -45,11 +46,33 @@ impl<'repo> Drop for Odb<'repo> {
 
 impl<'repo> Odb<'repo> {
     /// Creates an object database without any backends.
+    ///
+    /// This always creates a SHA1 object database.
+    /// Use [`Odb::new_ext`] to create one with a specific object format.
     pub fn new<'a>() -> Result<Odb<'a>, Error> {
+        Self::new_ext(ObjectFormat::Sha1)
+    }
+
+    /// Creates an object database without any backends,
+    /// with a specific object format.
+    ///
+    /// See [`Odb::new`] for more details.
+    pub fn new_ext<'a>(format: ObjectFormat) -> Result<Odb<'a>, Error> {
         crate::init();
         unsafe {
             let mut out = ptr::null_mut();
-            try_call!(raw::git_odb_new(&mut out));
+            #[cfg(not(feature = "unstable-sha256"))]
+            {
+                let _ = format;
+                try_call!(raw::git_odb_new(&mut out));
+            }
+            #[cfg(feature = "unstable-sha256")]
+            {
+                let mut opts: raw::git_odb_options = std::mem::zeroed();
+                opts.version = raw::GIT_ODB_OPTIONS_VERSION;
+                opts.oid_type = format.raw();
+                try_call!(raw::git_odb_new(&mut out, &opts));
+            }
             Ok(Odb::from_raw(out))
         }
     }
@@ -239,7 +262,10 @@ impl<'repo> Odb<'repo> {
     /// ```compile_fail
     /// use git2::Odb;
     /// let mempack = {
+    ///     #[cfg(not(feature = "unstable-sha256"))]
     ///     let odb = Odb::new().unwrap();
+    ///     #[cfg(feature = "unstable-sha256")]
+    ///     let odb = Odb::new_ext(git2::ObjectFormat::Sha1).unwrap();
     ///     odb.add_new_mempack_backend(1000).unwrap()
     /// };
     /// ```
@@ -635,7 +661,7 @@ mod tests {
         let db = repo.odb().unwrap();
         let id = db.write(ObjectType::Blob, &dat).unwrap();
         let id_prefix_str = &id.to_string()[0..10];
-        let id_prefix = Oid::from_str(id_prefix_str).unwrap();
+        let id_prefix = Oid::from_str_ext(id_prefix_str, repo.object_format()).unwrap();
         let found_oid = db.exists_prefix(id_prefix, 10).unwrap();
         assert_eq!(found_oid, id);
     }
