@@ -32,10 +32,17 @@ fn main() {
         _ => f.to_string(),
     });
     cfg.skip_field(|struct_, f| {
-        // this field is marked as const which ctest complains about
-        (struct_ == "git_rebase_operation" && f == "id") ||
         // the real name of this field is ref but that is a reserved keyword
-        (struct_ == "git_worktree_add_options" && f == "reference")
+        struct_ == "git_worktree_add_options" && f == "reference"
+    });
+    cfg.skip_struct(|struct_| {
+        // This type has a `const git_oid id` field which causes problems with
+        // ctest, and starting in clang 21, the
+        // default-const-init-field-unsafe lint is now a warning (which is
+        // then denied). This probably needs to be fixed in ctest.
+        // Alternatively, we could detect the usage of clang and add a
+        // compiler flag to disable that warning.
+        struct_ == "git_rebase_operation"
     });
     cfg.skip_signededness(|s| match s {
         s if s.ends_with("_cb") => true,
