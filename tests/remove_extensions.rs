@@ -12,6 +12,7 @@ fn test_remove_extensions() -> Result<(), Error> {
             "!noop",
             "!objectformat",
             "!preciousobjects",
+            "!relativeworktrees",
             "!worktreeconfig",
             "other",
         ])?;
