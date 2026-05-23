@@ -17,6 +17,8 @@ fn test_get_extensions() -> Result<(), Error> {
             Some("objectformat"),
             // The preciousobjects extension was added in 1.9
             Some("preciousobjects"),
+            // The relativeworktrees extension was added in 1.9.4
+            Some("relativeworktrees"),
             // The worktreeconfig extension was added in 1.8
             Some("worktreeconfig")
         ]

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.5+1.9.4 - 2026-05-23
+[0.18.4...0.18.5](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.4+1.9.3...libgit2-sys-0.18.5+1.9.4)
+
+### Changed
+- Updated to libgit2 [1.9.4](https://github.com/libgit2/libgit2/releases/tag/v1.9.4)
+  [#1260](https://github.com/rust-lang/git2-rs/pull/1260)
+
 ## 0.18.4+1.9.3 - 2026-05-07
 [0.18.3...0.18.4](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.3+1.9.2...libgit2-sys-0.18.4+1.9.3)
 
