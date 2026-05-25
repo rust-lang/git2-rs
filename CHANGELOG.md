@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.21.0 - TBD
+## 0.21.0 - 2026-05-18
 [0.20.4...main](https://github.com/rust-lang/git2-rs/compare/git2-0.20.4...main)
 
 ### Added
