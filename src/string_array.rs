@@ -52,8 +52,8 @@ impl StringArray {
 
     /// Returns an iterator over the strings contained within this array.
     ///
-    /// The iterator yields `Option<&str>` as it is unknown whether the contents
-    /// are utf-8 or not.
+    /// The iterator yields `Result<Option<&str>, Error>` as it is unknown
+    /// whether the contents are utf-8 or not.
     pub fn iter(&self) -> Iter<'_> {
         Iter {
             range: 0..self.len(),
