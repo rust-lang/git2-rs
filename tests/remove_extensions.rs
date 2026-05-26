@@ -22,7 +22,7 @@ fn test_remove_extensions() -> Result<(), Error> {
     let extensions: Result<Vec<_>, Error> = extensions.iter().collect();
     let extensions = extensions.unwrap();
 
-    assert_eq!(extensions, [Some("custom"), Some("other")]);
+    assert_eq!(extensions, ["custom", "other"]);
 
     Ok(())
 }
