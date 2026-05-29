@@ -771,10 +771,10 @@ extern "C" fn index_matched_path_cb(
     payload: *mut c_void,
 ) -> c_int {
     unsafe {
-        let path = CStr::from_ptr(path).to_bytes();
-        let matched_pathspec = CStr::from_ptr(matched_pathspec).to_bytes();
-
         panic::wrap(|| {
+            let path = crate::opt_bytes(&payload, path).unwrap();
+            let matched_pathspec =
+                crate::opt_bytes(&payload, matched_pathspec).expect("no matched pathspec");
             let payload = payload as *mut &mut IndexMatchedPath<'_>;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         })
@@ -1082,5 +1082,22 @@ mod tests {
     #[cfg(feature = "unstable-sha256")]
     fn smoke_in_memory_index_sha256() {
         let _index = Index::new_ext(ObjectFormat::Sha256).unwrap();
+    }
+
+    #[test]
+    #[should_panic = "no matched pathspec"]
+    fn empty_pathspec_with_cb() {
+        let (td, repo) = crate::test::repo_init();
+        crate::test::commit(&repo);
+        fs::write(td.path().join("foo"), "modified").unwrap();
+        let pathspecs: &[&str] = &[];
+        let mut index = repo.index().unwrap();
+        index
+            .add_all(
+                pathspecs,
+                Default::default(),
+                Some(&mut |_path, _matched_pathspec| 0),
+            )
+            .unwrap();
     }
 }
