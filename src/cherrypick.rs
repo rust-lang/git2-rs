@@ -44,29 +44,35 @@ impl<'cb> CherrypickOptions<'cb> {
 
     /// Obtain the raw struct
     pub fn raw(&mut self) -> raw::git_cherrypick_options {
+        let mut checkout_opts: raw::git_checkout_options = unsafe { mem::zeroed() };
         unsafe {
-            let mut checkout_opts: raw::git_checkout_options = mem::zeroed();
             raw::git_checkout_init_options(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
-            if let Some(ref mut cb) = self.checkout_builder {
-                cb.configure(&mut checkout_opts);
-            }
+        }
+        if let Some(ref mut cb) = self.checkout_builder {
+            unsafe { cb.configure(&mut checkout_opts) };
+        }
 
-            let mut merge_opts: raw::git_merge_options = mem::zeroed();
+        let mut merge_opts: raw::git_merge_options = unsafe { mem::zeroed() };
+        unsafe {
             raw::git_merge_init_options(&mut merge_opts, raw::GIT_MERGE_OPTIONS_VERSION);
-            if let Some(ref opts) = self.merge_opts {
+        }
+        if let Some(ref opts) = self.merge_opts {
+            unsafe {
                 ptr::copy(opts.raw(), &mut merge_opts, 1);
             }
+        }
 
-            let mut cherrypick_opts: raw::git_cherrypick_options = mem::zeroed();
+        let mut cherrypick_opts: raw::git_cherrypick_options = unsafe { mem::zeroed() };
+        unsafe {
             raw::git_cherrypick_init_options(
                 &mut cherrypick_opts,
                 raw::GIT_CHERRYPICK_OPTIONS_VERSION,
             );
-            cherrypick_opts.mainline = self.mainline;
-            cherrypick_opts.checkout_opts = checkout_opts;
-            cherrypick_opts.merge_opts = merge_opts;
-
-            cherrypick_opts
         }
+        cherrypick_opts.mainline = self.mainline;
+        cherrypick_opts.checkout_opts = checkout_opts;
+        cherrypick_opts.merge_opts = merge_opts;
+
+        cherrypick_opts
     }
 }
