@@ -488,12 +488,12 @@ pub fn merge_file(
     theirs: &MergeFileInput<'_>,
     opts: Option<&mut MergeFileOptions>,
 ) -> Result<MergeFileResult, Error> {
-    unsafe {
-        let ancestor = ancestor.raw();
-        let ours = ours.raw();
-        let theirs = theirs.raw();
+    let ancestor = ancestor.raw();
+    let ours = ours.raw();
+    let theirs = theirs.raw();
 
-        let mut ret = mem::zeroed();
+    let mut ret = unsafe { mem::zeroed() };
+    unsafe {
         try_call!(raw::git_merge_file(
             &mut ret,
             ancestor,
