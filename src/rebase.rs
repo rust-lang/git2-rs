@@ -83,19 +83,21 @@ impl<'cb> RebaseOptions<'cb> {
 
     /// Acquire a pointer to the underlying raw options.
     pub fn raw(&mut self) -> *const raw::git_rebase_options {
-        unsafe {
-            if let Some(opts) = self.merge_options.as_mut().take() {
+        if let Some(opts) = self.merge_options.as_mut().take() {
+            unsafe {
                 ptr::copy_nonoverlapping(opts.raw(), &mut self.raw.merge_options, 1);
             }
-            if let Some(opts) = self.checkout_options.as_mut() {
+        }
+        if let Some(opts) = self.checkout_options.as_mut() {
+            unsafe {
                 opts.configure(&mut self.raw.checkout_options);
             }
-            self.raw.rewrite_notes_ref = self
-                .rewrite_notes_ref
-                .as_ref()
-                .map(|s| s.as_ptr())
-                .unwrap_or(ptr::null());
         }
+        self.raw.rewrite_notes_ref = self
+            .rewrite_notes_ref
+            .as_ref()
+            .map(|s| s.as_ptr())
+            .unwrap_or(ptr::null());
         &self.raw
     }
 }
@@ -129,13 +131,11 @@ impl<'repo> Rebase<'repo> {
 
     ///  Gets the rebase operation specified by the given index.
     pub fn nth(&mut self, n: usize) -> Option<RebaseOperation<'_>> {
-        unsafe {
-            let op = raw::git_rebase_operation_byindex(self.raw, n);
-            if op.is_null() {
-                None
-            } else {
-                Some(RebaseOperation::from_raw(op))
-            }
+        let op = unsafe { raw::git_rebase_operation_byindex(self.raw, n) };
+        if op.is_null() {
+            None
+        } else {
+            Some(unsafe { RebaseOperation::from_raw(op) })
         }
     }
 
