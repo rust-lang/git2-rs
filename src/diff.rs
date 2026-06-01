@@ -179,8 +179,8 @@ impl<'repo> Diff<'repo> {
         let print: raw::git_diff_line_cb = Some(print_cb);
         unsafe {
             try_call!(raw::git_diff_print(self.raw, format, print, ptr as *mut _));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Loop over all deltas in a diff issuing callbacks.
@@ -201,23 +201,23 @@ impl<'repo> Diff<'repo> {
             line: line_cb,
         };
         let ptr = &mut cbs as *mut _;
+        let binary_cb_c: raw::git_diff_binary_cb = if cbs.binary.is_some() {
+            Some(binary_cb_c)
+        } else {
+            None
+        };
+        let hunk_cb_c: raw::git_diff_hunk_cb = if cbs.hunk.is_some() {
+            Some(hunk_cb_c)
+        } else {
+            None
+        };
+        let line_cb_c: raw::git_diff_line_cb = if cbs.line.is_some() {
+            Some(line_cb_c)
+        } else {
+            None
+        };
+        let file_cb: raw::git_diff_file_cb = Some(file_cb_c);
         unsafe {
-            let binary_cb_c: raw::git_diff_binary_cb = if cbs.binary.is_some() {
-                Some(binary_cb_c)
-            } else {
-                None
-            };
-            let hunk_cb_c: raw::git_diff_hunk_cb = if cbs.hunk.is_some() {
-                Some(hunk_cb_c)
-            } else {
-                None
-            };
-            let line_cb_c: raw::git_diff_line_cb = if cbs.line.is_some() {
-                Some(line_cb_c)
-            } else {
-                None
-            };
-            let file_cb: raw::git_diff_file_cb = Some(file_cb_c);
             try_call!(raw::git_diff_foreach(
                 self.raw,
                 file_cb,
@@ -226,8 +226,8 @@ impl<'repo> Diff<'repo> {
                 line_cb_c,
                 ptr as *mut _
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Accumulate diff statistics for all patches.
@@ -328,21 +328,23 @@ impl Diff<'static> {
         let data = buffer.as_ptr() as *const c_char;
         let len = buffer.len();
         // NOTE: Doesn't depend on repo, so lifetime can be 'static
-        unsafe {
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
             }
-            #[cfg(feature = "unstable-sha256")]
-            {
-                let mut opts: raw::git_diff_parse_options = std::mem::zeroed();
-                opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
-                opts.oid_type = format.raw();
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
+            opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
+            opts.oid_type = format.raw();
+            unsafe {
                 try_call!(raw::git_diff_from_buffer(&mut diff, data, len, &mut opts));
             }
-            Ok(Diff::from_raw(diff))
         }
+        Ok(unsafe { Diff::from_raw(diff) })
     }
 }
 
@@ -352,20 +354,21 @@ pub extern "C" fn print_cb(
     line: *const raw::git_diff_line,
     data: *mut c_void,
 ) -> c_int {
+    let r;
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw_opt(hunk);
         let line = Binding::from_raw(line);
 
-        let r = panic::wrap(|| {
+        r = panic::wrap(|| {
             let data = data as *mut &mut PrintCb<'_>;
             (*data)(delta, hunk, line)
         });
-        if r == Some(true) {
-            raw::GIT_OK
-        } else {
-            raw::GIT_EUSER
-        }
+    }
+    if r == Some(true) {
+        raw::GIT_OK
+    } else {
+        raw::GIT_EUSER
     }
 }
 
@@ -374,21 +377,22 @@ pub extern "C" fn file_cb_c(
     progress: f32,
     data: *mut c_void,
 ) -> c_int {
+    let r;
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
 
-        let r = panic::wrap(|| {
+        r = panic::wrap(|| {
             let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).file {
                 Some(ref mut cb) => cb(delta, progress),
                 None => false,
             }
         });
-        if r == Some(true) {
-            raw::GIT_OK
-        } else {
-            raw::GIT_EUSER
-        }
+    }
+    if r == Some(true) {
+        raw::GIT_OK
+    } else {
+        raw::GIT_EUSER
     }
 }
 
@@ -397,22 +401,23 @@ pub extern "C" fn binary_cb_c(
     binary: *const raw::git_diff_binary,
     data: *mut c_void,
 ) -> c_int {
+    let r;
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let binary = Binding::from_raw(binary);
 
-        let r = panic::wrap(|| {
+        r = panic::wrap(|| {
             let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).binary {
                 Some(ref mut cb) => cb(delta, binary),
                 None => false,
             }
         });
-        if r == Some(true) {
-            raw::GIT_OK
-        } else {
-            raw::GIT_EUSER
-        }
+    }
+    if r == Some(true) {
+        raw::GIT_OK
+    } else {
+        raw::GIT_EUSER
     }
 }
 
@@ -421,22 +426,23 @@ pub extern "C" fn hunk_cb_c(
     hunk: *const raw::git_diff_hunk,
     data: *mut c_void,
 ) -> c_int {
+    let r;
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw(hunk);
 
-        let r = panic::wrap(|| {
+        r = panic::wrap(|| {
             let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).hunk {
                 Some(ref mut cb) => cb(delta, hunk),
                 None => false,
             }
         });
-        if r == Some(true) {
-            raw::GIT_OK
-        } else {
-            raw::GIT_EUSER
-        }
+    }
+    if r == Some(true) {
+        raw::GIT_OK
+    } else {
+        raw::GIT_EUSER
     }
 }
 
@@ -446,23 +452,24 @@ pub extern "C" fn line_cb_c(
     line: *const raw::git_diff_line,
     data: *mut c_void,
 ) -> c_int {
+    let r;
     unsafe {
         let delta = Binding::from_raw(delta as *mut _);
         let hunk = Binding::from_raw_opt(hunk);
         let line = Binding::from_raw(line);
 
-        let r = panic::wrap(|| {
+        r = panic::wrap(|| {
             let cbs = data as *mut DiffCallbacks<'_, '_, '_, '_, '_, '_, '_, '_>;
             match (*cbs).line {
                 Some(ref mut cb) => cb(delta, hunk, line),
                 None => false,
             }
         });
-        if r == Some(true) {
-            raw::GIT_OK
-        } else {
-            raw::GIT_EUSER
-        }
+    }
+    if r == Some(true) {
+        raw::GIT_OK
+    } else {
+        raw::GIT_EUSER
     }
 }
 
