@@ -123,41 +123,37 @@ impl<'repo> Tree<'repo> {
         C: FnMut(&str, &TreeEntry<'_>) -> T,
         T: Into<i32>,
     {
+        let mut data = TreeWalkCbData {
+            callback: &mut callback,
+        };
         unsafe {
-            let mut data = TreeWalkCbData {
-                callback: &mut callback,
-            };
             try_call!(raw::git_tree_walk(
                 self.raw(),
                 mode as raw::git_treewalk_mode,
                 treewalk_cb::<T>,
                 &mut data as *mut _ as *mut c_void
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Lookup a tree entry by SHA value.
     pub fn get_id(&self, id: Oid) -> Option<TreeEntry<'_>> {
-        unsafe {
-            let ptr = raw::git_tree_entry_byid(&*self.raw(), &*id.raw());
-            if ptr.is_null() {
-                None
-            } else {
-                Some(entry_from_raw_const(ptr))
-            }
+        let ptr = unsafe { raw::git_tree_entry_byid(&*self.raw(), &*id.raw()) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { entry_from_raw_const(ptr) })
         }
     }
 
     /// Lookup a tree entry by its position in the tree
     pub fn get(&self, n: usize) -> Option<TreeEntry<'_>> {
-        unsafe {
-            let ptr = raw::git_tree_entry_byindex(&*self.raw(), n as libc::size_t);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(entry_from_raw_const(ptr))
-            }
+        let ptr = unsafe { raw::git_tree_entry_byindex(&*self.raw(), n as libc::size_t) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { entry_from_raw_const(ptr) })
         }
     }
 
@@ -171,13 +167,11 @@ impl<'repo> Tree<'repo> {
     /// This allows for non-UTF-8 filenames.
     pub fn get_name_bytes(&self, filename: &[u8]) -> Option<TreeEntry<'_>> {
         let filename = CString::new(filename).unwrap();
-        unsafe {
-            let ptr = call!(raw::git_tree_entry_byname(&*self.raw(), filename));
-            if ptr.is_null() {
-                None
-            } else {
-                Some(entry_from_raw_const(ptr))
-            }
+        let ptr = unsafe { call!(raw::git_tree_entry_byname(&*self.raw(), filename)) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { entry_from_raw_const(ptr) })
         }
     }
 
@@ -331,10 +325,8 @@ impl<'tree> TreeEntry<'tree> {
     ///
     /// This will use the `Clone::clone` implementation under the hood.
     pub fn to_owned(&self) -> TreeEntry<'static> {
-        unsafe {
-            let me = mem::transmute::<&TreeEntry<'tree>, &TreeEntry<'static>>(self);
-            me.clone()
-        }
+        let me = unsafe { mem::transmute::<&TreeEntry<'tree>, &TreeEntry<'static>>(self) };
+        me.clone()
     }
 }
 
