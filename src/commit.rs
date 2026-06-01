@@ -175,12 +175,9 @@ impl<'repo> Commit<'repo> {
     /// The second element is the offset, in minutes, of the time zone of the
     /// committer's preferred time zone.
     pub fn time(&self) -> Time {
-        unsafe {
-            Time::new(
-                raw::git_commit_time(&*self.raw) as i64,
-                raw::git_commit_time_offset(&*self.raw) as i32,
-            )
-        }
+        let time = unsafe { raw::git_commit_time(&*self.raw) } as i64;
+        let offset = unsafe { raw::git_commit_time_offset(&*self.raw) } as i32;
+        Time::new(time, offset)
     }
 
     /// Creates a new iterator over the parents of this commit.
@@ -309,13 +306,11 @@ impl<'repo> Commit<'repo> {
     ///
     /// Use the `parent_ids` iterator to return an iterator over all parents.
     pub fn parent_id(&self, i: usize) -> Result<Oid, Error> {
-        unsafe {
-            let id = raw::git_commit_parent_id(self.raw, i as libc::c_uint);
-            if id.is_null() {
-                Err(Error::from_str("parent index out of bounds"))
-            } else {
-                Ok(Binding::from_raw(id))
-            }
+        let id = unsafe { raw::git_commit_parent_id(self.raw, i as libc::c_uint) };
+        if id.is_null() {
+            Err(Error::from_str("parent index out of bounds"))
+        } else {
+            Ok(unsafe { Binding::from_raw(id) })
         }
     }
 
