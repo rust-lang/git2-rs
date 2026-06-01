@@ -47,8 +47,8 @@ impl Pathspec {
     {
         crate::init();
         let (_a, _b, arr) = crate::util::iter2cstrs_paths(specs)?;
+        let mut ret = ptr::null_mut();
         unsafe {
-            let mut ret = ptr::null_mut();
             try_call!(raw::git_pathspec_new(&mut ret, &arr));
             Ok(Binding::from_raw(ret))
         }
