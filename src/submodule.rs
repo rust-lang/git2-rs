@@ -42,9 +42,9 @@ impl<'repo> Submodule<'repo> {
         &mut self,
         opts: Option<&mut SubmoduleUpdateOptions<'_>>,
     ) -> Result<Repository, Error> {
+        let mut raw_repo = ptr::null_mut();
         unsafe {
             let raw_opts = opts.map(|o| o.raw());
-            let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_clone(
                 &mut raw_repo,
                 self.raw,
@@ -150,8 +150,8 @@ impl<'repo> Submodule<'repo> {
     /// use_gitlink: Should the workdir contain a gitlink to the repo in
     /// .git/modules vs. repo directly in workdir.
     pub fn repo_init(&mut self, use_gitlink: bool) -> Result<Repository, Error> {
+        let mut raw_repo = ptr::null_mut();
         unsafe {
-            let mut raw_repo = ptr::null_mut();
             try_call!(raw::git_submodule_repo_init(
                 &mut raw_repo,
                 self.raw,
