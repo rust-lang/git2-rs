@@ -119,8 +119,8 @@ impl<'repo> Branch<'repo> {
                 self.get().raw(),
                 upstream_name
             ));
-            Ok(())
         }
+        Ok(())
     }
 }
 
