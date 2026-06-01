@@ -22,15 +22,17 @@ pub enum AttrValue<'string> {
 }
 
 macro_rules! from_value {
-    ($value:expr => $string:expr) => {
-        match unsafe { raw::git_attr_value($value.map_or(ptr::null(), |v| v.as_ptr().cast())) } {
+    ($value:expr => $string:expr) => {{
+        let ptr = $value.map_or(ptr::null(), |v| v.as_ptr().cast());
+        let value = unsafe { raw::git_attr_value(ptr) };
+        match value {
             raw::GIT_ATTR_VALUE_TRUE => Self::True,
             raw::GIT_ATTR_VALUE_FALSE => Self::False,
             raw::GIT_ATTR_VALUE_STRING => $string,
             raw::GIT_ATTR_VALUE_UNSPECIFIED => Self::Unspecified,
             _ => unreachable!(),
         }
-    };
+    }};
 }
 
 impl<'string> AttrValue<'string> {
