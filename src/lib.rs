@@ -921,11 +921,12 @@ fn opt_cstr<T: IntoCString>(o: Option<T>) -> Result<Option<CString>, Error> {
 impl ObjectType {
     /// Convert an object type to its string representation.
     pub fn str(&self) -> &'static str {
+        let data;
         unsafe {
             let ptr = call!(raw::git_object_type2string(*self)) as *const _;
-            let data = CStr::from_ptr(ptr).to_bytes();
-            str::from_utf8(data).unwrap()
+            data = CStr::from_ptr(ptr).to_bytes();
         }
+        str::from_utf8(data).unwrap()
     }
 
     /// Determine if the given git_object_t is a valid loose object type.
