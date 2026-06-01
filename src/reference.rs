@@ -165,9 +165,9 @@ impl<'repo> Reference<'repo> {
                 refname,
                 flags.bits()
             ));
-            let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
-            Ok(str::from_utf8(s).unwrap().to_owned())
         }
+        let s = &dst[..dst.iter().position(|&a| a == 0).unwrap()];
+        Ok(str::from_utf8(s).unwrap().to_owned())
     }
 
     /// Get access to the underlying raw pointer.
@@ -503,15 +503,16 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
     type Item = Result<&'references str, Error>;
     fn next(&mut self) -> Option<Result<&'references str, Error>> {
         let mut out = ptr::null();
+        let bytes;
         unsafe {
             try_call_iter!(raw::git_reference_next_name(&mut out, self.inner.raw));
-            let bytes = crate::opt_bytes(self, out).unwrap();
-            let s = match str::from_utf8(bytes) {
-                Ok(s) => s,
-                Err(e) => return Some(Err(e.into())),
-            };
-            Some(Ok(mem::transmute::<&str, &'references str>(s)))
+            bytes = crate::opt_bytes(self, out).unwrap();
         }
+        let s = match str::from_utf8(bytes) {
+            Ok(s) => s,
+            Err(e) => return Some(Err(e.into())),
+        };
+        Some(Ok(unsafe { mem::transmute::<&str, &'references str>(s) }))
     }
 }
 
