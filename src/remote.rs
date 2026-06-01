@@ -176,11 +176,11 @@ impl<'repo> Remote<'repo> {
     /// connection to the remote is initiated and it remains available after
     /// disconnecting.
     pub fn default_branch(&self) -> Result<Buf, Error> {
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_remote_default_branch(buf.raw(), self.raw));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Get the remote's object format (hash algorithm).
@@ -402,18 +402,20 @@ impl<'repo> Remote<'repo> {
                 mem::size_of::<RemoteHead<'_>>(),
                 mem::size_of::<*const raw::git_remote_head>()
             );
-            if base.is_null() {
-                // We cannot use slice::from_raw_parts() since that requires
-                // that the pointer be non-null, but that is fine since the size
-                // should be zero
-                if size != 0 {
-                    return Err(Error::from_str(&format!(
-                        "git_remote_ls() set a null pointer for a list of size {}",
-                        size
-                    )));
-                }
-                return Ok(&[]);
+        }
+        if base.is_null() {
+            // We cannot use slice::from_raw_parts() since that requires
+            // that the pointer be non-null, but that is fine since the size
+            // should be zero
+            if size != 0 {
+                return Err(Error::from_str(&format!(
+                    "git_remote_ls() set a null pointer for a list of size {}",
+                    size
+                )));
             }
+            return Ok(&[]);
+        }
+        unsafe {
             let slice = slice::from_raw_parts(base as *const _, size as usize);
             Ok(mem::transmute::<
                 &[*const raw::git_remote_head],
