@@ -3655,6 +3655,7 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
+    use crate::AttrCheckFlags;
     use crate::ObjectFormat;
     #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
@@ -4971,5 +4972,33 @@ Committer Name <committer.proper@email> <committer@email>"#,
             std::env::remove_var("GIT_COMMITTER_NAME");
             std::env::remove_var("GIT_COMMITTER_EMAIL");
         }
+    }
+
+    #[test]
+    fn attr_invalid_utf8() {
+        let (td, repo) = crate::test::repo_init();
+        t!(fs::write(
+            &td.path().join(".gitattributes"),
+            b"README.md foo=valid bar=inva\xFFlid"
+        ));
+
+        let readme = Path::new("README.md");
+        let flags = AttrCheckFlags::FILE_THEN_INDEX;
+
+        let bytes_valid_result = repo.get_attr_bytes(readme, "foo", flags);
+        let valid_bytes = bytes_valid_result.expect("No error").expect("Not None");
+        assert_eq!("valid".as_bytes(), valid_bytes);
+
+        let str_valid_result = repo.get_attr(readme, "foo", flags);
+        let valid_str = str_valid_result.expect("No error").expect("Not None");
+        assert_eq!("valid", valid_str);
+
+        let bytes_invalid_result = repo.get_attr_bytes(readme, "bar", flags);
+        let invalid_bytes = bytes_invalid_result.expect("No error").expect("Not none");
+        assert_eq!(b"inva\xFFlid", invalid_bytes);
+
+        let str_invalid_result = repo.get_attr(readme, "bar", flags);
+        let invalid_str_option = str_invalid_result.expect("No error");
+        assert!(invalid_str_option.is_none());
     }
 }
