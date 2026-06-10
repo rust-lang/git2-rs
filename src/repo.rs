@@ -1114,9 +1114,10 @@ impl Repository {
         name: &str,
         flags: AttrCheckFlags,
     ) -> Result<Option<&str>, Error> {
-        Ok(self
-            .get_attr_bytes(path, name, flags)?
-            .and_then(|a| str::from_utf8(a).ok()))
+        Ok(match self.get_attr_bytes(path, name, flags)? {
+            Some(b) => Some(str::from_utf8(b)?),
+            None => None,
+        })
     }
 
     /// Get the value of a git attribute for a path as a byte slice.
@@ -3656,6 +3657,7 @@ impl RepositoryInitOptions {
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::AttrCheckFlags;
+    use crate::Error;
     use crate::ObjectFormat;
     #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
@@ -4998,7 +5000,11 @@ Committer Name <committer.proper@email> <committer@email>"#,
         assert_eq!(b"inva\xFFlid", invalid_bytes);
 
         let str_invalid_result = repo.get_attr(readme, "bar", flags);
-        let invalid_str_option = str_invalid_result.expect("No error");
-        assert!(invalid_str_option.is_none());
+        assert_eq!(
+            Err(Error::from_str(
+                "invalid utf-8 sequence of 1 bytes from index 4"
+            )),
+            str_invalid_result
+        );
     }
 }
