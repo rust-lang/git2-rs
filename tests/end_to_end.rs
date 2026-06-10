@@ -141,14 +141,19 @@ fn non_utf8_branch() {
     // Also try examining the reference name via Branch::name()
     let mut branches = repo.branches(None).expect("Should have branches");
     let branch1 = branches.next().expect("Has a branch").expect("No error").0;
-    assert_eq!(Ok(None), branch1.name());
+    assert_eq!(
+        Err(Error::from_str(
+            "invalid utf-8 sequence of 1 bytes from index 1"
+        )),
+        branch1.name()
+    );
 
     let branch2 = branches
         .next()
         .expect("Has another branch")
         .expect("No error")
         .0;
-    assert_eq!(Ok(Some("main")), branch2.name());
+    assert_eq!(Ok("main"), branch2.name());
     assert!(branches.next().is_none());
 }
 
