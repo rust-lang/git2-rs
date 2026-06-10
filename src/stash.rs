@@ -135,8 +135,8 @@ impl<'cb> StashApplyOptions<'cb> {
 
     /// Pointer to a raw git_stash_apply_options
     pub fn raw(&mut self) -> &raw::git_stash_apply_options {
-        unsafe {
-            if let Some(opts) = self.checkout_options.as_mut() {
+        if let Some(opts) = self.checkout_options.as_mut() {
+            unsafe {
                 opts.configure(&mut self.raw_opts.checkout_options);
             }
         }

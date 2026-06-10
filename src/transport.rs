@@ -182,8 +182,8 @@ impl Transport {
         ) -> c_int {
             unsafe {
                 *out = ptr as *mut raw::git_smart_subtransport;
-                0
             }
+            0
         }
     }
 }

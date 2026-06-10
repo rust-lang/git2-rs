@@ -259,48 +259,48 @@ impl<'a> Binding for RemoteCallbacks<'a> {
     }
 
     fn raw(&self) -> raw::git_remote_callbacks {
+        let mut callbacks: raw::git_remote_callbacks = unsafe { mem::zeroed() };
         unsafe {
-            let mut callbacks: raw::git_remote_callbacks = mem::zeroed();
             assert_eq!(
                 raw::git_remote_init_callbacks(&mut callbacks, raw::GIT_REMOTE_CALLBACKS_VERSION),
                 0
             );
-            if self.progress.is_some() {
-                callbacks.transfer_progress = Some(transfer_progress_cb);
-            }
-            if self.credentials.is_some() {
-                callbacks.credentials = Some(credentials_cb);
-            }
-            if self.sideband_progress.is_some() {
-                callbacks.sideband_progress = Some(sideband_progress_cb);
-            }
-            if self.certificate_check.is_some() {
-                callbacks.certificate_check = Some(certificate_check_cb);
-            }
-            if self.push_update_reference.is_some() {
-                callbacks.push_update_reference = Some(push_update_reference_cb);
-            }
-            if self.push_progress.is_some() {
-                callbacks.push_transfer_progress = Some(push_transfer_progress_cb);
-            }
-            if self.pack_progress.is_some() {
-                callbacks.pack_progress = Some(pack_progress_cb);
-            }
-            if self.update_tips.is_some() {
-                let f: extern "C" fn(
-                    *const c_char,
-                    *const raw::git_oid,
-                    *const raw::git_oid,
-                    *mut c_void,
-                ) -> c_int = update_tips_cb;
-                callbacks.update_tips = Some(f);
-            }
-            if self.push_negotiation.is_some() {
-                callbacks.push_negotiation = Some(push_negotiation_cb);
-            }
-            callbacks.payload = self as *const _ as *mut _;
-            callbacks
         }
+        if self.progress.is_some() {
+            callbacks.transfer_progress = Some(transfer_progress_cb);
+        }
+        if self.credentials.is_some() {
+            callbacks.credentials = Some(credentials_cb);
+        }
+        if self.sideband_progress.is_some() {
+            callbacks.sideband_progress = Some(sideband_progress_cb);
+        }
+        if self.certificate_check.is_some() {
+            callbacks.certificate_check = Some(certificate_check_cb);
+        }
+        if self.push_update_reference.is_some() {
+            callbacks.push_update_reference = Some(push_update_reference_cb);
+        }
+        if self.push_progress.is_some() {
+            callbacks.push_transfer_progress = Some(push_transfer_progress_cb);
+        }
+        if self.pack_progress.is_some() {
+            callbacks.pack_progress = Some(pack_progress_cb);
+        }
+        if self.update_tips.is_some() {
+            let f: extern "C" fn(
+                *const c_char,
+                *const raw::git_oid,
+                *const raw::git_oid,
+                *mut c_void,
+            ) -> c_int = update_tips_cb;
+            callbacks.update_tips = Some(f);
+        }
+        if self.push_negotiation.is_some() {
+            callbacks.push_negotiation = Some(push_negotiation_cb);
+        }
+        callbacks.payload = self as *const _ as *mut _;
+        callbacks
     }
 }
 
@@ -311,41 +311,41 @@ extern "C" fn credentials_cb(
     allowed_types: c_uint,
     payload: *mut c_void,
 ) -> c_int {
-    unsafe {
-        let ok = panic::wrap(|| {
-            let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
-            let callback = payload
-                .credentials
-                .as_mut()
-                .ok_or(raw::GIT_PASSTHROUGH as c_int)?;
-            *ret = ptr::null_mut();
-            let url = str::from_utf8(CStr::from_ptr(url).to_bytes())
-                .map_err(|_| raw::GIT_PASSTHROUGH as c_int)?;
-            let username_from_url = match crate::opt_bytes(&url, username_from_url) {
-                Some(username) => {
-                    Some(str::from_utf8(username).map_err(|_| raw::GIT_PASSTHROUGH as c_int)?)
-                }
-                None => None,
-            };
-
-            let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
-
-            callback(url, username_from_url, cred_type).map_err(|e| e.raw_set_git_error())
-        });
-        match ok {
-            Some(Ok(cred)) => {
-                // Turns out it's a memory safety issue if we pass through any
-                // and all credentials into libgit2
-                if allowed_types & (cred.credtype() as c_uint) != 0 {
-                    *ret = cred.unwrap();
-                    0
-                } else {
-                    raw::GIT_PASSTHROUGH as c_int
-                }
+    let ok = panic::wrap(|| unsafe {
+        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+        let callback = payload
+            .credentials
+            .as_mut()
+            .ok_or(raw::GIT_PASSTHROUGH as c_int)?;
+        *ret = ptr::null_mut();
+        let url = str::from_utf8(CStr::from_ptr(url).to_bytes())
+            .map_err(|_| raw::GIT_PASSTHROUGH as c_int)?;
+        let username_from_url = match crate::opt_bytes(&url, username_from_url) {
+            Some(username) => {
+                Some(str::from_utf8(username).map_err(|_| raw::GIT_PASSTHROUGH as c_int)?)
             }
-            Some(Err(e)) => e,
-            None => -1,
+            None => None,
+        };
+
+        let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
+
+        callback(url, username_from_url, cred_type).map_err(|e| e.raw_set_git_error())
+    });
+    match ok {
+        Some(Ok(cred)) => {
+            // Turns out it's a memory safety issue if we pass through any
+            // and all credentials into libgit2
+            if allowed_types & (cred.credtype() as c_uint) != 0 {
+                unsafe {
+                    *ret = cred.unwrap();
+                }
+                0
+            } else {
+                raw::GIT_PASSTHROUGH as c_int
+            }
         }
+        Some(Err(e)) => e,
+        None => -1,
     }
 }
 

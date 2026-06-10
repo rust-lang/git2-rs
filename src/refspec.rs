@@ -75,29 +75,29 @@ impl<'remote> Refspec<'remote> {
     /// Transform a reference to its target following the refspec's rules
     pub fn transform(&self, name: &str) -> Result<Buf, Error> {
         let name = CString::new(name).unwrap();
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_refspec_transform(
                 buf.raw(),
                 self.raw,
                 name.as_ptr()
             ));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Transform a target reference to its source reference following the refspec's rules
     pub fn rtransform(&self, name: &str) -> Result<Buf, Error> {
         let name = CString::new(name).unwrap();
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_refspec_rtransform(
                 buf.raw(),
                 self.raw,
                 name.as_ptr()
             ));
-            Ok(buf)
         }
+        Ok(buf)
     }
 }
 

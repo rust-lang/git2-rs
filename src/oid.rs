@@ -111,13 +111,15 @@ impl Oid {
         let mut raw = crate::util::zeroed_raw_oid();
         let data = s.as_bytes().as_ptr() as *const libc::c_char;
         let len = s.len() as libc::size_t;
-        unsafe {
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_oid_fromstrn(&mut raw, data, len));
             }
-            #[cfg(feature = "unstable-sha256")]
+        }
+        #[cfg(feature = "unstable-sha256")]
+        unsafe {
             try_call!(raw::git_oid_fromstrn(&mut raw, data, len, format.raw()));
         }
         Ok(Oid { raw })
@@ -192,13 +194,15 @@ impl Oid {
 
         let mut out = crate::util::zeroed_raw_oid();
         let data = bytes.as_ptr() as *const libc::c_void;
-        unsafe {
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_odb_hash(&mut out, data, bytes.len(), kind.raw()));
             }
-            #[cfg(feature = "unstable-sha256")]
+        }
+        #[cfg(feature = "unstable-sha256")]
+        unsafe {
             try_call!(raw::git_odb_hash(
                 &mut out,
                 data,
@@ -236,13 +240,15 @@ impl Oid {
         let rpath = path.as_ref().into_c_string()?;
 
         let mut out = crate::util::zeroed_raw_oid();
-        unsafe {
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
             }
-            #[cfg(feature = "unstable-sha256")]
+        }
+        #[cfg(feature = "unstable-sha256")]
+        unsafe {
             try_call!(raw::git_odb_hashfile(
                 &mut out,
                 rpath,

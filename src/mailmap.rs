@@ -74,8 +74,8 @@ impl Mailmap {
                 replace_name,
                 replace_email
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Resolves a signature to its real name and email address.

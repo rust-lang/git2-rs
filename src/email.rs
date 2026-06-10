@@ -163,8 +163,8 @@ impl Email {
                 Binding::raw(author),
                 opts.raw()
             ));
-            Ok(Self { buf })
         }
+        Ok(Self { buf })
     }
 
     /// Create a diff for a commit in mbox format for sending via email.
@@ -177,7 +177,7 @@ impl Email {
                 commit.raw(),
                 opts.raw()
             ));
-            Ok(Self { buf })
         }
+        Ok(Self { buf })
     }
 }

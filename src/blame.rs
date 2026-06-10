@@ -61,26 +61,22 @@ impl<'repo> Blame<'repo> {
 
     /// Gets the blame hunk at the given index.
     pub fn get_index(&self, index: usize) -> Option<BlameHunk<'_>> {
-        unsafe {
-            let ptr = raw::git_blame_get_hunk_byindex(self.raw(), index as u32);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(BlameHunk::from_raw_const(ptr))
-            }
+        let ptr = unsafe { raw::git_blame_get_hunk_byindex(self.raw(), index as u32) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { BlameHunk::from_raw_const(ptr) })
         }
     }
 
     /// Gets the hunk that relates to the given line number in the newest
     /// commit.
     pub fn get_line(&self, lineno: usize) -> Option<BlameHunk<'_>> {
-        unsafe {
-            let ptr = raw::git_blame_get_hunk_byline(self.raw(), lineno);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(BlameHunk::from_raw_const(ptr))
-            }
+        let ptr = unsafe { raw::git_blame_get_hunk_byline(self.raw(), lineno) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { BlameHunk::from_raw_const(ptr) })
         }
     }
 
@@ -181,12 +177,11 @@ impl<'blame> BlameHunk<'blame> {
     ///
     /// Note: `None` could be returned for non-unicode paths on Windows.
     pub fn path(&self) -> Option<&Path> {
-        unsafe {
-            if let Some(bytes) = crate::opt_bytes(self, (*self.raw).orig_path) {
-                Some(util::bytes2path(bytes))
-            } else {
-                None
-            }
+        let opt_bytes = unsafe { crate::opt_bytes(self, (*self.raw).orig_path) };
+        if let Some(bytes) = opt_bytes {
+            Some(util::bytes2path(bytes))
+        } else {
+            None
         }
     }
 

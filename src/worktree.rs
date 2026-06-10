@@ -106,16 +106,15 @@ impl Worktree {
     /// Checks if worktree is locked
     pub fn is_locked(&self) -> Result<WorktreeLockStatus, Error> {
         let buf = Buf::new();
-        unsafe {
-            match try_call!(raw::git_worktree_is_locked(buf.raw(), self.raw)) {
-                0 => Ok(WorktreeLockStatus::Unlocked),
-                _ => {
-                    let v = buf.to_vec();
-                    Ok(WorktreeLockStatus::Locked(match v.len() {
-                        0 => None,
-                        _ => Some(String::from_utf8(v).unwrap()),
-                    }))
-                }
+        let locked = unsafe { try_call!(raw::git_worktree_is_locked(buf.raw(), self.raw)) };
+        match locked {
+            0 => Ok(WorktreeLockStatus::Unlocked),
+            _ => {
+                let v = buf.to_vec();
+                Ok(WorktreeLockStatus::Locked(match v.len() {
+                    0 => None,
+                    _ => Some(String::from_utf8(v).unwrap()),
+                }))
             }
         }
     }
@@ -132,13 +131,13 @@ impl Worktree {
 
     /// Checks if the worktree is prunable
     pub fn is_prunable(&self, opts: Option<&mut WorktreePruneOptions>) -> Result<bool, Error> {
-        unsafe {
-            let rv = try_call!(raw::git_worktree_is_prunable(
+        let rv = unsafe {
+            try_call!(raw::git_worktree_is_prunable(
                 self.raw,
                 opts.map(|o| o.raw())
-            ));
-            Ok(rv != 0)
-        }
+            ))
+        };
+        Ok(rv != 0)
     }
 }
 
@@ -147,16 +146,16 @@ impl<'a> WorktreeAddOptions<'a> {
     ///
     /// By default this will not lock the worktree
     pub fn new() -> WorktreeAddOptions<'a> {
+        let mut raw = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw = mem::zeroed();
             assert_eq!(
                 raw::git_worktree_add_options_init(&mut raw, raw::GIT_WORKTREE_ADD_OPTIONS_VERSION),
                 0
             );
-            WorktreeAddOptions {
-                raw,
-                _marker: marker::PhantomData,
-            }
+        }
+        WorktreeAddOptions {
+            raw,
+            _marker: marker::PhantomData,
         }
     }
 
@@ -197,8 +196,8 @@ impl WorktreePruneOptions {
     /// By defaults this will prune only worktrees that are no longer valid
     /// unlocked and not checked out
     pub fn new() -> WorktreePruneOptions {
+        let mut raw = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw = mem::zeroed();
             assert_eq!(
                 raw::git_worktree_prune_options_init(
                     &mut raw,
@@ -206,8 +205,8 @@ impl WorktreePruneOptions {
                 ),
                 0
             );
-            WorktreePruneOptions { raw }
         }
+        WorktreePruneOptions { raw }
     }
 
     /// Controls whether valid (still existing on the filesystem) worktrees

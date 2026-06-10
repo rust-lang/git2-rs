@@ -45,13 +45,11 @@ impl<'repo> TreeBuilder<'repo> {
         P: IntoCString,
     {
         let filename = filename.into_c_string()?;
-        unsafe {
-            let ret = raw::git_treebuilder_get(self.raw, filename.as_ptr());
-            if ret.is_null() {
-                Ok(None)
-            } else {
-                Ok(Some(tree::entry_from_raw_const(ret)))
-            }
+        let ret = unsafe { raw::git_treebuilder_get(self.raw, filename.as_ptr()) };
+        if ret.is_null() {
+            Ok(None)
+        } else {
+            Ok(Some(unsafe { tree::entry_from_raw_const(ret) }))
         }
     }
 
@@ -106,8 +104,8 @@ impl<'repo> TreeBuilder<'repo> {
         let cb: raw::git_treebuilder_filter_cb = Some(filter_cb);
         unsafe {
             try_call!(raw::git_treebuilder_filter(self.raw, cb, ptr as *mut _));
-            panic::check();
         }
+        panic::check();
         Ok(())
     }
 

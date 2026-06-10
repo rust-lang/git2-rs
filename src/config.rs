@@ -163,8 +163,8 @@ impl Config {
                 ptr::null(),
                 force
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Delete a config variable from the config file with the highest level
@@ -173,8 +173,8 @@ impl Config {
         let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_delete_entry(self.raw, name));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Remove multivar config variables in the config file with the highest level (usually the
@@ -334,18 +334,16 @@ impl Config {
     /// ```
     pub fn entries(&self, glob: Option<&str>) -> Result<ConfigEntries<'_>, Error> {
         let mut ret = ptr::null_mut();
-        unsafe {
-            match glob {
-                Some(s) => {
-                    let s = CString::new(s)?;
-                    try_call!(raw::git_config_iterator_glob_new(&mut ret, &*self.raw, s));
-                }
-                None => {
-                    try_call!(raw::git_config_iterator_new(&mut ret, &*self.raw));
-                }
+        match glob {
+            Some(s) => {
+                let s = CString::new(s)?;
+                unsafe { try_call!(raw::git_config_iterator_glob_new(&mut ret, &*self.raw, s)) };
             }
-            Ok(Binding::from_raw(ret))
+            None => {
+                unsafe { try_call!(raw::git_config_iterator_new(&mut ret, &*self.raw)) };
+            }
         }
+        Ok(unsafe { Binding::from_raw(ret) })
     }
 
     /// Iterate over the values of a multivar
@@ -558,7 +556,7 @@ impl<'cfg> ConfigEntry<'cfg> {
 
     /// Gets the configuration level of this entry.
     pub fn level(&self) -> ConfigLevel {
-        unsafe { ConfigLevel::from_raw((*self.raw).level) }
+        ConfigLevel::from_raw(unsafe { (*self.raw).level })
     }
 
     /// Depth of includes where this variable was found
@@ -606,14 +604,14 @@ impl<'cfg> ConfigEntries<'cfg> {
         drop(self.current.take());
         unsafe {
             try_call_iter!(raw::git_config_next(&mut raw, self.raw));
-            let entry = ConfigEntry {
-                owned: false,
-                raw,
-                _marker: marker::PhantomData,
-            };
-            self.current = Some(entry);
-            Some(Ok(self.current.as_ref().unwrap()))
         }
+        let entry = ConfigEntry {
+            owned: false,
+            raw,
+            _marker: marker::PhantomData,
+        };
+        self.current = Some(entry);
+        Some(Ok(self.current.as_ref().unwrap()))
     }
 
     /// Calls the given closure for each remaining entry in the iterator.

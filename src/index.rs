@@ -108,21 +108,23 @@ impl Index {
     pub fn new_ext(format: ObjectFormat) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
-        unsafe {
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_index_new(&mut raw));
             }
-            #[cfg(feature = "unstable-sha256")]
-            {
-                let mut opts: raw::git_index_options = std::mem::zeroed();
-                opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
-                opts.oid_type = format.raw();
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let mut opts: raw::git_index_options = unsafe { std::mem::zeroed() };
+            opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+            opts.oid_type = format.raw();
+            unsafe {
                 try_call!(raw::git_index_new(&mut raw, &opts));
             }
-            Ok(Binding::from_raw(raw))
         }
+        Ok(unsafe { Binding::from_raw(raw) })
     }
 
     /// Create a new bare Git index object as a memory representation of the Git
@@ -148,21 +150,21 @@ impl Index {
         let mut raw = ptr::null_mut();
         // Normal file path OK (does not need Windows conversion).
         let index_path = index_path.into_c_string()?;
-        unsafe {
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_index_open(&mut raw, index_path));
             }
-            #[cfg(feature = "unstable-sha256")]
-            {
-                let mut opts: raw::git_index_options = std::mem::zeroed();
-                opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
-                opts.oid_type = format.raw();
-                try_call!(raw::git_index_open(&mut raw, index_path, &opts));
-            }
-            Ok(Binding::from_raw(raw))
         }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let mut opts: raw::git_index_options = unsafe { std::mem::zeroed() };
+            opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+            opts.oid_type = format.raw();
+            unsafe { try_call!(raw::git_index_open(&mut raw, index_path, &opts)) };
+        }
+        Ok(unsafe { Binding::from_raw(raw) })
     }
 
     /// Get index on-disk version.
@@ -205,30 +207,30 @@ impl Index {
             flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
         }
 
+        let raw = raw::git_index_entry {
+            dev: entry.dev,
+            ino: entry.ino,
+            mode: entry.mode,
+            uid: entry.uid,
+            gid: entry.gid,
+            file_size: entry.file_size,
+            id: unsafe { *entry.id.raw() },
+            flags,
+            flags_extended: entry.flags_extended,
+            path: path.as_ptr(),
+            mtime: raw::git_index_time {
+                seconds: entry.mtime.seconds(),
+                nanoseconds: entry.mtime.nanoseconds(),
+            },
+            ctime: raw::git_index_time {
+                seconds: entry.ctime.seconds(),
+                nanoseconds: entry.ctime.nanoseconds(),
+            },
+        };
         unsafe {
-            let raw = raw::git_index_entry {
-                dev: entry.dev,
-                ino: entry.ino,
-                mode: entry.mode,
-                uid: entry.uid,
-                gid: entry.gid,
-                file_size: entry.file_size,
-                id: *entry.id.raw(),
-                flags,
-                flags_extended: entry.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: entry.mtime.seconds(),
-                    nanoseconds: entry.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: entry.ctime.seconds(),
-                    nanoseconds: entry.ctime.nanoseconds(),
-                },
-            };
             try_call!(raw::git_index_add(self.raw, &raw));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Add or update an index entry from a buffer in memory
@@ -262,33 +264,33 @@ impl Index {
             flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
         }
 
-        unsafe {
-            let raw = raw::git_index_entry {
-                dev: entry.dev,
-                ino: entry.ino,
-                mode: entry.mode,
-                uid: entry.uid,
-                gid: entry.gid,
-                file_size: entry.file_size,
-                id: *entry.id.raw(),
-                flags,
-                flags_extended: entry.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: entry.mtime.seconds(),
-                    nanoseconds: entry.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: entry.ctime.seconds(),
-                    nanoseconds: entry.ctime.nanoseconds(),
-                },
-            };
+        let raw = raw::git_index_entry {
+            dev: entry.dev,
+            ino: entry.ino,
+            mode: entry.mode,
+            uid: entry.uid,
+            gid: entry.gid,
+            file_size: entry.file_size,
+            id: unsafe { *entry.id.raw() },
+            flags,
+            flags_extended: entry.flags_extended,
+            path: path.as_ptr(),
+            mtime: raw::git_index_time {
+                seconds: entry.mtime.seconds(),
+                nanoseconds: entry.mtime.nanoseconds(),
+            },
+            ctime: raw::git_index_time {
+                seconds: entry.ctime.seconds(),
+                nanoseconds: entry.ctime.nanoseconds(),
+            },
+        };
 
-            let ptr = data.as_ptr() as *const c_void;
-            let len = data.len() as size_t;
+        let ptr = data.as_ptr() as *const c_void;
+        let len = data.len() as size_t;
+        unsafe {
             try_call!(raw::git_index_add_frombuffer(self.raw, &raw, ptr, len));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Add or update an index entry from a file on disk
@@ -308,8 +310,8 @@ impl Index {
         let posix_path = path_to_repo_path(path)?;
         unsafe {
             try_call!(raw::git_index_add_bypath(self.raw, posix_path));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Add or update index entries matching files in the working directory.
@@ -408,13 +410,11 @@ impl Index {
 
     /// Get one of the entries in the index by its position.
     pub fn get(&self, n: usize) -> Option<IndexEntry> {
-        unsafe {
-            let ptr = raw::git_index_get_byindex(self.raw, n as size_t);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(*ptr))
-            }
+        let ptr = unsafe { raw::git_index_get_byindex(self.raw, n as size_t) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { Binding::from_raw(*ptr) })
         }
     }
 
@@ -442,13 +442,11 @@ impl Index {
     /// Get one of the entries in the index by its path.
     pub fn get_path(&self, path: &Path, stage: i32) -> Option<IndexEntry> {
         let path = path_to_repo_path(path).unwrap();
-        unsafe {
-            let ptr = call!(raw::git_index_get_bypath(self.raw, path, stage as c_int));
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Binding::from_raw(*ptr))
-            }
+        let ptr = unsafe { call!(raw::git_index_get_bypath(self.raw, path, stage as c_int)) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { Binding::from_raw(*ptr) })
         }
     }
 
@@ -474,22 +472,21 @@ impl Index {
                 self.raw,
                 path
             ));
-
-            Ok(IndexConflict {
-                ancestor: match ancestor.is_null() {
-                    false => Some(IndexEntry::from_raw(*ancestor)),
-                    true => None,
-                },
-                our: match our.is_null() {
-                    false => Some(IndexEntry::from_raw(*our)),
-                    true => None,
-                },
-                their: match their.is_null() {
-                    false => Some(IndexEntry::from_raw(*their)),
-                    true => None,
-                },
-            })
         }
+        Ok(IndexConflict {
+            ancestor: match ancestor.is_null() {
+                false => Some(unsafe { IndexEntry::from_raw(*ancestor) }),
+                true => None,
+            },
+            our: match our.is_null() {
+                false => Some(unsafe { IndexEntry::from_raw(*our) }),
+                true => None,
+            },
+            their: match their.is_null() {
+                false => Some(unsafe { IndexEntry::from_raw(*their) }),
+                true => None,
+            },
+        })
     }
 
     /// Get the full path to the index file on disk.
@@ -694,8 +691,8 @@ impl Index {
                 self.raw,
                 entry_path
             ));
-            Ok(at_pos)
         }
+        Ok(at_pos)
     }
 }
 
@@ -718,30 +715,28 @@ impl IndexEntry {
             flags |= raw::GIT_INDEX_ENTRY_NAMEMASK;
         }
 
-        unsafe {
-            let raw = raw::git_index_entry {
-                dev: self.dev,
-                ino: self.ino,
-                mode: self.mode,
-                uid: self.uid,
-                gid: self.gid,
-                file_size: self.file_size,
-                id: *self.id.raw(),
-                flags,
-                flags_extended: self.flags_extended,
-                path: path.as_ptr(),
-                mtime: raw::git_index_time {
-                    seconds: self.mtime.seconds(),
-                    nanoseconds: self.mtime.nanoseconds(),
-                },
-                ctime: raw::git_index_time {
-                    seconds: self.ctime.seconds(),
-                    nanoseconds: self.ctime.nanoseconds(),
-                },
-            };
+        let raw = raw::git_index_entry {
+            dev: self.dev,
+            ino: self.ino,
+            mode: self.mode,
+            uid: self.uid,
+            gid: self.gid,
+            file_size: self.file_size,
+            id: unsafe { *self.id.raw() },
+            flags,
+            flags_extended: self.flags_extended,
+            path: path.as_ptr(),
+            mtime: raw::git_index_time {
+                seconds: self.mtime.seconds(),
+                nanoseconds: self.mtime.nanoseconds(),
+            },
+            ctime: raw::git_index_time {
+                seconds: self.ctime.seconds(),
+                nanoseconds: self.ctime.nanoseconds(),
+            },
+        };
 
-            Ok((raw, path))
-        }
+        Ok((raw, path))
     }
 }
 
@@ -817,21 +812,21 @@ impl<'index> Iterator for IndexConflicts<'index> {
                 &mut their,
                 self.conflict_iter
             ));
-            Some(Ok(IndexConflict {
-                ancestor: match ancestor.is_null() {
-                    false => Some(IndexEntry::from_raw(*ancestor)),
-                    true => None,
-                },
-                our: match our.is_null() {
-                    false => Some(IndexEntry::from_raw(*our)),
-                    true => None,
-                },
-                their: match their.is_null() {
-                    false => Some(IndexEntry::from_raw(*their)),
-                    true => None,
-                },
-            }))
         }
+        Some(Ok(IndexConflict {
+            ancestor: match ancestor.is_null() {
+                false => Some(unsafe { IndexEntry::from_raw(*ancestor) }),
+                true => None,
+            },
+            our: match our.is_null() {
+                false => Some(unsafe { IndexEntry::from_raw(*our) }),
+                true => None,
+            },
+            their: match their.is_null() {
+                false => Some(unsafe { IndexEntry::from_raw(*their) }),
+                true => None,
+            },
+        }))
     }
 }
 

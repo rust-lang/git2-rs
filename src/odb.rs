@@ -59,22 +59,24 @@ impl<'repo> Odb<'repo> {
     /// See [`Odb::new`] for more details.
     pub fn new_ext<'a>(format: ObjectFormat) -> Result<Odb<'a>, Error> {
         crate::init();
-        unsafe {
-            let mut out = ptr::null_mut();
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        let mut out = ptr::null_mut();
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_odb_new(&mut out));
             }
-            #[cfg(feature = "unstable-sha256")]
-            {
-                let mut opts: raw::git_odb_options = std::mem::zeroed();
-                opts.version = raw::GIT_ODB_OPTIONS_VERSION;
-                opts.oid_type = format.raw();
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            let mut opts: raw::git_odb_options = unsafe { std::mem::zeroed() };
+            opts.version = raw::GIT_ODB_OPTIONS_VERSION;
+            opts.oid_type = format.raw();
+            unsafe {
                 try_call!(raw::git_odb_new(&mut out, &opts));
             }
-            Ok(Odb::from_raw(out))
         }
+        Ok(unsafe { Odb::from_raw(out) })
     }
 
     /// Create object database reading stream.
@@ -123,18 +125,18 @@ impl<'repo> Odb<'repo> {
     where
         C: FnMut(&Oid) -> bool,
     {
+        let mut data = ForeachCbData {
+            callback: &mut callback,
+        };
+        let cb: raw::git_odb_foreach_cb = Some(foreach_cb);
         unsafe {
-            let mut data = ForeachCbData {
-                callback: &mut callback,
-            };
-            let cb: raw::git_odb_foreach_cb = Some(foreach_cb);
             try_call!(raw::git_odb_foreach(
                 self.raw(),
                 cb,
                 &mut data as *mut _ as *mut _
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Read an object from the database.
@@ -159,9 +161,8 @@ impl<'repo> Odb<'repo> {
                 self.raw,
                 oid.raw()
             ));
-
-            Ok((size, ObjectType::from_raw(kind_id).unwrap()))
         }
+        Ok((size, ObjectType::from_raw(kind_id).unwrap()))
     }
 
     /// Write an object to the database.
@@ -214,8 +215,8 @@ impl<'repo> Odb<'repo> {
 
     /// Potentially finds an object that starts with the given prefix.
     pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
+        let mut out = crate::util::zeroed_raw_oid();
         unsafe {
-            let mut out = crate::util::zeroed_raw_oid();
             try_call!(raw::git_odb_exists_prefix(
                 &mut out,
                 self.raw,
@@ -235,17 +236,17 @@ impl<'repo> Odb<'repo> {
     pub fn refresh(&self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_odb_refresh(self.raw));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Adds an alternate disk backend to the object database.
     pub fn add_disk_alternate(&self, path: &str) -> Result<(), Error> {
+        let path = CString::new(path)?;
         unsafe {
-            let path = CString::new(path)?;
             try_call!(raw::git_odb_add_disk_alternate(self.raw, path));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Create a new mempack backend, and add it to this odb with the given
@@ -273,8 +274,8 @@ impl<'repo> Odb<'repo> {
         &'odb self,
         priority: i32,
     ) -> Result<Mempack<'odb>, Error> {
+        let mut mempack = ptr::null_mut();
         unsafe {
-            let mut mempack = ptr::null_mut();
             // The mempack backend object in libgit2 is only ever freed by an
             // odb that has the backend in its list. So to avoid potentially
             // leaking the mempack backend, this API ensures that the backend
@@ -333,11 +334,10 @@ impl<'a> OdbObject<'a> {
 
     /// Get the object data.
     pub fn data(&self) -> &[u8] {
+        let size = self.len();
         unsafe {
-            let size = self.len();
             let ptr: *const u8 = raw::git_odb_object_data(self.raw) as *const u8;
-            let buffer = slice::from_raw_parts(ptr, size);
-            return buffer;
+            slice::from_raw_parts(ptr, size)
         }
     }
 
@@ -379,15 +379,13 @@ impl<'repo> Drop for OdbReader<'repo> {
 
 impl<'repo> io::Read for OdbReader<'repo> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        unsafe {
-            let ptr = buf.as_ptr() as *mut c_char;
-            let len = buf.len();
-            let res = raw::git_odb_stream_read(self.raw, ptr, len);
-            if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Read error"))
-            } else {
-                Ok(res as _)
-            }
+        let ptr = buf.as_ptr() as *mut c_char;
+        let len = buf.len();
+        let res = unsafe { raw::git_odb_stream_read(self.raw, ptr, len) };
+        if res < 0 {
+            Err(io::Error::new(io::ErrorKind::Other, "Read error"))
+        } else {
+            Ok(res as _)
         }
     }
 }
@@ -440,15 +438,13 @@ impl<'repo> Drop for OdbWriter<'repo> {
 
 impl<'repo> io::Write for OdbWriter<'repo> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        unsafe {
-            let ptr = buf.as_ptr() as *const c_char;
-            let len = buf.len();
-            let res = raw::git_odb_stream_write(self.raw, ptr, len);
-            if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
-            } else {
-                Ok(buf.len())
-            }
+        let ptr = buf.as_ptr() as *const c_char;
+        let len = buf.len();
+        let res = unsafe { raw::git_odb_stream_write(self.raw, ptr, len) };
+        if res < 0 {
+            Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+        } else {
+            Ok(buf.len())
         }
     }
     fn flush(&mut self) -> io::Result<()> {
@@ -470,18 +466,19 @@ pub struct OdbPackwriter<'repo> {
 impl<'repo> OdbPackwriter<'repo> {
     /// Finish writing the packfile
     pub fn commit(&mut self) -> Result<i32, Error> {
+        let res;
         unsafe {
             let writepack = &*self.raw;
-            let res = match writepack.commit {
+            res = match writepack.commit {
                 Some(commit) => commit(self.raw, &mut self.progress),
                 None => -1,
             };
+        }
 
-            if res < 0 {
-                Err(Error::last_error(res))
-            } else {
-                Ok(res)
-            }
+        if res < 0 {
+            Err(Error::last_error(res))
+        } else {
+            Ok(res)
         }
     }
 
@@ -501,21 +498,20 @@ impl<'repo> OdbPackwriter<'repo> {
 
 impl<'repo> io::Write for OdbPackwriter<'repo> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let ptr = buf.as_ptr() as *mut c_void;
+        let len = buf.len();
+        let res;
         unsafe {
-            let ptr = buf.as_ptr() as *mut c_void;
-            let len = buf.len();
-
             let writepack = &*self.raw;
-            let res = match writepack.append {
+            res = match writepack.append {
                 Some(append) => append(self.raw, ptr, len, &mut self.progress),
                 None => -1,
             };
-
-            if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
-            } else {
-                Ok(buf.len())
-            }
+        }
+        if res < 0 {
+            Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+        } else {
+            Ok(buf.len())
         }
     }
     fn flush(&mut self) -> io::Result<()> {

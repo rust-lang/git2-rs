@@ -183,10 +183,9 @@ impl Binding for Cred {
 impl Drop for Cred {
     fn drop(&mut self) {
         if !self.raw.is_null() {
-            unsafe {
-                if let Some(f) = (*self.raw).free {
-                    f(self.raw)
-                }
+            let free_cb = unsafe { (*self.raw).free };
+            if let Some(f) = free_cb {
+                f(self.raw)
             }
         }
     }

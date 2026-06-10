@@ -385,13 +385,16 @@ impl Repository {
             flags: 0,
         };
         let spec = CString::new(spec)?;
+        let to;
+        let from;
+        let mode;
         unsafe {
             try_call!(raw::git_revparse(&mut raw, self.raw, spec));
-            let to = Binding::from_raw_opt(raw.to);
-            let from = Binding::from_raw_opt(raw.from);
-            let mode = RevparseMode::from_bits_truncate(raw.flags as u32);
-            Ok(Revspec::from_objects(from, to, mode))
+            to = Binding::from_raw_opt(raw.to);
+            from = Binding::from_raw_opt(raw.from);
+            mode = RevparseMode::from_bits_truncate(raw.flags as u32);
         }
+        Ok(Revspec::from_objects(from, to, mode))
     }
 
     /// Find a single object, as specified by a revision string.
@@ -510,13 +513,11 @@ impl Repository {
     ///
     /// If this repository is bare, then `None` is returned.
     pub fn workdir(&self) -> Option<&Path> {
-        unsafe {
-            let ptr = raw::git_repository_workdir(self.raw);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(util::bytes2path(CStr::from_ptr(ptr).to_bytes()))
-            }
+        let ptr = unsafe { raw::git_repository_workdir(self.raw) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(util::bytes2path(unsafe { CStr::from_ptr(ptr) }.to_bytes()))
         }
     }
 
@@ -562,37 +563,37 @@ impl Repository {
 
     /// Set the active namespace for this repository as a byte array.
     pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
+        let namespace = CString::new(namespace)?;
         unsafe {
-            let namespace = CString::new(namespace)?;
             try_call!(raw::git_repository_set_namespace(self.raw, namespace));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Remove the active namespace for this repository.
     pub fn remove_namespace(&self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_repository_set_namespace(self.raw, ptr::null()));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Retrieves the Git merge message.
     /// Remember to remove the message when finished.
     pub fn message(&self) -> Result<String, Error> {
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_repository_message(buf.raw(), self.raw));
-            Ok(str::from_utf8(&buf).unwrap().to_string())
         }
+        Ok(str::from_utf8(&buf).unwrap().to_string())
     }
 
     /// Remove the Git merge message.
     pub fn remove_message(&self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_repository_message_remove(self.raw));
-            Ok(())
         }
+        Ok(())
     }
 
     /// List all remotes for a given repository
@@ -867,13 +868,11 @@ impl Repository {
 
     /// Determines whether the repository HEAD is detached.
     pub fn head_detached(&self) -> Result<bool, Error> {
-        unsafe {
-            let value = raw::git_repository_head_detached(self.raw);
-            match value {
-                0 => Ok(false),
-                1 => Ok(true),
-                _ => Err(Error::last_error(value)),
-            }
+        let value = unsafe { raw::git_repository_head_detached(self.raw) };
+        match value {
+            0 => Ok(false),
+            1 => Ok(true),
+            _ => Err(Error::last_error(value)),
         }
     }
 
@@ -949,12 +948,12 @@ impl Repository {
         }
         let mut ret = Vec::new();
 
+        let mut data = Data {
+            repo: self,
+            ret: &mut ret,
+        };
+        let cb: raw::git_submodule_cb = Some(append);
         unsafe {
-            let mut data = Data {
-                repo: self,
-                ret: &mut ret,
-            };
-            let cb: raw::git_submodule_cb = Some(append);
             try_call!(raw::git_submodule_foreach(
                 self.raw,
                 cb,
@@ -1401,8 +1400,8 @@ impl Repository {
                 parents.len() as size_t,
                 parent_ptrs.as_mut_ptr()
             ));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Create a commit object from the given buffer and signature
@@ -1457,8 +1456,8 @@ impl Repository {
                 commit_id.raw() as *mut _,
                 signature_field
             ));
-            Ok((signature, content))
         }
+        Ok((signature, content))
     }
 
     /// Lookup a reference to one of the commits in a repository.
@@ -1981,12 +1980,12 @@ impl Repository {
     /// The tree builder can be used to create or modify trees in memory and
     /// write them as tree objects to the database.
     pub fn treebuilder(&self, tree: Option<&Tree<'_>>) -> Result<TreeBuilder<'_>, Error> {
+        let mut ret = ptr::null_mut();
+        let tree = match tree {
+            Some(tree) => tree.raw(),
+            None => ptr::null_mut(),
+        };
         unsafe {
-            let mut ret = ptr::null_mut();
-            let tree = match tree {
-                Some(tree) => tree.raw(),
-                None => ptr::null_mut(),
-            };
             try_call!(raw::git_treebuilder_new(&mut ret, self.raw, tree));
             Ok(Binding::from_raw(ret))
         }
@@ -2115,8 +2114,8 @@ impl Repository {
         let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_tag_delete(self.raw, name));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Get a list with all the tags in the repository.
@@ -2127,18 +2126,18 @@ impl Repository {
             strings: ptr::null_mut(),
             count: 0,
         };
-        unsafe {
-            match pattern {
-                Some(s) => {
-                    let s = CString::new(s)?;
+        match pattern {
+            Some(s) => {
+                let s = CString::new(s)?;
+                unsafe {
                     try_call!(raw::git_tag_list_match(&mut arr, s, self.raw));
                 }
-                None => {
-                    try_call!(raw::git_tag_list(&mut arr, self.raw));
-                }
             }
-            Ok(Binding::from_raw(arr))
+            None => unsafe {
+                try_call!(raw::git_tag_list(&mut arr, self.raw));
+            },
         }
+        Ok(unsafe { Binding::from_raw(arr) })
     }
 
     /// Iterate over all tags, calling the callback `cb` on each.
@@ -2251,6 +2250,11 @@ impl Repository {
         merge_opts: Option<&mut MergeOptions>,
         checkout_opts: Option<&mut CheckoutBuilder<'_>>,
     ) -> Result<(), Error> {
+        let mut commit_ptrs = annotated_commits
+            .iter()
+            .map(|c| c.raw() as *const raw::git_annotated_commit)
+            .collect::<Vec<_>>();
+
         unsafe {
             let mut raw_checkout_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(
@@ -2260,11 +2264,6 @@ impl Repository {
             if let Some(c) = checkout_opts {
                 c.configure(&mut raw_checkout_opts);
             }
-
-            let mut commit_ptrs = annotated_commits
-                .iter()
-                .map(|c| c.raw() as *const raw::git_annotated_commit)
-                .collect::<Vec<_>>();
 
             try_call!(raw::git_merge(
                 self.raw,
@@ -2340,13 +2339,13 @@ impl Repository {
         &self,
         their_heads: &[&AnnotatedCommit<'_>],
     ) -> Result<(MergeAnalysis, MergePreference), Error> {
+        let mut raw_merge_analysis = 0 as raw::git_merge_analysis_t;
+        let mut raw_merge_preference = 0 as raw::git_merge_preference_t;
+        let mut their_heads = their_heads
+            .iter()
+            .map(|v| v.raw() as *const _)
+            .collect::<Vec<_>>();
         unsafe {
-            let mut raw_merge_analysis = 0 as raw::git_merge_analysis_t;
-            let mut raw_merge_preference = 0 as raw::git_merge_preference_t;
-            let mut their_heads = their_heads
-                .iter()
-                .map(|v| v.raw() as *const _)
-                .collect::<Vec<_>>();
             try_call!(raw::git_merge_analysis(
                 &mut raw_merge_analysis,
                 &mut raw_merge_preference,
@@ -2354,11 +2353,11 @@ impl Repository {
                 their_heads.as_mut_ptr() as *mut _,
                 their_heads.len()
             ));
-            Ok((
-                MergeAnalysis::from_bits_truncate(raw_merge_analysis as u32),
-                MergePreference::from_bits_truncate(raw_merge_preference as u32),
-            ))
         }
+        Ok((
+            MergeAnalysis::from_bits_truncate(raw_merge_analysis as u32),
+            MergePreference::from_bits_truncate(raw_merge_preference as u32),
+        ))
     }
 
     /// Analyzes the given branch(es) and determines the opportunities for
@@ -2368,13 +2367,13 @@ impl Repository {
         our_ref: &Reference<'_>,
         their_heads: &[&AnnotatedCommit<'_>],
     ) -> Result<(MergeAnalysis, MergePreference), Error> {
+        let mut raw_merge_analysis = 0 as raw::git_merge_analysis_t;
+        let mut raw_merge_preference = 0 as raw::git_merge_preference_t;
+        let mut their_heads = their_heads
+            .iter()
+            .map(|v| v.raw() as *const _)
+            .collect::<Vec<_>>();
         unsafe {
-            let mut raw_merge_analysis = 0 as raw::git_merge_analysis_t;
-            let mut raw_merge_preference = 0 as raw::git_merge_preference_t;
-            let mut their_heads = their_heads
-                .iter()
-                .map(|v| v.raw() as *const _)
-                .collect::<Vec<_>>();
             try_call!(raw::git_merge_analysis_for_ref(
                 &mut raw_merge_analysis,
                 &mut raw_merge_preference,
@@ -2383,11 +2382,11 @@ impl Repository {
                 their_heads.as_mut_ptr() as *mut _,
                 their_heads.len()
             ));
-            Ok((
-                MergeAnalysis::from_bits_truncate(raw_merge_analysis as u32),
-                MergePreference::from_bits_truncate(raw_merge_preference as u32),
-            ))
         }
+        Ok((
+            MergeAnalysis::from_bits_truncate(raw_merge_analysis as u32),
+            MergePreference::from_bits_truncate(raw_merge_preference as u32),
+        ))
     }
 
     /// Initializes a rebase operation to rebase the changes in `branch`
@@ -2524,8 +2523,8 @@ impl Repository {
                 committer.raw(),
                 id.raw()
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Create a revwalk that can be used to traverse the commit graph.
@@ -2701,9 +2700,9 @@ impl Repository {
     /// other as its upstream, the ahead and behind values will be what git
     /// would report for the branches.
     pub fn graph_ahead_behind(&self, local: Oid, upstream: Oid) -> Result<(usize, usize), Error> {
+        let mut ahead: size_t = 0;
+        let mut behind: size_t = 0;
         unsafe {
-            let mut ahead: size_t = 0;
-            let mut behind: size_t = 0;
             try_call!(raw::git_graph_ahead_behind(
                 &mut ahead,
                 &mut behind,
@@ -2711,8 +2710,8 @@ impl Repository {
                 local.raw(),
                 upstream.raw()
             ));
-            Ok((ahead as usize, behind as usize))
         }
+        Ok((ahead as usize, behind as usize))
     }
 
     /// Determine if a commit is the descendant of another commit
@@ -2720,14 +2719,14 @@ impl Repository {
     /// Note that a commit is not considered a descendant of itself, in contrast
     /// to `git merge-base --is-ancestor`.
     pub fn graph_descendant_of(&self, commit: Oid, ancestor: Oid) -> Result<bool, Error> {
-        unsafe {
-            let rv = try_call!(raw::git_graph_descendant_of(
+        let rv = unsafe {
+            try_call!(raw::git_graph_descendant_of(
                 self.raw(),
                 commit.raw(),
                 ancestor.raw()
-            ));
-            Ok(rv != 0)
-        }
+            ))
+        };
+        Ok(rv != 0)
     }
 
     /// Read the reflog for the given reference
@@ -2828,27 +2827,27 @@ impl Repository {
             line: line_cb,
         };
         let ptr = &mut cbs as *mut _;
+        let file_cb_c: raw::git_diff_file_cb = if cbs.file.is_some() {
+            Some(file_cb_c)
+        } else {
+            None
+        };
+        let binary_cb_c: raw::git_diff_binary_cb = if cbs.binary.is_some() {
+            Some(binary_cb_c)
+        } else {
+            None
+        };
+        let hunk_cb_c: raw::git_diff_hunk_cb = if cbs.hunk.is_some() {
+            Some(hunk_cb_c)
+        } else {
+            None
+        };
+        let line_cb_c: raw::git_diff_line_cb = if cbs.line.is_some() {
+            Some(line_cb_c)
+        } else {
+            None
+        };
         unsafe {
-            let file_cb_c: raw::git_diff_file_cb = if cbs.file.is_some() {
-                Some(file_cb_c)
-            } else {
-                None
-            };
-            let binary_cb_c: raw::git_diff_binary_cb = if cbs.binary.is_some() {
-                Some(binary_cb_c)
-            } else {
-                None
-            };
-            let hunk_cb_c: raw::git_diff_hunk_cb = if cbs.hunk.is_some() {
-                Some(hunk_cb_c)
-            } else {
-                None
-            };
-            let line_cb_c: raw::git_diff_line_cb = if cbs.line.is_some() {
-                Some(line_cb_c)
-            } else {
-                None
-            };
             try_call!(raw::git_diff_blobs(
                 old_blob.map(|s| s.raw()),
                 old_as_path,
@@ -2861,8 +2860,8 @@ impl Repository {
                 line_cb_c,
                 ptr as *mut _
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Create a diff with the difference between two tree objects.
@@ -3062,10 +3061,10 @@ impl Repository {
         message: Option<&str>,
         flags: Option<StashFlags>,
     ) -> Result<Oid, Error> {
+        let mut raw_oid = crate::util::zeroed_raw_oid();
+        let message = crate::opt_cstr(message)?;
+        let flags = flags.unwrap_or_else(StashFlags::empty);
         unsafe {
-            let mut raw_oid = crate::util::zeroed_raw_oid();
-            let message = crate::opt_cstr(message)?;
-            let flags = flags.unwrap_or_else(StashFlags::empty);
             try_call!(raw::git_stash_save(
                 &mut raw_oid,
                 self.raw(),
@@ -3082,8 +3081,8 @@ impl Repository {
         &mut self,
         opts: Option<&mut StashSaveOptions<'_>>,
     ) -> Result<Oid, Error> {
+        let mut raw_oid = crate::util::zeroed_raw_oid();
         unsafe {
-            let mut raw_oid = crate::util::zeroed_raw_oid();
             let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_save_with_opts(
                 &mut raw_oid,
@@ -3100,11 +3099,11 @@ impl Repository {
         index: usize,
         opts: Option<&mut StashApplyOptions<'_>>,
     ) -> Result<(), Error> {
+        let opts = opts.map(|opts| opts.raw());
         unsafe {
-            let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_apply(self.raw(), index, opts));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Loop over all the stashed states and issue a callback for each one.
@@ -3114,26 +3113,26 @@ impl Repository {
     where
         C: FnMut(usize, &str, &Oid) -> bool,
     {
+        let mut data = StashCbData {
+            callback: &mut callback,
+        };
+        let cb: raw::git_stash_cb = Some(stash_cb);
         unsafe {
-            let mut data = StashCbData {
-                callback: &mut callback,
-            };
-            let cb: raw::git_stash_cb = Some(stash_cb);
             try_call!(raw::git_stash_foreach(
                 self.raw(),
                 cb,
                 &mut data as *mut _ as *mut _
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Remove a single stashed state from the stash list.
     pub fn stash_drop(&mut self, index: usize) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_stash_drop(self.raw(), index));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Apply a single stashed state from the stash list and remove it from the list if successful.
@@ -3142,11 +3141,11 @@ impl Repository {
         index: usize,
         opts: Option<&mut StashApplyOptions<'_>>,
     ) -> Result<(), Error> {
+        let opts = opts.map(|opts| opts.raw());
         unsafe {
-            let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_pop(self.raw(), index, opts));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Add ignore rules for a repository.
@@ -3195,9 +3194,8 @@ impl Repository {
         };
         unsafe {
             try_call!(raw::git_cherrypick(self.raw(), commit.raw(), ptr_raw_opts));
-
-            Ok(())
         }
+        Ok(())
     }
 
     /// Create an index of uncommitted changes, representing the result of
@@ -3226,22 +3224,22 @@ impl Repository {
     /// Find the remote name of a remote-tracking branch
     pub fn branch_remote_name(&self, refname: &str) -> Result<Buf, Error> {
         let refname = CString::new(refname)?;
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_branch_remote_name(buf.raw(), self.raw, refname));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Retrieves the name of the reference supporting the remote tracking branch,
     /// given the name of a local branch reference.
     pub fn branch_upstream_name(&self, refname: &str) -> Result<Buf, Error> {
         let refname = CString::new(refname)?;
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_branch_upstream_name(buf.raw(), self.raw, refname));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Retrieve the name of the upstream remote of a local branch.
@@ -3249,15 +3247,15 @@ impl Repository {
     /// `refname` must be in the form `refs/heads/{branch_name}`
     pub fn branch_upstream_remote(&self, refname: &str) -> Result<Buf, Error> {
         let refname = CString::new(refname)?;
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_branch_upstream_remote(
                 buf.raw(),
                 self.raw,
                 refname
             ));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Retrieve the upstream merge of a local branch,
@@ -3266,11 +3264,11 @@ impl Repository {
     /// `refname` must be in the form `refs/heads/{branch_name}`
     pub fn branch_upstream_merge(&self, refname: &str) -> Result<Buf, Error> {
         let refname = CString::new(refname)?;
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_branch_upstream_merge(buf.raw(), self.raw, refname));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Apply a Diff to the given repo, making changes directly in the working directory, the index, or both.
@@ -3287,9 +3285,8 @@ impl Repository {
                 location.raw(),
                 options.map(|s| s.raw()).unwrap_or(ptr::null())
             ));
-
-            Ok(())
         }
+        Ok(())
     }
 
     /// Apply a Diff to the provided tree, and return the resulting Index.
@@ -3325,8 +3322,8 @@ impl Repository {
         };
         unsafe {
             try_call!(raw::git_revert(self.raw(), commit.raw(), ptr_raw_opts));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Reverts the given commit against the given "our" commit,
@@ -3423,18 +3420,18 @@ impl Repository {
     where
         C: FnMut(&Oid) -> bool,
     {
+        let mut data = MergeheadForeachCbData {
+            callback: &mut callback,
+        };
+        let cb: raw::git_repository_mergehead_foreach_cb = Some(mergehead_foreach_cb);
         unsafe {
-            let mut data = MergeheadForeachCbData {
-                callback: &mut callback,
-            };
-            let cb: raw::git_repository_mergehead_foreach_cb = Some(mergehead_foreach_cb);
             try_call!(raw::git_repository_mergehead_foreach(
                 self.raw(),
                 cb,
                 &mut data as *mut _ as *mut _
             ));
-            Ok(())
         }
+        Ok(())
     }
 
     /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
@@ -3449,18 +3446,18 @@ impl Repository {
     where
         C: FnMut(&str, &[u8], &Oid, bool) -> bool,
     {
+        let mut data = FetchheadForeachCbData {
+            callback: &mut callback,
+        };
+        let cb: raw::git_repository_fetchhead_foreach_cb = Some(fetchhead_foreach_cb);
         unsafe {
-            let mut data = FetchheadForeachCbData {
-                callback: &mut callback,
-            };
-            let cb: raw::git_repository_fetchhead_foreach_cb = Some(fetchhead_foreach_cb);
             try_call!(raw::git_repository_fetchhead_foreach(
                 self.raw(),
                 cb,
                 &mut data as *mut _ as *mut _
             ));
-            Ok(())
         }
+        Ok(())
     }
 }
 

@@ -148,10 +148,8 @@ struct MessageTrailersIterator<'a> {
 }
 
 fn to_raw_tuple(trailers: &MessageTrailers, index: usize) -> (*const c_char, *const c_char) {
-    unsafe {
-        let addr = trailers.raw.trailers.wrapping_add(index);
-        ((*addr).key, (*addr).value)
-    }
+    let addr = trailers.raw.trailers.wrapping_add(index);
+    unsafe { ((*addr).key, (*addr).value) }
 }
 
 /// Borrowed iterator over the UTF-8-encoded trailers.
@@ -190,12 +188,10 @@ impl DoubleEndedIterator for MessageTrailersStrsIterator<'_> {
 }
 
 fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
-    unsafe {
-        let (rkey, rvalue) = to_raw_tuple(&trailers, index);
-        let key = CStr::from_ptr(rkey).to_str().unwrap();
-        let value = CStr::from_ptr(rvalue).to_str().unwrap();
-        (key, value)
-    }
+    let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+    let key = unsafe { CStr::from_ptr(rkey).to_str().unwrap() };
+    let value = unsafe { CStr::from_ptr(rvalue).to_str().unwrap() };
+    (key, value)
 }
 
 /// Borrowed iterator over the raw (bytes) trailers.
@@ -234,12 +230,10 @@ impl DoubleEndedIterator for MessageTrailersBytesIterator<'_> {
 }
 
 fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
-    unsafe {
-        let (rkey, rvalue) = to_raw_tuple(&trailers, index);
-        let key = CStr::from_ptr(rkey).to_bytes();
-        let value = CStr::from_ptr(rvalue).to_bytes();
-        (key, value)
-    }
+    let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+    let key = unsafe { CStr::from_ptr(rkey).to_bytes() };
+    let value = unsafe { CStr::from_ptr(rvalue).to_bytes() };
+    (key, value)
 }
 
 #[cfg(test)]

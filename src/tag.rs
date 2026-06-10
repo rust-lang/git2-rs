@@ -74,13 +74,11 @@ impl<'repo> Tag<'repo> {
     ///
     /// If the author is unspecified, then `None` is returned.
     pub fn tagger(&self) -> Option<Signature<'_>> {
-        unsafe {
-            let ptr = raw::git_tag_tagger(&*self.raw);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(signature::from_raw_const(self, ptr))
-            }
+        let ptr = unsafe { raw::git_tag_tagger(&*self.raw) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { signature::from_raw_const(self, ptr) })
         }
     }
 

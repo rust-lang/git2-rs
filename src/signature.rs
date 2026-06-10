@@ -89,10 +89,8 @@ impl<'a> Signature<'a> {
     /// Convert a signature of any lifetime into an owned signature with a
     /// static lifetime.
     pub fn to_owned(&self) -> Signature<'static> {
-        unsafe {
-            let me = mem::transmute::<&Signature<'a>, &Signature<'static>>(self);
-            me.clone()
-        }
+        let me = unsafe { mem::transmute::<&Signature<'a>, &Signature<'static>>(self) };
+        me.clone()
     }
 }
 

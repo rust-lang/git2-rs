@@ -151,26 +151,30 @@ impl<'a> Indexer<'a> {
         let progress_payload = Box::new(OdbPackwriterCb { cb: None });
         let progress_payload_ptr = Box::into_raw(progress_payload);
 
+        let mut opts = unsafe { mem::zeroed() };
         unsafe {
-            let mut opts = mem::zeroed();
             try_call!(raw::git_indexer_options_init(
                 &mut opts,
                 raw::GIT_INDEXER_OPTIONS_VERSION
             ));
-            opts.progress_cb = progress_cb;
-            opts.progress_cb_payload = progress_payload_ptr as *mut c_void;
-            opts.verify = verify.into();
+        }
+        opts.progress_cb = progress_cb;
+        opts.progress_cb_payload = progress_payload_ptr as *mut c_void;
+        opts.verify = verify.into();
 
-            #[cfg(not(feature = "unstable-sha256"))]
-            {
-                let _ = format;
+        #[cfg(not(feature = "unstable-sha256"))]
+        {
+            let _ = format;
+            unsafe {
                 try_call!(raw::git_indexer_new(&mut out, path, mode, odb, &mut opts));
             }
-            #[cfg(feature = "unstable-sha256")]
-            {
-                opts.mode = mode;
-                opts.oid_type = format.raw();
-                opts.odb = odb;
+        }
+        #[cfg(feature = "unstable-sha256")]
+        {
+            opts.mode = mode;
+            opts.oid_type = format.raw();
+            opts.odb = odb;
+            unsafe {
                 try_call!(raw::git_indexer_new(&mut out, path, &mut opts));
             }
         }
@@ -191,10 +195,10 @@ impl<'a> Indexer<'a> {
     pub fn commit(mut self) -> Result<String, Error> {
         unsafe {
             try_call!(raw::git_indexer_commit(self.raw, &mut self.progress));
-
-            let name = CStr::from_ptr(raw::git_indexer_name(self.raw));
-            Ok(name.to_str().expect("pack name not utf8").to_owned())
         }
+
+        let name = unsafe { CStr::from_ptr(raw::git_indexer_name(self.raw)) };
+        Ok(name.to_str().expect("pack name not utf8").to_owned())
     }
 
     /// The callback through which progress is monitored. Be aware that this is
@@ -213,16 +217,13 @@ impl<'a> Indexer<'a> {
 
 impl io::Write for Indexer<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        unsafe {
-            let ptr = buf.as_ptr() as *mut c_void;
-            let len = buf.len();
-
-            let res = raw::git_indexer_append(self.raw, ptr, len, &mut self.progress);
-            if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, Error::last_error(res)))
-            } else {
-                Ok(buf.len())
-            }
+        let ptr = buf.as_ptr() as *mut c_void;
+        let len = buf.len();
+        let res = unsafe { raw::git_indexer_append(self.raw, ptr, len, &mut self.progress) };
+        if res < 0 {
+            Err(io::Error::new(io::ErrorKind::Other, Error::last_error(res)))
+        } else {
+            Ok(buf.len())
         }
     }
 

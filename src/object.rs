@@ -71,11 +71,11 @@ impl<'repo> Object<'repo> {
     /// result will be unambiguous (at least until new objects are added to the
     /// repository).
     pub fn short_id(&self) -> Result<Buf, Error> {
+        let buf = Buf::new();
         unsafe {
-            let buf = Buf::new();
             try_call!(raw::git_object_short_id(buf.raw(), &*self.raw()));
-            Ok(buf)
         }
+        Ok(buf)
     }
 
     /// Attempt to view this object as a commit.
