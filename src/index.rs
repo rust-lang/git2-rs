@@ -48,6 +48,10 @@ pub struct IndexConflict {
 /// Used by `Index::{add_all,remove_all,update_all}`.  The first argument is the
 /// path, and the second is the pathspec that matched it.  Return 0 to confirm
 /// the operation on the item, > 0 to skip the item, and < 0 to abort the scan.
+///
+/// An empty pathspec means that either no pathspecs were specified or one of
+/// them was the empty string, both of which mean "match all paths" in
+/// libgit2.
 pub type IndexMatchedPath<'a> = dyn FnMut(&Path, &[u8]) -> i32 + 'a;
 
 /// A structure to represent an entry or a file inside of an index.
@@ -773,8 +777,7 @@ extern "C" fn index_matched_path_cb(
     unsafe {
         panic::wrap(|| {
             let path = crate::opt_bytes(&payload, path).unwrap();
-            let matched_pathspec =
-                crate::opt_bytes(&payload, matched_pathspec).expect("no matched pathspec");
+            let matched_pathspec = crate::opt_bytes(&payload, matched_pathspec).unwrap_or_default();
             let payload = payload as *mut &mut IndexMatchedPath<'_>;
             (*payload)(util::bytes2path(path), matched_pathspec) as c_int
         })
@@ -1085,19 +1088,27 @@ mod tests {
     }
 
     #[test]
-    #[should_panic = "no matched pathspec"]
     fn empty_pathspec_with_cb() {
-        let (td, repo) = crate::test::repo_init();
-        crate::test::commit(&repo);
-        fs::write(td.path().join("foo"), "modified").unwrap();
-        let pathspecs: &[&str] = &[];
-        let mut index = repo.index().unwrap();
-        index
-            .add_all(
-                pathspecs,
-                Default::default(),
-                Some(&mut |_path, _matched_pathspec| 0),
-            )
-            .unwrap();
+        // Try with both an empty pathspec set and a set with an empty string.
+        for pathspecs in [&[][..], &[""]] {
+            let (td, repo) = crate::test::repo_init();
+            crate::test::commit(&repo);
+            fs::write(td.path().join("foo"), "modified").unwrap();
+            let mut index = repo.index().unwrap();
+            let mut cb_called = false;
+            index
+                .add_all(
+                    pathspecs,
+                    Default::default(),
+                    Some(&mut |path, matched_pathspec| {
+                        assert_eq!(path, Path::new("foo"));
+                        assert_eq!(matched_pathspec, &[]);
+                        cb_called = true;
+                        0
+                    }),
+                )
+                .unwrap();
+            assert!(cb_called);
+        }
     }
 }
