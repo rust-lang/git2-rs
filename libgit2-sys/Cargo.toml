@@ -15,6 +15,7 @@ exclude = [
     "libgit2/tests/*",
 ]
 edition = "2021"
+rust-version = "1.87"
 
 [lib]
 name = "libgit2_sys"
