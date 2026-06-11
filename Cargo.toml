@@ -14,6 +14,7 @@ repositories.
 """
 categories = ["api-bindings"]
 edition = "2021"
+rust-version = "1.87"
 
 [dependencies]
 url = { version = "2.5.4", optional = true }
