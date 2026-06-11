@@ -37,15 +37,7 @@ jobs:
     - name: Install Rust (rustup)
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       shell: bash
-    - name: Cargo test (locked)
-      if: ${{ matrix.build != 'MSRV' }}
-      run: cargo test --locked
-    - name: Remove lock file
-      if: ${{ matrix.build == 'MSRV' }}
-      run: rm Cargo.lock
-    - name: Cargo test (unlocked)
-      if: ${{ matrix.build == 'MSRV' }}
-      run: cargo test
+    - run: cargo test --locked
     - run: cargo test --features https,ssh
     # Single-threaded: libgit2's builtin SHA256 is not thread-safe.
     # See https://github.com/rust-lang/git2-rs/issues/1255.
