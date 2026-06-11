@@ -84,9 +84,9 @@ impl<'repo> Branch<'repo> {
 
     /// Return the name of the given local or remote branch.
     ///
-    /// May return `Ok(None)` if the name is not valid utf-8.
-    pub fn name(&self) -> Result<Option<&str>, Error> {
-        self.name_bytes().map(|s| str::from_utf8(s).ok())
+    /// Return an error if the name is not valid utf-8.
+    pub fn name(&self) -> Result<&str, Error> {
+        Ok(str::from_utf8(self.name_bytes()?)?)
     }
 
     /// Return the name of the given local or remote branch.
@@ -178,7 +178,7 @@ mod tests {
         assert_eq!(repo.branches(None).unwrap().count(), 3);
         repo.find_branch("foo", BranchType::Local).unwrap();
         let mut b1 = b1.rename("bar", false).unwrap();
-        assert_eq!(b1.name().unwrap(), Some("bar"));
+        assert_eq!(b1.name(), Ok("bar"));
         assert!(b1.upstream().is_err());
         b1.set_upstream(Some("main")).unwrap();
         b1.upstream().unwrap();

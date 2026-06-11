@@ -1114,9 +1114,10 @@ impl Repository {
         name: &str,
         flags: AttrCheckFlags,
     ) -> Result<Option<&str>, Error> {
-        Ok(self
-            .get_attr_bytes(path, name, flags)?
-            .and_then(|a| str::from_utf8(a).ok()))
+        Ok(match self.get_attr_bytes(path, name, flags)? {
+            Some(b) => Some(str::from_utf8(b)?),
+            None => None,
+        })
     }
 
     /// Get the value of a git attribute for a path as a byte slice.
@@ -3655,6 +3656,8 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 mod tests {
     use crate::build::CheckoutBuilder;
+    use crate::AttrCheckFlags;
+    use crate::Error;
     use crate::ObjectFormat;
     #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
@@ -4971,5 +4974,37 @@ Committer Name <committer.proper@email> <committer@email>"#,
             std::env::remove_var("GIT_COMMITTER_NAME");
             std::env::remove_var("GIT_COMMITTER_EMAIL");
         }
+    }
+
+    #[test]
+    fn attr_invalid_utf8() {
+        let (td, repo) = crate::test::repo_init();
+        t!(fs::write(
+            &td.path().join(".gitattributes"),
+            b"README.md foo=valid bar=inva\xFFlid"
+        ));
+
+        let readme = Path::new("README.md");
+        let flags = AttrCheckFlags::FILE_THEN_INDEX;
+
+        let bytes_valid_result = repo.get_attr_bytes(readme, "foo", flags);
+        let valid_bytes = bytes_valid_result.expect("No error").expect("Not None");
+        assert_eq!("valid".as_bytes(), valid_bytes);
+
+        let str_valid_result = repo.get_attr(readme, "foo", flags);
+        let valid_str = str_valid_result.expect("No error").expect("Not None");
+        assert_eq!("valid", valid_str);
+
+        let bytes_invalid_result = repo.get_attr_bytes(readme, "bar", flags);
+        let invalid_bytes = bytes_invalid_result.expect("No error").expect("Not none");
+        assert_eq!(b"inva\xFFlid", invalid_bytes);
+
+        let str_invalid_result = repo.get_attr(readme, "bar", flags);
+        assert_eq!(
+            Err(Error::from_str(
+                "invalid utf-8 sequence of 1 bytes from index 4"
+            )),
+            str_invalid_result
+        );
     }
 }

@@ -1105,7 +1105,7 @@ mod tests {
             assert_eq!(
                 repo.branches(Some(crate::BranchType::Remote))
                     .unwrap()
-                    .filter(|b| b.as_ref().unwrap().0.name().unwrap() == Some("origin/stale"))
+                    .filter(|b| b.as_ref().unwrap().0.name() == Ok("origin/stale"))
                     .count(),
                 count,
             );
