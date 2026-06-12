@@ -1303,9 +1303,18 @@ impl<'a> DiffBinaryFile<'a> {
 
     /// The binary data, deflated
     pub fn data(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).datalen as usize)
+        // If the data pointer is null, slice::from_raw_parts() cannot be used
+        let ptr = unsafe { (*self.raw).data };
+        let datalen = unsafe { (*self.raw).datalen };
+        if ptr.is_null() {
+            assert_eq!(
+                0, datalen,
+                "git_diff_binary_file has a null pointer for data of len {}",
+                datalen
+            );
+            return &[];
         }
+        unsafe { slice::from_raw_parts(ptr as *const u8, datalen as usize) }
     }
 
     /// The length of the binary data after inflation
