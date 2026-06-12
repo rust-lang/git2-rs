@@ -12,15 +12,15 @@ fn test_get_extensions() -> Result<(), Error> {
     assert_eq!(
         extensions,
         [
-            Some("noop"),
+            "noop",
             // The objectformat extension was added in 1.6
-            Some("objectformat"),
+            "objectformat",
             // The preciousobjects extension was added in 1.9
-            Some("preciousobjects"),
+            "preciousobjects",
             // The relativeworktrees extension was added in 1.9.4
-            Some("relativeworktrees"),
+            "relativeworktrees",
             // The worktreeconfig extension was added in 1.8
-            Some("worktreeconfig")
+            "worktreeconfig"
         ]
     );
 

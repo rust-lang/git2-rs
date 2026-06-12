@@ -52,8 +52,8 @@ impl StringArray {
 
     /// Returns an iterator over the strings contained within this array.
     ///
-    /// The iterator yields `Option<&str>` as it is unknown whether the contents
-    /// are utf-8 or not.
+    /// The iterator yields `Result<&str, Error>` as it is unknown whether the
+    /// contents are utf-8 or not.
     pub fn iter(&self) -> Iter<'_> {
         Iter {
             range: 0..self.len(),
@@ -92,7 +92,7 @@ impl Binding for StringArray {
 }
 
 impl<'a> IntoIterator for &'a StringArray {
-    type Item = Result<Option<&'a str>, Error>;
+    type Item = Result<&'a str, Error>;
     type IntoIter = Iter<'a>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -100,17 +100,35 @@ impl<'a> IntoIterator for &'a StringArray {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = Result<Option<&'a str>, Error>;
-    fn next(&mut self) -> Option<Result<Option<&'a str>, Error>> {
-        self.range.next().map(|i| self.arr.get(i))
+    type Item = Result<&'a str, Error>;
+    fn next(&mut self) -> Option<Result<&'a str, Error>> {
+        // Convert from Result<Option<&str>, Error> to just
+        // Result<&str, Error> - if Ok(None) was returned by self.arr.get()
+        // then something went wrong with the array and panicking is the
+        // right decision, see discussion on #1263.
+        self.range.next().map(|i| {
+            self.arr
+                .get(i)
+                .transpose()
+                .expect("StringArray should have values for all indices in its size")
+        })
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.range.size_hint()
     }
 }
 impl<'a> DoubleEndedIterator for Iter<'a> {
-    fn next_back(&mut self) -> Option<Result<Option<&'a str>, Error>> {
-        self.range.next_back().map(|i| self.arr.get(i))
+    fn next_back(&mut self) -> Option<Result<&'a str, Error>> {
+        // Convert from Result<Option<&str>, Error> to just
+        // Result<&str, Error> - if Ok(None) was returned by self.arr.get()
+        // then something went wrong with the array and panicking is the
+        // right decision, see discussion on #1263.
+        self.range.next_back().map(|i| {
+            self.arr
+                .get(i)
+                .transpose()
+                .expect("StringArray should have values for all indices in its size")
+        })
     }
 }
 impl<'a> FusedIterator for Iter<'a> {}
