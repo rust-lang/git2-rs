@@ -240,7 +240,7 @@ impl<'repo> Remote<'repo> {
     }
 
     /// Check whether the remote is connected
-    pub fn connected(&mut self) -> bool {
+    pub fn connected(&self) -> bool {
         unsafe { raw::git_remote_connected(self.raw) == 1 }
     }
 
@@ -776,7 +776,7 @@ impl<'cb> Binding for PushOptions<'cb> {
 
 impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
     /// Check whether the remote is (still) connected
-    pub fn connected(&mut self) -> bool {
+    pub fn connected(&self) -> bool {
         self.remote.connected()
     }
 
@@ -902,13 +902,13 @@ mod tests {
         origin.disconnect().unwrap();
 
         {
-            let mut connection = origin.connect_auth(Direction::Push, None, None).unwrap();
+            let connection = origin.connect_auth(Direction::Push, None, None).unwrap();
             assert!(connection.connected());
         }
         assert!(!origin.connected());
 
         {
-            let mut connection = origin.connect_auth(Direction::Fetch, None, None).unwrap();
+            let connection = origin.connect_auth(Direction::Fetch, None, None).unwrap();
             assert!(connection.connected());
         }
         assert!(!origin.connected());
@@ -1039,7 +1039,7 @@ mod tests {
         let mut origin = repo.remote("origin", &url).unwrap();
 
         {
-            let mut connection = origin
+            let connection = origin
                 .connect_auth(Direction::Fetch, Some(callbacks), None)
                 .unwrap();
             assert!(connection.connected());
