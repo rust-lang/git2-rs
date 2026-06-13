@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [stable, beta, nightly, macos, windows]
+        build: [stable, beta, nightly, macos, windows, MSRV]
         include:
           - build: stable
             os: ubuntu-latest
@@ -20,6 +20,10 @@ jobs:
           - build: nightly
             os: ubuntu-latest
             rust: nightly
+          # 1.87 is the minimum supported per Cargo.toml
+          - build: MSRV
+            os: ubuntu-latest
+            rust: "1.87"
           - build: macos
             os: macos-latest
             rust: stable
