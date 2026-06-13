@@ -1303,9 +1303,18 @@ impl<'a> DiffBinaryFile<'a> {
 
     /// The binary data, deflated
     pub fn data(&self) -> &[u8] {
-        unsafe {
-            slice::from_raw_parts((*self.raw).data as *const u8, (*self.raw).datalen as usize)
+        // If the data pointer is null, slice::from_raw_parts() cannot be used
+        let ptr = unsafe { (*self.raw).data };
+        let datalen = unsafe { (*self.raw).datalen };
+        if ptr.is_null() {
+            assert_eq!(
+                0, datalen,
+                "git_diff_binary_file has a null pointer for data of len {}",
+                datalen
+            );
+            return &[];
         }
+        unsafe { slice::from_raw_parts(ptr as *const u8, datalen as usize) }
     }
 
     /// The length of the binary data after inflation
@@ -1920,5 +1929,85 @@ index 0000000000000000000000000000000000000000000000000000000000000000..11111111
 
         let diff = Diff::from_buffer_ext(patch, crate::ObjectFormat::Sha256).unwrap();
         assert_eq!(diff.deltas().len(), 1);
+    }
+
+    #[test]
+    fn diff_with_non_empty_binary_data() {
+        let buffer = "commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Author: Daniel Scherzer <daniel.e.scherzer@gmail.com>
+Date:   Fri May 1 00:00:00 2026 -0700
+
+    Binary
+
+diff --git a/file.binary b/file.binary
+new file mode 100644
+index 0000000..abcdef9
+GIT binary patch
+literal 6
+NcmYdHN=`}T0ssfX0r~&{
+
+literal 0
+HcmV?d00001
+
+
+";
+        let diff = crate::Diff::from_buffer(buffer.as_bytes()).unwrap();
+        println!("stats: {:?}", diff.stats().unwrap());
+        diff.foreach(
+            &mut |_f, _n| true,
+            Some(&mut |_d, b| {
+                println!("Have a diff binary...");
+                let old = b.old_file();
+                assert!(matches!(old.kind(), crate::DiffBinaryKind::Literal));
+                assert_eq!(&([120, 1, 3, 0, 0, 0, 0, 1] as [u8; 8]), old.data());
+                let new = b.new_file();
+                assert!(matches!(new.kind(), crate::DiffBinaryKind::Literal));
+                assert_eq!(
+                    &([120, 1, 75, 76, 74, 78, 73, 229, 2, 0, 7, 194, 1, 250] as [u8; 14]),
+                    new.data()
+                );
+                true
+            }),
+            None,
+            None,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn diff_with_empty_binary_data() {
+        let buffer = "commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Author: Daniel Scherzer <daniel.e.scherzer@gmail.com>
+Date:   Fri May 1 00:00:00 2026 -0700
+
+    Binary
+
+diff --git a/binary.pdf b/binary.pdf
+new file mode 100644
+index 0000000..74acd53
+Binary files /dev/null and b/binary.pdf differ
+";
+        let diff = crate::Diff::from_buffer(buffer.as_bytes()).unwrap();
+        println!("stats: {:?}", diff.stats().unwrap());
+        diff.foreach(
+            &mut |_f, _n| true,
+            Some(&mut |_d, b| {
+                println!("Have a diff binary...");
+                let old = b.old_file();
+                assert!(matches!(old.kind(), crate::DiffBinaryKind::None));
+                // libgit2_sys::git_diff_binary_file {kind: 0, data: 0x0, datalen: 0, inflatedlen: 0}
+                // This violates the slice::from_raw_parts() requirements
+                assert_eq!(&[] as &[u8], old.data());
+                let new = b.new_file();
+                assert!(matches!(new.kind(), crate::DiffBinaryKind::None));
+                // libgit2_sys::git_diff_binary_file {kind: 0, data: 0x0, datalen: 0, inflatedlen: 0}
+                // This violates the slice::from_raw_parts() requirements
+                assert_eq!(&[] as &[u8], new.data());
+                true
+            }),
+            None,
+            None,
+        )
+        .unwrap();
     }
 }
