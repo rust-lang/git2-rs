@@ -1,3 +1,5 @@
+#![allow(clippy::explicit_auto_deref)]
+
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;

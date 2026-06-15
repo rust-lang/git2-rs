@@ -1,5 +1,8 @@
 //! Builder-pattern objects for configuration various git operations.
 
+#![allow(clippy::manual_non_exhaustive)]
+#![allow(clippy::missing_safety_doc)]
+
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::{CStr, CString};
 use std::mem;
@@ -767,6 +770,8 @@ impl TreeUpdateBuilder {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrow)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::{CheckoutBuilder, RepoBuilder, TreeUpdateBuilder};
     use crate::{CheckoutNotificationType, FileMode, Repository};

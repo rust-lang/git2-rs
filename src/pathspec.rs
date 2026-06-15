@@ -337,6 +337,7 @@ impl<'list> FusedIterator for PathspecFailedEntries<'list> {}
 impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 
 #[cfg(test)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::Pathspec;
     use crate::PathspecFlags;

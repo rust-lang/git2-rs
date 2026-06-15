@@ -1,3 +1,7 @@
+#![allow(clippy::len_without_is_empty)]
+#![allow(clippy::needless_option_take)]
+#![allow(clippy::redundant_closure)]
+
 use std::ffi::CString;
 use std::{marker, mem, ptr, str};
 

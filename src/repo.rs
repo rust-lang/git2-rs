@@ -1,3 +1,11 @@
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::needless_borrow)]
+#![allow(clippy::new_without_default)]
+#![allow(clippy::redundant_closure)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::zero_ptr)]
+
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::env;
 use std::ffi::{CStr, CString, OsStr};
@@ -3654,6 +3662,9 @@ impl RepositoryInitOptions {
 }
 
 #[cfg(test)]
+#[allow(clippy::assertions_on_constants)]
+#[allow(clippy::bool_assert_comparison)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::AttrCheckFlags;

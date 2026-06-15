@@ -1,3 +1,6 @@
+#![allow(clippy::needless_borrows_for_generic_args)]
+#![allow(clippy::unnecessary_map_or)]
+
 use std::env;
 use std::fs;
 use std::io;

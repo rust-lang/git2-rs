@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_closure)]
+
 use libc::{c_int, c_uint, c_void, size_t};
 use std::marker;
 use std::path::Path;
@@ -296,6 +298,7 @@ extern "C" fn progress_c(
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use crate::Buf;
 

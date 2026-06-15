@@ -1,3 +1,6 @@
+#![allow(clippy::from_over_into)]
+#![allow(clippy::manual_unwrap_or)]
+
 use libc::{c_char, c_int, c_void};
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
@@ -401,6 +404,9 @@ impl<'tree> FusedIterator for TreeIter<'tree> {}
 impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
+#[allow(clippy::needless_borrows_for_generic_args)]
+#[allow(clippy::redundant_field_names)]
+#[allow(clippy::single_match)]
 mod tests {
     use super::{TreeWalkMode, TreeWalkResult};
     use crate::{Object, ObjectType, Repository, Tree, TreeEntry};

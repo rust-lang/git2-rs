@@ -47,6 +47,34 @@ jobs:
     - run: cargo run -p systest
     - run: cargo run -p systest --features unstable-sha256
 
+  clippy:
+    name: Clippy
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [stable, beta, windows]
+        include:
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+          - build: beta
+            os: ubuntu-latest
+            rust: beta
+          - build: windows
+            os: windows-2022
+            rust: stable
+    steps:
+    - uses: actions/checkout@master
+      with:
+        submodules: true
+    - name: Install Rust (rustup)
+      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+      shell: bash
+    - name: Install Clippy (rustup)
+      run: rustup component add clippy
+    - run: cargo clippy --all-targets --all-features -- -Dwarnings
+
   rustfmt:
     name: Rustfmt
     runs-on: ubuntu-latest

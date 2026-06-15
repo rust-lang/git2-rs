@@ -1,3 +1,5 @@
+#![allow(clippy::io_other_error)]
+
 use std::ffi::CStr;
 use std::path::Path;
 use std::{io, marker, mem, ptr};
@@ -242,6 +244,7 @@ impl Drop for Indexer<'_> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unused_io_amount)]
 mod tests {
     use crate::{Buf, Indexer};
     use std::io::prelude::*;

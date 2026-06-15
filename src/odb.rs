@@ -1,3 +1,8 @@
+#![allow(clippy::io_other_error)]
+#![allow(clippy::len_without_is_empty)]
+#![allow(clippy::single_match)]
+#![allow(clippy::should_implement_trait)]
+
 use std::io;
 use std::marker;
 use std::ptr;
@@ -579,6 +584,8 @@ pub(crate) extern "C" fn write_pack_progress_cb(
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
+#[allow(clippy::unused_io_amount)]
 mod tests {
     use crate::{Buf, ObjectType, Oid, Repository};
     use std::io::prelude::*;

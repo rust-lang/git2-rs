@@ -13,6 +13,8 @@
  */
 
 #![deny(warnings)]
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::manual_checked_ops)]
 
 use clap::Parser;
 use git2::build::{CheckoutBuilder, RepoBuilder};

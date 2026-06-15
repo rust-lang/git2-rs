@@ -1,3 +1,7 @@
+#![allow(clippy::empty_line_after_doc_comments)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::redundant_closure)]
+
 use std::marker;
 use std::mem;
 use std::os::raw::c_int;
@@ -329,6 +333,8 @@ impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrows_for_generic_args)]
+#[allow(clippy::unnecessary_to_owned)]
 mod tests {
     use std::fs;
     use std::path::Path;
