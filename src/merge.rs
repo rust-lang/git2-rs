@@ -379,7 +379,18 @@ impl MergeFileResult {
 
     /// The contents of the merge.
     pub fn content(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.raw.ptr as *const u8, self.raw.len as usize) }
+        // If the pointer is null, slice::from_raw_parts() cannot be used
+        let ptr = self.raw.ptr as *const u8;
+        let len = self.raw.len as usize;
+        if ptr.is_null() {
+            assert_eq!(
+                0, len,
+                "git_merge_file_result has a null pointer for data of len {}",
+                len
+            );
+            return &[];
+        }
+        unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 }
 
@@ -573,7 +584,7 @@ bar
         assert_eq!(Some("file.txt".as_bytes()), result.path_bytes());
         assert_eq!(33188, result.mode());
 
-        // This triggers unsoundness
+        // This triggered unsoundness
         let expected: &[u8] = &[];
         assert_eq!(expected, result.content());
     }
