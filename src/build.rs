@@ -7,7 +7,7 @@ use std::path::Path;
 use std::ptr;
 
 use crate::util::{self, Binding};
-use crate::{panic, raw, Error, FetchOptions, IntoCString, Oid, Repository, Tree};
+use crate::{panic, raw, Error, FetchOptions, Index, IntoCString, Oid, Repository, Tree};
 use crate::{CheckoutNotificationType, DiffFile, FileMode, Remote};
 
 /// A builder struct which is used to build configuration for cloning a new git
@@ -83,6 +83,8 @@ pub struct CheckoutBuilder<'cb> {
     their_label: Option<CString>,
     our_label: Option<CString>,
     ancestor_label: Option<CString>,
+    baseline: Option<&'cb Tree<'cb>>,
+    baseline_index: Option<&'cb Index>,
     target_dir: Option<CString>,
     paths: Vec<CString>,
     path_ptrs: Vec<*const c_char>,
@@ -334,6 +336,8 @@ impl<'cb> CheckoutBuilder<'cb> {
             file_perm: None,
             path_ptrs: Vec::new(),
             paths: Vec::new(),
+            baseline: None,
+            baseline_index: None,
             target_dir: None,
             ancestor_label: None,
             our_label: None,
@@ -535,6 +539,18 @@ impl<'cb> CheckoutBuilder<'cb> {
         self
     }
 
+    /// The expected content of the working directory. Overridden by [Self::baseline_index].
+    pub fn baseline(&mut self, tree: &'cb Tree<'cb>) -> &mut CheckoutBuilder<'cb> {
+        self.baseline = Some(tree);
+        self
+    }
+
+    /// The expected content of the working directory. Overrides [Self::baseline].
+    pub fn baseline_index(&mut self, index: &'cb Index) -> &mut CheckoutBuilder<'cb> {
+        self.baseline_index = Some(index);
+        self
+    }
+
     /// Set the directory to check out to
     pub fn target_dir(&mut self, dst: &Path) -> &mut CheckoutBuilder<'cb> {
         // Normal file path OK (does not need Windows conversion).
@@ -605,6 +621,12 @@ impl<'cb> CheckoutBuilder<'cb> {
 
         if let Some(ref c) = self.target_dir {
             opts.target_directory = c.as_ptr();
+        }
+        if let Some(ref c) = self.baseline {
+            opts.baseline = c.raw();
+        }
+        if let Some(ref c) = self.baseline_index {
+            opts.baseline_index = c.raw();
         }
         if let Some(ref c) = self.ancestor_label {
             opts.ancestor_label = c.as_ptr();
