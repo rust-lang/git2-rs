@@ -524,10 +524,11 @@ impl<'a> DiffDelta<'a> {
         result
     }
 
-    // TODO: expose when diffs are more exposed
-    // pub fn similarity(&self) -> u16 {
-    //     unsafe { (*self.raw).similarity }
-    // }
+    /// Returns the similarity score (0-100) for a `Renamed` or `Copied`
+    /// delta, or 0 if rename detection has not run.
+    pub fn similarity(&self) -> u16 {
+        unsafe { (*self.raw).similarity }
+    }
 
     /// Returns the number of files in this delta.
     pub fn nfiles(&self) -> u16 {
@@ -1591,7 +1592,7 @@ impl DiffPatchidOptions {
 mod tests {
     #[cfg(feature = "unstable-sha256")]
     use crate::Diff;
-    use crate::{DiffLineType, DiffOptions, Oid, Signature, Time};
+    use crate::{Delta, DiffLineType, DiffOptions, Oid, Signature, Time};
     use std::borrow::Borrow;
     use std::fs::File;
     use std::io::Write;
@@ -2009,5 +2010,54 @@ Binary files /dev/null and b/binary.pdf differ
             None,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn delta_similarity() {
+        let (td, repo) = crate::test::repo_init();
+        let root = td.path();
+
+        // Commit a file with enough content for rename detection to latch onto.
+        let body = "alpha\nbravo\ncharlie\ndelta\necho\nfoxtrot\n";
+        t!(t!(File::create(&root.join("orig.txt"))).write_all(body.as_bytes()));
+        let mut index = t!(repo.index());
+        t!(index.add_path(Path::new("orig.txt")));
+        let tree1 = t!(repo.find_tree(t!(index.write_tree())));
+
+        // Pure rename: identical content at a new path scores 100.
+        t!(std::fs::remove_file(&root.join("orig.txt")));
+        t!(t!(File::create(&root.join("renamed.txt"))).write_all(body.as_bytes()));
+        t!(index.remove_path(Path::new("orig.txt")));
+        t!(index.add_path(Path::new("renamed.txt")));
+        let tree2 = t!(repo.find_tree(t!(index.write_tree())));
+        {
+            let mut diff = t!(repo.diff_tree_to_tree(Some(&tree1), Some(&tree2), None));
+            t!(diff.find_similar(None));
+            let delta = diff
+                .deltas()
+                .find(|d| d.status() == Delta::Renamed)
+                .expect("expected a rename");
+            assert_eq!(delta.similarity(), 100);
+        }
+
+        // Rename + edit: a changed line drops the score below 100 while keeping
+        // it above the default 50 rename threshold.
+        let edited = "ALPHA is different now\nbravo\ncharlie\ndelta\necho\nfoxtrot\n";
+        t!(t!(File::create(&root.join("renamed.txt"))).write_all(edited.as_bytes()));
+        t!(index.add_path(Path::new("renamed.txt")));
+        let tree3 = t!(repo.find_tree(t!(index.write_tree())));
+        {
+            let mut diff = t!(repo.diff_tree_to_tree(Some(&tree1), Some(&tree3), None));
+            t!(diff.find_similar(None));
+            let delta = diff
+                .deltas()
+                .find(|d| d.status() == Delta::Renamed)
+                .expect("expected a rename");
+            let score = delta.similarity();
+            assert!(
+                score > 0 && score < 100,
+                "unexpected similarity score {score}"
+            );
+        }
     }
 }
