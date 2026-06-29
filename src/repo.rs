@@ -3658,9 +3658,11 @@ mod tests {
     use crate::build::CheckoutBuilder;
     use crate::AttrCheckFlags;
     use crate::Error;
+    use crate::Index;
     use crate::ObjectFormat;
     #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
+    use crate::Tree;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
         Config, ObjectType, Oid, Repository, ResetType, Signature, SubmoduleIgnore, SubmoduleUpdate,
@@ -3669,6 +3671,7 @@ mod tests {
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
+    use std::path::PathBuf;
 
     use libgit2_sys as raw;
     use tempfile::TempDir;
@@ -3873,6 +3876,92 @@ mod tests {
         let config = repo.config().unwrap();
         let format = config.get_string("extensions.objectformat").unwrap();
         assert_eq!(format, "sha256");
+    }
+
+    fn setup_checkout_with_baseline<'repo>(
+        repo: &'repo Repository,
+    ) -> (PathBuf, PathBuf, PathBuf, Tree<'repo>, Tree<'repo>) {
+        let blank_commit = repo.revparse_single("HEAD").unwrap();
+
+        let (tree_a, path_a) = {
+            let mut index = repo.index().unwrap();
+            let path = Path::new(repo.workdir().unwrap()).join("file_a");
+            fs::write(&path, "a").unwrap();
+            index.add_path(Path::new("file_a")).unwrap();
+            let id = index.write_tree().unwrap();
+            (repo.find_tree(id).unwrap(), path)
+        };
+
+        t!(repo.reset(&blank_commit, ResetType::Hard, None));
+
+        let (tree_b, path_b) = {
+            let mut index = repo.index().unwrap();
+            let path = Path::new(repo.workdir().unwrap()).join("file_b");
+            fs::write(&path, "b").unwrap();
+            index.add_path(Path::new("file_b")).unwrap();
+            let id = index.write_tree().unwrap();
+            (repo.find_tree(id).unwrap(), path)
+        };
+
+        // Leave file_b in index.
+
+        let path_c = {
+            let mut index = repo.index().unwrap();
+            let path = Path::new(repo.workdir().unwrap()).join("file_c");
+            fs::write(&path, "c").unwrap();
+            index.add_path(Path::new("file_c")).unwrap();
+            path
+        };
+
+        (path_a, path_b, path_c, tree_a, tree_b)
+    }
+
+    #[test]
+    fn checkout_with_baseline() {
+        let (_td, repo) = crate::test::repo_init();
+        let (path_a, path_b, path_c, tree_a, tree_b) = setup_checkout_with_baseline(&repo);
+
+        let mut opts = CheckoutBuilder::new();
+        opts.baseline(&tree_b);
+        t!(repo.checkout_tree(&tree_a.into_object(), Some(&mut opts)));
+
+        assert!(
+            fs::exists(&path_a).unwrap(),
+            "we are checking out a tree that has a"
+        );
+        assert!(
+            !fs::exists(&path_b).unwrap(),
+            "we are checking out from a baseline that has b to a tree that does not have b"
+        );
+        assert!(
+            fs::exists(&path_c).unwrap(),
+            "c is related to neither baseline nor tree and is preserved"
+        );
+    }
+
+    #[test]
+    fn checkout_with_baseline_index() {
+        let (_td, repo) = crate::test::repo_init();
+        let (path_a, path_b, path_c, tree_a, tree_b) = setup_checkout_with_baseline(&repo);
+
+        let mut index = Index::new().unwrap();
+        index.read_tree(&tree_b).unwrap();
+        let mut opts = CheckoutBuilder::new();
+        opts.baseline_index(&index);
+        t!(repo.checkout_tree(&tree_a.into_object(), Some(&mut opts)));
+
+        assert!(
+            fs::exists(&path_a).unwrap(),
+            "we are checking out a tree that has a"
+        );
+        assert!(
+            !fs::exists(&path_b).unwrap(),
+            "we are checking out from a baseline that has b to a tree that does not have b"
+        );
+        assert!(
+            fs::exists(&path_c).unwrap(),
+            "c is related to neither baseline nor tree and is preserved"
+        );
     }
 
     #[test]
