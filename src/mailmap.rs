@@ -93,6 +93,7 @@ impl Mailmap {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrow)]
 mod tests {
     use super::*;
 

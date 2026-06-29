@@ -13,6 +13,7 @@
  */
 
 #![deny(warnings)]
+#![allow(clippy::explicit_auto_deref)]
 
 use clap::Parser;
 use git2::{Commit, Error, Repository, Tag};

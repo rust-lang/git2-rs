@@ -1,3 +1,7 @@
+#![allow(clippy::len_without_is_empty)]
+#![allow(clippy::needless_borrow)]
+#![allow(clippy::redundant_closure)]
+
 use core::ops::Range;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -237,6 +241,7 @@ fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
 }
 
 #[cfg(test)]
+#[allow(clippy::char_lit_as_u8)]
 mod tests {
 
     #[test]

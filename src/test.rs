@@ -1,3 +1,5 @@
+#![allow(clippy::needless_borrows_for_generic_args)]
+
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};

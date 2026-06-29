@@ -1,3 +1,4 @@
+#![allow(clippy::needless_lifetimes)]
 #![macro_use]
 
 use crate::Error;

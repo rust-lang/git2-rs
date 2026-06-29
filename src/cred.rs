@@ -1,3 +1,10 @@
+#![allow(clippy::manual_strip)]
+#![allow(clippy::match_result_ok)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::needless_borrowed_reference)]
+#![allow(clippy::needless_borrows_for_generic_args)]
+#![allow(clippy::should_implement_trait)]
+
 #[cfg(feature = "cred")]
 use log::{debug, trace};
 use std::ffi::CString;
@@ -495,6 +502,8 @@ impl CredentialHelper {
 
 #[cfg(test)]
 #[cfg(feature = "cred")]
+#[allow(clippy::unused_io_amount)]
+#[allow(clippy::useless_conversion)]
 mod test {
     use std::env;
     use std::fs::File;

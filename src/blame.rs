@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_closure)]
+
 use crate::util::{self, Binding};
 use crate::{raw, signature, Error, Oid, Repository, Signature};
 use libc::c_char;
@@ -388,6 +390,9 @@ impl<'blame> FusedIterator for BlameIter<'blame> {}
 impl<'blame> ExactSizeIterator for BlameIter<'blame> {}
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
+#[allow(clippy::needless_borrow)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use std::fs::{self, File};
     use std::path::Path;

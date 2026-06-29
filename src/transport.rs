@@ -1,5 +1,8 @@
 //! Interfaces for adding custom transports to libgit2
 
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::missing_transmute_annotations)]
+
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::{CStr, CString};
 use std::io;
@@ -369,6 +372,7 @@ extern "C" fn stream_free(stream: *mut raw::git_smart_subtransport_stream) {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrow)]
 mod tests {
     use super::*;
     use crate::{ErrorClass, ErrorCode};

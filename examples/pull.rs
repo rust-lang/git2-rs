@@ -12,6 +12,9 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+#![allow(clippy::needless_borrow)]
+#![allow(clippy::needless_question_mark)]
+
 use clap::Parser;
 use git2::Repository;
 use std::io::{self, Write};

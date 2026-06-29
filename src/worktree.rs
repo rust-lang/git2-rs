@@ -1,3 +1,6 @@
+#![allow(clippy::new_without_default)]
+#![allow(clippy::redundant_closure)]
+
 use crate::buf::Buf;
 use crate::reference::Reference;
 use crate::repo::Repository;

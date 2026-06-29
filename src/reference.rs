@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_closure)]
+
 use std::cmp::Ordering;
 use std::ffi::CString;
 use std::marker;
@@ -517,6 +519,7 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
 }
 
 #[cfg(test)]
+#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::{ObjectType, Reference, ReferenceType};
 

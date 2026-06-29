@@ -1,3 +1,6 @@
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::redundant_closure)]
+
 use libc::{c_char, c_uint, c_ushort, size_t};
 use std::ffi::CString;
 use std::marker;

@@ -13,6 +13,9 @@
  */
 
 #![deny(warnings)]
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::needless_borrows_for_generic_args)]
+#![allow(clippy::redundant_closure)]
 
 use clap::Parser;
 use git2::{Blob, Diff, DiffOptions, Error, Object, ObjectType, Oid, Repository};

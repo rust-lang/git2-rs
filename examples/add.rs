@@ -14,6 +14,7 @@
 
 #![deny(warnings)]
 #![allow(trivial_casts)]
+#![allow(clippy::needless_borrows_for_generic_args)]
 
 use clap::Parser;
 use git2::Repository;
