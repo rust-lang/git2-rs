@@ -540,4 +540,46 @@ mod tests {
             assert!(original_committer.is_none());
         }
     }
+
+    #[test]
+    fn buffer_empty() {
+        // Regression tests for #1288
+        let td = tempfile::TempDir::new().unwrap();
+        let path = td.path();
+
+        let repo = crate::Repository::init(path).unwrap();
+
+        {
+            let mut config = repo.config().unwrap();
+            config.set_str("user.name", "name").unwrap();
+            config.set_str("user.email", "email").unwrap();
+
+            fs::write(&path.join("README.md"), "Testing").unwrap();
+
+            let mut index = repo.index().unwrap();
+            index.add_path(&Path::new("README.md")).unwrap();
+            index.write().unwrap();
+
+            let id = index.write_tree().unwrap();
+            let tree = repo.find_tree(id).unwrap();
+            let sig = repo.signature().unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "Add README.md", &tree, &[])
+                .unwrap();
+        }
+
+        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        // Cannot use unwrap_err() because Blame does not implement Debug
+        let result = match blame.blame_buffer(b"") {
+            Ok(_) => panic!("Expected an error"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::new(
+                crate::ErrorCode::GenericError,
+                crate::ErrorClass::Invalid,
+                "invalid argument: 'buffer && buffer_len'"
+            ),
+            result
+        );
+    }
 }
