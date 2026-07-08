@@ -298,7 +298,7 @@ impl<'repo> Remote<'repo> {
     /// Get the `nth` refspec from this remote.
     ///
     /// The `refspecs` iterator can be used to iterate over all refspecs.
-    pub fn get_refspec(&self, i: usize) -> Option<Refspec<'repo>> {
+    pub fn get_refspec(&self, i: usize) -> Option<Refspec<'_>> {
         unsafe {
             let ptr = raw::git_remote_get_refspec(&*self.raw, i as libc::size_t);
             Binding::from_raw_opt(ptr)
