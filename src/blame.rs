@@ -1,5 +1,5 @@
 use crate::util::{self, Binding};
-use crate::{raw, signature, Error, Oid, Repository, Signature};
+use crate::{raw, signature, Error, ErrorClass, ErrorCode, Oid, Repository, Signature};
 use libc::c_char;
 use std::iter::FusedIterator;
 use std::mem;
@@ -36,6 +36,22 @@ impl<'repo> Blame<'repo> {
     /// Lines that differ between the buffer and the committed version are
     /// marked as having a zero OID for their final_commit_id.
     pub fn blame_buffer(&self, buffer: &[u8]) -> Result<Blame<'_>, Error> {
+        // If the buffer is empty, and libgit2 has assertions enabled, it will
+        // abort due to a failing assertion. If libgit2 is in release mode and
+        // does not have assertions enabled it will instead emit an error;
+        // recreate that error handling here (but with a better message) to
+        // avoid aborting.
+        if buffer.is_empty() {
+            return Err(Error::new(
+                // Matches libgit2
+                ErrorCode::GenericError,
+                // Matches libgit2
+                ErrorClass::Invalid,
+                // libgit2 would say "invalid argument: 'buffer && buffer_len'"
+                // but let's have a nicer message
+                "buffer cannot be empty",
+            ));
+        }
         let mut raw = ptr::null_mut();
 
         unsafe {
@@ -577,7 +593,7 @@ mod tests {
             crate::Error::new(
                 crate::ErrorCode::GenericError,
                 crate::ErrorClass::Invalid,
-                "invalid argument: 'buffer && buffer_len'"
+                "buffer cannot be empty"
             ),
             result
         );
