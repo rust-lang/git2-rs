@@ -1,5 +1,5 @@
 use crate::util::{self, Binding};
-use crate::{raw, signature, Error, Oid, Repository, Signature};
+use crate::{raw, signature, Error, ErrorClass, ErrorCode, Oid, Repository, Signature};
 use libc::c_char;
 use std::iter::FusedIterator;
 use std::mem;
@@ -36,6 +36,22 @@ impl<'repo> Blame<'repo> {
     /// Lines that differ between the buffer and the committed version are
     /// marked as having a zero OID for their final_commit_id.
     pub fn blame_buffer(&self, buffer: &[u8]) -> Result<Blame<'_>, Error> {
+        // If the buffer is empty, and libgit2 has assertions enabled, it will
+        // abort due to a failing assertion. If libgit2 is in release mode and
+        // does not have assertions enabled it will instead emit an error;
+        // recreate that error handling here (but with a better message) to
+        // avoid aborting.
+        if buffer.is_empty() {
+            return Err(Error::new(
+                // Matches libgit2
+                ErrorCode::GenericError,
+                // Matches libgit2
+                ErrorClass::Invalid,
+                // libgit2 would say "invalid argument: 'buffer && buffer_len'"
+                // but let's have a nicer message
+                "buffer cannot be empty",
+            ));
+        }
         let mut raw = ptr::null_mut();
 
         unsafe {
@@ -539,5 +555,47 @@ mod tests {
             let original_committer = hunk.orig_committer();
             assert!(original_committer.is_none());
         }
+    }
+
+    #[test]
+    fn buffer_empty() {
+        // Regression tests for #1288
+        let td = tempfile::TempDir::new().unwrap();
+        let path = td.path();
+
+        let repo = crate::Repository::init(path).unwrap();
+
+        {
+            let mut config = repo.config().unwrap();
+            config.set_str("user.name", "name").unwrap();
+            config.set_str("user.email", "email").unwrap();
+
+            fs::write(&path.join("README.md"), "Testing").unwrap();
+
+            let mut index = repo.index().unwrap();
+            index.add_path(&Path::new("README.md")).unwrap();
+            index.write().unwrap();
+
+            let id = index.write_tree().unwrap();
+            let tree = repo.find_tree(id).unwrap();
+            let sig = repo.signature().unwrap();
+            repo.commit(Some("HEAD"), &sig, &sig, "Add README.md", &tree, &[])
+                .unwrap();
+        }
+
+        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        // Cannot use unwrap_err() because Blame does not implement Debug
+        let result = match blame.blame_buffer(b"") {
+            Ok(_) => panic!("Expected an error"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::new(
+                crate::ErrorCode::GenericError,
+                crate::ErrorClass::Invalid,
+                "buffer cannot be empty"
+            ),
+            result
+        );
     }
 }
