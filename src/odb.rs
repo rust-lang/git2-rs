@@ -1,5 +1,4 @@
 #![allow(clippy::single_match)]
-#![allow(clippy::should_implement_trait)]
 
 use std::io;
 use std::marker;
