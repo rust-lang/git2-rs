@@ -1,4 +1,3 @@
-#![allow(clippy::needless_borrow)]
 #![allow(clippy::redundant_closure)]
 
 use core::ops::Range;
@@ -177,7 +176,7 @@ impl<'pair> Iterator for MessageTrailersStrsIterator<'pair> {
         self.0
             .range
             .next()
-            .map(|index| to_str_tuple(&self.0.trailers, index))
+            .map(|index| to_str_tuple(self.0.trailers, index))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -198,12 +197,12 @@ impl DoubleEndedIterator for MessageTrailersStrsIterator<'_> {
         self.0
             .range
             .next_back()
-            .map(|index| to_str_tuple(&self.0.trailers, index))
+            .map(|index| to_str_tuple(self.0.trailers, index))
     }
 }
 
 fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
-    let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+    let (rkey, rvalue) = to_raw_tuple(trailers, index);
     let key = unsafe { CStr::from_ptr(rkey).to_str().unwrap() };
     let value = unsafe { CStr::from_ptr(rvalue).to_str().unwrap() };
     (key, value)
@@ -219,7 +218,7 @@ impl<'pair> Iterator for MessageTrailersBytesIterator<'pair> {
         self.0
             .range
             .next()
-            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+            .map(|index| to_bytes_tuple(self.0.trailers, index))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -240,12 +239,12 @@ impl DoubleEndedIterator for MessageTrailersBytesIterator<'_> {
         self.0
             .range
             .next_back()
-            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+            .map(|index| to_bytes_tuple(self.0.trailers, index))
     }
 }
 
 fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
-    let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+    let (rkey, rvalue) = to_raw_tuple(trailers, index);
     let key = unsafe { CStr::from_ptr(rkey).to_bytes() };
     let value = unsafe { CStr::from_ptr(rvalue).to_bytes() };
     (key, value)
