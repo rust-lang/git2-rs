@@ -1,4 +1,3 @@
-#![allow(clippy::io_other_error)]
 #![allow(clippy::len_without_is_empty)]
 #![allow(clippy::single_match)]
 #![allow(clippy::should_implement_trait)]
@@ -388,7 +387,7 @@ impl<'repo> io::Read for OdbReader<'repo> {
         let len = buf.len();
         let res = unsafe { raw::git_odb_stream_read(self.raw, ptr, len) };
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, "Read error"))
+            Err(io::Error::other("Read error"))
         } else {
             Ok(res as _)
         }
@@ -447,7 +446,7 @@ impl<'repo> io::Write for OdbWriter<'repo> {
         let len = buf.len();
         let res = unsafe { raw::git_odb_stream_write(self.raw, ptr, len) };
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            Err(io::Error::other("Write error"))
         } else {
             Ok(buf.len())
         }
@@ -514,7 +513,7 @@ impl<'repo> io::Write for OdbPackwriter<'repo> {
             };
         }
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            Err(io::Error::other("Write error"))
         } else {
             Ok(buf.len())
         }
