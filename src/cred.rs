@@ -1,4 +1,3 @@
-#![allow(clippy::needless_borrows_for_generic_args)]
 #![allow(clippy::should_implement_trait)]
 
 #[cfg(feature = "cred")]
@@ -399,7 +398,7 @@ impl CredentialHelper {
             c.creation_flags(CREATE_NO_WINDOW);
         }
         c.arg("-c")
-            .arg(&format!("{} get", cmd))
+            .arg(format!("{} get", cmd))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -503,6 +502,7 @@ impl CredentialHelper {
 
 #[cfg(test)]
 #[cfg(feature = "cred")]
+#[allow(clippy::needless_borrows_for_generic_args)]
 #[allow(clippy::unused_io_amount)]
 #[allow(clippy::useless_conversion)]
 mod test {
