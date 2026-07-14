@@ -70,7 +70,6 @@
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![cfg_attr(test, deny(warnings))]
-#![allow(clippy::needless_lifetimes)]
 #![allow(clippy::should_implement_trait)]
 #![allow(clippy::unnecessary_cast)]
 
@@ -906,7 +905,7 @@ fn openssl_env_init() {
 ))]
 fn openssl_env_init() {}
 
-unsafe fn opt_bytes<'a, T>(_anchor: &'a T, c: *const libc::c_char) -> Option<&'a [u8]> {
+unsafe fn opt_bytes<T>(_anchor: &T, c: *const libc::c_char) -> Option<&[u8]> {
     if c.is_null() {
         None
     } else {
