@@ -1,7 +1,6 @@
 //! git_apply support
 //! see original: <https://github.com/libgit2/libgit2/blob/master/include/git2/apply.h>
 
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::new_without_default)]
 
 use crate::{panic, raw, util::Binding, DiffDelta, DiffHunk};
@@ -146,6 +145,11 @@ impl<'cb> ApplyOptions<'cb> {
     }
 
     /// Pointer to a raw git_stash_apply_options
+    ///
+    /// # Safety
+    ///
+    /// The provided pointer must not be used to manipulate the options, and
+    /// must not outlive the [`ApplyOptions`] instance.
     pub unsafe fn raw(&mut self) -> *const raw::git_apply_options {
         &self.raw as *const _
     }
