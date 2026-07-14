@@ -1,4 +1,3 @@
-#![allow(clippy::needless_lifetimes)]
 #![macro_use]
 
 use crate::Error;
@@ -69,12 +68,12 @@ mod impls {
             *self as libc::c_int
         }
     }
-    impl<'a, T> Convert<*const T> for &'a T {
+    impl<T> Convert<*const T> for &T {
         fn convert(&self) -> *const T {
             *self as *const T
         }
     }
-    impl<'a, T> Convert<*mut T> for &'a mut T {
+    impl<T> Convert<*mut T> for &mut T {
         fn convert(&self) -> *mut T {
             &**self as *const T as *mut T
         }
