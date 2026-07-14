@@ -1,4 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_borrowed_reference)]
 #![allow(clippy::needless_borrows_for_generic_args)]
 #![allow(clippy::should_implement_trait)]
@@ -169,6 +168,11 @@ impl Cred {
     }
 
     /// Unwrap access to the underlying raw pointer, canceling the destructor
+    ///
+    /// # Safety
+    ///
+    /// The caller must assume responsibility for freeing the credential if
+    /// needed. See the drop implementation for guidance.
     pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
         mem::replace(&mut self.raw, ptr::null_mut())
     }
