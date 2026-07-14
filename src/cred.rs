@@ -1,4 +1,3 @@
-#![allow(clippy::match_result_ok)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_borrowed_reference)]
 #![allow(clippy::needless_borrows_for_generic_args)]
@@ -276,14 +275,14 @@ impl CredentialHelper {
     // Discover `useHttpPath` from `config`
     fn config_use_http_path(&mut self, config: &Config) {
         let mut use_http_path = false;
-        if let Some(value) = config.get_bool(&self.exact_key("useHttpPath")).ok() {
+        if let Ok(value) = config.get_bool(&self.exact_key("useHttpPath")) {
             use_http_path = value;
         } else if let Some(value) = self
             .url_key("useHttpPath")
             .and_then(|key| config.get_bool(&key).ok())
         {
             use_http_path = value;
-        } else if let Some(value) = config.get_bool("credential.useHttpPath").ok() {
+        } else if let Ok(value) = config.get_bool("credential.useHttpPath") {
             use_http_path = value;
         }
 
