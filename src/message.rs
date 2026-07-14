@@ -1,4 +1,3 @@
-#![allow(clippy::len_without_is_empty)]
 #![allow(clippy::needless_borrow)]
 #![allow(clippy::redundant_closure)]
 
@@ -77,6 +76,10 @@ impl MessageTrailersStrs {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+    /// Whether there are no trailers
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
     /// Convert to the “bytes” variant.
     pub fn to_bytes(self) -> MessageTrailersBytes {
         MessageTrailersBytes(self.0)
@@ -96,6 +99,10 @@ impl MessageTrailersBytes {
     /// The number of trailer key–value pairs.
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+    /// Whether there are no trailers
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -125,6 +132,10 @@ impl MessageTrailers {
     }
     fn len(&self) -> usize {
         self.raw.count
+    }
+    /// Whether there are no trailers
+    fn is_empty(&self) -> bool {
+        self.raw.count == 0
     }
 }
 
