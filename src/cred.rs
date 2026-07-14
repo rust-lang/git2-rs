@@ -1,4 +1,3 @@
-#![allow(clippy::manual_strip)]
 #![allow(clippy::match_result_ok)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_borrowed_reference)]
@@ -313,8 +312,8 @@ impl CredentialHelper {
             Some(s) => s,
         };
 
-        if cmd.starts_with('!') {
-            self.commands.push(cmd[1..].to_string());
+        if let Some(stripped) = cmd.strip_prefix('!') {
+            self.commands.push(stripped.to_string());
         } else if is_absolute_path(cmd) {
             self.commands.push(cmd.to_string());
         } else {
