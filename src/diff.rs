@@ -1,5 +1,3 @@
-#![allow(clippy::new_without_default)]
-
 use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::CString;
 use std::iter::FusedIterator;
@@ -1594,6 +1592,14 @@ impl DiffPatchidOptions {
             0
         );
         opts
+    }
+}
+
+impl Default for DiffPatchidOptions {
+    /// Creates a new set of patchid options,
+    /// initialized to the default values
+    fn default() -> Self {
+        Self::new()
     }
 }
 
