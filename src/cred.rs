@@ -1,4 +1,3 @@
-#![allow(clippy::needless_borrowed_reference)]
 #![allow(clippy::needless_borrows_for_generic_args)]
 #![allow(clippy::should_implement_trait)]
 
@@ -330,7 +329,7 @@ impl CredentialHelper {
 
     fn url_key(&self, name: &str) -> Option<String> {
         match (&self.host, &self.protocol) {
-            (&Some(ref host), &Some(ref protocol)) => {
+            (Some(host), Some(protocol)) => {
                 Some(format!("credential.{}://{}.{}", protocol, host, name))
             }
             _ => None,
