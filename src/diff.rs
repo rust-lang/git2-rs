@@ -1,4 +1,3 @@
-#![allow(clippy::empty_docs)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::new_without_default)]
 
@@ -1000,9 +999,9 @@ impl<'diff> ExactSizeIterator for Deltas<'diff> {}
 pub enum DiffLineType {
     /// These values will be sent to `git_diff_line_cb` along with the line
     Context,
-    ///
+    /// Line was added
     Addition,
-    ///
+    /// Line was removed
     Deletion,
     /// Both files have no LF at end
     ContextEOFNL,
@@ -1013,7 +1012,7 @@ pub enum DiffLineType {
     /// The following values will only be sent to a `git_diff_line_cb` when
     /// the content of a diff is being formatted through `git_diff_print`.
     FileHeader,
-    ///
+    /// Line represents the header of a hunk, e.g. "@@ -1,2 +0,0 @@\n"
     HunkHeader,
     /// For "Binary files x and y differ"
     Binary,
