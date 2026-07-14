@@ -1,5 +1,3 @@
-#![allow(clippy::should_implement_trait)]
-
 #[cfg(feature = "cred")]
 use log::{debug, trace};
 use std::ffi::CString;
@@ -34,6 +32,7 @@ pub struct CredentialHelper {
 impl Cred {
     /// Create a "default" credential usable for Negotiate mechanisms like NTLM
     /// or Kerberos authentication.
+    #[expect(clippy::should_implement_trait)]
     pub fn default() -> Result<Cred, Error> {
         crate::init();
         let mut out = ptr::null_mut();
