@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use core::ops::Range;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -41,7 +39,7 @@ pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 ///
 /// Use this function when you are dealing with a UTF-8-encoded message.
 pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error> {
-    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersStrs(res))
+    _message_trailers(message.into_c_string()?).map(MessageTrailersStrs)
 }
 
 /// Get the trailers for the given message.
@@ -50,7 +48,7 @@ pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error
 /// or if you want to handle the returned trailer key–value pairs
 /// as bytes.
 pub fn message_trailers_bytes<S: IntoCString>(message: S) -> Result<MessageTrailersBytes, Error> {
-    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersBytes(res))
+    _message_trailers(message.into_c_string()?).map(MessageTrailersBytes)
 }
 
 fn _message_trailers(message: CString) -> Result<MessageTrailers, Error> {
