@@ -1,5 +1,3 @@
-#![allow(clippy::should_implement_trait)]
-
 use std::ffi::CString;
 use std::marker;
 use std::path::{Path, PathBuf};
@@ -601,6 +599,7 @@ impl<'cfg> ConfigEntries<'cfg> {
     /// Advances the iterator and returns the next value.
     ///
     /// Returns `None` when iteration is finished.
+    #[expect(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<Result<&ConfigEntry<'cfg>, Error>> {
         let mut raw = ptr::null_mut();
         drop(self.current.take());
