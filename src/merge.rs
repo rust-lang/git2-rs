@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use libc::{c_char, c_uint, c_ushort, size_t};
 use std::ffi::CString;
 use std::marker;
@@ -369,7 +367,7 @@ impl MergeFileResult {
     /// returns `Ok(None)` if a filename conflict would occur
     pub fn path(&self) -> Result<Option<&str>, Error> {
         match self.path_bytes() {
-            Some(pb) => str::from_utf8(pb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(pb) => str::from_utf8(pb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
