@@ -1,7 +1,5 @@
 //! Builder-pattern objects for configuration various git operations.
 
-#![allow(clippy::missing_safety_doc)]
-
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::{CStr, CString};
 use std::mem;
@@ -590,8 +588,14 @@ impl<'cb> CheckoutBuilder<'cb> {
 
     /// Configure a raw checkout options based on this configuration.
     ///
+    /// # Safety
+    ///
     /// This method is unsafe as there is no guarantee that this structure will
-    /// outlive the provided checkout options.
+    /// outlive the provided checkout options. The caller must ensure that
+    /// `opts` does not outlive the [`CheckoutBuilder`], and also that for any
+    /// fields configured in the `CheckoutBuilder` that are provided to the
+    /// `opts` as pointers, those pointers are not used if the original
+    /// references held in the `CheckoutBuilder` are dropped.
     pub unsafe fn configure(&mut self, opts: &mut raw::git_checkout_options) {
         opts.version = raw::GIT_CHECKOUT_OPTIONS_VERSION;
         opts.disable_filters = self.disable_filters as c_int;
