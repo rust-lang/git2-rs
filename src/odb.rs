@@ -1,5 +1,3 @@
-#![allow(clippy::single_match)]
-
 use std::io;
 use std::marker;
 use std::ptr;
@@ -530,9 +528,8 @@ impl<'repo> Drop for OdbPackwriter<'repo> {
     fn drop(&mut self) {
         unsafe {
             let writepack = &*self.raw;
-            match writepack.free {
-                Some(free) => free(self.raw),
-                None => (),
+            if let Some(free) = writepack.free {
+                free(self.raw);
             };
 
             drop(Box::from_raw(self.progress_payload_ptr));
