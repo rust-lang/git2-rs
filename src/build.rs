@@ -1,6 +1,5 @@
 //! Builder-pattern objects for configuration various git operations.
 
-#![allow(clippy::manual_non_exhaustive)]
 #![allow(clippy::missing_safety_doc)]
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
@@ -128,6 +127,7 @@ impl<'cb> Default for RepoBuilder<'cb> {
 
 /// Options that can be passed to `RepoBuilder::clone_local`.
 #[derive(Clone, Copy)]
+#[non_exhaustive]
 pub enum CloneLocal {
     /// Auto-detect (default)
     ///
@@ -143,9 +143,6 @@ pub enum CloneLocal {
 
     /// Bypass the git-aware transport, but don't try to use hardlinks.
     NoLinks = raw::GIT_CLONE_LOCAL_NO_LINKS as isize,
-
-    #[doc(hidden)]
-    __Nonexhaustive = 0xff,
 }
 
 impl<'cb> RepoBuilder<'cb> {
