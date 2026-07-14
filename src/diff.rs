@@ -1,4 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::new_without_default)]
 
 use libc::{c_char, c_int, c_void, size_t};
@@ -955,6 +954,8 @@ impl DiffOptions {
 
     /// Acquire a pointer to the underlying raw options.
     ///
+    /// # Safety
+    ///
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_options {
@@ -1528,6 +1529,11 @@ impl DiffFindOptions {
     // TODO: expose git_diff_similarity_metric
 
     /// Acquire a pointer to the underlying raw options.
+    ///
+    /// # Safety
+    ///
+    /// The provided pointer must not be used to manipulate the options, and
+    /// must not outlive the [`DiffFindOptions`] instance.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_find_options {
         &self.raw
     }
