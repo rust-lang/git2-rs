@@ -70,7 +70,6 @@
 #![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 #![cfg_attr(test, deny(warnings))]
-#![allow(clippy::should_implement_trait)]
 #![allow(clippy::unnecessary_cast)]
 
 use bitflags::bitflags;
@@ -954,6 +953,7 @@ impl ObjectType {
     }
 
     /// Convert a string object type representation to its object type.
+    #[expect(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<ObjectType> {
         let raw = unsafe { call!(raw::git_object_string2type(CString::new(s).unwrap())) };
         ObjectType::from_raw(raw)

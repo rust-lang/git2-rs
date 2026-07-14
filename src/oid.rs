@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)]
+
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
