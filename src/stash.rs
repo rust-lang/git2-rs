@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use crate::build::CheckoutBuilder;
 use crate::util::{self, Binding};
 use crate::{panic, raw, IntoCString, Oid, Signature, StashApplyProgress, StashFlags};
@@ -210,6 +212,7 @@ extern "C" fn stash_apply_progress_cb(
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrow)]
 mod tests {
     use crate::stash::{StashApplyOptions, StashSaveOptions};
     use crate::test::repo_init;

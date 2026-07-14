@@ -1,6 +1,9 @@
 //! git_apply support
 //! see original: <https://github.com/libgit2/libgit2/blob/master/include/git2/apply.h>
 
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::new_without_default)]
+
 use crate::{panic, raw, util::Binding, DiffDelta, DiffHunk};
 use libc::c_int;
 use std::{ffi::c_void, mem};
@@ -149,6 +152,7 @@ impl<'cb> ApplyOptions<'cb> {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::*;
     use std::{fs::File, io::Write, path::Path};

@@ -1,4 +1,8 @@
 //! Tests for some end-to-end logic about certain operations
+
+#![allow(clippy::needless_borrow)]
+#![allow(unused_variables)]
+
 use git2::{
     Error, ReferenceType, Repository, RepositoryInitOptions, StashFlags, Status, StatusOptions,
 };

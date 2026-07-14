@@ -1,3 +1,8 @@
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::empty_line_after_doc_comments)]
+#![allow(clippy::redundant_closure)]
+#![allow(clippy::unwrap_or_default)]
+
 use raw::git_strarray;
 use std::iter::FusedIterator;
 use std::marker;
@@ -825,6 +830,8 @@ impl RemoteRedirect {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrow)]
+#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
     use crate::{Direction, FetchOptions, ObjectFormat, Remote, RemoteCallbacks, Repository};

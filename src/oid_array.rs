@@ -1,5 +1,7 @@
 //! Bindings to libgit2's raw `git_oidarray` type
 
+#![allow(clippy::extra_unused_lifetimes)]
+
 use std::ops::Deref;
 
 use crate::oid::Oid;

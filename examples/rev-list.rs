@@ -14,6 +14,7 @@
  */
 
 #![deny(warnings)]
+#![allow(clippy::manual_strip)]
 
 use clap::Parser;
 use git2::{Error, Oid, Repository, Revwalk};

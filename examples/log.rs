@@ -13,6 +13,8 @@
  */
 
 #![deny(warnings)]
+#![allow(clippy::manual_strip)]
+#![allow(clippy::needless_borrowed_reference)]
 
 use clap::Parser;
 use git2::{Commit, DiffOptions, ObjectType, Repository, Signature, Time};

@@ -1,3 +1,8 @@
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::needless_lifetimes)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::needless_return)]
+
 use libc::{c_char, c_int, size_t};
 use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};

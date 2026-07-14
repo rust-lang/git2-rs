@@ -1,5 +1,7 @@
 //! Bindings to libgit2's git_libgit2_opts function.
 
+#![allow(clippy::missing_safety_doc)]
+
 use std::ffi::CString;
 use std::ptr;
 

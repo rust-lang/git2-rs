@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use libc::{c_char, c_uint, size_t};
 use std::ffi::CString;
 use std::iter::FusedIterator;
@@ -364,6 +366,7 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::StatusOptions;
     use std::fs::File;

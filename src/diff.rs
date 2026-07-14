@@ -1,3 +1,7 @@
+#![allow(clippy::empty_docs)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::new_without_default)]
+
 use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::CString;
 use std::iter::FusedIterator;
@@ -1589,6 +1593,9 @@ impl DiffPatchidOptions {
 }
 
 #[cfg(test)]
+#[allow(clippy::assign_op_pattern)]
+#[allow(clippy::needless_borrows_for_generic_args)]
+#[allow(clippy::while_let_on_iterator)]
 mod tests {
     #[cfg(feature = "unstable-sha256")]
     use crate::Diff;

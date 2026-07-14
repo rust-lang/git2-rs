@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)]
+
 use std::ffi::CString;
 use std::marker;
 use std::path::{Path, PathBuf};
@@ -639,6 +641,7 @@ impl<'cfg> Drop for ConfigEntry<'cfg> {
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use std::fs::File;
     use tempfile::TempDir;

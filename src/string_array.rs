@@ -1,5 +1,7 @@
 //! Bindings to libgit2's raw `git_strarray` type
 
+#![allow(clippy::redundant_closure)]
+
 use std::iter::FusedIterator;
 use std::ops::Range;
 use std::str;

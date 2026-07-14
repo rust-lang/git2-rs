@@ -1,3 +1,5 @@
+#![allow(clippy::io_other_error)]
+
 use std::io;
 use std::marker;
 use std::mem;

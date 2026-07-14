@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_closure)]
+
 use libc::size_t;
 use std::iter::FusedIterator;
 use std::marker;

@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use std::ffi::CString;
 use std::marker;
 use std::ptr;

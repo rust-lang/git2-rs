@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)]
+
 use libc::c_int;
 use std::env::JoinPathsError;
 use std::error;

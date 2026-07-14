@@ -1,5 +1,6 @@
 #![doc(html_root_url = "https://docs.rs/libgit2-sys/0.18")]
 #![allow(non_camel_case_types, unused_extern_crates)]
+#![allow(clippy::legacy_numeric_constants)]
 
 // This is required to link libz when libssh2-sys is not included.
 extern crate libz_sys as libz;

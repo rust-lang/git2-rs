@@ -1,3 +1,6 @@
+#![allow(clippy::from_over_into)]
+#![allow(clippy::redundant_closure)]
+
 use std::ffi::CString;
 use std::marker;
 use std::mem;
@@ -153,6 +156,8 @@ impl<'repo> Drop for Tag<'repo> {
 }
 
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
+#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::Tag;
 

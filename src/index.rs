@@ -882,6 +882,8 @@ impl Binding for IndexEntry {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_borrow)]
+#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use std::fs::{self, File};
     use std::path::Path;
