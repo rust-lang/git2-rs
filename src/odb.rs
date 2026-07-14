@@ -1,4 +1,3 @@
-#![allow(clippy::len_without_is_empty)]
 #![allow(clippy::single_match)]
 #![allow(clippy::should_implement_trait)]
 
@@ -334,6 +333,11 @@ impl<'a> OdbObject<'a> {
     /// Get the object size.
     pub fn len(&self) -> usize {
         unsafe { raw::git_odb_object_size(self.raw) }
+    }
+
+    /// Check if the data is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Get the object data.
