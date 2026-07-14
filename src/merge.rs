@@ -1,4 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::redundant_closure)]
 
 use libc::{c_char, c_uint, c_ushort, size_t};
@@ -185,6 +184,11 @@ impl MergeOptions {
     }
 
     /// Acquire a pointer to the underlying raw options.
+    ///
+    /// # Safety
+    ///
+    /// The provided pointer must not be used to manipulate the options, and
+    /// must not outlive the [`MergeOptions`] instance.
     pub unsafe fn raw(&self) -> *const raw::git_merge_options {
         &self.raw as *const _
     }
