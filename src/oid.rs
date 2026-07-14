@@ -1,5 +1,3 @@
-#![allow(clippy::should_implement_trait)]
-
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -94,6 +92,7 @@ impl Oid {
     ///
     /// Returns an error if the string is empty, is longer than 40 hex
     /// characters, or contains any non-hex characters.
+    #[expect(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Result<Oid, Error> {
         Self::from_str_ext(s, ObjectFormat::Sha1)
     }
