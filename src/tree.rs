@@ -397,7 +397,6 @@ impl<'tree> FusedIterator for TreeIter<'tree> {}
 impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
-#[allow(clippy::redundant_field_names)]
 #[allow(clippy::single_match)]
 mod tests {
     use super::{TreeWalkMode, TreeWalkResult};
@@ -448,7 +447,7 @@ mod tests {
 
         TestTreeIter {
             entries: initial,
-            repo: repo,
+            repo,
         }
     }
 
