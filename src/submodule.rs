@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use std::marker;
 use std::mem;
 use std::os::raw::c_int;
@@ -25,7 +23,7 @@ impl<'repo> Submodule<'repo> {
     /// Returns `Ok(None)` if the branch is not yet available.
     pub fn branch(&self) -> Result<Option<&str>, Error> {
         match self.branch_bytes() {
-            Some(bb) => str::from_utf8(bb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(bb) => str::from_utf8(bb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -61,7 +59,7 @@ impl<'repo> Submodule<'repo> {
     /// Returns `Ok(None)` if the URL isn't present
     pub fn url(&self) -> Result<Option<&str>, Error> {
         match self.opt_url_bytes() {
-            Some(oub) => str::from_utf8(oub).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(oub) => str::from_utf8(oub).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
