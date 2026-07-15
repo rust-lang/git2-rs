@@ -1,4 +1,3 @@
-#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::zero_ptr)]
@@ -3662,6 +3661,15 @@ impl RepositoryInitOptions {
             opts.oid_type = oid_type;
         }
         opts
+    }
+}
+
+impl Default for RepositoryInitOptions {
+    /// Creates a default set of initialization options.
+    ///
+    /// See [`RepositoryInitOptions::new()`] for more details.
+    fn default() -> Self {
+        Self::new()
     }
 }
 
