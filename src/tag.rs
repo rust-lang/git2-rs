@@ -1,4 +1,3 @@
-#![allow(clippy::from_over_into)]
 #![allow(clippy::redundant_closure)]
 
 use std::ffi::CString;
