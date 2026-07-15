@@ -1,5 +1,3 @@
-#![allow(clippy::new_without_default)]
-
 use std::mem;
 
 use crate::build::CheckoutBuilder;
@@ -67,5 +65,12 @@ impl<'cb> RevertOptions<'cb> {
 
             revert_opts
         }
+    }
+}
+
+impl<'cb> Default for RevertOptions<'cb> {
+    /// Creates a default set of revert options
+    fn default() -> Self {
+        Self::new()
     }
 }
