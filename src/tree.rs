@@ -397,7 +397,6 @@ impl<'tree> FusedIterator for TreeIter<'tree> {}
 impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
-#[allow(clippy::single_match)]
 mod tests {
     use super::{TreeWalkMode, TreeWalkResult};
     use crate::{Object, ObjectType, Repository, Tree, TreeEntry};
@@ -420,17 +419,14 @@ mod tests {
             } else {
                 let entry = self.entries.remove(0);
 
-                match entry.kind() {
-                    Some(ObjectType::Tree) => {
-                        let obj: Object<'a> = entry.to_object(self.repo).unwrap();
+                if let Some(ObjectType::Tree) = entry.kind() {
+                    let obj: Object<'a> = entry.to_object(self.repo).unwrap();
 
-                        let tree: &Tree<'a> = obj.as_tree().unwrap();
+                    let tree: &Tree<'a> = obj.as_tree().unwrap();
 
-                        for entry in tree.iter() {
-                            self.entries.push(entry.to_owned());
-                        }
+                    for entry in tree.iter() {
+                        self.entries.push(entry.to_owned());
                     }
-                    _ => {}
                 }
 
                 Some(entry)
