@@ -1,4 +1,3 @@
-#![allow(clippy::len_without_is_empty)]
 #![allow(clippy::needless_option_take)]
 #![allow(clippy::redundant_closure)]
 
@@ -116,6 +115,11 @@ impl<'repo> Rebase<'repo> {
     /// Gets the count of rebase operations that are to be applied.
     pub fn len(&self) -> usize {
         unsafe { raw::git_rebase_operation_entrycount(self.raw) }
+    }
+
+    /// Checks if ther are no rebase operations that are to be applied.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Gets the original `HEAD` ref name for merge rebases.
