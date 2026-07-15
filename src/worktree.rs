@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use crate::buf::Buf;
 use crate::reference::Reference;
 use crate::repo::Repository;
@@ -61,7 +59,7 @@ impl Worktree {
     pub fn name(&self) -> Result<Option<&str>, Error> {
         let opt_bytes = unsafe { crate::opt_bytes(self, raw::git_worktree_name(self.raw)) };
         match opt_bytes {
-            Some(ob) => str::from_utf8(ob).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(ob) => str::from_utf8(ob).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
