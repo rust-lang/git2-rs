@@ -156,7 +156,6 @@ impl<'repo> Drop for Tag<'repo> {
 }
 
 #[cfg(test)]
-#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::Tag;
 
@@ -176,7 +175,7 @@ mod tests {
         assert!(!Tag::is_valid_name("as\\cd"));
 
         // Previously would panic, see #1290
-        assert!(!Tag::is_valid_name("ab\012"));
+        assert!(!Tag::is_valid_name("ab\x0012"));
     }
 
     #[test]
