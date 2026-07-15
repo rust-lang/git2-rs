@@ -820,7 +820,6 @@ impl RemoteRedirect {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 #[allow(clippy::octal_escapes)]
 mod tests {
     use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
@@ -988,7 +987,7 @@ mod tests {
     fn transfer_cb() {
         let (td, _repo) = crate::test::repo_init();
         let td2 = TempDir::new().unwrap();
-        let url = crate::test::path2url(&td.path());
+        let url = crate::test::path2url(td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let progress_hit = Cell::new(false);
@@ -1024,7 +1023,7 @@ mod tests {
     fn connect_list() {
         let (td, _repo) = crate::test::repo_init();
         let td2 = TempDir::new().unwrap();
-        let url = crate::test::path2url(&td.path());
+        let url = crate::test::path2url(td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
         let mut callbacks = RemoteCallbacks::new();
@@ -1056,7 +1055,7 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let td2 = TempDir::new().unwrap();
         let td3 = TempDir::new().unwrap();
-        let url = crate::test::path2url(&td2.path());
+        let url = crate::test::path2url(td2.path());
 
         let mut opts = crate::RepositoryInitOptions::new();
         opts.bare(true);
@@ -1095,7 +1094,7 @@ mod tests {
         remote_repo.branch("stale", &commit, true).unwrap();
 
         let td2 = TempDir::new().unwrap();
-        let url = crate::test::path2url(&td.path());
+        let url = crate::test::path2url(td.path());
         let repo = Repository::clone(&url, &td2).unwrap();
 
         fn assert_branch_count(repo: &Repository, count: usize) {
