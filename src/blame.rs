@@ -404,7 +404,6 @@ impl<'blame> FusedIterator for BlameIter<'blame> {}
 impl<'blame> ExactSizeIterator for BlameIter<'blame> {}
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
 #[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
@@ -539,7 +538,7 @@ mod tests {
             assert_eq!(1, hunk.final_start_line());
             assert_eq!(0, hunk.orig_start_line());
             assert_eq!(Some(Path::new("README.md")), hunk.path());
-            assert_eq!(false, hunk.is_boundary());
+            assert!(!hunk.is_boundary());
             assert_eq!(1, hunk.lines_in_hunk());
             assert_eq!(Ok(None), hunk.summary());
             assert_eq!(None, hunk.summary_bytes());
