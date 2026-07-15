@@ -413,7 +413,6 @@ impl<'repo> Drop for Commit<'repo> {
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
 #[allow(clippy::let_and_return)]
 mod tests {
     #[test]
