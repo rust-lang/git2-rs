@@ -404,7 +404,6 @@ impl<'blame> FusedIterator for BlameIter<'blame> {}
 impl<'blame> ExactSizeIterator for BlameIter<'blame> {}
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use std::fs::{self, File};
     use std::path::Path;
@@ -415,8 +414,8 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.workdir().unwrap();
-        fs::create_dir(&root.join("foo")).unwrap();
-        File::create(&root.join("foo/bar")).unwrap();
+        fs::create_dir(root.join("foo")).unwrap();
+        File::create(root.join("foo/bar")).unwrap();
         index.add_path(Path::new("foo/bar")).unwrap();
 
         let committer_sig = crate::Signature::now("FizzBuzz", "bar@example.com")
@@ -486,7 +485,7 @@ mod tests {
             config.set_str("user.name", "name").unwrap();
             config.set_str("user.email", "email").unwrap();
 
-            fs::write(&path.join("README.md"), "Testing").unwrap();
+            fs::write(path.join("README.md"), "Testing").unwrap();
 
             let mut index = repo.index().unwrap();
             index.add_path(Path::new("README.md")).unwrap();
@@ -571,7 +570,7 @@ mod tests {
             config.set_str("user.name", "name").unwrap();
             config.set_str("user.email", "email").unwrap();
 
-            fs::write(&path.join("README.md"), "Testing").unwrap();
+            fs::write(path.join("README.md"), "Testing").unwrap();
 
             let mut index = repo.index().unwrap();
             index.add_path(Path::new("README.md")).unwrap();
