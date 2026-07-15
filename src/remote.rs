@@ -1,4 +1,3 @@
-#![allow(clippy::empty_line_after_doc_comments)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::unwrap_or_default)]
 
@@ -594,7 +593,6 @@ impl<'cb> FetchOptions<'cb> {
 
     /// Set fetch depth, a value less or equal to 0 is interpreted as pull
     /// everything (effectively the same as not declaring a limit depth).
-
     // FIXME(blyxyas): We currently don't have a test for shallow functions
     // because libgit2 doesn't support local shallow clones.
     // https://github.com/rust-lang/git2-rs/pull/979#issuecomment-1716299900
