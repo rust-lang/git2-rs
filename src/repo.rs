@@ -3671,7 +3671,6 @@ impl Default for RepositoryInitOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use crate::build::CheckoutBuilder;
@@ -3765,7 +3764,7 @@ mod tests {
         assert!(!repo.is_shallow());
         assert!(repo.is_empty().unwrap());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
         assert_eq!(repo.state(), crate::RepositoryState::Clean);
@@ -3790,7 +3789,7 @@ mod tests {
         assert!(!repo.is_bare());
         assert!(repo.is_empty().unwrap());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
         assert_eq!(repo.state(), crate::RepositoryState::Clean);
@@ -3813,7 +3812,7 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
@@ -3833,7 +3832,7 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
@@ -3908,7 +3907,7 @@ mod tests {
         Repository::init_bare(td.path()).unwrap();
         let repo = Repository::discover(&subdir).unwrap();
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
@@ -3956,7 +3955,7 @@ mod tests {
         .unwrap();
         assert!(!repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git")).unwrap()
         );
 
@@ -3965,7 +3964,7 @@ mod tests {
                 .unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git")).unwrap()
         );
 
@@ -4338,7 +4337,7 @@ mod tests {
         let base_commit = {
             t!(fs::write(repo.workdir().unwrap().join(&file_path), "base"));
             let mut index = t!(repo.index());
-            t!(index.add_path(&file_path));
+            t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
             let tree = t!(repo.find_tree(tree_id));
 
@@ -4356,7 +4355,7 @@ mod tests {
         let foo_commit = {
             t!(fs::write(repo.workdir().unwrap().join(&file_path), "foo"));
             let mut index = t!(repo.index());
-            t!(index.add_path(&file_path));
+            t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
             let tree = t!(repo.find_tree(tree_id));
 
@@ -4374,7 +4373,7 @@ mod tests {
         let bar_commit = {
             t!(fs::write(repo.workdir().unwrap().join(&file_path), "bar"));
             let mut index = t!(repo.index());
-            t!(index.add_path(&file_path));
+            t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
             let tree = t!(repo.find_tree(tree_id));
 
@@ -4727,7 +4726,7 @@ Author Name <author.proper@email> name <email>
 Committer Name <committer.proper@email> <committer@email>"#,
             ));
             let mut index = t!(repo.index());
-            t!(index.add_path(&mailmap_file));
+            t!(index.add_path(mailmap_file));
             let id_mailmap = t!(index.write_tree());
             let tree_mailmap = t!(repo.find_tree(id_mailmap));
 
