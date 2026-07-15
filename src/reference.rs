@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use std::cmp::Ordering;
 use std::ffi::CString;
 use std::marker;
@@ -262,7 +260,7 @@ impl<'repo> Reference<'repo> {
     /// May return `Ok(None)` if the reference is not symbolic.
     pub fn symbolic_target(&self) -> Result<Option<&str>, Error> {
         match self.symbolic_target_bytes() {
-            Some(stb) => str::from_utf8(stb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(stb) => str::from_utf8(stb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
