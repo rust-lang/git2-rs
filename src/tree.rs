@@ -1,4 +1,3 @@
-#![allow(clippy::from_over_into)]
 #![allow(clippy::manual_unwrap_or)]
 
 use libc::{c_char, c_int, c_void};
@@ -58,20 +57,18 @@ pub enum TreeWalkResult {
     Abort = raw::GIT_EUSER,
 }
 
-impl Into<i32> for TreeWalkResult {
-    fn into(self) -> i32 {
-        self as i32
+impl From<TreeWalkResult> for i32 {
+    fn from(val: TreeWalkResult) -> i32 {
+        val as i32
     }
 }
 
-impl Into<raw::git_treewalk_mode> for TreeWalkMode {
-    #[cfg(target_env = "msvc")]
-    fn into(self) -> raw::git_treewalk_mode {
-        self as i32
-    }
-    #[cfg(not(target_env = "msvc"))]
-    fn into(self) -> raw::git_treewalk_mode {
-        self as u32
+// On Windows raw::git_treewalk_mode is the same as i32 and the `From` above
+// works for raw::git_treewalk_mode as well
+#[cfg(not(target_env = "msvc"))]
+impl From<TreeWalkResult> for raw::git_treewalk_mode {
+    fn from(val: TreeWalkResult) -> raw::git_treewalk_mode {
+        val as u32
     }
 }
 
