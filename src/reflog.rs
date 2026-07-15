@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use libc::size_t;
 use std::iter::FusedIterator;
 use std::marker;
@@ -141,7 +139,7 @@ impl<'reflog> ReflogEntry<'reflog> {
     /// Get the log message.
     pub fn message(&self) -> Result<Option<&str>, Error> {
         match self.message_bytes() {
-            Some(mb) => str::from_utf8(mb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(mb) => str::from_utf8(mb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
