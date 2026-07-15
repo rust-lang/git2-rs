@@ -1,4 +1,3 @@
-#![allow(clippy::too_many_arguments)]
 #![allow(clippy::zero_ptr)]
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
@@ -2810,6 +2809,7 @@ impl Repository {
     /// like binary data, the `DiffFile` binary attribute will be set to 1 and no call to
     /// the `hunk_cb` nor `line_cb` will be made (unless you set the `force_text`
     /// option).
+    #[expect(clippy::too_many_arguments)]
     pub fn diff_blobs(
         &self,
         old_blob: Option<&Blob<'_>>,
