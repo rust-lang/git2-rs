@@ -501,7 +501,6 @@ impl CredentialHelper {
 
 #[cfg(test)]
 #[cfg(feature = "cred")]
-#[allow(clippy::useless_conversion)]
 mod test {
     use std::env;
     use std::fs::File;
@@ -613,8 +612,7 @@ echo username=$1
         chmod(&path);
 
         let paths = env::var("PATH").unwrap();
-        let paths =
-            env::split_paths(&paths).chain(path.parent().map(|p| p.to_path_buf()).into_iter());
+        let paths = env::split_paths(&paths).chain(path.parent().map(|p| p.to_path_buf()));
         env::set_var("PATH", env::join_paths(paths).unwrap());
 
         let cfg = test_cfg! {
