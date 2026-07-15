@@ -501,7 +501,6 @@ impl CredentialHelper {
 
 #[cfg(test)]
 #[cfg(feature = "cred")]
-#[allow(clippy::unused_io_amount)]
 #[allow(clippy::useless_conversion)]
 mod test {
     use std::env;
@@ -570,7 +569,7 @@ mod test {
 
         let td = TempDir::new().unwrap();
         let path = td.path().join("script");
-        File::create(&path)
+        let written_bytes = File::create(&path)
             .unwrap()
             .write(
                 br"\
@@ -579,6 +578,7 @@ echo username=c
 ",
             )
             .unwrap();
+        assert_eq!(28, written_bytes);
         chmod(&path);
         let cfg = test_cfg! {
             "credential.https://example.com.helper" =>
@@ -600,7 +600,7 @@ echo username=c
         } // shell scripts don't work on Windows
         let td = TempDir::new().unwrap();
         let path = td.path().join("git-credential-some-script");
-        File::create(&path)
+        let written_bytes = File::create(&path)
             .unwrap()
             .write(
                 br"\
@@ -609,6 +609,7 @@ echo username=$1
 ",
             )
             .unwrap();
+        assert_eq!(29, written_bytes);
         chmod(&path);
 
         let paths = env::var("PATH").unwrap();
@@ -646,7 +647,7 @@ echo username=$1
         } // shell scripts don't work on Windows
         let td = TempDir::new().unwrap();
         let path = td.path().join("script");
-        File::create(&path)
+        let written_bytes = File::create(&path)
             .unwrap()
             .write(
                 br"\
@@ -656,6 +657,7 @@ echo password=$2
 ",
             )
             .unwrap();
+        assert_eq!(46, written_bytes);
         chmod(&path);
         let cfg = test_cfg! {
             "credential.helper" => &format!("{} a b", path.display())
