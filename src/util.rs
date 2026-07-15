@@ -1,5 +1,3 @@
-#![allow(clippy::needless_return)]
-
 use libc::{c_char, c_int, size_t};
 use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};
@@ -245,12 +243,10 @@ pub fn path_to_repo_path(path: &Path) -> Result<CString, Error> {
     #[cfg(windows)]
     {
         match path.to_str() {
-            None => {
-                return Err(Error::from_str(
-                    "only valid unicode paths are accepted on windows",
-                ))
-            }
-            Some(s) => return fixup_windows_path(s),
+            None => Err(Error::from_str(
+                "only valid unicode paths are accepted on windows",
+            )),
+            Some(s) => fixup_windows_path(s),
         }
     }
     #[cfg(not(windows))]
