@@ -404,7 +404,6 @@ impl<'blame> FusedIterator for BlameIter<'blame> {}
 impl<'blame> ExactSizeIterator for BlameIter<'blame> {}
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use std::fs::{self, File};
@@ -490,7 +489,7 @@ mod tests {
             fs::write(&path.join("README.md"), "Testing").unwrap();
 
             let mut index = repo.index().unwrap();
-            index.add_path(&Path::new("README.md")).unwrap();
+            index.add_path(Path::new("README.md")).unwrap();
             index.write().unwrap();
 
             let id = index.write_tree().unwrap();
@@ -500,7 +499,7 @@ mod tests {
                 .unwrap();
         }
 
-        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        let blame = repo.blame_file(Path::new("README.md"), None).unwrap();
         // This hunk is safe to use
         let hunk = blame.get_index(0).unwrap();
 
@@ -575,7 +574,7 @@ mod tests {
             fs::write(&path.join("README.md"), "Testing").unwrap();
 
             let mut index = repo.index().unwrap();
-            index.add_path(&Path::new("README.md")).unwrap();
+            index.add_path(Path::new("README.md")).unwrap();
             index.write().unwrap();
 
             let id = index.write_tree().unwrap();
@@ -585,7 +584,7 @@ mod tests {
                 .unwrap();
         }
 
-        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        let blame = repo.blame_file(Path::new("README.md"), None).unwrap();
         // Cannot use unwrap_err() because Blame does not implement Debug
         let result = match blame.blame_buffer(b"") {
             Ok(_) => panic!("Expected an error"),
