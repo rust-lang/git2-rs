@@ -1,4 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::needless_return)]
@@ -34,6 +33,10 @@ pub trait Binding: Sized {
     type Raw;
 
     /// Build a git2 struct from its [Binding::Raw] value.
+    ///
+    /// # Safety
+    ///
+    /// The raw value (which is expected to be a pointer) must be valid.
     unsafe fn from_raw(raw: Self::Raw) -> Self;
 
     /// Access the [Binding::Raw] value for a struct.
@@ -46,6 +49,11 @@ pub trait Binding: Sized {
     ///
     /// If the input parameter is null, then the funtion returns None. Otherwise, it
     /// calls [Binding::from_raw].
+    ///
+    /// # Safety
+    ///
+    /// If the input parameter is not null, it must satisfy the safety
+    /// requirements of the [`Binding::from_raw()`] method.
     unsafe fn from_raw_opt<T>(raw: T) -> Option<Self>
     where
         T: Copy + IsNull,
