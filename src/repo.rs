@@ -1,4 +1,3 @@
-#![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::zero_ptr)]
 
@@ -548,7 +547,7 @@ impl Repository {
     /// If there is no namespace, Ok(None) is returned.
     pub fn namespace(&self) -> Result<Option<&str>, Error> {
         match self.namespace_bytes() {
-            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(nb) => str::from_utf8(nb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
