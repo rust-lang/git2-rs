@@ -1,5 +1,3 @@
-#![allow(clippy::zero_ptr)]
-
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::env;
 use std::ffi::{CStr, CString, OsStr};
@@ -3322,7 +3320,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_revert(self.raw(), commit.raw(), ptr_raw_opts));
