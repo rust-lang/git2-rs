@@ -1,4 +1,3 @@
-#![allow(clippy::needless_range_loop)]
 #![allow(clippy::needless_return)]
 
 use libc::{c_char, c_int, size_t};
@@ -267,9 +266,9 @@ pub fn cstring_to_repo_path<T: IntoCString>(path: T) -> Result<CString, Error> {
 #[cfg(windows)]
 fn fixup_windows_path<P: Into<Vec<u8>>>(path: P) -> Result<CString, Error> {
     let mut bytes: Vec<u8> = path.into();
-    for i in 0..bytes.len() {
-        if bytes[i] == b'\\' {
-            bytes[i] = b'/';
+    for byte in &mut bytes {
+        if *byte == b'\\' {
+            *byte = b'/';
         }
     }
     Ok(CString::new(bytes)?)
