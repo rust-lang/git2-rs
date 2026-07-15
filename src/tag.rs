@@ -24,7 +24,10 @@ impl<'repo> Tag<'repo> {
     /// (eg, it cannot start with a -).
     pub fn is_valid_name(tag_name: &str) -> bool {
         crate::init();
-        let tag_name = CString::new(tag_name).unwrap();
+        let tag_name = match CString::new(tag_name) {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
         let mut valid: libc::c_int = 0;
         unsafe {
             call::c_try(raw::git_tag_name_is_valid(&mut valid, tag_name.as_ptr())).unwrap();
@@ -175,12 +178,9 @@ mod tests {
         assert_eq!(Tag::is_valid_name("foo."), false);
         assert_eq!(Tag::is_valid_name("@{"), false);
         assert_eq!(Tag::is_valid_name("as\\cd"), false);
-    }
 
-    #[test]
-    #[should_panic]
-    fn is_valid_name_for_invalid_tag() {
-        Tag::is_valid_name("ab\012");
+        // Previously would panic, see #1290
+        assert_eq!(Tag::is_valid_name("ab\012"), false);
     }
 
     #[test]
