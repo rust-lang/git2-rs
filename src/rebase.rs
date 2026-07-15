@@ -1,4 +1,3 @@
-#![allow(clippy::needless_option_take)]
 #![allow(clippy::redundant_closure)]
 
 use std::ffi::CString;
@@ -86,7 +85,7 @@ impl<'cb> RebaseOptions<'cb> {
 
     /// Acquire a pointer to the underlying raw options.
     pub fn raw(&mut self) -> *const raw::git_rebase_options {
-        if let Some(opts) = self.merge_options.as_mut().take() {
+        if let Some(opts) = self.merge_options.as_mut() {
             unsafe {
                 ptr::copy_nonoverlapping(opts.raw(), &mut self.raw.merge_options, 1);
             }
