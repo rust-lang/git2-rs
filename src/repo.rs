@@ -1,4 +1,3 @@
-#![allow(clippy::needless_borrow)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
@@ -92,7 +91,7 @@ extern "C" fn fetchhead_foreach_cb(
             let oid = Binding::from_raw(oid);
             let is_merge = is_merge == 1;
 
-            callback(&ref_name, remote_url, &oid, is_merge)
+            callback(ref_name, remote_url, &oid, is_merge)
         };
 
         if res {
@@ -3669,6 +3668,7 @@ impl RepositoryInitOptions {
 #[cfg(test)]
 #[allow(clippy::assertions_on_constants)]
 #[allow(clippy::bool_assert_comparison)]
+#[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use crate::build::CheckoutBuilder;
