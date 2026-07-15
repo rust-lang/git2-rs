@@ -413,7 +413,6 @@ impl<'repo> Drop for Commit<'repo> {
 }
 
 #[cfg(test)]
-#[allow(clippy::let_and_return)]
 mod tests {
     #[test]
     fn smoke() {
@@ -492,8 +491,7 @@ mod tests {
         let tree_header_bytes = commit.header_field_bytes("tree").unwrap();
         let tree_oid = {
             let str = tree_header_bytes.as_str().unwrap();
-            let oid = crate::Oid::from_str_ext(str, repo.object_format()).unwrap();
-            oid
+            crate::Oid::from_str_ext(str, repo.object_format()).unwrap()
         };
         assert_eq!(tree_oid, commit.tree_id());
 
