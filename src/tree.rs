@@ -397,7 +397,6 @@ impl<'tree> FusedIterator for TreeIter<'tree> {}
 impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 #[allow(clippy::redundant_field_names)]
 #[allow(clippy::single_match)]
 mod tests {
@@ -494,7 +493,7 @@ mod tests {
         let mut index = repo.index().unwrap();
         for n in 0..8 {
             let name = format!("f{n}");
-            File::create(&td.path().join(&name))
+            File::create(td.path().join(&name))
                 .unwrap()
                 .write_all(name.as_bytes())
                 .unwrap();
