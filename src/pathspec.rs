@@ -337,7 +337,6 @@ impl<'list> FusedIterator for PathspecFailedEntries<'list> {}
 impl<'list> ExactSizeIterator for PathspecFailedEntries<'list> {}
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::Pathspec;
     use crate::PathspecFlags;
@@ -358,7 +357,7 @@ mod tests {
         assert_eq!(list.diff_entries().len(), 0);
         assert_eq!(list.failed_entries().len(), 0);
 
-        File::create(&td.path().join("a")).unwrap();
+        File::create(td.path().join("a")).unwrap();
 
         let list = ps
             .match_workdir(&repo, crate::PathspecFlags::FIND_FAILURES)
