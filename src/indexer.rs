@@ -242,7 +242,6 @@ impl Drop for Indexer<'_> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unused_io_amount)]
 mod tests {
     use crate::{Buf, Indexer};
     use std::io::prelude::*;
@@ -274,7 +273,9 @@ mod tests {
             progress_called = true;
             true
         });
-        indexer.write(&buf).unwrap();
+        let expected_len = buf.len();
+        let written_bytes = indexer.write(&buf).unwrap();
+        assert_eq!(expected_len, written_bytes);
         indexer.commit().unwrap();
 
         // Assert that target repo picks it up as valid
@@ -312,7 +313,9 @@ mod tests {
             progress_called = true;
             true
         });
-        indexer.write(&buf).unwrap();
+        let expected_len = buf.len();
+        let written_bytes = indexer.write(&buf).unwrap();
+        assert_eq!(expected_len, written_bytes);
         indexer.commit().unwrap();
 
         // Assert that target repo picks it up as valid
