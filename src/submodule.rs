@@ -328,7 +328,6 @@ impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 #[allow(clippy::unnecessary_to_owned)]
 mod tests {
     use std::fs;
@@ -375,7 +374,7 @@ mod tests {
         let (_td, repo1) = crate::test::repo_init();
         let (td, repo2) = crate::test::repo_init();
 
-        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let url = Url::from_file_path(repo1.workdir().unwrap()).unwrap();
         let mut s = repo2
             .submodule(&url.to_string(), Path::new("bar"), true)
             .unwrap();
@@ -392,7 +391,7 @@ mod tests {
         let (_td, repo1) = crate::test::repo_init();
         let (td, repo2) = crate::test::repo_init();
 
-        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let url = Url::from_file_path(repo1.workdir().unwrap()).unwrap();
         let mut s = repo2
             .submodule(&url.to_string(), Path::new("bar"), true)
             .unwrap();
@@ -421,8 +420,8 @@ mod tests {
         let (_td, repo2) = crate::test::repo_init();
         let (_td, parent) = crate::test::repo_init();
 
-        let url1 = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
-        let url2 = Url::from_file_path(&repo2.workdir().unwrap()).unwrap();
+        let url1 = Url::from_file_path(repo1.workdir().unwrap()).unwrap();
+        let url2 = Url::from_file_path(repo2.workdir().unwrap()).unwrap();
         let mut s1 = parent
             .submodule(&url1.to_string(), Path::new("bar"), true)
             .unwrap();
@@ -442,8 +441,8 @@ mod tests {
         let (_td, child) = crate::test::repo_init();
         let (_td, parent) = crate::test::repo_init();
 
-        let url_child = Url::from_file_path(&child.workdir().unwrap()).unwrap();
-        let url_parent = Url::from_file_path(&parent.workdir().unwrap()).unwrap();
+        let url_child = Url::from_file_path(child.workdir().unwrap()).unwrap();
+        let url_parent = Url::from_file_path(parent.workdir().unwrap()).unwrap();
         let mut sub = parent
             .submodule(&url_child.to_string(), Path::new("bar"), true)
             .unwrap();
