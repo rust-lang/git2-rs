@@ -583,7 +583,6 @@ pub(crate) extern "C" fn write_pack_progress_cb(
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
 #[allow(clippy::unused_io_amount)]
 mod tests {
     use crate::{Buf, ObjectType, Oid, Repository};
@@ -705,7 +704,7 @@ mod tests {
             packwriter.write(&buf).unwrap();
             packwriter.commit().unwrap();
         }
-        assert_eq!(progress_called, true);
+        assert!(progress_called);
     }
 
     #[test]
