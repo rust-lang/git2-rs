@@ -249,7 +249,6 @@ fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
 }
 
 #[cfg(test)]
-#[allow(clippy::char_lit_as_u8)]
 mod tests {
 
     #[test]
@@ -273,7 +272,7 @@ mod tests {
             "1\n"
         );
         assert_eq!(
-            message_prettify("1\n; comment\n; more", Some(';' as u8)).unwrap(),
+            message_prettify("1\n; comment\n; more", Some(b';')).unwrap(),
             "1\n"
         );
     }
