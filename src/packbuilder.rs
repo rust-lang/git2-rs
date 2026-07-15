@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use libc::{c_int, c_uint, c_void, size_t};
 use std::marker;
 use std::path::Path;
@@ -204,7 +202,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Returns `Ok(None)` if the packfile has not been written.
     pub fn name(&self) -> Result<Option<&str>, Error> {
         match self.name_bytes() {
-            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(nb) => str::from_utf8(nb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
