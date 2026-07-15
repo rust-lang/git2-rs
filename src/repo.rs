@@ -1,4 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_borrow)]
 #![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
@@ -3634,8 +3633,15 @@ impl RepositoryInitOptions {
     /// Creates a set of raw init options to be used with
     /// `git_repository_init_ext`.
     ///
+    /// # Safety
+    ///
     /// This method is unsafe as the returned value may have pointers to the
-    /// interior of this structure.
+    /// interior of this structure. The caller must ensure that the returned
+    /// raw instance does not outlive the [`RepositoryInitOptions`], and also
+    /// that for any fields configured in the `RepositoryInitOptions` that are
+    /// provided in the raw structure as pointers, those pointers are not used
+    /// if the original references held in the `RepositoryInitOptions` are
+    /// dropped.
     pub unsafe fn raw(&self) -> raw::git_repository_init_options {
         let mut opts = mem::zeroed();
         assert_eq!(
