@@ -1,5 +1,3 @@
-#![allow(clippy::manual_unwrap_or)]
-
 use libc::{c_char, c_int, c_void};
 use std::cmp::Ordering;
 use std::ffi::{CStr, CString};
@@ -209,7 +207,7 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
     entry: *const raw::git_tree_entry,
     payload: *mut c_void,
 ) -> c_int {
-    match panic::wrap(|| unsafe {
+    panic::wrap(|| unsafe {
         let root = match CStr::from_ptr(root).to_str() {
             Ok(value) => value,
             _ => return -1,
@@ -218,10 +216,8 @@ extern "C" fn treewalk_cb<T: Into<i32>>(
         let payload = &mut *(payload as *mut TreeWalkCbData<'_, T>);
         let callback = &mut payload.callback;
         callback(root, &entry).into()
-    }) {
-        Some(value) => value,
-        None => -1,
-    }
+    })
+    .unwrap_or(-1)
 }
 
 impl<'repo> Binding for Tree<'repo> {
