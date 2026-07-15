@@ -1,4 +1,3 @@
-#![allow(clippy::derivable_impls)]
 #![allow(clippy::empty_line_after_doc_comments)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::unwrap_or_default)]
@@ -82,11 +81,13 @@ pub struct RemoteConnection<'repo, 'connection, 'cb> {
 ///
 /// By default, git will follow a redirect on the initial request
 /// (`/info/refs`), but not subsequent requests.
+#[derive(Default)]
 pub enum RemoteRedirect {
     /// Do not follow any off-site redirects at any stage of the fetch or push.
     None,
     /// Allow off-site redirects only upon the initial request. This is the
     /// default.
+    #[default]
     Initial,
     /// Allow redirects at any stage in the fetch or push.
     All,
@@ -810,12 +811,6 @@ impl<'repo, 'connection, 'cb> RemoteConnection<'repo, 'connection, 'cb> {
 impl<'repo, 'connection, 'cb> Drop for RemoteConnection<'repo, 'connection, 'cb> {
     fn drop(&mut self) {
         drop(self.remote.disconnect());
-    }
-}
-
-impl Default for RemoteRedirect {
-    fn default() -> Self {
-        RemoteRedirect::Initial
     }
 }
 
