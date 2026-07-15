@@ -376,7 +376,6 @@ extern "C" fn stream_free(stream: *mut raw::git_smart_subtransport_stream) {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 mod tests {
     use super::*;
     use crate::{ErrorClass, ErrorCode};
@@ -410,7 +409,7 @@ mod tests {
         unsafe {
             INIT.call_once(|| {
                 register("dummy", move |remote| {
-                    Transport::smart(&remote, true, DummyTransport)
+                    Transport::smart(remote, true, DummyTransport)
                 })
                 .unwrap();
             })
