@@ -1604,7 +1604,6 @@ impl Default for DiffPatchidOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::assign_op_pattern)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 #[allow(clippy::while_let_on_iterator)]
 mod tests {
@@ -1636,7 +1635,7 @@ mod tests {
         let mut count = 0;
         t!(diff.foreach(
             &mut |_file, _progress| {
-                count = count + 1;
+                count += 1;
                 true
             },
             None,
@@ -1658,7 +1657,7 @@ mod tests {
         let mut result = None;
         t!(diff.foreach(
             &mut |file, _progress| {
-                count = count + 1;
+                count += 1;
                 result = file.new_file().path().map(ToOwned::to_owned);
                 true
             },
