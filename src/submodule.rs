@@ -1,4 +1,3 @@
-#![allow(clippy::empty_line_after_doc_comments)]
 #![allow(clippy::let_and_return)]
 #![allow(clippy::redundant_closure)]
 
@@ -150,7 +149,7 @@ impl<'repo> Submodule<'repo> {
     ///
     /// This function can be called to init and set up a submodule repository
     /// from a submodule in preparation to clone it from its remote.
-
+    ///
     /// use_gitlink: Should the workdir contain a gitlink to the repo in
     /// .git/modules vs. repo directly in workdir.
     pub fn repo_init(&mut self, use_gitlink: bool) -> Result<Repository, Error> {
