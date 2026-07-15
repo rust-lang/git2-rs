@@ -404,9 +404,6 @@ impl<'blame> FusedIterator for BlameIter<'blame> {}
 impl<'blame> ExactSizeIterator for BlameIter<'blame> {}
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
-#[allow(clippy::needless_borrow)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use std::fs::{self, File};
     use std::path::Path;
@@ -417,8 +414,8 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.workdir().unwrap();
-        fs::create_dir(&root.join("foo")).unwrap();
-        File::create(&root.join("foo/bar")).unwrap();
+        fs::create_dir(root.join("foo")).unwrap();
+        File::create(root.join("foo/bar")).unwrap();
         index.add_path(Path::new("foo/bar")).unwrap();
 
         let committer_sig = crate::Signature::now("FizzBuzz", "bar@example.com")
@@ -488,10 +485,10 @@ mod tests {
             config.set_str("user.name", "name").unwrap();
             config.set_str("user.email", "email").unwrap();
 
-            fs::write(&path.join("README.md"), "Testing").unwrap();
+            fs::write(path.join("README.md"), "Testing").unwrap();
 
             let mut index = repo.index().unwrap();
-            index.add_path(&Path::new("README.md")).unwrap();
+            index.add_path(Path::new("README.md")).unwrap();
             index.write().unwrap();
 
             let id = index.write_tree().unwrap();
@@ -501,7 +498,7 @@ mod tests {
                 .unwrap();
         }
 
-        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        let blame = repo.blame_file(Path::new("README.md"), None).unwrap();
         // This hunk is safe to use
         let hunk = blame.get_index(0).unwrap();
 
@@ -539,7 +536,7 @@ mod tests {
             assert_eq!(1, hunk.final_start_line());
             assert_eq!(0, hunk.orig_start_line());
             assert_eq!(Some(Path::new("README.md")), hunk.path());
-            assert_eq!(false, hunk.is_boundary());
+            assert!(!hunk.is_boundary());
             assert_eq!(1, hunk.lines_in_hunk());
             assert_eq!(Ok(None), hunk.summary());
             assert_eq!(None, hunk.summary_bytes());
@@ -573,10 +570,10 @@ mod tests {
             config.set_str("user.name", "name").unwrap();
             config.set_str("user.email", "email").unwrap();
 
-            fs::write(&path.join("README.md"), "Testing").unwrap();
+            fs::write(path.join("README.md"), "Testing").unwrap();
 
             let mut index = repo.index().unwrap();
-            index.add_path(&Path::new("README.md")).unwrap();
+            index.add_path(Path::new("README.md")).unwrap();
             index.write().unwrap();
 
             let id = index.write_tree().unwrap();
@@ -586,7 +583,7 @@ mod tests {
                 .unwrap();
         }
 
-        let blame = repo.blame_file(&Path::new("README.md"), None).unwrap();
+        let blame = repo.blame_file(Path::new("README.md"), None).unwrap();
         // Cannot use unwrap_err() because Blame does not implement Debug
         let result = match blame.blame_buffer(b"") {
             Ok(_) => panic!("Expected an error"),

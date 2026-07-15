@@ -161,7 +161,6 @@ impl<'cb> Default for ApplyOptions<'cb> {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::*;
     use std::{fs::File, io::Write, path::Path};
@@ -193,11 +192,11 @@ mod tests {
         let file_path = Path::new("foo.txt");
         let (td, repo) = crate::test::repo_init();
         // create new file
-        t!(t!(File::create(&td.path().join(file_path))).write_all(b"bar"));
+        t!(t!(File::create(td.path().join(file_path))).write_all(b"bar"));
         // stage the new file
         t!(t!(repo.index()).add_path(file_path));
         // now change workdir version
-        t!(t!(File::create(&td.path().join(file_path))).write_all(b"foo\nbar"));
+        t!(t!(File::create(td.path().join(file_path))).write_all(b"foo\nbar"));
 
         let diff = t!(repo.diff_index_to_workdir(None, None));
         assert_eq!(diff.deltas().len(), 1);

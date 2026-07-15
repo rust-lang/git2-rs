@@ -296,7 +296,6 @@ extern "C" fn progress_c(
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use crate::Buf;
 
@@ -597,7 +596,7 @@ mod tests {
             t!(builder.insert_commit(commit));
             t!(builder.write_buf(&mut Buf::new()));
         }
-        assert_eq!(progress_called, true);
+        assert!(progress_called);
     }
 
     #[test]
@@ -615,7 +614,7 @@ mod tests {
             t!(builder.insert_commit(commit));
             t!(builder.write_buf(&mut Buf::new()));
         }
-        assert_eq!(progress_called, false);
+        assert!(!progress_called);
     }
 
     #[test]
@@ -632,7 +631,7 @@ mod tests {
             t!(builder.insert_commit(commit));
             t!(builder.write(repo.path(), 0));
         }
-        assert_eq!(progress_called, true);
+        assert!(progress_called);
     }
 
     #[test]

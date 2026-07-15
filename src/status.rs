@@ -366,7 +366,6 @@ impl<'statuses> Binding for StatusEntry<'statuses> {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::StatusOptions;
     use std::fs::File;
@@ -377,7 +376,7 @@ mod tests {
     fn smoke() {
         let (td, repo) = crate::test::repo_init();
         assert_eq!(repo.statuses(None).unwrap().len(), 0);
-        File::create(&td.path().join("foo")).unwrap();
+        File::create(td.path().join("foo")).unwrap();
         let statuses = repo.statuses(None).unwrap();
         assert_eq!(statuses.iter().count(), 1);
         let status = statuses.iter().next().unwrap();
@@ -393,8 +392,8 @@ mod tests {
     #[test]
     fn filter() {
         let (td, repo) = crate::test::repo_init();
-        t!(File::create(&td.path().join("foo")));
-        t!(File::create(&td.path().join("bar")));
+        t!(File::create(td.path().join("foo")));
+        t!(File::create(td.path().join("bar")));
         let mut opts = StatusOptions::new();
         opts.include_untracked(true).pathspec("foo");
 

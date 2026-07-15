@@ -1,5 +1,3 @@
-#![allow(clippy::needless_borrows_for_generic_args)]
-
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -52,7 +50,7 @@ pub fn repo_init_sha256() -> (TempDir, Repository) {
 pub fn commit(repo: &Repository) -> (Oid, Oid) {
     let mut index = t!(repo.index());
     let root = repo.path().parent().unwrap();
-    t!(File::create(&root.join("foo")));
+    t!(File::create(root.join("foo")));
     t!(index.add_path(Path::new("foo")));
 
     let tree_id = t!(index.write_tree());

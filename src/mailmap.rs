@@ -93,7 +93,6 @@ impl Mailmap {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 mod tests {
     use super::*;
 
@@ -125,7 +124,7 @@ mod tests {
     #[test]
     fn from_buffer() {
         let buf = "<prøper@emæil> <email>";
-        let mm = t!(Mailmap::from_buffer(&buf));
+        let mm = t!(Mailmap::from_buffer(buf));
 
         let sig = t!(Signature::now("name", "email"));
         let mailmapped_sig = t!(mm.resolve_signature(&sig));

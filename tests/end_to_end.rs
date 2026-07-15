@@ -1,6 +1,5 @@
 //! Tests for some end-to-end logic about certain operations
 
-#![allow(clippy::needless_borrow)]
 #![allow(unused_variables)]
 
 use git2::{
@@ -291,17 +290,17 @@ fn repo_status() {
     fs::write(path.join(".gitignore"), "ignored-*").unwrap();
 
     let mut index = repo.index().unwrap();
-    index.add_path(&Path::new("BothModified")).unwrap();
-    index.add_path(&Path::new("IndexModified")).unwrap();
-    index.add_path(&Path::new("IndexDeleted")).unwrap();
-    index.add_path(&Path::new("IndexRenamed")).unwrap();
-    index.add_path(&Path::new("IndexTypechange")).unwrap();
-    index.add_path(&Path::new("Unchanged")).unwrap();
-    index.add_path(&Path::new("WorktreeDeleted")).unwrap();
-    index.add_path(&Path::new("WorktreeModified")).unwrap();
-    index.add_path(&Path::new("WorktreeRenamed")).unwrap();
-    index.add_path(&Path::new("WorktreeTypechange")).unwrap();
-    index.add_path(&Path::new(".gitignore")).unwrap();
+    index.add_path(Path::new("BothModified")).unwrap();
+    index.add_path(Path::new("IndexModified")).unwrap();
+    index.add_path(Path::new("IndexDeleted")).unwrap();
+    index.add_path(Path::new("IndexRenamed")).unwrap();
+    index.add_path(Path::new("IndexTypechange")).unwrap();
+    index.add_path(Path::new("Unchanged")).unwrap();
+    index.add_path(Path::new("WorktreeDeleted")).unwrap();
+    index.add_path(Path::new("WorktreeModified")).unwrap();
+    index.add_path(Path::new("WorktreeRenamed")).unwrap();
+    index.add_path(Path::new("WorktreeTypechange")).unwrap();
+    index.add_path(Path::new(".gitignore")).unwrap();
 
     let id = index.write_tree().unwrap();
 
@@ -328,13 +327,13 @@ fn repo_status() {
 
     fs::rename(path.join("IndexRenamed"), path.join("IndexRenamed-new")).unwrap();
 
-    index.add_path(&Path::new("BothModified")).unwrap();
-    index.remove_path(&Path::new("IndexDeleted")).unwrap();
-    index.add_path(&Path::new("IndexModified")).unwrap();
-    index.add_path(&Path::new("IndexNew")).unwrap();
-    index.remove_path(&Path::new("IndexRenamed")).unwrap();
-    index.add_path(&Path::new("IndexRenamed-new")).unwrap();
-    index.add_path(&Path::new("IndexTypechange")).unwrap();
+    index.add_path(Path::new("BothModified")).unwrap();
+    index.remove_path(Path::new("IndexDeleted")).unwrap();
+    index.add_path(Path::new("IndexModified")).unwrap();
+    index.add_path(Path::new("IndexNew")).unwrap();
+    index.remove_path(Path::new("IndexRenamed")).unwrap();
+    index.add_path(Path::new("IndexRenamed-new")).unwrap();
+    index.add_path(Path::new("IndexTypechange")).unwrap();
 
     // And between index and worktree
     fs::write(path.join("ignored-random"), "ignored-random").unwrap();
@@ -424,7 +423,7 @@ fn repo_status_clean() {
     fs::write(path.join("MyFile"), "content").unwrap();
 
     let mut index = repo.index().unwrap();
-    index.add_path(&Path::new("MyFile")).unwrap();
+    index.add_path(Path::new("MyFile")).unwrap();
 
     let id = index.write_tree().unwrap();
 
@@ -457,7 +456,7 @@ fn repo_status_clean() {
     }
 
     // Add it to the index
-    index.add_path(&Path::new("OtherFile")).unwrap();
+    index.add_path(Path::new("OtherFile")).unwrap();
 
     // Still dirty
     {
@@ -481,7 +480,7 @@ fn repo_status_clean() {
     }
 
     // After removing from the index, it should be clean again
-    index.remove_path(&Path::new("OtherFile")).unwrap();
+    index.remove_path(Path::new("OtherFile")).unwrap();
 
     {
         let status = repo.statuses(Some(&mut opts)).unwrap();

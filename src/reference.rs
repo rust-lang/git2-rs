@@ -517,7 +517,6 @@ impl<'repo, 'references> Iterator for ReferenceNames<'repo, 'references> {
 }
 
 #[cfg(test)]
-#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::{ObjectType, Reference, ReferenceType};
 
@@ -531,7 +530,7 @@ mod tests {
         assert!(!Reference::is_valid_name("_FOO_BAR"));
 
         // Previously would panic, see #1218
-        assert!(!Reference::is_valid_name("ab\012"));
+        assert!(!Reference::is_valid_name("ab\x0012"));
     }
 
     #[test]

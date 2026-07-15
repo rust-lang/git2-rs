@@ -882,8 +882,6 @@ impl Binding for IndexEntry {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use std::fs::{self, File};
     use std::path::Path;
@@ -896,7 +894,7 @@ mod tests {
     #[test]
     fn smoke() {
         let mut index = Index::new().unwrap();
-        assert!(index.add_path(&Path::new(".")).is_err());
+        assert!(index.add_path(Path::new(".")).is_err());
         index.clear().unwrap();
         assert_eq!(index.len(), 0);
         assert!(index.get(0).is_none());
@@ -927,8 +925,8 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().parent().unwrap();
-        fs::create_dir(&root.join("foo")).unwrap();
-        File::create(&root.join("foo/bar")).unwrap();
+        fs::create_dir(root.join("foo")).unwrap();
+        File::create(root.join("foo/bar")).unwrap();
         let mut called = false;
         index
             .add_all(
@@ -967,8 +965,8 @@ mod tests {
         let mut index = repo.index().unwrap();
 
         let root = repo.path().parent().unwrap();
-        fs::create_dir(&root.join("foo")).unwrap();
-        File::create(&root.join("foo/bar")).unwrap();
+        fs::create_dir(root.join("foo")).unwrap();
+        File::create(root.join("foo/bar")).unwrap();
         index.add_path(Path::new("foo/bar")).unwrap();
         index.write().unwrap();
         assert_eq!(index.iter().count(), 1);
@@ -986,7 +984,7 @@ mod tests {
         repo.reset(&obj, ResetType::Hard, None).unwrap();
 
         let td2 = TempDir::new().unwrap();
-        let url = crate::test::path2url(&root);
+        let url = crate::test::path2url(root);
         let repo = Repository::clone(&url, td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None).unwrap();

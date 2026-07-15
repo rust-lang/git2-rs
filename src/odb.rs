@@ -583,8 +583,6 @@ pub(crate) extern "C" fn write_pack_progress_cb(
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
-#[allow(clippy::unused_io_amount)]
 mod tests {
     use crate::{Buf, ObjectType, Oid, Repository};
     use std::io::prelude::*;
@@ -679,7 +677,9 @@ mod tests {
         t!(builder.write_buf(&mut buf));
         let db = repo_target.odb().unwrap();
         let mut packwriter = db.packwriter().unwrap();
-        packwriter.write(&buf).unwrap();
+        let expected_len = buf.len();
+        let written_bytes = packwriter.write(&buf).unwrap();
+        assert_eq!(expected_len, written_bytes);
         packwriter.commit().unwrap();
         let commit_target = repo_target.find_commit(commit_source_id).unwrap();
         assert_eq!(commit_target.id(), commit_source_id);
@@ -702,10 +702,12 @@ mod tests {
                 progress_called = true;
                 true
             });
-            packwriter.write(&buf).unwrap();
+            let expected_len = buf.len();
+            let written_bytes = packwriter.write(&buf).unwrap();
+            assert_eq!(expected_len, written_bytes);
             packwriter.commit().unwrap();
         }
-        assert_eq!(progress_called, true);
+        assert!(progress_called);
     }
 
     #[test]
@@ -743,7 +745,9 @@ mod tests {
         // Write the buf into a packfile in the repo. This brings back the
         // missing objects, and we verify everything is good again.
         let mut packwriter = odb.packwriter().unwrap();
-        packwriter.write(&buf).unwrap();
+        let expected_len = buf.len();
+        let written_bytes = packwriter.write(&buf).unwrap();
+        assert_eq!(expected_len, written_bytes);
         packwriter.commit().unwrap();
         t!(repo.reset(commit1.as_object(), ResetType::Hard, None));
         assert!(foo_file.exists());

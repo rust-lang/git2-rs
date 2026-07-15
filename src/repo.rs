@@ -3671,10 +3671,6 @@ impl Default for RepositoryInitOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::assertions_on_constants)]
-#[allow(clippy::bool_assert_comparison)]
-#[allow(clippy::needless_borrow)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::AttrCheckFlags;
@@ -3767,7 +3763,7 @@ mod tests {
         assert!(!repo.is_shallow());
         assert!(repo.is_empty().unwrap());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
         assert_eq!(repo.state(), crate::RepositoryState::Clean);
@@ -3792,7 +3788,7 @@ mod tests {
         assert!(!repo.is_bare());
         assert!(repo.is_empty().unwrap());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git/")).unwrap()
         );
         assert_eq!(repo.state(), crate::RepositoryState::Clean);
@@ -3815,7 +3811,7 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
@@ -3835,7 +3831,7 @@ mod tests {
         let repo = Repository::open(path).unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
@@ -3899,7 +3895,7 @@ mod tests {
     #[test]
     fn makes_dirs() {
         let td = TempDir::new().unwrap();
-        Repository::init(&td.path().join("a/b/c/d")).unwrap();
+        Repository::init(td.path().join("a/b/c/d")).unwrap();
     }
 
     #[test]
@@ -3910,7 +3906,7 @@ mod tests {
         Repository::init_bare(td.path()).unwrap();
         let repo = Repository::discover(&subdir).unwrap();
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join("")).unwrap()
         );
     }
@@ -3938,7 +3934,7 @@ mod tests {
         let testdir = ceilingdir.join("testdi");
         fs::create_dir(&testdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
-        let path = Repository::discover_path(&testdir, &[ceilingdir.as_os_str()]);
+        let path = Repository::discover_path(&testdir, [ceilingdir.as_os_str()]);
 
         assert!(path.is_err());
     }
@@ -3958,7 +3954,7 @@ mod tests {
         .unwrap();
         assert!(!repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git")).unwrap()
         );
 
@@ -3967,7 +3963,7 @@ mod tests {
                 .unwrap();
         assert!(repo.is_bare());
         assert_eq!(
-            crate::test::realpath(&repo.path()).unwrap(),
+            crate::test::realpath(repo.path()).unwrap(),
             crate::test::realpath(&td.path().join(".git")).unwrap()
         );
 
@@ -3981,7 +3977,7 @@ mod tests {
         assert_eq!(err.code(), crate::ErrorCode::NotFound);
 
         assert!(
-            Repository::open_ext(&subdir, crate::RepositoryOpenFlags::empty(), &[&subdir]).is_ok()
+            Repository::open_ext(&subdir, crate::RepositoryOpenFlags::empty(), [&subdir]).is_ok()
         );
     }
 
@@ -4032,16 +4028,16 @@ mod tests {
     fn smoke_reference_has_log_ensure_log() {
         let (_td, repo) = crate::test::repo_init();
 
-        assert_eq!(repo.reference_has_log("HEAD").unwrap(), true);
-        assert_eq!(repo.reference_has_log("refs/heads/main").unwrap(), true);
-        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), false);
+        assert!(repo.reference_has_log("HEAD").unwrap());
+        assert!(repo.reference_has_log("refs/heads/main").unwrap());
+        assert!(!repo.reference_has_log("NOT_HEAD").unwrap());
         let main_oid = repo.revparse_single("main").unwrap().id();
         assert!(repo
             .reference("NOT_HEAD", main_oid, false, "creating a new branch")
             .is_ok());
-        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), false);
+        assert!(!repo.reference_has_log("NOT_HEAD").unwrap());
         assert!(repo.reference_ensure_log("NOT_HEAD").is_ok());
-        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), true);
+        assert!(repo.reference_has_log("NOT_HEAD").unwrap());
     }
 
     #[test]
@@ -4299,7 +4295,7 @@ mod tests {
             } else if mg == &oid3 {
                 found_oid3 = true;
             } else {
-                assert!(false);
+                panic!("Merge base was neither oid2 nor oid3: {:?}", mg);
             }
         }
         assert!(found_oid2);
@@ -4317,7 +4313,7 @@ mod tests {
             } else if mg == &oid3 {
                 found_oid3 = true;
             } else {
-                assert!(false);
+                panic!("Merge base was neither oid2 nor oid3: {:?}", mg);
             }
         }
         assert!(found_oid2);
@@ -4338,9 +4334,9 @@ mod tests {
         let author = t!(Signature::now("committer", "committer@email"));
 
         let base_commit = {
-            t!(fs::write(repo.workdir().unwrap().join(&file_path), "base"));
+            t!(fs::write(repo.workdir().unwrap().join(file_path), "base"));
             let mut index = t!(repo.index());
-            t!(index.add_path(&file_path));
+            t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
             let tree = t!(repo.find_tree(tree_id));
 
@@ -4356,9 +4352,9 @@ mod tests {
         };
 
         let foo_commit = {
-            t!(fs::write(repo.workdir().unwrap().join(&file_path), "foo"));
+            t!(fs::write(repo.workdir().unwrap().join(file_path), "foo"));
             let mut index = t!(repo.index());
-            t!(index.add_path(&file_path));
+            t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
             let tree = t!(repo.find_tree(tree_id));
 
@@ -4374,9 +4370,9 @@ mod tests {
         };
 
         let bar_commit = {
-            t!(fs::write(repo.workdir().unwrap().join(&file_path), "bar"));
+            t!(fs::write(repo.workdir().unwrap().join(file_path), "bar"));
             let mut index = t!(repo.index());
-            t!(index.add_path(&file_path));
+            t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
             let tree = t!(repo.find_tree(tree_id));
 
@@ -4721,7 +4717,7 @@ bar
             // - Include entries for both author and committer to prove we call
             //   the right raw functions.
             let mailmap_file = Path::new(".mailmap");
-            let p = Path::new(repo.workdir().unwrap()).join(&mailmap_file);
+            let p = Path::new(repo.workdir().unwrap()).join(mailmap_file);
             t!(fs::write(
                 p,
                 r#"
@@ -4729,7 +4725,7 @@ Author Name <author.proper@email> name <email>
 Committer Name <committer.proper@email> <committer@email>"#,
             ));
             let mut index = t!(repo.index());
-            t!(index.add_path(&mailmap_file));
+            t!(index.add_path(mailmap_file));
             let id_mailmap = t!(index.write_tree());
             let tree_mailmap = t!(repo.find_tree(id_mailmap));
 
@@ -5001,7 +4997,7 @@ Committer Name <committer.proper@email> <committer@email>"#,
     fn attr_invalid_utf8() {
         let (td, repo) = crate::test::repo_init();
         t!(fs::write(
-            &td.path().join(".gitattributes"),
+            td.path().join(".gitattributes"),
             b"README.md foo=valid bar=inva\xFFlid"
         ));
 

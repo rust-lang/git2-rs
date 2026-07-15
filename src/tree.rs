@@ -397,9 +397,6 @@ impl<'tree> FusedIterator for TreeIter<'tree> {}
 impl<'tree> ExactSizeIterator for TreeIter<'tree> {}
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
-#[allow(clippy::redundant_field_names)]
-#[allow(clippy::single_match)]
 mod tests {
     use super::{TreeWalkMode, TreeWalkResult};
     use crate::{Object, ObjectType, Repository, Tree, TreeEntry};
@@ -422,17 +419,14 @@ mod tests {
             } else {
                 let entry = self.entries.remove(0);
 
-                match entry.kind() {
-                    Some(ObjectType::Tree) => {
-                        let obj: Object<'a> = entry.to_object(self.repo).unwrap();
+                if let Some(ObjectType::Tree) = entry.kind() {
+                    let obj: Object<'a> = entry.to_object(self.repo).unwrap();
 
-                        let tree: &Tree<'a> = obj.as_tree().unwrap();
+                    let tree: &Tree<'a> = obj.as_tree().unwrap();
 
-                        for entry in tree.iter() {
-                            self.entries.push(entry.to_owned());
-                        }
+                    for entry in tree.iter() {
+                        self.entries.push(entry.to_owned());
                     }
-                    _ => {}
                 }
 
                 Some(entry)
@@ -449,7 +443,7 @@ mod tests {
 
         TestTreeIter {
             entries: initial,
-            repo: repo,
+            repo,
         }
     }
 
@@ -494,7 +488,7 @@ mod tests {
         let mut index = repo.index().unwrap();
         for n in 0..8 {
             let name = format!("f{n}");
-            File::create(&td.path().join(&name))
+            File::create(td.path().join(&name))
                 .unwrap()
                 .write_all(name.as_bytes())
                 .unwrap();

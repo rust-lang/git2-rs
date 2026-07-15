@@ -328,8 +328,6 @@ impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
-#[allow(clippy::unnecessary_to_owned)]
 mod tests {
     use std::fs;
     use std::path::Path;
@@ -375,12 +373,12 @@ mod tests {
         let (_td, repo1) = crate::test::repo_init();
         let (td, repo2) = crate::test::repo_init();
 
-        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let url = Url::from_file_path(repo1.workdir().unwrap()).unwrap();
         let mut s = repo2
-            .submodule(&url.to_string(), Path::new("bar"), true)
+            .submodule(url.as_ref(), Path::new("bar"), true)
             .unwrap();
         t!(fs::remove_dir_all(td.path().join("bar")));
-        t!(Repository::clone(&url.to_string(), td.path().join("bar")));
+        t!(Repository::clone(url.as_ref(), td.path().join("bar")));
         t!(s.add_to_index(false));
         t!(s.add_finalize());
     }
@@ -392,12 +390,12 @@ mod tests {
         let (_td, repo1) = crate::test::repo_init();
         let (td, repo2) = crate::test::repo_init();
 
-        let url = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
+        let url = Url::from_file_path(repo1.workdir().unwrap()).unwrap();
         let mut s = repo2
-            .submodule(&url.to_string(), Path::new("bar"), true)
+            .submodule(url.as_ref(), Path::new("bar"), true)
             .unwrap();
         t!(fs::remove_dir_all(td.path().join("bar")));
-        t!(Repository::clone(&url.to_string(), td.path().join("bar")));
+        t!(Repository::clone(url.as_ref(), td.path().join("bar")));
         t!(s.add_to_index(false));
         t!(s.add_finalize());
         // -----------------------------------
@@ -421,13 +419,13 @@ mod tests {
         let (_td, repo2) = crate::test::repo_init();
         let (_td, parent) = crate::test::repo_init();
 
-        let url1 = Url::from_file_path(&repo1.workdir().unwrap()).unwrap();
-        let url2 = Url::from_file_path(&repo2.workdir().unwrap()).unwrap();
+        let url1 = Url::from_file_path(repo1.workdir().unwrap()).unwrap();
+        let url2 = Url::from_file_path(repo2.workdir().unwrap()).unwrap();
         let mut s1 = parent
-            .submodule(&url1.to_string(), Path::new("bar"), true)
+            .submodule(url1.as_ref(), Path::new("bar"), true)
             .unwrap();
         let mut s2 = parent
-            .submodule(&url2.to_string(), Path::new("bar2"), true)
+            .submodule(url2.as_ref(), Path::new("bar2"), true)
             .unwrap();
         // -----------------------------------
 
@@ -442,10 +440,10 @@ mod tests {
         let (_td, child) = crate::test::repo_init();
         let (_td, parent) = crate::test::repo_init();
 
-        let url_child = Url::from_file_path(&child.workdir().unwrap()).unwrap();
-        let url_parent = Url::from_file_path(&parent.workdir().unwrap()).unwrap();
+        let url_child = Url::from_file_path(child.workdir().unwrap()).unwrap();
+        let url_parent = Url::from_file_path(parent.workdir().unwrap()).unwrap();
         let mut sub = parent
-            .submodule(&url_child.to_string(), Path::new("bar"), true)
+            .submodule(url_child.as_ref(), Path::new("bar"), true)
             .unwrap();
 
         // -----------------------------------
@@ -458,7 +456,7 @@ mod tests {
 
         // Clone the parent to init its submodules
         let td = TempDir::new().unwrap();
-        let new_parent = Repository::clone(&url_parent.to_string(), &td).unwrap();
+        let new_parent = Repository::clone(url_parent.as_ref(), &td).unwrap();
 
         let mut submodules = new_parent.submodules().unwrap();
         let child = submodules.first_mut().unwrap();

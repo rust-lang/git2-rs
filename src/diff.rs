@@ -1604,9 +1604,6 @@ impl Default for DiffPatchidOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::assign_op_pattern)]
-#[allow(clippy::needless_borrows_for_generic_args)]
-#[allow(clippy::while_let_on_iterator)]
 mod tests {
     #[cfg(feature = "unstable-sha256")]
     use crate::Diff;
@@ -1636,7 +1633,7 @@ mod tests {
         let mut count = 0;
         t!(diff.foreach(
             &mut |_file, _progress| {
-                count = count + 1;
+                count += 1;
                 true
             },
             None,
@@ -1650,7 +1647,7 @@ mod tests {
     fn foreach_file_only() {
         let path = Path::new("foo");
         let (td, repo) = crate::test::repo_init();
-        t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
+        t!(t!(File::create(td.path().join(path))).write_all(b"bar"));
         let mut opts = DiffOptions::new();
         opts.include_untracked(true);
         let diff = t!(repo.diff_tree_to_workdir(None, Some(&mut opts)));
@@ -1658,7 +1655,7 @@ mod tests {
         let mut result = None;
         t!(diff.foreach(
             &mut |file, _progress| {
-                count = count + 1;
+                count += 1;
                 result = file.new_file().path().map(ToOwned::to_owned);
                 true
             },
@@ -1674,7 +1671,7 @@ mod tests {
     fn foreach_file_and_hunk() {
         let path = Path::new("foo");
         let (td, repo) = crate::test::repo_init();
-        t!(t!(File::create(&td.path().join(path))).write_all(b"bar"));
+        t!(t!(File::create(td.path().join(path))).write_all(b"bar"));
         let mut index = t!(repo.index());
         t!(index.add_path(path));
         let mut opts = DiffOptions::new();
@@ -1702,8 +1699,8 @@ mod tests {
         let foo_path = Path::new("foo");
         let bin_path = Path::new("bin");
         let (td, repo) = crate::test::repo_init();
-        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
-        t!(t!(File::create(&td.path().join(bin_path))).write_all(&fib));
+        t!(t!(File::create(td.path().join(foo_path))).write_all(b"bar\n"));
+        t!(t!(File::create(td.path().join(bin_path))).write_all(&fib));
         let mut index = t!(repo.index());
         t!(index.add_path(foo_path));
         t!(index.add_path(bin_path));
@@ -1858,7 +1855,7 @@ mod tests {
             "Invalid version line: {:?}",
             version_line
         );
-        while let Some(line) = remaining_lines.next() {
+        for line in remaining_lines {
             assert_eq!(line.trim(), "")
         }
     }
@@ -1867,7 +1864,7 @@ mod tests {
     fn foreach_diff_line_origin_value() {
         let foo_path = Path::new("foo");
         let (td, repo) = crate::test::repo_init();
-        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+        t!(t!(File::create(td.path().join(foo_path))).write_all(b"bar\n"));
         let mut index = t!(repo.index());
         t!(index.add_path(foo_path));
         let mut opts = DiffOptions::new();
@@ -1893,7 +1890,7 @@ mod tests {
         let bar_path = Path::new("foo");
 
         let (td, repo) = crate::test::repo_init();
-        t!(t!(File::create(&td.path().join(foo_path))).write_all(b"bar\n"));
+        t!(t!(File::create(td.path().join(foo_path))).write_all(b"bar\n"));
 
         let mut index = t!(repo.index());
         t!(index.add_path(foo_path));
@@ -2037,14 +2034,14 @@ Binary files /dev/null and b/binary.pdf differ
 
         // Commit a file with enough content for rename detection to latch onto.
         let body = "alpha\nbravo\ncharlie\ndelta\necho\nfoxtrot\n";
-        t!(t!(File::create(&root.join("orig.txt"))).write_all(body.as_bytes()));
+        t!(t!(File::create(root.join("orig.txt"))).write_all(body.as_bytes()));
         let mut index = t!(repo.index());
         t!(index.add_path(Path::new("orig.txt")));
         let tree1 = t!(repo.find_tree(t!(index.write_tree())));
 
         // Pure rename: identical content at a new path scores 100.
-        t!(std::fs::remove_file(&root.join("orig.txt")));
-        t!(t!(File::create(&root.join("renamed.txt"))).write_all(body.as_bytes()));
+        t!(std::fs::remove_file(root.join("orig.txt")));
+        t!(t!(File::create(root.join("renamed.txt"))).write_all(body.as_bytes()));
         t!(index.remove_path(Path::new("orig.txt")));
         t!(index.add_path(Path::new("renamed.txt")));
         let tree2 = t!(repo.find_tree(t!(index.write_tree())));
@@ -2061,7 +2058,7 @@ Binary files /dev/null and b/binary.pdf differ
         // Rename + edit: a changed line drops the score below 100 while keeping
         // it above the default 50 rename threshold.
         let edited = "ALPHA is different now\nbravo\ncharlie\ndelta\necho\nfoxtrot\n";
-        t!(t!(File::create(&root.join("renamed.txt"))).write_all(edited.as_bytes()));
+        t!(t!(File::create(root.join("renamed.txt"))).write_all(edited.as_bytes()));
         t!(index.add_path(Path::new("renamed.txt")));
         let tree3 = t!(repo.find_tree(t!(index.write_tree())));
         {

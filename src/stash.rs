@@ -212,7 +212,6 @@ extern "C" fn stash_apply_progress_cb(
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 mod tests {
     use crate::stash::{StashApplyOptions, StashSaveOptions};
     use crate::test::repo_init;
@@ -233,12 +232,12 @@ mod tests {
         fs::write(&p, "data".as_bytes()).unwrap();
 
         let rel_p = Path::new("file_b.txt");
-        assert!(repo.status_file(&rel_p).unwrap() == Status::WT_NEW);
+        assert!(repo.status_file(rel_p).unwrap() == Status::WT_NEW);
 
         repo.stash_save(&signature, "msg1", Some(StashFlags::INCLUDE_UNTRACKED))
             .unwrap();
 
-        assert!(repo.status_file(&rel_p).is_err());
+        assert!(repo.status_file(rel_p).is_err());
 
         let mut count = 0;
         repo.stash_foreach(|index, name, _oid| {

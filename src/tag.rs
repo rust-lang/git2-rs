@@ -156,28 +156,26 @@ impl<'repo> Drop for Tag<'repo> {
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
-#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::Tag;
 
     // Reference -- https://git-scm.com/docs/git-check-ref-format
     #[test]
     fn name_is_valid() {
-        assert_eq!(Tag::is_valid_name("blah_blah"), true);
-        assert_eq!(Tag::is_valid_name("v1.2.3"), true);
-        assert_eq!(Tag::is_valid_name("my/tag"), true);
-        assert_eq!(Tag::is_valid_name("@"), true);
+        assert!(Tag::is_valid_name("blah_blah"));
+        assert!(Tag::is_valid_name("v1.2.3"));
+        assert!(Tag::is_valid_name("my/tag"));
+        assert!(Tag::is_valid_name("@"));
 
-        assert_eq!(Tag::is_valid_name("-foo"), false);
-        assert_eq!(Tag::is_valid_name("foo:bar"), false);
-        assert_eq!(Tag::is_valid_name("foo^bar"), false);
-        assert_eq!(Tag::is_valid_name("foo."), false);
-        assert_eq!(Tag::is_valid_name("@{"), false);
-        assert_eq!(Tag::is_valid_name("as\\cd"), false);
+        assert!(!Tag::is_valid_name("-foo"));
+        assert!(!Tag::is_valid_name("foo:bar"));
+        assert!(!Tag::is_valid_name("foo^bar"));
+        assert!(!Tag::is_valid_name("foo."));
+        assert!(!Tag::is_valid_name("@{"));
+        assert!(!Tag::is_valid_name("as\\cd"));
 
         // Previously would panic, see #1290
-        assert_eq!(Tag::is_valid_name("ab\012"), false);
+        assert!(!Tag::is_valid_name("ab\x0012"));
     }
 
     #[test]
