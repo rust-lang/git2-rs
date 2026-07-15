@@ -1604,7 +1604,6 @@ impl Default for DiffPatchidOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::while_let_on_iterator)]
 mod tests {
     #[cfg(feature = "unstable-sha256")]
     use crate::Diff;
@@ -1856,7 +1855,7 @@ mod tests {
             "Invalid version line: {:?}",
             version_line
         );
-        while let Some(line) = remaining_lines.next() {
+        for line in remaining_lines {
             assert_eq!(line.trim(), "")
         }
     }
