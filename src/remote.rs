@@ -820,7 +820,6 @@ impl RemoteRedirect {
 }
 
 #[cfg(test)]
-#[allow(clippy::octal_escapes)]
 mod tests {
     use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
     use crate::{Direction, FetchOptions, ObjectFormat, Remote, RemoteCallbacks, Repository};
@@ -980,7 +979,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn is_valid_name_for_invalid_remote() {
-        Remote::is_valid_name("ab\012");
+        Remote::is_valid_name("ab\x0012");
     }
 
     #[test]
