@@ -1,5 +1,3 @@
-#![allow(clippy::unwrap_or_default)]
-
 use raw::git_strarray;
 use std::iter::FusedIterator;
 use std::marker;
@@ -224,8 +222,8 @@ impl<'repo> Remote<'repo> {
         cb: Option<RemoteCallbacks<'cb>>,
         proxy_options: Option<ProxyOptions<'cb>>,
     ) -> Result<RemoteConnection<'repo, 'connection, 'cb>, Error> {
-        let cb = Box::new(cb.unwrap_or_else(RemoteCallbacks::new));
-        let proxy_options = proxy_options.unwrap_or_else(ProxyOptions::new);
+        let cb = Box::new(cb.unwrap_or_default());
+        let proxy_options = proxy_options.unwrap_or_default();
         unsafe {
             try_call!(raw::git_remote_connect(
                 self.raw,
@@ -430,7 +428,7 @@ impl<'repo> Remote<'repo> {
 
     /// Prune tracking refs that are no longer present on remote
     pub fn prune(&mut self, callbacks: Option<RemoteCallbacks<'_>>) -> Result<(), Error> {
-        let cbs = Box::new(callbacks.unwrap_or_else(RemoteCallbacks::new));
+        let cbs = Box::new(callbacks.unwrap_or_default());
         unsafe {
             try_call!(raw::git_remote_prune(self.raw, &cbs.raw()));
         }
