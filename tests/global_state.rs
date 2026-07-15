@@ -1,8 +1,6 @@
 //! Test for some global state set up by libgit2's `git_libgit2_init` function
 //! that need to be synchronized within a single process.
 
-#![allow(clippy::needless_borrows_for_generic_args)]
-
 use git2::opts;
 use git2::{ConfigLevel, IntoCString};
 
@@ -18,7 +16,7 @@ fn search_path() -> Result<(), Box<dyn std::error::Error>> {
 
     // Set
     unsafe {
-        opts::set_search_path(ConfigLevel::Global, &path)?;
+        opts::set_search_path(ConfigLevel::Global, path)?;
     }
     assert_eq!(
         unsafe { opts::get_search_path(ConfigLevel::Global) },
