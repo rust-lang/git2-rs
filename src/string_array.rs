@@ -1,7 +1,5 @@
 //! Bindings to libgit2's raw `git_strarray` type
 
-#![allow(clippy::redundant_closure)]
-
 use std::iter::FusedIterator;
 use std::ops::Range;
 use std::str;
@@ -35,7 +33,7 @@ impl StringArray {
     /// Returns Ok(None) if i is out of bounds.
     pub fn get(&self, i: usize) -> Result<Option<&str>, Error> {
         match self.get_bytes(i) {
-            Some(gb) => str::from_utf8(gb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(gb) => str::from_utf8(gb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
