@@ -1,5 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-
 use libc::{c_char, c_uint, size_t};
 use std::ffi::CString;
 use std::iter::FusedIterator;
@@ -226,6 +224,8 @@ impl StatusOptions {
     }
 
     /// Get a pointer to the inner list of status options.
+    ///
+    /// # Safety
     ///
     /// This function is unsafe as the returned structure has interior pointers
     /// and may no longer be valid if these options continue to be mutated.

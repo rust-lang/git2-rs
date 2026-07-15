@@ -1,5 +1,3 @@
-#![allow(clippy::io_other_error)]
-
 use std::ffi::CStr;
 use std::path::Path;
 use std::{io, marker, mem, ptr};
@@ -223,7 +221,7 @@ impl io::Write for Indexer<'_> {
         let len = buf.len();
         let res = unsafe { raw::git_indexer_append(self.raw, ptr, len, &mut self.progress) };
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, Error::last_error(res)))
+            Err(io::Error::other(Error::last_error(res)))
         } else {
             Ok(buf.len())
         }

@@ -1,5 +1,3 @@
-#![allow(clippy::explicit_auto_deref)]
-
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
@@ -38,7 +36,7 @@ impl Buf {
 
     /// Attempt to view this buffer as a string slice.
     pub fn as_str(&self) -> Result<&str, Error> {
-        str::from_utf8(&**self).map_err(|e| e.into())
+        str::from_utf8(self).map_err(|e| e.into())
     }
 }
 
@@ -78,6 +76,7 @@ impl Drop for Buf {
 }
 
 #[test]
+#[allow(clippy::explicit_auto_deref)]
 fn empty_buf() {
     let mut buf = Buf::new();
     let x: &[u8] = &*buf;

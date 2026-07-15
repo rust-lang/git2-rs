@@ -1,6 +1,3 @@
-#![allow(clippy::new_without_default)]
-#![allow(clippy::redundant_closure)]
-
 use crate::buf::Buf;
 use crate::reference::Reference;
 use crate::repo::Repository;
@@ -62,7 +59,7 @@ impl Worktree {
     pub fn name(&self) -> Result<Option<&str>, Error> {
         let opt_bytes = unsafe { crate::opt_bytes(self, raw::git_worktree_name(self.raw)) };
         match opt_bytes {
-            Some(ob) => str::from_utf8(ob).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(ob) => str::from_utf8(ob).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -193,6 +190,15 @@ impl<'a> WorktreeAddOptions<'a> {
     }
 }
 
+impl<'a> Default for WorktreeAddOptions<'a> {
+    /// Creates a default set of add options.
+    ///
+    /// See [`WorktreeAddOptions::new()`] for more details.
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WorktreePruneOptions {
     /// Creates a default set of pruning options
     ///
@@ -246,6 +252,15 @@ impl WorktreePruneOptions {
     /// Get a set of raw prune options to be used with `git_worktree_prune`
     pub fn raw(&mut self) -> *mut raw::git_worktree_prune_options {
         &mut self.raw
+    }
+}
+
+impl Default for WorktreePruneOptions {
+    /// Creates a default set of pruning options
+    ///
+    /// See [`WorktreePruneOptions::new()`] for more details.
+    fn default() -> Self {
+        Self::new()
     }
 }
 

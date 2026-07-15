@@ -1,5 +1,3 @@
-#![allow(clippy::io_other_error)]
-
 use std::io;
 use std::marker;
 use std::mem;
@@ -139,12 +137,12 @@ impl<'repo> io::Write for BlobWriter<'repo> {
         if let Some(f) = write_cb {
             let res = f(self.raw, buf.as_ptr() as *const _, buf.len());
             if res < 0 {
-                Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+                Err(io::Error::other("Write error"))
             } else {
                 Ok(buf.len())
             }
         } else {
-            Err(io::Error::new(io::ErrorKind::Other, "no write callback"))
+            Err(io::Error::other("no write callback"))
         }
     }
     fn flush(&mut self) -> io::Result<()> {

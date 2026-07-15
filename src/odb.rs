@@ -1,8 +1,3 @@
-#![allow(clippy::io_other_error)]
-#![allow(clippy::len_without_is_empty)]
-#![allow(clippy::single_match)]
-#![allow(clippy::should_implement_trait)]
-
 use std::io;
 use std::marker;
 use std::ptr;
@@ -337,6 +332,11 @@ impl<'a> OdbObject<'a> {
         unsafe { raw::git_odb_object_size(self.raw) }
     }
 
+    /// Check if the data is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Get the object data.
     pub fn data(&self) -> &[u8] {
         let size = self.len();
@@ -388,7 +388,7 @@ impl<'repo> io::Read for OdbReader<'repo> {
         let len = buf.len();
         let res = unsafe { raw::git_odb_stream_read(self.raw, ptr, len) };
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, "Read error"))
+            Err(io::Error::other("Read error"))
         } else {
             Ok(res as _)
         }
@@ -447,7 +447,7 @@ impl<'repo> io::Write for OdbWriter<'repo> {
         let len = buf.len();
         let res = unsafe { raw::git_odb_stream_write(self.raw, ptr, len) };
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            Err(io::Error::other("Write error"))
         } else {
             Ok(buf.len())
         }
@@ -514,7 +514,7 @@ impl<'repo> io::Write for OdbPackwriter<'repo> {
             };
         }
         if res < 0 {
-            Err(io::Error::new(io::ErrorKind::Other, "Write error"))
+            Err(io::Error::other("Write error"))
         } else {
             Ok(buf.len())
         }
@@ -528,9 +528,8 @@ impl<'repo> Drop for OdbPackwriter<'repo> {
     fn drop(&mut self) {
         unsafe {
             let writepack = &*self.raw;
-            match writepack.free {
-                Some(free) => free(self.raw),
-                None => (),
+            if let Some(free) = writepack.free {
+                free(self.raw);
             };
 
             drop(Box::from_raw(self.progress_payload_ptr));

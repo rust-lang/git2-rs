@@ -1,6 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::redundant_closure)]
-
 use libc::{c_char, c_uint, c_ushort, size_t};
 use std::ffi::CString;
 use std::marker;
@@ -185,6 +182,11 @@ impl MergeOptions {
     }
 
     /// Acquire a pointer to the underlying raw options.
+    ///
+    /// # Safety
+    ///
+    /// The provided pointer must not be used to manipulate the options, and
+    /// must not outlive the [`MergeOptions`] instance.
     pub unsafe fn raw(&self) -> *const raw::git_merge_options {
         &self.raw as *const _
     }
@@ -365,7 +367,7 @@ impl MergeFileResult {
     /// returns `Ok(None)` if a filename conflict would occur
     pub fn path(&self) -> Result<Option<&str>, Error> {
         match self.path_bytes() {
-            Some(pb) => str::from_utf8(pb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(pb) => str::from_utf8(pb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }

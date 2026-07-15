@@ -1,8 +1,5 @@
 //! Interfaces for adding custom transports to libgit2
 
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::missing_transmute_annotations)]
-
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::{CStr, CString};
 use std::io;
@@ -105,6 +102,8 @@ struct RawSmartSubtransportStream {
 
 /// Add a custom transport definition, to be used in addition to the built-in
 /// set of transports that come with libgit2.
+///
+/// # Safety
 ///
 /// This function is unsafe as it needs to be externally synchronized with calls
 /// to creation of other transports.
@@ -264,7 +263,10 @@ extern "C" fn subtransport_action(
                 Ok(s) => s,
                 Err(e) => return e.raw_set_git_error(),
             };
-            *stream = mem::transmute(Box::new(RawSmartSubtransportStream {
+            *stream = mem::transmute::<
+                Box<RawSmartSubtransportStream>,
+                *mut raw::git_smart_subtransport_stream,
+            >(Box::new(RawSmartSubtransportStream {
                 raw: raw::git_smart_subtransport_stream {
                     subtransport: raw_transport,
                     read: Some(stream_read),
@@ -303,7 +305,7 @@ extern "C" fn subtransport_close(transport: *mut raw::git_smart_subtransport) ->
 // object.
 extern "C" fn subtransport_free(transport: *mut raw::git_smart_subtransport) {
     let _ = panic::wrap(|| unsafe {
-        mem::transmute::<_, Box<RawSmartSubtransport>>(transport);
+        mem::transmute::<*mut raw::git_smart_subtransport, Box<RawSmartSubtransport>>(transport);
     });
 }
 
@@ -367,7 +369,9 @@ unsafe fn set_err_io(e: &io::Error) {
 // object.
 extern "C" fn stream_free(stream: *mut raw::git_smart_subtransport_stream) {
     let _ = panic::wrap(|| unsafe {
-        mem::transmute::<_, Box<RawSmartSubtransportStream>>(stream);
+        mem::transmute::<*mut raw::git_smart_subtransport_stream, Box<RawSmartSubtransportStream>>(
+            stream,
+        );
     });
 }
 

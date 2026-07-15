@@ -1,7 +1,3 @@
-#![allow(clippy::len_without_is_empty)]
-#![allow(clippy::needless_borrow)]
-#![allow(clippy::redundant_closure)]
-
 use core::ops::Range;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -43,7 +39,7 @@ pub const DEFAULT_COMMENT_CHAR: Option<u8> = Some(b'#');
 ///
 /// Use this function when you are dealing with a UTF-8-encoded message.
 pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error> {
-    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersStrs(res))
+    _message_trailers(message.into_c_string()?).map(MessageTrailersStrs)
 }
 
 /// Get the trailers for the given message.
@@ -52,7 +48,7 @@ pub fn message_trailers_strs(message: &str) -> Result<MessageTrailersStrs, Error
 /// or if you want to handle the returned trailer key–value pairs
 /// as bytes.
 pub fn message_trailers_bytes<S: IntoCString>(message: S) -> Result<MessageTrailersBytes, Error> {
-    _message_trailers(message.into_c_string()?).map(|res| MessageTrailersBytes(res))
+    _message_trailers(message.into_c_string()?).map(MessageTrailersBytes)
 }
 
 fn _message_trailers(message: CString) -> Result<MessageTrailers, Error> {
@@ -77,6 +73,10 @@ impl MessageTrailersStrs {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+    /// Whether there are no trailers
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
     /// Convert to the “bytes” variant.
     pub fn to_bytes(self) -> MessageTrailersBytes {
         MessageTrailersBytes(self.0)
@@ -96,6 +96,10 @@ impl MessageTrailersBytes {
     /// The number of trailer key–value pairs.
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+    /// Whether there are no trailers
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -125,6 +129,10 @@ impl MessageTrailers {
     }
     fn len(&self) -> usize {
         self.raw.count
+    }
+    /// Whether there are no trailers
+    fn is_empty(&self) -> bool {
+        self.raw.count == 0
     }
 }
 
@@ -166,7 +174,7 @@ impl<'pair> Iterator for MessageTrailersStrsIterator<'pair> {
         self.0
             .range
             .next()
-            .map(|index| to_str_tuple(&self.0.trailers, index))
+            .map(|index| to_str_tuple(self.0.trailers, index))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -187,12 +195,12 @@ impl DoubleEndedIterator for MessageTrailersStrsIterator<'_> {
         self.0
             .range
             .next_back()
-            .map(|index| to_str_tuple(&self.0.trailers, index))
+            .map(|index| to_str_tuple(self.0.trailers, index))
     }
 }
 
 fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
-    let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+    let (rkey, rvalue) = to_raw_tuple(trailers, index);
     let key = unsafe { CStr::from_ptr(rkey).to_str().unwrap() };
     let value = unsafe { CStr::from_ptr(rvalue).to_str().unwrap() };
     (key, value)
@@ -208,7 +216,7 @@ impl<'pair> Iterator for MessageTrailersBytesIterator<'pair> {
         self.0
             .range
             .next()
-            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+            .map(|index| to_bytes_tuple(self.0.trailers, index))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -229,12 +237,12 @@ impl DoubleEndedIterator for MessageTrailersBytesIterator<'_> {
         self.0
             .range
             .next_back()
-            .map(|index| to_bytes_tuple(&self.0.trailers, index))
+            .map(|index| to_bytes_tuple(self.0.trailers, index))
     }
 }
 
 fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
-    let (rkey, rvalue) = to_raw_tuple(&trailers, index);
+    let (rkey, rvalue) = to_raw_tuple(trailers, index);
     let key = unsafe { CStr::from_ptr(rkey).to_bytes() };
     let value = unsafe { CStr::from_ptr(rvalue).to_bytes() };
     (key, value)

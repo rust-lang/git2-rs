@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_arguments)]
-
 use std::ffi::CString;
 use std::{mem, ptr};
 
@@ -140,6 +138,7 @@ impl Email {
     }
 
     /// Create a diff for a commit in mbox format for sending via email.
+    #[expect(clippy::too_many_arguments)]
     pub fn from_diff<T: IntoCString>(
         diff: &Diff<'_>,
         patch_idx: usize,

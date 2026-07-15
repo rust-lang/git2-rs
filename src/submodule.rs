@@ -1,7 +1,3 @@
-#![allow(clippy::empty_line_after_doc_comments)]
-#![allow(clippy::let_and_return)]
-#![allow(clippy::redundant_closure)]
-
 use std::marker;
 use std::mem;
 use std::os::raw::c_int;
@@ -27,7 +23,7 @@ impl<'repo> Submodule<'repo> {
     /// Returns `Ok(None)` if the branch is not yet available.
     pub fn branch(&self) -> Result<Option<&str>, Error> {
         match self.branch_bytes() {
-            Some(bb) => str::from_utf8(bb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(bb) => str::from_utf8(bb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -63,7 +59,7 @@ impl<'repo> Submodule<'repo> {
     /// Returns `Ok(None)` if the URL isn't present
     pub fn url(&self) -> Result<Option<&str>, Error> {
         match self.opt_url_bytes() {
-            Some(oub) => str::from_utf8(oub).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(oub) => str::from_utf8(oub).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -150,7 +146,7 @@ impl<'repo> Submodule<'repo> {
     ///
     /// This function can be called to init and set up a submodule repository
     /// from a submodule in preparation to clone it from its remote.
-
+    ///
     /// use_gitlink: Should the workdir contain a gitlink to the repo in
     /// .git/modules vs. repo directly in workdir.
     pub fn repo_init(&mut self, use_gitlink: bool) -> Result<Repository, Error> {
@@ -297,13 +293,12 @@ impl<'cb> SubmoduleUpdateOptions<'cb> {
             raw::git_checkout_init_options(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
         assert_eq!(0, init_res);
         self.checkout_builder.configure(&mut checkout_opts);
-        let opts = raw::git_submodule_update_options {
+        raw::git_submodule_update_options {
             version: raw::GIT_SUBMODULE_UPDATE_OPTIONS_VERSION,
             checkout_opts,
             fetch_opts: self.fetch_opts.raw(),
             allow_fetch: self.allow_fetch as c_int,
-        };
-        opts
+        }
     }
 
     /// Set checkout options.

@@ -1,7 +1,5 @@
 //! Bindings to libgit2's raw `git_oidarray` type
 
-#![allow(clippy::extra_unused_lifetimes)]
-
 use std::ops::Deref;
 
 use crate::oid::Oid;
@@ -41,7 +39,7 @@ impl Binding for OidArray {
     }
 }
 
-impl<'repo> std::fmt::Debug for OidArray {
+impl std::fmt::Debug for OidArray {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_tuple("OidArray").field(&self.deref()).finish()
     }

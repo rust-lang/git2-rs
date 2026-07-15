@@ -1,5 +1,3 @@
-#![allow(clippy::should_implement_trait)]
-
 use libc::c_int;
 use std::env::JoinPathsError;
 use std::error;
@@ -77,6 +75,7 @@ impl Error {
     ///
     /// The error returned will have the code `GIT_ERROR` and the class
     /// `GIT_ERROR_NONE`.
+    #[expect(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Error {
         Error {
             code: raw::GIT_ERROR as c_int,

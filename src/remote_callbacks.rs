@@ -1,5 +1,3 @@
-#![allow(clippy::doc_overindented_list_items)]
-
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::CStr;
 use std::mem;
@@ -35,7 +33,7 @@ pub struct RemoteCallbacks<'a> {
 ///
 /// * `url` - the resource for which the credentials are required.
 /// * `username_from_url` - the username that was embedded in the URL, or `None`
-///                         if it was not included.
+///   if it was not included.
 /// * `allowed_types` - a bitmask stating which cred types are OK to return.
 pub type Credentials<'a> =
     dyn FnMut(&str, Option<&str>, CredentialType) -> Result<Cred, Error> + 'a;

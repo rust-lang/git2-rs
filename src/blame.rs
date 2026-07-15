@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use crate::util::{self, Binding};
 use crate::{raw, signature, Error, ErrorClass, ErrorCode, Oid, Repository, Signature};
 use libc::c_char;
@@ -222,7 +220,7 @@ impl<'blame> BlameHunk<'blame> {
     /// `Ok(None)` may be returned if there is no summary.
     pub fn summary(&self) -> Result<Option<&str>, Error> {
         match self.summary_bytes() {
-            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(sb) => str::from_utf8(sb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }

@@ -1,5 +1,3 @@
-#![allow(clippy::new_without_default)]
-
 use std::mem;
 
 use crate::build::CheckoutBuilder;
@@ -76,5 +74,12 @@ impl<'cb> CherrypickOptions<'cb> {
         cherrypick_opts.merge_opts = merge_opts;
 
         cherrypick_opts
+    }
+}
+
+impl<'cb> Default for CherrypickOptions<'cb> {
+    /// Creates a default set of cherrypick options
+    fn default() -> Self {
+        Self::new()
     }
 }

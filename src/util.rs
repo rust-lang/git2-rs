@@ -1,8 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::needless_lifetimes)]
-#![allow(clippy::needless_range_loop)]
-#![allow(clippy::needless_return)]
-
 use libc::{c_char, c_int, size_t};
 use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};
@@ -34,6 +29,10 @@ pub trait Binding: Sized {
     type Raw;
 
     /// Build a git2 struct from its [Binding::Raw] value.
+    ///
+    /// # Safety
+    ///
+    /// The raw value (which is expected to be a pointer) must be valid.
     unsafe fn from_raw(raw: Self::Raw) -> Self;
 
     /// Access the [Binding::Raw] value for a struct.
@@ -46,6 +45,11 @@ pub trait Binding: Sized {
     ///
     /// If the input parameter is null, then the funtion returns None. Otherwise, it
     /// calls [Binding::from_raw].
+    ///
+    /// # Safety
+    ///
+    /// If the input parameter is not null, it must satisfy the safety
+    /// requirements of the [`Binding::from_raw()`] method.
     unsafe fn from_raw_opt<T>(raw: T) -> Option<Self>
     where
         T: Copy + IsNull,
@@ -121,13 +125,13 @@ pub trait IntoCString {
     fn into_c_string(self) -> Result<CString, Error>;
 }
 
-impl<'a, T: IntoCString + Clone> IntoCString for &'a T {
+impl<T: IntoCString + Clone> IntoCString for &T {
     fn into_c_string(self) -> Result<CString, Error> {
         self.clone().into_c_string()
     }
 }
 
-impl<'a> IntoCString for &'a str {
+impl IntoCString for &str {
     fn into_c_string(self) -> Result<CString, Error> {
         Ok(CString::new(self)?)
     }
@@ -145,7 +149,7 @@ impl IntoCString for CString {
     }
 }
 
-impl<'a> IntoCString for &'a Path {
+impl IntoCString for &Path {
     fn into_c_string(self) -> Result<CString, Error> {
         let s: &OsStr = self.as_ref();
         s.into_c_string()
@@ -159,7 +163,7 @@ impl IntoCString for PathBuf {
     }
 }
 
-impl<'a> IntoCString for &'a OsStr {
+impl IntoCString for &OsStr {
     fn into_c_string(self) -> Result<CString, Error> {
         self.to_os_string().into_c_string()
     }
@@ -183,7 +187,7 @@ impl IntoCString for OsString {
     }
 }
 
-impl<'a> IntoCString for &'a [u8] {
+impl IntoCString for &[u8] {
     fn into_c_string(self) -> Result<CString, Error> {
         Ok(CString::new(self)?)
     }
@@ -239,12 +243,10 @@ pub fn path_to_repo_path(path: &Path) -> Result<CString, Error> {
     #[cfg(windows)]
     {
         match path.to_str() {
-            None => {
-                return Err(Error::from_str(
-                    "only valid unicode paths are accepted on windows",
-                ))
-            }
-            Some(s) => return fixup_windows_path(s),
+            None => Err(Error::from_str(
+                "only valid unicode paths are accepted on windows",
+            )),
+            Some(s) => fixup_windows_path(s),
         }
     }
     #[cfg(not(windows))]
@@ -260,9 +262,9 @@ pub fn cstring_to_repo_path<T: IntoCString>(path: T) -> Result<CString, Error> {
 #[cfg(windows)]
 fn fixup_windows_path<P: Into<Vec<u8>>>(path: P) -> Result<CString, Error> {
     let mut bytes: Vec<u8> = path.into();
-    for i in 0..bytes.len() {
-        if bytes[i] == b'\\' {
-            bytes[i] = b'/';
+    for byte in &mut bytes {
+        if *byte == b'\\' {
+            *byte = b'/';
         }
     }
     Ok(CString::new(bytes)?)

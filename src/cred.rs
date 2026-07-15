@@ -1,10 +1,3 @@
-#![allow(clippy::manual_strip)]
-#![allow(clippy::match_result_ok)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::needless_borrowed_reference)]
-#![allow(clippy::needless_borrows_for_generic_args)]
-#![allow(clippy::should_implement_trait)]
-
 #[cfg(feature = "cred")]
 use log::{debug, trace};
 use std::ffi::CString;
@@ -39,6 +32,7 @@ pub struct CredentialHelper {
 impl Cred {
     /// Create a "default" credential usable for Negotiate mechanisms like NTLM
     /// or Kerberos authentication.
+    #[expect(clippy::should_implement_trait)]
     pub fn default() -> Result<Cred, Error> {
         crate::init();
         let mut out = ptr::null_mut();
@@ -171,6 +165,11 @@ impl Cred {
     }
 
     /// Unwrap access to the underlying raw pointer, canceling the destructor
+    ///
+    /// # Safety
+    ///
+    /// The caller must assume responsibility for freeing the credential if
+    /// needed. See the drop implementation for guidance.
     pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
         mem::replace(&mut self.raw, ptr::null_mut())
     }
@@ -277,14 +276,14 @@ impl CredentialHelper {
     // Discover `useHttpPath` from `config`
     fn config_use_http_path(&mut self, config: &Config) {
         let mut use_http_path = false;
-        if let Some(value) = config.get_bool(&self.exact_key("useHttpPath")).ok() {
+        if let Ok(value) = config.get_bool(&self.exact_key("useHttpPath")) {
             use_http_path = value;
         } else if let Some(value) = self
             .url_key("useHttpPath")
             .and_then(|key| config.get_bool(&key).ok())
         {
             use_http_path = value;
-        } else if let Some(value) = config.get_bool("credential.useHttpPath").ok() {
+        } else if let Ok(value) = config.get_bool("credential.useHttpPath") {
             use_http_path = value;
         }
 
@@ -313,8 +312,8 @@ impl CredentialHelper {
             Some(s) => s,
         };
 
-        if cmd.starts_with('!') {
-            self.commands.push(cmd[1..].to_string());
+        if let Some(stripped) = cmd.strip_prefix('!') {
+            self.commands.push(stripped.to_string());
         } else if is_absolute_path(cmd) {
             self.commands.push(cmd.to_string());
         } else {
@@ -328,7 +327,7 @@ impl CredentialHelper {
 
     fn url_key(&self, name: &str) -> Option<String> {
         match (&self.host, &self.protocol) {
-            (&Some(ref host), &Some(ref protocol)) => {
+            (Some(host), Some(protocol)) => {
                 Some(format!("credential.{}://{}.{}", protocol, host, name))
             }
             _ => None,
@@ -398,7 +397,7 @@ impl CredentialHelper {
             c.creation_flags(CREATE_NO_WINDOW);
         }
         c.arg("-c")
-            .arg(&format!("{} get", cmd))
+            .arg(format!("{} get", cmd))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -502,6 +501,7 @@ impl CredentialHelper {
 
 #[cfg(test)]
 #[cfg(feature = "cred")]
+#[allow(clippy::needless_borrows_for_generic_args)]
 #[allow(clippy::unused_io_amount)]
 #[allow(clippy::useless_conversion)]
 mod test {

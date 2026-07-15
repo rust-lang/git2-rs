@@ -1,11 +1,3 @@
-#![allow(clippy::explicit_auto_deref)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::needless_borrow)]
-#![allow(clippy::new_without_default)]
-#![allow(clippy::redundant_closure)]
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::zero_ptr)]
-
 use libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::env;
 use std::ffi::{CStr, CString, OsStr};
@@ -94,7 +86,7 @@ extern "C" fn fetchhead_foreach_cb(
             let oid = Binding::from_raw(oid);
             let is_merge = is_merge == 1;
 
-            callback(&ref_name, remote_url, &oid, is_merge)
+            callback(ref_name, remote_url, &oid, is_merge)
         };
 
         if res {
@@ -269,7 +261,7 @@ impl Repository {
                 ptr::null()
             ));
         }
-        Repository::open(util::bytes2path(&*buf))
+        Repository::open(util::bytes2path(&buf))
     }
 
     /// Attempt to find the path to a git repo for a given path
@@ -296,7 +288,7 @@ impl Repository {
             ));
         }
 
-        Ok(util::bytes2path(&*buf).to_path_buf())
+        Ok(util::bytes2path(&buf).to_path_buf())
     }
 
     /// Creates a new repository in the specified folder.
@@ -552,7 +544,7 @@ impl Repository {
     /// If there is no namespace, Ok(None) is returned.
     pub fn namespace(&self) -> Result<Option<&str>, Error> {
         match self.namespace_bytes() {
-            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(nb) => str::from_utf8(nb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -2815,6 +2807,7 @@ impl Repository {
     /// like binary data, the `DiffFile` binary attribute will be set to 1 and no call to
     /// the `hunk_cb` nor `line_cb` will be made (unless you set the `force_text`
     /// option).
+    #[expect(clippy::too_many_arguments)]
     pub fn diff_blobs(
         &self,
         old_blob: Option<&Blob<'_>>,
@@ -3327,7 +3320,7 @@ impl Repository {
         let raw_opts = options.map(|o| o.raw());
         let ptr_raw_opts = match raw_opts.as_ref() {
             Some(v) => v,
-            None => 0 as *const _,
+            None => std::ptr::null(),
         };
         unsafe {
             try_call!(raw::git_revert(self.raw(), commit.raw(), ptr_raw_opts));
@@ -3635,8 +3628,15 @@ impl RepositoryInitOptions {
     /// Creates a set of raw init options to be used with
     /// `git_repository_init_ext`.
     ///
+    /// # Safety
+    ///
     /// This method is unsafe as the returned value may have pointers to the
-    /// interior of this structure.
+    /// interior of this structure. The caller must ensure that the returned
+    /// raw instance does not outlive the [`RepositoryInitOptions`], and also
+    /// that for any fields configured in the `RepositoryInitOptions` that are
+    /// provided in the raw structure as pointers, those pointers are not used
+    /// if the original references held in the `RepositoryInitOptions` are
+    /// dropped.
     pub unsafe fn raw(&self) -> raw::git_repository_init_options {
         let mut opts = mem::zeroed();
         assert_eq!(
@@ -3661,9 +3661,19 @@ impl RepositoryInitOptions {
     }
 }
 
+impl Default for RepositoryInitOptions {
+    /// Creates a default set of initialization options.
+    ///
+    /// See [`RepositoryInitOptions::new()`] for more details.
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::assertions_on_constants)]
 #[allow(clippy::bool_assert_comparison)]
+#[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use crate::build::CheckoutBuilder;

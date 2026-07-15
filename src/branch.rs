@@ -1,5 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-
 use std::ffi::CString;
 use std::marker;
 use std::ptr;
@@ -129,8 +127,11 @@ impl<'repo> Branch<'repo> {
 impl<'repo> Branches<'repo> {
     /// Creates a new iterator from the raw pointer given.
     ///
+    /// # Safety
+    ///
     /// This function is unsafe as it is not guaranteed that `raw` is a valid
-    /// pointer.
+    /// pointer. The caller must ensure that `raw` is a valid pointer and lives
+    /// as long as the [`Branches`] object.
     pub unsafe fn from_raw(raw: *mut raw::git_branch_iterator) -> Branches<'repo> {
         Branches {
             raw,

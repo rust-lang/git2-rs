@@ -1,5 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-
 use crate::build::CheckoutBuilder;
 use crate::util::{self, Binding};
 use crate::{panic, raw, IntoCString, Oid, Signature, StashApplyProgress, StashFlags};
@@ -55,6 +53,8 @@ impl<'a> StashSaveOptions<'a> {
     }
 
     /// Acquire a pointer to the underlying raw options.
+    ///
+    /// # Safety
     ///
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.

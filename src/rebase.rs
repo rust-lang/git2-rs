@@ -1,7 +1,3 @@
-#![allow(clippy::len_without_is_empty)]
-#![allow(clippy::needless_option_take)]
-#![allow(clippy::redundant_closure)]
-
 use std::ffi::CString;
 use std::{marker, mem, ptr, str};
 
@@ -87,7 +83,7 @@ impl<'cb> RebaseOptions<'cb> {
 
     /// Acquire a pointer to the underlying raw options.
     pub fn raw(&mut self) -> *const raw::git_rebase_options {
-        if let Some(opts) = self.merge_options.as_mut().take() {
+        if let Some(opts) = self.merge_options.as_mut() {
             unsafe {
                 ptr::copy_nonoverlapping(opts.raw(), &mut self.raw.merge_options, 1);
             }
@@ -118,12 +114,17 @@ impl<'repo> Rebase<'repo> {
         unsafe { raw::git_rebase_operation_entrycount(self.raw) }
     }
 
+    /// Checks if ther are no rebase operations that are to be applied.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Gets the original `HEAD` ref name for merge rebases.
     pub fn orig_head_name(&self) -> Result<Option<&str>, Error> {
         let name_bytes =
             unsafe { crate::opt_bytes(self, raw::git_rebase_orig_head_name(self.raw)) };
         match name_bytes {
-            Some(nb) => str::from_utf8(nb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(nb) => str::from_utf8(nb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -325,7 +326,7 @@ impl<'rebase> RebaseOperation<'rebase> {
     pub fn exec(&self) -> Result<Option<&str>, Error> {
         let exec_bytes = unsafe { crate::opt_bytes(self, (*self.raw).exec) };
         match exec_bytes {
-            Some(eb) => str::from_utf8(eb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(eb) => str::from_utf8(eb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }

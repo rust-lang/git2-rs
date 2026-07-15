@@ -1,7 +1,5 @@
 //! Bindings to libgit2's git_libgit2_opts function.
 
-#![allow(clippy::missing_safety_doc)]
-
 use std::ffi::CString;
 use std::ptr;
 
@@ -18,6 +16,8 @@ use crate::{raw, Buf, ConfigLevel, Error, IntoCString, ObjectType};
 /// `path` lists directories delimited by `GIT_PATH_LIST_SEPARATOR`.
 /// Use magic path `$PATH` to include the old value of the path
 /// (if you want to prepend or append, for instance).
+///
+/// # Safety
 ///
 /// This function is unsafe as it mutates the global state but cannot guarantee
 /// thread-safety. It needs to be externally synchronized with calls to access
@@ -41,6 +41,8 @@ where
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
 ///
+/// # Safety
+///
 /// This function is unsafe as it mutates the global state but cannot guarantee
 /// thread-safety. It needs to be externally synchronized with calls to access
 /// the global state.
@@ -58,6 +60,8 @@ pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
 /// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
+///
+/// # Safety
 ///
 /// This function is unsafe as it mutates the global state but cannot guarantee
 /// thread-safety. It needs to be externally synchronized with calls to access
@@ -242,6 +246,11 @@ where
 
 /// Set whether or not to verify ownership before performing a repository.
 /// Enabled by default, but disabling this can lead to code execution vulnerabilities.
+///
+/// # Safety
+///
+/// This function is modifying a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
 pub unsafe fn set_verify_owner_validation(enabled: bool) -> Result<(), Error> {
     crate::init();
     let error = raw::git_libgit2_opts(
@@ -256,6 +265,11 @@ pub unsafe fn set_verify_owner_validation(enabled: bool) -> Result<(), Error> {
 
 /// Set the SSL certificate-authority location to `file`. `file` is the location
 /// of a file containing several certificates concatenated together.
+///
+/// # Safety
+///
+/// This function is modifying a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
 pub unsafe fn set_ssl_cert_file<P>(file: P) -> Result<(), Error>
 where
     P: IntoCString,
@@ -275,6 +289,11 @@ where
 
 /// Set the SSL certificate-authority location to `path`. `path` is the location
 /// of a directory holding several certificates, one per file.
+///
+/// # Safety
+///
+/// This function is modifying a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
 pub unsafe fn set_ssl_cert_dir<P>(path: P) -> Result<(), Error>
 where
     P: IntoCString,

@@ -1,7 +1,3 @@
-#![allow(clippy::empty_docs)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::new_without_default)]
-
 use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::CString;
 use std::iter::FusedIterator;
@@ -956,6 +952,8 @@ impl DiffOptions {
 
     /// Acquire a pointer to the underlying raw options.
     ///
+    /// # Safety
+    ///
     /// This function is unsafe as the pointer is only valid so long as this
     /// structure is not moved, modified, or used elsewhere.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_options {
@@ -1000,9 +998,9 @@ impl<'diff> ExactSizeIterator for Deltas<'diff> {}
 pub enum DiffLineType {
     /// These values will be sent to `git_diff_line_cb` along with the line
     Context,
-    ///
+    /// Line was added
     Addition,
-    ///
+    /// Line was removed
     Deletion,
     /// Both files have no LF at end
     ContextEOFNL,
@@ -1013,7 +1011,7 @@ pub enum DiffLineType {
     /// The following values will only be sent to a `git_diff_line_cb` when
     /// the content of a diff is being formatted through `git_diff_print`.
     FileHeader,
-    ///
+    /// Line represents the header of a hunk, e.g. "@@ -1,2 +0,0 @@\n"
     HunkHeader,
     /// For "Binary files x and y differ"
     Binary,
@@ -1529,6 +1527,11 @@ impl DiffFindOptions {
     // TODO: expose git_diff_similarity_metric
 
     /// Acquire a pointer to the underlying raw options.
+    ///
+    /// # Safety
+    ///
+    /// The provided pointer must not be used to manipulate the options, and
+    /// must not outlive the [`DiffFindOptions`] instance.
     pub unsafe fn raw(&mut self) -> *const raw::git_diff_find_options {
         &self.raw
     }
@@ -1589,6 +1592,14 @@ impl DiffPatchidOptions {
             0
         );
         opts
+    }
+}
+
+impl Default for DiffPatchidOptions {
+    /// Creates a new set of patchid options,
+    /// initialized to the default values
+    fn default() -> Self {
+        Self::new()
     }
 }
 

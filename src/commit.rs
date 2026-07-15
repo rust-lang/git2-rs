@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_closure)]
-
 use std::iter::FusedIterator;
 use std::marker;
 use std::mem;
@@ -84,7 +82,7 @@ impl<'repo> Commit<'repo> {
     pub fn message_encoding(&self) -> Result<Option<&str>, Error> {
         let bytes = unsafe { crate::opt_bytes(self, raw::git_commit_message_encoding(&*self.raw)) };
         match bytes {
-            Some(b) => str::from_utf8(b).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(b) => str::from_utf8(b).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -131,7 +129,7 @@ impl<'repo> Commit<'repo> {
     /// `Ok(None)` may be returned if there is no summary
     pub fn summary(&self) -> Result<Option<&str>, Error> {
         match self.summary_bytes() {
-            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(sb) => str::from_utf8(sb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
@@ -155,7 +153,7 @@ impl<'repo> Commit<'repo> {
     /// `Ok(None)` may be returned if there is no body.
     pub fn body(&self) -> Result<Option<&str>, Error> {
         match self.body_bytes() {
-            Some(sb) => str::from_utf8(sb).map(|s| Some(s)).map_err(|e| e.into()),
+            Some(sb) => str::from_utf8(sb).map(Some).map_err(|e| e.into()),
             None => Ok(None),
         }
     }
