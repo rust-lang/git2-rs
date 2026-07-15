@@ -1,6 +1,5 @@
 //! Interfaces for adding custom transports to libgit2
 
-#![allow(clippy::missing_safety_doc)]
 #![allow(clippy::missing_transmute_annotations)]
 
 use libc::{c_char, c_int, c_uint, c_void, size_t};
@@ -105,6 +104,8 @@ struct RawSmartSubtransportStream {
 
 /// Add a custom transport definition, to be used in addition to the built-in
 /// set of transports that come with libgit2.
+///
+/// # Safety
 ///
 /// This function is unsafe as it needs to be externally synchronized with calls
 /// to creation of other transports.
