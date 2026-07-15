@@ -3671,7 +3671,6 @@ impl Default for RepositoryInitOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::assertions_on_constants)]
 #[allow(clippy::bool_assert_comparison)]
 #[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
@@ -4299,7 +4298,7 @@ mod tests {
             } else if mg == &oid3 {
                 found_oid3 = true;
             } else {
-                assert!(false);
+                panic!("Merge base was neither oid2 nor oid3: {:?}", mg);
             }
         }
         assert!(found_oid2);
@@ -4317,7 +4316,7 @@ mod tests {
             } else if mg == &oid3 {
                 found_oid3 = true;
             } else {
-                assert!(false);
+                panic!("Merge base was neither oid2 nor oid3: {:?}", mg);
             }
         }
         assert!(found_oid2);
