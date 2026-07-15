@@ -3671,7 +3671,6 @@ impl Default for RepositoryInitOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
 #[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
@@ -4031,16 +4030,16 @@ mod tests {
     fn smoke_reference_has_log_ensure_log() {
         let (_td, repo) = crate::test::repo_init();
 
-        assert_eq!(repo.reference_has_log("HEAD").unwrap(), true);
-        assert_eq!(repo.reference_has_log("refs/heads/main").unwrap(), true);
-        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), false);
+        assert!(repo.reference_has_log("HEAD").unwrap());
+        assert!(repo.reference_has_log("refs/heads/main").unwrap());
+        assert!(!repo.reference_has_log("NOT_HEAD").unwrap());
         let main_oid = repo.revparse_single("main").unwrap().id();
         assert!(repo
             .reference("NOT_HEAD", main_oid, false, "creating a new branch")
             .is_ok());
-        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), false);
+        assert!(!repo.reference_has_log("NOT_HEAD").unwrap());
         assert!(repo.reference_ensure_log("NOT_HEAD").is_ok());
-        assert_eq!(repo.reference_has_log("NOT_HEAD").unwrap(), true);
+        assert!(repo.reference_has_log("NOT_HEAD").unwrap());
     }
 
     #[test]
