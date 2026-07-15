@@ -771,7 +771,6 @@ impl TreeUpdateBuilder {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrow)]
 #[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use super::{CheckoutBuilder, RepoBuilder, TreeUpdateBuilder};
@@ -841,7 +840,7 @@ mod tests {
             let p = Path::new(td.path()).join("file");
             println!("using path {:?}", p);
             fs::File::create(&p).unwrap();
-            index.add_path(&Path::new("file")).unwrap();
+            index.add_path(Path::new("file")).unwrap();
             let id = index.write_tree().unwrap();
 
             let tree = repo.find_tree(id).unwrap();
@@ -852,7 +851,7 @@ mod tests {
 
         let repo = Repository::open_bare(&td.path().join(".git")).unwrap();
         let tree = repo
-            .revparse_single(&"main")
+            .revparse_single("main")
             .unwrap()
             .peel_to_tree()
             .unwrap();
@@ -860,7 +859,7 @@ mod tests {
         index.read_tree(&tree).unwrap();
 
         let mut checkout_opts = CheckoutBuilder::new();
-        checkout_opts.target_dir(&cd.path());
+        checkout_opts.target_dir(cd.path());
         checkout_opts.notify_on(CheckoutNotificationType::all());
         checkout_opts.notify(|_notif, _path, baseline, target, workdir| {
             assert!(baseline.is_none());
