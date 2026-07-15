@@ -1,4 +1,3 @@
-#![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::needless_borrow)]
 #![allow(clippy::new_without_default)]
@@ -269,7 +268,7 @@ impl Repository {
                 ptr::null()
             ));
         }
-        Repository::open(util::bytes2path(&*buf))
+        Repository::open(util::bytes2path(&buf))
     }
 
     /// Attempt to find the path to a git repo for a given path
@@ -296,7 +295,7 @@ impl Repository {
             ));
         }
 
-        Ok(util::bytes2path(&*buf).to_path_buf())
+        Ok(util::bytes2path(&buf).to_path_buf())
     }
 
     /// Creates a new repository in the specified folder.
