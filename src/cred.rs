@@ -501,7 +501,6 @@ impl CredentialHelper {
 
 #[cfg(test)]
 #[cfg(feature = "cred")]
-#[allow(clippy::needless_borrows_for_generic_args)]
 #[allow(clippy::unused_io_amount)]
 #[allow(clippy::useless_conversion)]
 mod test {
@@ -615,7 +614,7 @@ echo username=$1
         let paths = env::var("PATH").unwrap();
         let paths =
             env::split_paths(&paths).chain(path.parent().map(|p| p.to_path_buf()).into_iter());
-        env::set_var("PATH", &env::join_paths(paths).unwrap());
+        env::set_var("PATH", env::join_paths(paths).unwrap());
 
         let cfg = test_cfg! {
             "credential.https://example.com.helper" => "some-script \"value/with\\slashes\"",
