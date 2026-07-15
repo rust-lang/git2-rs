@@ -3671,7 +3671,6 @@ impl Default for RepositoryInitOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::needless_borrows_for_generic_args)]
 mod tests {
     use crate::build::CheckoutBuilder;
     use crate::AttrCheckFlags;
@@ -3896,7 +3895,7 @@ mod tests {
     #[test]
     fn makes_dirs() {
         let td = TempDir::new().unwrap();
-        Repository::init(&td.path().join("a/b/c/d")).unwrap();
+        Repository::init(td.path().join("a/b/c/d")).unwrap();
     }
 
     #[test]
@@ -3935,7 +3934,7 @@ mod tests {
         let testdir = ceilingdir.join("testdi");
         fs::create_dir(&testdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
-        let path = Repository::discover_path(&testdir, &[ceilingdir.as_os_str()]);
+        let path = Repository::discover_path(&testdir, [ceilingdir.as_os_str()]);
 
         assert!(path.is_err());
     }
@@ -3978,7 +3977,7 @@ mod tests {
         assert_eq!(err.code(), crate::ErrorCode::NotFound);
 
         assert!(
-            Repository::open_ext(&subdir, crate::RepositoryOpenFlags::empty(), &[&subdir]).is_ok()
+            Repository::open_ext(&subdir, crate::RepositoryOpenFlags::empty(), [&subdir]).is_ok()
         );
     }
 
@@ -4335,7 +4334,7 @@ mod tests {
         let author = t!(Signature::now("committer", "committer@email"));
 
         let base_commit = {
-            t!(fs::write(repo.workdir().unwrap().join(&file_path), "base"));
+            t!(fs::write(repo.workdir().unwrap().join(file_path), "base"));
             let mut index = t!(repo.index());
             t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
@@ -4353,7 +4352,7 @@ mod tests {
         };
 
         let foo_commit = {
-            t!(fs::write(repo.workdir().unwrap().join(&file_path), "foo"));
+            t!(fs::write(repo.workdir().unwrap().join(file_path), "foo"));
             let mut index = t!(repo.index());
             t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
@@ -4371,7 +4370,7 @@ mod tests {
         };
 
         let bar_commit = {
-            t!(fs::write(repo.workdir().unwrap().join(&file_path), "bar"));
+            t!(fs::write(repo.workdir().unwrap().join(file_path), "bar"));
             let mut index = t!(repo.index());
             t!(index.add_path(file_path));
             let tree_id = t!(index.write_tree());
@@ -4718,7 +4717,7 @@ bar
             // - Include entries for both author and committer to prove we call
             //   the right raw functions.
             let mailmap_file = Path::new(".mailmap");
-            let p = Path::new(repo.workdir().unwrap()).join(&mailmap_file);
+            let p = Path::new(repo.workdir().unwrap()).join(mailmap_file);
             t!(fs::write(
                 p,
                 r#"
@@ -4998,7 +4997,7 @@ Committer Name <committer.proper@email> <committer@email>"#,
     fn attr_invalid_utf8() {
         let (td, repo) = crate::test::repo_init();
         t!(fs::write(
-            &td.path().join(".gitattributes"),
+            td.path().join(".gitattributes"),
             b"README.md foo=valid bar=inva\xFFlid"
         ));
 
