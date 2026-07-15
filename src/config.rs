@@ -640,7 +640,6 @@ impl<'cfg> Drop for ConfigEntry<'cfg> {
 }
 
 #[cfg(test)]
-#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use std::fs::File;
     use tempfile::TempDir;
@@ -671,7 +670,7 @@ mod tests {
         drop(cfg);
 
         let cfg = Config::open(&path).unwrap().snapshot().unwrap();
-        assert_eq!(cfg.get_bool("foo.k1").unwrap(), true);
+        assert!(cfg.get_bool("foo.k1").unwrap());
         assert_eq!(cfg.get_i32("foo.k2").unwrap(), 1);
         assert_eq!(cfg.get_i64("foo.k3").unwrap(), 2);
         assert_eq!(cfg.get_str("foo.k4").unwrap(), "bar");
@@ -738,17 +737,17 @@ mod tests {
 
     #[test]
     fn parse() {
-        assert_eq!(Config::parse_bool("").unwrap(), false);
-        assert_eq!(Config::parse_bool("false").unwrap(), false);
-        assert_eq!(Config::parse_bool("no").unwrap(), false);
-        assert_eq!(Config::parse_bool("off").unwrap(), false);
-        assert_eq!(Config::parse_bool("0").unwrap(), false);
+        assert!(!Config::parse_bool("").unwrap());
+        assert!(!Config::parse_bool("false").unwrap());
+        assert!(!Config::parse_bool("no").unwrap());
+        assert!(!Config::parse_bool("off").unwrap());
+        assert!(!Config::parse_bool("0").unwrap());
 
-        assert_eq!(Config::parse_bool("true").unwrap(), true);
-        assert_eq!(Config::parse_bool("yes").unwrap(), true);
-        assert_eq!(Config::parse_bool("on").unwrap(), true);
-        assert_eq!(Config::parse_bool("1").unwrap(), true);
-        assert_eq!(Config::parse_bool("42").unwrap(), true);
+        assert!(Config::parse_bool("true").unwrap());
+        assert!(Config::parse_bool("yes").unwrap());
+        assert!(Config::parse_bool("on").unwrap());
+        assert!(Config::parse_bool("1").unwrap());
+        assert!(Config::parse_bool("42").unwrap());
 
         assert!(Config::parse_bool(" ").is_err());
         assert!(Config::parse_bool("some-string").is_err());
