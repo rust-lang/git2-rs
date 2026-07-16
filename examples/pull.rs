@@ -12,7 +12,6 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#![allow(clippy::needless_borrow)]
 #![allow(clippy::needless_question_mark)]
 
 use clap::Parser;
@@ -186,7 +185,7 @@ fn do_merge<'a>(
     } else if analysis.0.is_normal() {
         // do a normal merge
         let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
-        normal_merge(&repo, &head_commit, &fetch_commit)?;
+        normal_merge(repo, &head_commit, &fetch_commit)?;
     } else {
         println!("Nothing to do...");
     }
@@ -199,7 +198,7 @@ fn run(args: &Args) -> Result<(), git2::Error> {
     let repo = Repository::open(".")?;
     let mut remote = repo.find_remote(remote_name)?;
     let fetch_commit = do_fetch(&repo, &[remote_branch], &mut remote)?;
-    do_merge(&repo, &remote_branch, fetch_commit)
+    do_merge(&repo, remote_branch, fetch_commit)
 }
 
 fn main() {
