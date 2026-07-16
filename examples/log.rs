@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::needless_borrowed_reference)]
 
 use clap::Parser;
 use git2::{Commit, DiffOptions, ObjectType, Repository, Signature, Time};
@@ -227,7 +226,7 @@ fn log_message_matches(msg: Option<&str>, grep: &Option<String>) -> bool {
     match (grep, msg) {
         (&None, _) => true,
         (&Some(_), None) => false,
-        (&Some(ref s), Some(msg)) => msg.contains(s),
+        (Some(s), Some(msg)) => msg.contains(s),
     }
 }
 
