@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::manual_strip)]
 #![allow(clippy::needless_borrowed_reference)]
 
 use clap::Parser;
@@ -98,8 +97,8 @@ fn run(args: &Args) -> Result<(), Error> {
         },
     )?;
     for commit in &args.arg_commit {
-        if commit.starts_with('^') {
-            let obj = repo.revparse_single(&commit[1..])?;
+        if let Some(after_caret) = commit.strip_prefix('^') {
+            let obj = repo.revparse_single(after_caret)?;
             revwalk.hide(obj.id())?;
             continue;
         }
