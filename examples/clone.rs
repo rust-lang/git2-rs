@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::manual_checked_ops)]
 
 use clap::Parser;
 use git2::build::{CheckoutBuilder, RepoBuilder};
@@ -42,11 +41,7 @@ fn print(state: &mut State) {
     let stats = state.progress.as_ref().unwrap();
     let network_pct = (100 * stats.received_objects()) / stats.total_objects();
     let index_pct = (100 * stats.indexed_objects()) / stats.total_objects();
-    let co_pct = if state.total > 0 {
-        (100 * state.current) / state.total
-    } else {
-        0
-    };
+    let co_pct = (100 * state.current).checked_div(state.total).unwrap_or(0);
     let kbytes = stats.received_bytes() / 1024;
     if stats.received_objects() == stats.total_objects() {
         if !state.newline {
