@@ -869,4 +869,11 @@ mod tests {
         repo.checkout_index(Some(&mut index), Some(&mut checkout_opts))
             .unwrap();
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_repo_builder_branch() {
+        let mut builder = RepoBuilder::new();
+        builder.branch("abc\x00xyz");
+    }
 }
