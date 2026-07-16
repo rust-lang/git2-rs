@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::needless_borrows_for_generic_args)]
 #![allow(clippy::redundant_closure)]
 
 use clap::Parser;
@@ -199,10 +198,10 @@ fn run(args: &Args) -> Result<(), Error> {
         opts.id_abbrev(amt);
     }
     if let Some(ref s) = args.flag_src_prefix {
-        opts.old_prefix(&s);
+        opts.old_prefix(s);
     }
     if let Some(ref s) = args.flag_dst_prefix {
-        opts.new_prefix(&s);
+        opts.new_prefix(s);
     }
     if let Some("diff-index") = args.flag_format.as_ref().map(|s| &s[..]) {
         opts.id_abbrev(40);
