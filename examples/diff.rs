@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::redundant_closure)]
 
 use clap::Parser;
 use git2::{Blob, Diff, DiffOptions, Error, Object, ObjectType, Oid, Repository};
@@ -323,7 +322,7 @@ fn resolve_blob<'a>(repo: &'a Repository, arg: Option<&String>) -> Result<Option
         Some(s) => Oid::from_str_ext(s, repo.object_format())?,
         None => return Ok(None),
     };
-    repo.find_blob(arg).map(|b| Some(b))
+    repo.find_blob(arg).map(Some)
 }
 
 impl Args {
