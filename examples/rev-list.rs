@@ -14,7 +14,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::manual_strip)]
 
 use clap::Parser;
 use git2::{Error, Oid, Repository, Revwalk};
@@ -62,8 +61,8 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         .map(|s| (s, true))
         .chain(args.arg_spec.iter().map(|s| (s, false)))
         .map(|(spec, hide)| {
-            if spec.starts_with('^') {
-                (&spec[1..], !hide)
+            if let Some(after_caret) = spec.strip_prefix('^') {
+                (after_caret, !hide)
             } else {
                 (&spec[..], hide)
             }
