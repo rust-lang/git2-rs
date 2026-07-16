@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::manual_strip)]
 
 use clap::Parser;
 use git2::ObjectFormat;
@@ -136,8 +135,8 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
         "true" | "group" => Ok(git2::RepositoryInitMode::SHARED_GROUP),
         "all" | "world" => Ok(git2::RepositoryInitMode::SHARED_ALL),
         _ => {
-            if shared.starts_with('0') {
-                match u32::from_str_radix(&shared[1..], 8).ok() {
+            if let Some(after_zero) = shared.strip_prefix('0') {
+                match u32::from_str_radix(after_zero, 8).ok() {
                     Some(n) => Ok(RepositoryInitMode::from_bits_truncate(n)),
                     None => Err(Error::from_str("invalid octal value for --shared")),
                 }
