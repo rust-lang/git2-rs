@@ -1,6 +1,6 @@
 use crate::build::CheckoutBuilder;
 use crate::util::{self, Binding};
-use crate::{panic, raw, IntoCString, Oid, Signature, StashApplyProgress, StashFlags};
+use crate::{panic, raw, Error, IntoCString, Oid, Signature, StashApplyProgress, StashFlags};
 use libc::{c_char, c_int, c_void, size_t};
 use std::ffi::{c_uint, CStr, CString};
 use std::mem;
@@ -45,11 +45,11 @@ impl<'a> StashSaveOptions<'a> {
     }
 
     /// Add to the array of paths patterns to build the stash.
-    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> &mut Self {
-        let s = util::cstring_to_repo_path(pathspec).unwrap();
+    pub fn pathspec<T: IntoCString>(&mut self, pathspec: T) -> Result<&mut Self, Error> {
+        let s = util::cstring_to_repo_path(pathspec)?;
         self.pathspec_ptrs.push(s.as_ptr());
         self.pathspec.push(s);
-        self
+        Ok(self)
     }
 
     /// Acquire a pointer to the underlying raw options.
@@ -338,7 +338,7 @@ mod tests {
         assert_eq!(repo.statuses(None).unwrap().len(), 2);
 
         let mut opt = StashSaveOptions::new(signature);
-        opt.pathspec("file_a");
+        opt.pathspec("file_a").expect("Should be a valid path spec");
         repo.stash_save_ext(Some(&mut opt)).unwrap();
 
         assert_eq!(repo.statuses(None).unwrap().len(), 0);
@@ -349,10 +349,21 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_stash_invalid_path() {
         let sig = Signature::now("name", "email").unwrap();
         let mut opts = StashSaveOptions::new(sig);
-        opts.pathspec("abc\x00xyz");
+        // Cannot use unwrap_err() because StashSaveOptions does not implement Debug
+        let result = match opts.pathspec("abc\x00xyz") {
+            Ok(_) => panic!("Expected an error"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::new(
+                crate::ErrorCode::GenericError,
+                crate::ErrorClass::None,
+                "data contained a nul byte that could not be represented as a string"
+            ),
+            result
+        );
     }
 }
