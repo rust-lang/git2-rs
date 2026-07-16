@@ -172,9 +172,9 @@ impl<'cb> RepoBuilder<'cb> {
     /// Specify the name of the branch to check out after the clone.
     ///
     /// If not specified, the remote's default branch will be used.
-    pub fn branch(&mut self, branch: &str) -> &mut RepoBuilder<'cb> {
-        self.branch = Some(CString::new(branch).unwrap());
-        self
+    pub fn branch(&mut self, branch: &str) -> Result<&mut RepoBuilder<'cb>, Error> {
+        self.branch = Some(CString::new(branch)?);
+        Ok(self)
     }
 
     /// Configures options for bypassing the git-aware transport on clone.
@@ -800,7 +800,9 @@ mod tests {
         let dst = td.path().join("foo");
         RepoBuilder::new().clone(&url, &dst).unwrap();
         fs::remove_dir_all(&dst).unwrap();
-        assert!(RepoBuilder::new().branch("foo").clone(&url, &dst).is_err());
+        let mut builder = RepoBuilder::new();
+        builder.branch("foo").expect("Foo is a valid branch name");
+        assert!(builder.clone(&url, &dst).is_err());
     }
 
     #[test]
@@ -871,9 +873,20 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_repo_builder_branch() {
         let mut builder = RepoBuilder::new();
-        builder.branch("abc\x00xyz");
+        // Cannot use unwrap_err() because StashSaveOptions does not implement Debug
+        let result = match builder.branch("abc\x00xyz") {
+            Ok(_) => panic!("Expected an error"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::new(
+                crate::ErrorCode::GenericError,
+                crate::ErrorClass::None,
+                "data contained a nul byte that could not be represented as a string"
+            ),
+            result
+        );
     }
 }
