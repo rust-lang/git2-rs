@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::needless_borrows_for_generic_args)]
 #![allow(clippy::redundant_closure)]
 
@@ -303,7 +302,7 @@ fn print_stats(diff: &Diff, args: &Args) -> Result<(), Error> {
         format |= git2::DiffStatsFormat::INCLUDE_SUMMARY;
     }
     let buf = stats.to_buf(format, 80)?;
-    print!("{}", str::from_utf8(&*buf).unwrap());
+    print!("{}", str::from_utf8(&buf).unwrap());
     Ok(())
 }
 
