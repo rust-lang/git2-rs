@@ -215,7 +215,7 @@ extern "C" fn stash_apply_progress_cb(
 mod tests {
     use crate::stash::{StashApplyOptions, StashSaveOptions};
     use crate::test::repo_init;
-    use crate::{IndexAddOption, Repository, StashFlags, Status};
+    use crate::{IndexAddOption, Repository, Signature, StashFlags, Status};
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -346,5 +346,13 @@ mod tests {
         repo.stash_pop(0, None).unwrap();
 
         assert_eq!(repo.statuses(None).unwrap().len(), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_stash_invalid_path() {
+        let sig = Signature::now("name", "email").unwrap();
+        let mut opts = StashSaveOptions::new(sig);
+        opts.pathspec("abc\x00xyz");
     }
 }
