@@ -13,7 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::explicit_auto_deref)]
 
 use clap::Parser;
 use git2::{Commit, Error, Repository, Tag};
@@ -61,7 +60,7 @@ fn run(args: &Args) -> Result<(), Error> {
         println!(
             "Deleted tag '{}' (was {})",
             name,
-            str::from_utf8(&*id).unwrap()
+            str::from_utf8(&id).unwrap()
         );
     } else if args.flag_list {
         let pattern = args.arg_pattern.as_ref().map(|s| &s[..]).unwrap_or("*");
