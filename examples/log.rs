@@ -13,8 +13,6 @@
  */
 
 #![deny(warnings)]
-#![allow(clippy::manual_strip)]
-#![allow(clippy::needless_borrowed_reference)]
 
 use clap::Parser;
 use git2::{Commit, DiffOptions, ObjectType, Repository, Signature, Time};
@@ -98,8 +96,8 @@ fn run(args: &Args) -> Result<(), Error> {
         },
     )?;
     for commit in &args.arg_commit {
-        if commit.starts_with('^') {
-            let obj = repo.revparse_single(&commit[1..])?;
+        if let Some(after_caret) = commit.strip_prefix('^') {
+            let obj = repo.revparse_single(after_caret)?;
             revwalk.hide(obj.id())?;
             continue;
         }
@@ -228,7 +226,7 @@ fn log_message_matches(msg: Option<&str>, grep: &Option<String>) -> bool {
     match (grep, msg) {
         (&None, _) => true,
         (&Some(_), None) => false,
-        (&Some(ref s), Some(msg)) => msg.contains(s),
+        (Some(s), Some(msg)) => msg.contains(s),
     }
 }
 

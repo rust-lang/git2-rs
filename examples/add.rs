@@ -14,7 +14,6 @@
 
 #![deny(warnings)]
 #![allow(trivial_casts)]
-#![allow(clippy::needless_borrows_for_generic_args)]
 
 use clap::Parser;
 use git2::Repository;
@@ -36,7 +35,7 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), git2::Error> {
-    let repo = Repository::open(&Path::new("."))?;
+    let repo = Repository::open(Path::new("."))?;
     let mut index = repo.index()?;
 
     let cb = &mut |path: &Path, _matched_spec: &[u8]| -> i32 {
