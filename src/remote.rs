@@ -99,7 +99,10 @@ impl<'repo> Remote<'repo> {
     /// Ensure the remote name is well-formed.
     pub fn is_valid_name(remote_name: &str) -> bool {
         crate::init();
-        let remote_name = CString::new(remote_name).unwrap();
+        let remote_name = match CString::new(remote_name) {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
         let mut valid: libc::c_int = 0;
         unsafe {
             call::c_try(raw::git_remote_name_is_valid(
@@ -974,12 +977,9 @@ mod tests {
     fn is_valid_name() {
         assert!(Remote::is_valid_name("foobar"));
         assert!(!Remote::is_valid_name("\x01"));
-    }
 
-    #[test]
-    #[should_panic]
-    fn is_valid_name_for_invalid_remote() {
-        Remote::is_valid_name("ab\x0012");
+        // Previously would panic, see #1294
+        assert!(!Remote::is_valid_name("ab\x0012"));
     }
 
     #[test]
