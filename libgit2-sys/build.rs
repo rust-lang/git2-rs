@@ -1,4 +1,3 @@
-#![allow(clippy::needless_borrows_for_generic_args)]
 #![allow(clippy::unnecessary_map_or)]
 
 use std::env;
@@ -123,7 +122,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     if !Path::new("libgit2/src").exists() {
         let _ = Command::new("git")
-            .args(&["submodule", "update", "--init", "libgit2"])
+            .args(["submodule", "update", "--init", "libgit2"])
             .status();
     }
 
