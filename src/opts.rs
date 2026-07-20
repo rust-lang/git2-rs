@@ -492,6 +492,22 @@ pub unsafe fn set_server_timeout_in_milliseconds(timeout: libc::c_int) -> Result
     Ok(())
 }
 
+/// Sets the directory used as the current user's home directory, for file lookups
+///
+/// # Safety
+/// This function is modifying a C global without synchronization, so it is not
+/// thread safe, and should only be called before any thread is spawned.
+pub unsafe fn set_homedir(homedir: std::ffi::CString) -> Result<(), Error> {
+    crate::init();
+
+    try_call!(raw::git_libgit2_opts(
+        raw::GIT_OPT_SET_HOMEDIR as libc::c_int,
+        homedir.as_ptr()
+    ));
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
