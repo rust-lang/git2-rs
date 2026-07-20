@@ -1,6 +1,3 @@
-#![allow(clippy::needless_borrows_for_generic_args)]
-#![allow(clippy::unnecessary_map_or)]
-
 use std::env;
 use std::fs;
 use std::io;
@@ -96,7 +93,7 @@ fn main() {
     // dependency graph activates `vendored` feature, there is no way to revert
     // it back. This env var serves as a workaround for this purpose.
     println!("cargo:rerun-if-env-changed=LIBGIT2_NO_VENDOR");
-    let forced_no_vendor = env::var_os("LIBGIT2_NO_VENDOR").map_or(false, |s| s != "0");
+    let forced_no_vendor = env::var_os("LIBGIT2_NO_VENDOR").is_some_and(|s| s != "0");
 
     if forced_no_vendor {
         if try_system_libgit2(unstable_sha256).is_err() {
@@ -123,7 +120,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     if !Path::new("libgit2/src").exists() {
         let _ = Command::new("git")
-            .args(&["submodule", "update", "--init", "libgit2"])
+            .args(["submodule", "update", "--init", "libgit2"])
             .status();
     }
 
