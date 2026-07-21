@@ -9,7 +9,7 @@ fn try_system_libgit2(
     experimental_sha256: bool,
 ) -> Result<pkg_config::Library, Box<dyn std::error::Error>> {
     let mut cfg = pkg_config::Config::new();
-    let range_version = "1.9.4".."1.10.0";
+    let range_version = "1.9.5".."1.10.0";
 
     let lib = if experimental_sha256 {
         // Determine whether experimental SHA256 object support is enabled.
@@ -163,33 +163,36 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     cfg.include("libgit2/deps/xdiff");
     add_c_files(&mut cfg, "libgit2/deps/xdiff");
 
-    // Use the included PCRE regex backend.
-    //
-    // Ideally these defines would be specific to the pcre files (or placed in
-    // a config.h), but since libgit2 already has a config.h used for other
-    // reasons, just define on the command-line for everything. Perhaps there
-    // is some way with cc to have different instructions per-file?
+    // Use the included PCRE2 regex backend.
+    // Keep these settings aligned with libgit2's bundled PCRE2 configuration.
     cfg.define("GIT_REGEX_BUILTIN", "1")
-        .include("libgit2/deps/pcre")
-        .define("HAVE_STDINT_H", Some("1"))
-        .define("HAVE_MEMMOVE", Some("1"))
-        .define("NO_RECURSE", Some("1"))
-        .define("NEWLINE", Some("10"))
-        .define("POSIX_MALLOC_THRESHOLD", Some("10"))
+        .include("libgit2/deps/pcre2")
+        .define("PCRE2_STATIC", None)
+        .define("PCRE2_EXPORT", Some(""))
+        .define("PCRE2_EXP_DECL", Some(""))
+        .define("PCRE2_EXP_DEFN", Some(""))
+        .define("PCRE2_CODE_UNIT_WIDTH", Some("8"))
+        .define("SUPPORT_PCRE2_8", Some("1"))
+        .define("SUPPORT_UNICODE", Some("1"))
         .define("LINK_SIZE", Some("2"))
-        .define("PARENS_NEST_LIMIT", Some("250"))
+        .define("HEAP_LIMIT", Some("20000000"))
         .define("MATCH_LIMIT", Some("10000000"))
-        .define("MATCH_LIMIT_RECURSION", Some("MATCH_LIMIT"))
-        .define("MAX_NAME_SIZE", Some("32"))
+        .define("MATCH_LIMIT_DEPTH", Some("MATCH_LIMIT"))
+        .define("MAX_VARLOOKBEHIND", Some("255"))
+        .define("NEWLINE_DEFAULT", Some("2"))
+        .define("PARENS_NEST_LIMIT", Some("250"))
+        .define("MAX_NAME_SIZE", Some("128"))
         .define("MAX_NAME_COUNT", Some("10000"));
-    // "no symbols" warning on pcre_string_utils.c is because it is only used
-    // when when COMPILE_PCRE8 is not defined, which is the default.
-    add_c_files(&mut cfg, "libgit2/deps/pcre");
+    add_pcre2_files(&mut cfg);
 
     cfg.file("libgit2/src/util/allocators/failalloc.c");
     cfg.file("libgit2/src/util/allocators/stdalloc.c");
 
     if windows {
+        if target.contains("msvc") {
+            cfg.define("_CRT_SECURE_NO_DEPRECATE", None);
+            cfg.define("_CRT_SECURE_NO_WARNINGS", None);
+        }
         add_c_files(&mut cfg, "libgit2/src/util/win32");
         cfg.define("STRSAFE_NO_DEPRECATE", None);
         cfg.define("WIN32", None);
@@ -358,5 +361,45 @@ fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
         } else if path.extension().and_then(|s| s.to_str()) == Some("c") {
             build.file(&path);
         }
+    }
+}
+
+fn add_pcre2_files(build: &mut cc::Build) {
+    // Keep this list in sync with libgit2's PCRE2_SOURCES:
+    // https://github.com/libgit2/libgit2/blob/f7a4071c766ceea3915415e22134cbe3e581c420/deps/pcre2/CMakeLists.txt#L65-L96
+    let root = Path::new("libgit2/deps/pcre2");
+    for file in &[
+        "pcre2_auto_possess.c",
+        "pcre2_chartables.c",
+        "pcre2_chkdint.c",
+        "pcre2_compile.c",
+        "pcre2_compile_cgroup.c",
+        "pcre2_compile_class.c",
+        "pcre2_config.c",
+        "pcre2_context.c",
+        "pcre2_convert.c",
+        "pcre2_dfa_match.c",
+        "pcre2_error.c",
+        "pcre2_extuni.c",
+        "pcre2_find_bracket.c",
+        "pcre2_maketables.c",
+        "pcre2_match.c",
+        "pcre2_match_data.c",
+        "pcre2_match_next.c",
+        "pcre2_newline.c",
+        "pcre2_ord2utf.c",
+        "pcre2_pattern_info.c",
+        "pcre2_script_run.c",
+        "pcre2_serialize.c",
+        "pcre2_string_utils.c",
+        "pcre2_study.c",
+        "pcre2_substitute.c",
+        "pcre2_substring.c",
+        "pcre2_tables.c",
+        "pcre2_ucd.c",
+        "pcre2_valid_utf.c",
+        "pcre2_xclass.c",
+    ] {
+        build.file(root.join(file));
     }
 }
