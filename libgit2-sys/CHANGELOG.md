@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.18.6+1.9.5 - 2026-07-22
+[0.18.5...0.18.6](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.5+1.9.4...libgit2-sys-0.18.6+1.9.5)
+
+### Added
+
+- Added bindings for `GIT_OPT_ADD_SSL_X509_CERT`.
+- Added bindings for `GIT_OPT_GET_PACK_MAX_OBJECT_SIZE` and `GIT_OPT_SET_PACK_MAX_OBJECT_SIZE`.
+
+### Changed
+
+- Updated to libgit2 [1.9.5](https://github.com/libgit2/libgit2/releases/tag/v1.9.5).
+  This fixes
+  [CVE-2026-53583](https://github.com/libgit2/libgit2/security/advisories/GHSA-h7gc-w2gg-p9xp),
+  [CVE-2026-53584](https://github.com/libgit2/libgit2/security/advisories/GHSA-cw77-j82w-mchm),
+  [CVE-2026-53585](https://github.com/libgit2/libgit2/security/advisories/GHSA-27m5-gxxh-x79j),
+  [CVE-2026-53586](https://github.com/libgit2/libgit2/security/advisories/GHSA-2889-x8f6-mc4x),
+  [CVE-2026-53587](https://github.com/libgit2/libgit2/security/advisories/GHSA-pm24-4jhq-3xvm),
+  and [GHSA-wfx7-g85r-q6vw](https://github.com/libgit2/libgit2/security/advisories/GHSA-wfx7-g85r-q6vw).
+- Updated the vendored build to use libgit2's bundled PCRE2 regex backend.
+
 ## 0.18.5+1.9.4 - 2026-05-23
 [0.18.4...0.18.5](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.4+1.9.3...libgit2-sys-0.18.5+1.9.4)
 
