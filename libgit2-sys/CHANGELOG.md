@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.7+1.9.6 - 2026-07-22
+[0.18.6...0.18.7](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.6+1.9.5...libgit2-sys-0.18.7+1.9.6)
+
+### Changed
+
+- Updated to libgit2 [1.9.6](https://github.com/libgit2/libgit2/releases/tag/v1.9.6).
+  This fixes SSH known-host loading with an invalid home directory,
+  an Android crash when `HOME` is unset,
+  and hidden symbol visibility for static builds.
+
 ## 0.18.6+1.9.5 - 2026-07-22
 [0.18.5...0.18.6](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.5+1.9.4...libgit2-sys-0.18.6+1.9.5)
 
