@@ -421,7 +421,7 @@ impl<'repo> Remote<'repo> {
             return Ok(&[]);
         }
         unsafe {
-            let slice = slice::from_raw_parts(base as *const _, size as usize);
+            let slice = slice::from_raw_parts(base as *const _, size);
             Ok(mem::transmute::<
                 &[*const raw::git_remote_head],
                 &[RemoteHead<'_>],
