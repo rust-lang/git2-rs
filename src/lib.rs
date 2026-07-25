@@ -73,7 +73,7 @@
 #![allow(clippy::unnecessary_cast)]
 
 use bitflags::bitflags;
-use libgit2_sys as raw;
+pub use libgit2_sys as raw;
 
 use std::ffi::{CStr, CString};
 use std::fmt;
