@@ -1,0 +1,11 @@
+error[E0597]: `remote` does not live long enough
+  --> tests/compile_fail/remote_refspec.rs:13:9
+   |
+11 |     let refspec = {
+   |         ------- borrow later stored here
+12 |         let remote = repo.find_remote("origin").unwrap();
+   |             ------ binding `remote` declared here
+13 |         remote.get_refspec(0)
+   |         ^^^^^^ borrowed value does not live long enough
+14 |     };
+   |     - `remote` dropped here while still borrowed
