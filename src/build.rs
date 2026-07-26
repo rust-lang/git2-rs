@@ -296,23 +296,21 @@ extern "C" fn remote_create_cb(
     url: *const c_char,
     payload: *mut c_void,
 ) -> c_int {
-    unsafe {
-        let repo = Repository::from_raw(repo);
-        let code = panic::wrap(|| {
-            let name = CStr::from_ptr(name).to_str().unwrap();
-            let url = CStr::from_ptr(url).to_str().unwrap();
-            let f = payload as *mut Box<RemoteCreate<'_>>;
-            match (*f)(&repo, name, url) {
-                Ok(remote) => {
-                    *out = crate::remote::remote_into_raw(remote);
-                    0
-                }
-                Err(e) => e.raw_code(),
+    let repo = unsafe { Repository::from_raw(repo) };
+    let code = panic::wrap(|| {
+        let name = unsafe { CStr::from_ptr(name) }.to_str().unwrap();
+        let url = unsafe { CStr::from_ptr(url) }.to_str().unwrap();
+        let f = payload as *mut Box<RemoteCreate<'_>>;
+        match unsafe { (*f)(&repo, name, url) } {
+            Ok(remote) => {
+                unsafe { *out = crate::remote::remote_into_raw(remote) };
+                0
             }
-        });
-        mem::forget(repo);
-        code.unwrap_or(-1)
-    }
+            Err(e) => e.raw_code(),
+        }
+    });
+    mem::forget(repo);
+    code.unwrap_or(-1)
 }
 
 impl<'cb> Default for CheckoutBuilder<'cb> {
@@ -638,8 +636,8 @@ extern "C" fn progress_cb(
     total: size_t,
     data: *mut c_void,
 ) {
-    panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut CheckoutBuilder<'_>);
+    panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut CheckoutBuilder<'_>) };
         let callback = match payload.progress {
             Some(ref mut c) => c,
             None => return,
@@ -647,7 +645,7 @@ extern "C" fn progress_cb(
         let path = if path.is_null() {
             None
         } else {
-            Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
+            Some(util::bytes2path(unsafe { CStr::from_ptr(path) }.to_bytes()))
         };
         callback(path, completed as usize, total as usize)
     });
@@ -662,8 +660,8 @@ extern "C" fn notify_cb(
     data: *mut c_void,
 ) -> c_int {
     // pack callback etc
-    panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut CheckoutBuilder<'_>);
+    panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut CheckoutBuilder<'_>) };
         let callback = match payload.notify {
             Some(ref mut c) => c,
             None => return 0,
@@ -671,25 +669,25 @@ extern "C" fn notify_cb(
         let path = if path.is_null() {
             None
         } else {
-            Some(util::bytes2path(CStr::from_ptr(path).to_bytes()))
+            Some(util::bytes2path(unsafe { CStr::from_ptr(path) }.to_bytes()))
         };
 
         let baseline = if baseline.is_null() {
             None
         } else {
-            Some(DiffFile::from_raw(baseline))
+            Some(unsafe { DiffFile::from_raw(baseline) })
         };
 
         let target = if target.is_null() {
             None
         } else {
-            Some(DiffFile::from_raw(target))
+            Some(unsafe { DiffFile::from_raw(target) })
         };
 
         let workdir = if workdir.is_null() {
             None
         } else {
-            Some(DiffFile::from_raw(workdir))
+            Some(unsafe { DiffFile::from_raw(workdir) })
         };
 
         let why = CheckoutNotificationType::from_bits_truncate(why as u32);
