@@ -22,13 +22,13 @@ pub(crate) extern "C" fn tag_foreach_cb(
     oid: *mut git_oid,
     payload: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let id: Oid = Binding::from_raw(oid as *const _);
+    panic::wrap(|| {
+        let id: Oid = unsafe { Binding::from_raw(oid as *const _) };
 
-        let name = CStr::from_ptr(name);
+        let name = unsafe { CStr::from_ptr(name) };
         let name = name.to_bytes();
 
-        let payload = &mut *(payload as *mut TagForeachData<'_>);
+        let payload = unsafe { &mut *(payload as *mut TagForeachData<'_>) };
         let cb = &mut payload.cb;
 
         let res = cb(id, name);
