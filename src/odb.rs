@@ -167,8 +167,8 @@ impl<'repo> Odb<'repo> {
 
     /// Write an object to the database.
     pub fn write(&self, kind: ObjectType, data: &[u8]) -> Result<Oid, Error> {
+        let mut out = crate::util::zeroed_raw_oid();
         unsafe {
-            let mut out = crate::util::zeroed_raw_oid();
             try_call!(raw::git_odb_write(
                 &mut out,
                 self.raw,
@@ -471,14 +471,11 @@ pub struct OdbPackwriter<'repo> {
 impl<'repo> OdbPackwriter<'repo> {
     /// Finish writing the packfile
     pub fn commit(&mut self) -> Result<i32, Error> {
-        let res;
-        unsafe {
-            let writepack = &*self.raw;
-            res = match writepack.commit {
-                Some(commit) => commit(self.raw, &mut self.progress),
-                None => -1,
-            };
-        }
+        let writepack = unsafe { &*self.raw };
+        let res = match writepack.commit {
+            Some(commit) => unsafe { commit(self.raw, &mut self.progress) },
+            None => -1,
+        };
 
         if res < 0 {
             Err(Error::last_error(res))
@@ -505,14 +502,11 @@ impl<'repo> io::Write for OdbPackwriter<'repo> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let ptr = buf.as_ptr() as *mut c_void;
         let len = buf.len();
-        let res;
-        unsafe {
-            let writepack = &*self.raw;
-            res = match writepack.append {
-                Some(append) => append(self.raw, ptr, len, &mut self.progress),
-                None => -1,
-            };
-        }
+        let writepack = unsafe { &*self.raw };
+        let res = match writepack.append {
+            Some(append) => append(self.raw, ptr, len, &mut self.progress),
+            None => -1,
+        };
         if res < 0 {
             Err(io::Error::other("Write error"))
         } else {
@@ -526,14 +520,12 @@ impl<'repo> io::Write for OdbPackwriter<'repo> {
 
 impl<'repo> Drop for OdbPackwriter<'repo> {
     fn drop(&mut self) {
-        unsafe {
-            let writepack = &*self.raw;
-            if let Some(free) = writepack.free {
-                free(self.raw);
-            };
+        let writepack = unsafe { &*self.raw };
+        if let Some(free) = writepack.free {
+            unsafe { free(self.raw) };
+        };
 
-            drop(Box::from_raw(self.progress_payload_ptr));
-        }
+        drop(unsafe { Box::from_raw(self.progress_payload_ptr) });
     }
 }
 
@@ -544,11 +536,11 @@ struct ForeachCbData<'a> {
 }
 
 extern "C" fn foreach_cb(id: *const raw::git_oid, payload: *mut c_void) -> c_int {
-    panic::wrap(|| unsafe {
-        let data = &mut *(payload as *mut ForeachCbData<'_>);
+    panic::wrap(|| {
+        let data = unsafe { &mut *(payload as *mut ForeachCbData<'_>) };
         let res = {
             let callback = &mut data.callback;
-            callback(&Binding::from_raw(id))
+            callback(unsafe { &Binding::from_raw(id) })
         };
 
         if res {
@@ -564,15 +556,15 @@ pub(crate) extern "C" fn write_pack_progress_cb(
     stats: *const raw::git_indexer_progress,
     payload: *mut c_void,
 ) -> c_int {
-    let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut OdbPackwriterCb<'_>);
+    let ok = panic::wrap(|| {
+        let payload = unsafe { &mut *(payload as *mut OdbPackwriterCb<'_>) };
 
         let callback = match payload.cb {
             Some(ref mut cb) => cb,
             None => return true,
         };
 
-        let progress: Progress<'_> = Binding::from_raw(stats);
+        let progress: Progress<'_> = unsafe { Binding::from_raw(stats) };
         callback(progress)
     });
     if ok == Some(true) {

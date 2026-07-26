@@ -27,8 +27,8 @@ impl Version {
         };
         unsafe {
             raw::git_libgit2_version(&mut v.major, &mut v.minor, &mut v.rev);
-            v.features = raw::git_libgit2_features();
         }
+        v.features = unsafe { raw::git_libgit2_features() };
         v
     }
 
