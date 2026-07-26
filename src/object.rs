@@ -157,11 +157,9 @@ impl<'repo> Object<'repo> {
     fn cast_into<T>(self, kind: ObjectType) -> Result<T, Object<'repo>> {
         assert_eq!(mem::size_of_val(&self), mem::size_of::<T>());
         if self.kind() == Some(kind) {
-            Ok(unsafe {
-                let other = ptr::read(&self as *const _ as *const T);
-                mem::forget(self);
-                other
-            })
+            let other = unsafe { ptr::read(&self as *const _ as *const T) };
+            mem::forget(self);
+            Ok(other)
         } else {
             Err(self)
         }
@@ -177,11 +175,9 @@ impl<'repo> CastOrPanic for Object<'repo> {
     fn cast_or_panic<T>(self, kind: ObjectType) -> T {
         assert_eq!(mem::size_of_val(&self), mem::size_of::<T>());
         if self.kind() == Some(kind) {
-            unsafe {
-                let other = ptr::read(&self as *const _ as *const T);
-                mem::forget(self);
-                other
-            }
+            let other = unsafe { ptr::read(&self as *const _ as *const T) };
+            mem::forget(self);
+            other
         } else {
             let buf;
             let akind = match self.kind() {
@@ -204,11 +200,9 @@ impl<'repo> CastOrPanic for Object<'repo> {
 impl<'repo> Clone for Object<'repo> {
     fn clone(&self) -> Object<'repo> {
         let mut raw = ptr::null_mut();
-        unsafe {
-            let rc = raw::git_object_dup(&mut raw, self.raw);
-            assert_eq!(rc, 0);
-            Binding::from_raw(raw)
-        }
+        let rc = unsafe { raw::git_object_dup(&mut raw, self.raw) };
+        assert_eq!(rc, 0);
+        unsafe { Binding::from_raw(raw) }
     }
 }
 
