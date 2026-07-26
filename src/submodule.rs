@@ -43,8 +43,8 @@ impl<'repo> Submodule<'repo> {
         opts: Option<&mut SubmoduleUpdateOptions<'_>>,
     ) -> Result<Repository, Error> {
         let mut raw_repo = ptr::null_mut();
+        let raw_opts = opts.map(|o| unsafe { o.raw() });
         unsafe {
-            let raw_opts = opts.map(|o| o.raw());
             try_call!(raw::git_submodule_clone(
                 &mut raw_repo,
                 self.raw,
@@ -239,8 +239,8 @@ impl<'repo> Submodule<'repo> {
         init: bool,
         opts: Option<&mut SubmoduleUpdateOptions<'_>>,
     ) -> Result<(), Error> {
+        let mut raw_opts = opts.map(|o| unsafe { o.raw() });
         unsafe {
-            let mut raw_opts = opts.map(|o| o.raw());
             try_call!(raw::git_submodule_update(
                 self.raw,
                 init as c_int,
