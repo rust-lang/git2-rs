@@ -288,8 +288,8 @@ impl<'repo> Commit<'repo> {
     ///
     /// Use the `parents` iterator to return an iterator over all parents.
     pub fn parent(&self, i: usize) -> Result<Commit<'repo>, Error> {
+        let mut raw = ptr::null_mut();
         unsafe {
-            let mut raw = ptr::null_mut();
             try_call!(raw::git_commit_parent(
                 &mut raw,
                 &*self.raw,
