@@ -429,11 +429,9 @@ impl<'repo> Eq for Reference<'repo> {}
 impl<'repo> Clone for Reference<'repo> {
     fn clone(&self) -> Reference<'repo> {
         let mut raw = ptr::null_mut();
-        unsafe {
-            let rc = raw::git_reference_dup(&mut raw, self.raw);
-            assert_eq!(rc, 0);
-            Binding::from_raw(raw)
-        }
+        let rc = unsafe { raw::git_reference_dup(&mut raw, self.raw) };
+        assert_eq!(rc, 0);
+        unsafe { Binding::from_raw(raw) }
     }
 }
 
