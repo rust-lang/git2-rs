@@ -31,12 +31,12 @@ impl Time {
 
     /// Return the time, in seconds, from epoch
     pub fn seconds(&self) -> i64 {
-        self.raw.time as i64
+        self.raw.time
     }
 
     /// Return the timezone offset, in minutes
     pub fn offset_minutes(&self) -> i32 {
-        self.raw.offset as i32
+        self.raw.offset
     }
 
     /// Return whether the offset was positive or negative. Primarily useful

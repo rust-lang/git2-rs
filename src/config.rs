@@ -196,7 +196,7 @@ impl Config {
     /// level. A higher level means a higher priority. The first occurrence of
     /// the variable will be returned here.
     pub fn get_bool(&self, name: &str) -> Result<bool, Error> {
-        let mut out = 0 as libc::c_int;
+        let mut out = 0;
         let name = CString::new(name)?;
         unsafe {
             try_call!(raw::git_config_get_bool(&mut out, &*self.raw, name));

@@ -51,7 +51,6 @@ impl EmailCreateOptions {
     }
 
     fn flag(&mut self, opt: raw::git_email_create_flags_t, val: bool) -> &mut Self {
-        let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
         } else {

@@ -709,7 +709,6 @@ impl DiffOptions {
     }
 
     fn flag(&mut self, opt: raw::git_diff_option_t, val: bool) -> &mut DiffOptions {
-        let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
         } else {
