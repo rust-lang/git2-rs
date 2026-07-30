@@ -87,7 +87,7 @@ impl<'repo> Transaction<'repo> {
         reflog_signature: Option<&Signature<'_>>,
         reflog_message: &str,
     ) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         let target = CString::new(target).unwrap();
         let reflog_message = CString::new(reflog_message).unwrap();
         unsafe {
@@ -360,11 +360,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_set_symbolic_target_refname() {
         let (_td, repo) = crate::test::repo_init();
 
         let mut tx = t!(repo.transaction());
-        let _ = tx.set_symbolic_target("ab\x0012", "refs/heads/main", None, "valid message");
+        let result = tx.set_symbolic_target("ab\x0012", "refs/heads/main", None, "valid message");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
     }
 }
