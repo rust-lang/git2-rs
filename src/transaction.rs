@@ -328,4 +328,14 @@ mod tests {
             result,
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_set_target_refname() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let oid = Oid::from_bytes(&[1u8; 20]).unwrap();
+        let _ = tx.set_target("ab\x0012", oid, None, "valid message");
+    }
 }
