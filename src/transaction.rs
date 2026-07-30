@@ -314,4 +314,13 @@ mod tests {
             Err(e) if is_not_locked_err(&e)
         ))
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_lock_ref() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let _ = tx.lock_ref("ab\x0012");
+    }
 }
