@@ -597,4 +597,22 @@ mod tests {
         let e = tree.walk(TreeWalkMode::PreOrder, |_, _| -1).unwrap_err();
         assert_eq!(e.class(), crate::ErrorClass::Callback);
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_name_bytes() {
+        let (td, repo) = crate::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        assert_eq!(tree.id(), commit.tree_id());
+        assert_eq!(tree.len(), 8);
+
+        tree.get_name_bytes(b"ab\x0012");
+    }
 }
