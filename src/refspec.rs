@@ -78,7 +78,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Transform a reference to its target following the refspec's rules
     pub fn transform(&self, name: &str) -> Result<Buf, Error> {
-        let name = CString::new(name).unwrap();
+        let name = CString::new(name)?;
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_refspec_transform(
@@ -154,7 +154,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn transform_invalid() {
         let (_td, repo) = crate::test::repo_init();
         repo.remote("origin", "https://github.com/rust-lang/git2-rs")
@@ -167,6 +166,16 @@ mod tests {
             specs[0].str().expect("Valid string")
         );
 
-        let _ = specs[0].transform("ab\x0012");
+        // Cannot use unwrap_err() because Buf does not implement Debug
+        let result = match specs[0].transform("ab\x0012") {
+            Ok(_) => panic!("Expected an err"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            ),
+            result,
+        );
     }
 }
