@@ -38,7 +38,7 @@ impl<'repo> Binding for Transaction<'repo> {
 impl<'repo> Transaction<'repo> {
     /// Lock the specified reference by name.
     pub fn lock_ref(&mut self, refname: &str) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_lock_ref(self.raw, refname));
         }
@@ -316,11 +316,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_lock_ref() {
         let (_td, repo) = crate::test::repo_init();
 
         let mut tx = t!(repo.transaction());
-        let _ = tx.lock_ref("ab\x0012");
+        let result = tx.lock_ref("ab\x0012");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
     }
 }
