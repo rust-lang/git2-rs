@@ -134,4 +134,21 @@ mod tests {
 
         assert!(!specs[0].dst_matches("ab\x0012"));
     }
+
+    #[test]
+    #[should_panic]
+    fn src_matches_invalid() {
+        let (_td, repo) = crate::test::repo_init();
+        repo.remote("origin", "https://github.com/rust-lang/git2-rs")
+            .expect("Remote added");
+        let remote = repo.find_remote("origin").expect("Remote exists");
+        let specs: Vec<_> = remote.refspecs().collect();
+        assert_eq!(1, specs.len());
+        assert_eq!(
+            "+refs/heads/*:refs/remotes/origin/*",
+            specs[0].str().expect("Valid string")
+        );
+
+        specs[0].src_matches("ab\x0012");
+    }
 }
