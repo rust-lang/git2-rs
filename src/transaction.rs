@@ -400,4 +400,15 @@ mod tests {
             result,
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_set_reflog() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let reflog = repo.reflog("dummy").expect("Valid name");
+
+        let mut tx = t!(repo.transaction());
+        let _ = tx.set_reflog("ab\x0012", reflog);
+    }
 }
