@@ -416,4 +416,13 @@ mod tests {
             result,
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_remove() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let _ = tx.remove("ab\x0012");
+    }
 }
