@@ -386,4 +386,13 @@ mod tests {
             result,
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_set_symbolic_target_message() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let _ = tx.set_symbolic_target("refs/heads/next", "refs/heads/main", None, "ab\x0012");
+    }
 }
