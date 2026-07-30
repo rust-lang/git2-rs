@@ -129,7 +129,7 @@ impl<'repo> Transaction<'repo> {
     ///
     /// The reference must have been locked via `lock_ref`.
     pub fn remove(&mut self, refname: &str) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_remove(self.raw, refname));
         }
@@ -418,11 +418,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_remove() {
         let (_td, repo) = crate::test::repo_init();
 
         let mut tx = t!(repo.transaction());
-        let _ = tx.remove("ab\x0012");
+        let result = tx.remove("ab\x0012");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
     }
 }
