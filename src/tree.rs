@@ -164,7 +164,7 @@ impl<'repo> Tree<'repo> {
     ///
     /// This allows for non-UTF-8 filenames.
     pub fn get_name_bytes(&self, filename: &[u8]) -> Option<TreeEntry<'_>> {
-        let filename = CString::new(filename).unwrap();
+        let filename = CString::new(filename).ok()?;
         let ptr = unsafe { call!(raw::git_tree_entry_byname(&*self.raw(), filename)) };
         if ptr.is_null() {
             None
@@ -599,7 +599,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_name_bytes() {
         let (td, repo) = crate::test::repo_init();
 
@@ -613,6 +612,7 @@ mod tests {
         assert_eq!(tree.id(), commit.tree_id());
         assert_eq!(tree.len(), 8);
 
-        tree.get_name_bytes(b"ab\x0012");
+        let result = tree.get_name_bytes(b"ab\x0012");
+        assert!(result.is_none());
     }
 }
