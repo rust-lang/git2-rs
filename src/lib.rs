@@ -1636,6 +1636,12 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn object_type_invalid() {
+        ObjectType::from_str("ab\x0012");
+    }
+
+    #[test]
     fn convert_filemode() {
         assert_eq!(i32::from(FileMode::Blob), 0o100644);
         assert_eq!(i32::from(FileMode::BlobGroupWritable), 0o100664);
