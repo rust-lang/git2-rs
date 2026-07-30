@@ -113,7 +113,7 @@ impl<'repo> Transaction<'repo> {
     /// written to the log (i.e. the `reflog_signature` and `reflog_message`
     /// parameters will be ignored).
     pub fn set_reflog(&mut self, refname: &str, reflog: Reflog) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_set_reflog(
                 self.raw,
@@ -402,13 +402,18 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_set_reflog() {
         let (_td, repo) = crate::test::repo_init();
 
         let reflog = repo.reflog("dummy").expect("Valid name");
 
         let mut tx = t!(repo.transaction());
-        let _ = tx.set_reflog("ab\x0012", reflog);
+        let result = tx.set_reflog("ab\x0012", reflog);
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
     }
 }
