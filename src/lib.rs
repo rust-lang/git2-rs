@@ -955,7 +955,8 @@ impl ObjectType {
     /// Convert a string object type representation to its object type.
     #[expect(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<ObjectType> {
-        let raw = unsafe { call!(raw::git_object_string2type(CString::new(s).unwrap())) };
+        let cstr = CString::new(s).ok()?;
+        let raw = unsafe { call!(raw::git_object_string2type(cstr)) };
         ObjectType::from_raw(raw)
     }
 }
@@ -1636,9 +1637,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn object_type_invalid() {
-        ObjectType::from_str("ab\x0012");
+        assert_eq!(None, ObjectType::from_str("ab\x0012"));
     }
 
     #[test]
