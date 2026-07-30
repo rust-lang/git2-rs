@@ -37,7 +37,9 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's destination descriptor matches a reference
     pub fn dst_matches(&self, refname: &str) -> bool {
-        let refname = CString::new(refname).unwrap();
+        let Ok(refname) = CString::new(refname) else {
+            return false;
+        };
         unsafe { raw::git_refspec_dst_matches(self.raw, refname.as_ptr()) == 1 }
     }
 
@@ -53,7 +55,9 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's source descriptor matches a reference
     pub fn src_matches(&self, refname: &str) -> bool {
-        let refname = CString::new(refname).unwrap();
+        let Ok(refname) = CString::new(refname) else {
+            return false;
+        };
         unsafe { raw::git_refspec_src_matches(self.raw, refname.as_ptr()) == 1 }
     }
 
@@ -74,7 +78,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Transform a reference to its target following the refspec's rules
     pub fn transform(&self, name: &str) -> Result<Buf, Error> {
-        let name = CString::new(name).unwrap();
+        let name = CString::new(name)?;
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_refspec_transform(
@@ -88,7 +92,7 @@ impl<'remote> Refspec<'remote> {
 
     /// Transform a target reference to its source reference following the refspec's rules
     pub fn rtransform(&self, name: &str) -> Result<Buf, Error> {
-        let name = CString::new(name).unwrap();
+        let name = CString::new(name)?;
         let buf = Buf::new();
         unsafe {
             try_call!(raw::git_refspec_rtransform(
@@ -112,5 +116,92 @@ impl<'remote> Binding for Refspec<'remote> {
     }
     fn raw(&self) -> *const raw::git_refspec {
         self.raw
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn dst_matches_invalid() {
+        let (_td, repo) = crate::test::repo_init();
+        repo.remote("origin", "https://github.com/rust-lang/git2-rs")
+            .expect("Remote added");
+        let remote = repo.find_remote("origin").expect("Remote exists");
+        let specs: Vec<_> = remote.refspecs().collect();
+        assert_eq!(1, specs.len());
+        assert_eq!(
+            "+refs/heads/*:refs/remotes/origin/*",
+            specs[0].str().expect("Valid string")
+        );
+
+        assert!(!specs[0].dst_matches("ab\x0012"));
+    }
+
+    #[test]
+    fn src_matches_invalid() {
+        let (_td, repo) = crate::test::repo_init();
+        repo.remote("origin", "https://github.com/rust-lang/git2-rs")
+            .expect("Remote added");
+        let remote = repo.find_remote("origin").expect("Remote exists");
+        let specs: Vec<_> = remote.refspecs().collect();
+        assert_eq!(1, specs.len());
+        assert_eq!(
+            "+refs/heads/*:refs/remotes/origin/*",
+            specs[0].str().expect("Valid string")
+        );
+
+        assert!(!specs[0].src_matches("ab\x0012"));
+    }
+
+    #[test]
+    fn transform_invalid() {
+        let (_td, repo) = crate::test::repo_init();
+        repo.remote("origin", "https://github.com/rust-lang/git2-rs")
+            .expect("Remote added");
+        let remote = repo.find_remote("origin").expect("Remote exists");
+        let specs: Vec<_> = remote.refspecs().collect();
+        assert_eq!(1, specs.len());
+        assert_eq!(
+            "+refs/heads/*:refs/remotes/origin/*",
+            specs[0].str().expect("Valid string")
+        );
+
+        // Cannot use unwrap_err() because Buf does not implement Debug
+        let result = match specs[0].transform("ab\x0012") {
+            Ok(_) => panic!("Expected an err"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            ),
+            result,
+        );
+    }
+
+    #[test]
+    fn rtransform_invalid() {
+        let (_td, repo) = crate::test::repo_init();
+        repo.remote("origin", "https://github.com/rust-lang/git2-rs")
+            .expect("Remote added");
+        let remote = repo.find_remote("origin").expect("Remote exists");
+        let specs: Vec<_> = remote.refspecs().collect();
+        assert_eq!(1, specs.len());
+        assert_eq!(
+            "+refs/heads/*:refs/remotes/origin/*",
+            specs[0].str().expect("Valid string")
+        );
+
+        // Cannot use unwrap_err() because Buf does not implement Debug
+        let result = match specs[0].rtransform("ab\x0012") {
+            Ok(_) => panic!("Expected an err"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            ),
+            result,
+        );
     }
 }

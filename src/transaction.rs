@@ -38,7 +38,7 @@ impl<'repo> Binding for Transaction<'repo> {
 impl<'repo> Transaction<'repo> {
     /// Lock the specified reference by name.
     pub fn lock_ref(&mut self, refname: &str) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_lock_ref(self.raw, refname));
         }
@@ -59,8 +59,8 @@ impl<'repo> Transaction<'repo> {
         reflog_signature: Option<&Signature<'_>>,
         reflog_message: &str,
     ) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
-        let reflog_message = CString::new(reflog_message).unwrap();
+        let refname = CString::new(refname)?;
+        let reflog_message = CString::new(reflog_message)?;
         unsafe {
             try_call!(raw::git_transaction_set_target(
                 self.raw,
@@ -87,9 +87,9 @@ impl<'repo> Transaction<'repo> {
         reflog_signature: Option<&Signature<'_>>,
         reflog_message: &str,
     ) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
-        let target = CString::new(target).unwrap();
-        let reflog_message = CString::new(reflog_message).unwrap();
+        let refname = CString::new(refname)?;
+        let target = CString::new(target)?;
+        let reflog_message = CString::new(reflog_message)?;
         unsafe {
             try_call!(raw::git_transaction_set_symbolic_target(
                 self.raw,
@@ -113,7 +113,7 @@ impl<'repo> Transaction<'repo> {
     /// written to the log (i.e. the `reflog_signature` and `reflog_message`
     /// parameters will be ignored).
     pub fn set_reflog(&mut self, refname: &str, reflog: Reflog) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_set_reflog(
                 self.raw,
@@ -129,7 +129,7 @@ impl<'repo> Transaction<'repo> {
     ///
     /// The reference must have been locked via `lock_ref`.
     pub fn remove(&mut self, refname: &str) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_remove(self.raw, refname));
         }
@@ -313,5 +313,121 @@ mod tests {
             tx.set_target("refs/heads/main", Oid::ZERO_SHA1, None, "set main to zero"),
             Err(e) if is_not_locked_err(&e)
         ))
+    }
+
+    #[test]
+    fn invalid_lock_ref() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let result = tx.lock_ref("ab\x0012");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_set_target_refname() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let oid = Oid::from_bytes(&[1u8; 20]).unwrap();
+        let result = tx.set_target("ab\x0012", oid, None, "valid message");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_set_target_message() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let oid = Oid::from_bytes(&[1u8; 20]).unwrap();
+        let result = tx.set_target("refs/heads/main", oid, None, "ab\x0012");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_set_symbolic_target_refname() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let result = tx.set_symbolic_target("ab\x0012", "refs/heads/main", None, "valid message");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_set_symbolic_target_target() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let result = tx.set_symbolic_target("refs/heads/next", "ab\x0012", None, "valid message");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_set_symbolic_target_message() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let result = tx.set_symbolic_target("refs/heads/next", "refs/heads/main", None, "ab\x0012");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_set_reflog() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let reflog = repo.reflog("dummy").expect("Valid name");
+
+        let mut tx = t!(repo.transaction());
+        let result = tx.set_reflog("ab\x0012", reflog);
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
+    }
+
+    #[test]
+    fn invalid_remove() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let result = tx.remove("ab\x0012");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
     }
 }
