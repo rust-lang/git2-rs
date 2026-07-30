@@ -178,4 +178,21 @@ mod tests {
             result,
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn rtransform_invalid() {
+        let (_td, repo) = crate::test::repo_init();
+        repo.remote("origin", "https://github.com/rust-lang/git2-rs")
+            .expect("Remote added");
+        let remote = repo.find_remote("origin").expect("Remote exists");
+        let specs: Vec<_> = remote.refspecs().collect();
+        assert_eq!(1, specs.len());
+        assert_eq!(
+            "+refs/heads/*:refs/remotes/origin/*",
+            specs[0].str().expect("Valid string")
+        );
+
+        let _ = specs[0].rtransform("ab\x0012");
+    }
 }
