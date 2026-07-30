@@ -55,7 +55,9 @@ impl<'remote> Refspec<'remote> {
 
     /// Check if a refspec's source descriptor matches a reference
     pub fn src_matches(&self, refname: &str) -> bool {
-        let refname = CString::new(refname).unwrap();
+        let Ok(refname) = CString::new(refname) else {
+            return false;
+        };
         unsafe { raw::git_refspec_src_matches(self.raw, refname.as_ptr()) == 1 }
     }
 
@@ -136,7 +138,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn src_matches_invalid() {
         let (_td, repo) = crate::test::repo_init();
         repo.remote("origin", "https://github.com/rust-lang/git2-rs")
@@ -149,6 +150,6 @@ mod tests {
             specs[0].str().expect("Valid string")
         );
 
-        specs[0].src_matches("ab\x0012");
+        assert!(!specs[0].src_matches("ab\x0012"));
     }
 }
