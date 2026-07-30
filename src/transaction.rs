@@ -343,4 +343,14 @@ mod tests {
             result,
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn invalid_set_target_message() {
+        let (_td, repo) = crate::test::repo_init();
+
+        let mut tx = t!(repo.transaction());
+        let oid = Oid::from_bytes(&[1u8; 20]).unwrap();
+        let _ = tx.set_target("refs/heads/main", oid, None, "ab\x0012");
+    }
 }
