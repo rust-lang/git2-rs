@@ -59,7 +59,7 @@ impl<'repo> Transaction<'repo> {
         reflog_signature: Option<&Signature<'_>>,
         reflog_message: &str,
     ) -> Result<(), Error> {
-        let refname = CString::new(refname).unwrap();
+        let refname = CString::new(refname)?;
         let reflog_message = CString::new(reflog_message).unwrap();
         unsafe {
             try_call!(raw::git_transaction_set_target(
@@ -330,12 +330,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn invalid_set_target_refname() {
         let (_td, repo) = crate::test::repo_init();
 
         let mut tx = t!(repo.transaction());
         let oid = Oid::from_bytes(&[1u8; 20]).unwrap();
-        let _ = tx.set_target("ab\x0012", oid, None, "valid message");
+        let result = tx.set_target("ab\x0012", oid, None, "valid message");
+        assert_eq!(
+            Err(crate::Error::from_str(
+                "data contained a nul byte that could not be represented as a string"
+            )),
+            result,
+        );
     }
 }
