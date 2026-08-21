@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.8+1.9.7 - 2026-08-21
+[0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)
+
+### Changed
+
+- Updated to libgit2 [1.9.7](https://github.com/libgit2/libgit2/releases/tag/v1.9.7).
+  This fixes
+  [CVE-2026-5917](https://github.com/libgit2/libgit2/security/advisories/GHSA-xqj4-2j5v-rr75),
+  a potential command injection on the remote host
+  via unescaped repository paths in the libssh2 SSH transport.
+
 ## 0.18.7+1.9.6 - 2026-07-22
 [0.18.6...0.18.7](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.6+1.9.5...libgit2-sys-0.18.7+1.9.6)
 
