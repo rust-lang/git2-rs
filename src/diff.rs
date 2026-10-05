@@ -620,27 +620,51 @@ impl<'a> DiffFile<'a> {
 
     /// Returns the size of this entry, in bytes
     pub fn size(&self) -> u64 {
-        unsafe { (*self.raw).size as u64 }
+        unsafe { (*self.raw).size }
     }
 
     /// Returns `true` if file(s) are treated as binary data.
     pub fn is_binary(&self) -> bool {
-        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_BINARY as u32 != 0 }
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
+        unsafe {
+            (*self.raw).flags & raw::GIT_DIFF_FLAG_BINARY as u32 != 0
+        }
     }
 
     /// Returns `true` if file(s) are treated as text data.
     pub fn is_not_binary(&self) -> bool {
-        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_NOT_BINARY as u32 != 0 }
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
+        unsafe {
+            (*self.raw).flags & raw::GIT_DIFF_FLAG_NOT_BINARY as u32 != 0
+        }
     }
 
     /// Returns `true` if `id` value is known correct.
     pub fn is_valid_id(&self) -> bool {
-        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_VALID_ID as u32 != 0 }
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
+        unsafe {
+            (*self.raw).flags & raw::GIT_DIFF_FLAG_VALID_ID as u32 != 0
+        }
     }
 
     /// Returns `true` if file exists at this side of the delta.
     pub fn exists(&self) -> bool {
-        unsafe { (*self.raw).flags & raw::GIT_DIFF_FLAG_EXISTS as u32 != 0 }
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
+        unsafe {
+            (*self.raw).flags & raw::GIT_DIFF_FLAG_EXISTS as u32 != 0
+        }
     }
 
     /// Returns file mode.
@@ -709,6 +733,10 @@ impl DiffOptions {
     }
 
     fn flag(&mut self, opt: raw::git_diff_option_t, val: bool) -> &mut DiffOptions {
+        #[allow(
+            clippy::unnecessary_cast,
+            reason = "u32 unless compiling for msvc target env"
+        )]
         let opt = opt as u32;
         if val {
             self.raw.flags |= opt;
@@ -1072,17 +1100,12 @@ impl<'a> DiffLine<'a> {
 
     /// Offset in the original file to the content
     pub fn content_offset(&self) -> i64 {
-        unsafe { (*self.raw).content_offset as i64 }
+        unsafe { (*self.raw).content_offset }
     }
 
     /// Content of this line as bytes.
     pub fn content(&self) -> &'a [u8] {
-        unsafe {
-            slice::from_raw_parts(
-                (*self.raw).content as *const u8,
-                (*self.raw).content_len as usize,
-            )
-        }
+        unsafe { slice::from_raw_parts((*self.raw).content as *const u8, (*self.raw).content_len) }
     }
 
     /// origin of this `DiffLine`.
@@ -1174,7 +1197,7 @@ impl<'a> DiffHunk<'a> {
         unsafe {
             slice::from_raw_parts(
                 (*self.raw).header.as_ptr() as *const u8,
-                (*self.raw).header_len as usize,
+                (*self.raw).header_len,
             )
         }
     }
@@ -1317,12 +1340,12 @@ impl<'a> DiffBinaryFile<'a> {
             );
             return &[];
         }
-        unsafe { slice::from_raw_parts(ptr as *const u8, datalen as usize) }
+        unsafe { slice::from_raw_parts(ptr as *const u8, datalen) }
     }
 
     /// The length of the binary data after inflation
     pub fn inflated_len(&self) -> usize {
-        unsafe { (*self.raw).inflatedlen as usize }
+        unsafe { (*self.raw).inflatedlen }
     }
 }
 
