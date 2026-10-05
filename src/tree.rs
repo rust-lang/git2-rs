@@ -164,7 +164,7 @@ impl<'repo> Tree<'repo> {
     ///
     /// This allows for non-UTF-8 filenames.
     pub fn get_name_bytes(&self, filename: &[u8]) -> Option<TreeEntry<'_>> {
-        let filename = CString::new(filename).unwrap();
+        let filename = CString::new(filename).ok()?;
         let ptr = unsafe { call!(raw::git_tree_entry_byname(&*self.raw(), filename)) };
         if ptr.is_null() {
             None
@@ -596,5 +596,23 @@ mod tests {
         let tree = repo.find_tree(commit.tree_id()).unwrap();
         let e = tree.walk(TreeWalkMode::PreOrder, |_, _| -1).unwrap_err();
         assert_eq!(e.class(), crate::ErrorClass::Callback);
+    }
+
+    #[test]
+    fn invalid_name_bytes() {
+        let (td, repo) = crate::test::repo_init();
+
+        setup_repo(&td, &repo);
+
+        let head = repo.head().unwrap();
+        let target = head.target().unwrap();
+        let commit = repo.find_commit(target).unwrap();
+
+        let tree = repo.find_tree(commit.tree_id()).unwrap();
+        assert_eq!(tree.id(), commit.tree_id());
+        assert_eq!(tree.len(), 8);
+
+        let result = tree.get_name_bytes(b"ab\x0012");
+        assert!(result.is_none());
     }
 }
