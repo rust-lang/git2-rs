@@ -49,11 +49,11 @@ struct MergeheadForeachCbData<'a> {
 }
 
 extern "C" fn mergehead_foreach_cb(oid: *const raw::git_oid, payload: *mut c_void) -> c_int {
-    panic::wrap(|| unsafe {
-        let data = &mut *(payload as *mut MergeheadForeachCbData<'_>);
+    panic::wrap(|| {
+        let data = unsafe { &mut *(payload as *mut MergeheadForeachCbData<'_>) };
         let res = {
             let callback = &mut data.callback;
-            callback(&Binding::from_raw(oid))
+            callback(unsafe { &Binding::from_raw(oid) })
         };
 
         if res {
@@ -72,8 +72,8 @@ extern "C" fn fetchhead_foreach_cb(
     is_merge: c_uint,
     payload: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let data = &mut *(payload as *mut FetchheadForeachCbData<'_>);
+    panic::wrap(|| {
+        let data = unsafe { &mut *(payload as *mut FetchheadForeachCbData<'_>) };
         let res = {
             let callback = &mut data.callback;
 
@@ -81,9 +81,9 @@ extern "C" fn fetchhead_foreach_cb(
             assert!(!remote_url.is_null());
             assert!(!oid.is_null());
 
-            let ref_name = str::from_utf8(CStr::from_ptr(ref_name).to_bytes()).unwrap();
-            let remote_url = CStr::from_ptr(remote_url).to_bytes();
-            let oid = Binding::from_raw(oid);
+            let ref_name = str::from_utf8(unsafe { CStr::from_ptr(ref_name) }.to_bytes()).unwrap();
+            let remote_url = unsafe { CStr::from_ptr(remote_url) }.to_bytes();
+            let oid = unsafe { Binding::from_raw(oid) };
             let is_merge = is_merge == 1;
 
             callback(ref_name, remote_url, &oid, is_merge)
@@ -786,8 +786,8 @@ impl Repository {
         kind: ResetType,
         checkout: Option<&mut CheckoutBuilder<'_>>,
     ) -> Result<(), Error> {
+        let mut opts: raw::git_checkout_options = unsafe { mem::zeroed() };
         unsafe {
-            let mut opts: raw::git_checkout_options = mem::zeroed();
             try_call!(raw::git_checkout_init_options(
                 &mut opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
@@ -968,15 +968,13 @@ impl Repository {
             name: *const c_char,
             data: *mut c_void,
         ) -> c_int {
-            unsafe {
-                let data = &mut *(data as *mut Data<'_, '_>);
-                let mut raw = ptr::null_mut();
-                let rc = raw::git_submodule_lookup(&mut raw, data.repo.raw(), name);
-                if rc != 0 {
-                    return rc;
-                }
-                data.ret.push(Binding::from_raw(raw));
+            let data = unsafe { &mut *(data as *mut Data<'_, '_>) };
+            let mut raw = ptr::null_mut();
+            let rc = unsafe { raw::git_submodule_lookup(&mut raw, data.repo.raw(), name) };
+            if rc != 0 {
+                return rc;
             }
+            data.ret.push(unsafe { Binding::from_raw(raw) });
             0
         }
     }
@@ -1156,9 +1154,9 @@ impl Repository {
     /// the blob.
     pub fn blob(&self, data: &[u8]) -> Result<Oid, Error> {
         let mut raw = crate::util::zeroed_raw_oid();
+        let ptr = data.as_ptr() as *const c_void;
+        let len = data.len() as size_t;
         unsafe {
-            let ptr = data.as_ptr() as *const c_void;
-            let len = data.len() as size_t;
             try_call!(raw::git_blob_create_frombuffer(
                 &mut raw,
                 self.raw(),
@@ -1487,8 +1485,8 @@ impl Repository {
 
     /// Creates an `AnnotatedCommit` from the given commit id.
     pub fn find_annotated_commit(&self, id: Oid) -> Result<AnnotatedCommit<'_>, Error> {
+        let mut raw = ptr::null_mut();
         unsafe {
-            let mut raw = ptr::null_mut();
             try_call!(raw::git_annotated_commit_lookup(
                 &mut raw,
                 self.raw(),
@@ -2173,16 +2171,20 @@ impl Repository {
     /// then update `HEAD` using [`Repository::set_head`] to point to the
     /// branch you checked out.
     pub fn checkout_head(&self, opts: Option<&mut CheckoutBuilder<'_>>) -> Result<(), Error> {
+        let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
-            if let Some(c) = opts {
+        }
+        if let Some(c) = opts {
+            unsafe {
                 c.configure(&mut raw_opts);
             }
+        }
 
+        unsafe {
             try_call!(raw::git_checkout_head(self.raw, &raw_opts));
         }
         Ok(())
@@ -2196,16 +2198,20 @@ impl Repository {
         index: Option<&mut Index>,
         opts: Option<&mut CheckoutBuilder<'_>>,
     ) -> Result<(), Error> {
+        let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
-            if let Some(c) = opts {
+        }
+        if let Some(c) = opts {
+            unsafe {
                 c.configure(&mut raw_opts);
             }
+        }
 
+        unsafe {
             try_call!(raw::git_checkout_index(
                 self.raw,
                 index.map(|i| &mut *i.raw()),
@@ -2222,16 +2228,20 @@ impl Repository {
         treeish: &Object<'_>,
         opts: Option<&mut CheckoutBuilder<'_>>,
     ) -> Result<(), Error> {
+        let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
-            if let Some(c) = opts {
+        }
+        if let Some(c) = opts {
+            unsafe {
                 c.configure(&mut raw_opts);
             }
+        }
 
+        unsafe {
             try_call!(raw::git_checkout_tree(self.raw, &*treeish.raw(), &raw_opts));
         }
         Ok(())
@@ -2256,16 +2266,20 @@ impl Repository {
             .map(|c| c.raw() as *const raw::git_annotated_commit)
             .collect::<Vec<_>>();
 
+        let mut raw_checkout_opts = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw_checkout_opts = mem::zeroed();
             try_call!(raw::git_checkout_init_options(
                 &mut raw_checkout_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
-            if let Some(c) = checkout_opts {
+        }
+        if let Some(c) = checkout_opts {
+            unsafe {
                 c.configure(&mut raw_checkout_opts);
             }
+        }
 
+        unsafe {
             try_call!(raw::git_merge(
                 self.raw,
                 commit_ptrs.as_mut_ptr(),
@@ -3084,8 +3098,8 @@ impl Repository {
         opts: Option<&mut StashSaveOptions<'_>>,
     ) -> Result<Oid, Error> {
         let mut raw_oid = crate::util::zeroed_raw_oid();
+        let opts = opts.map(|opts| unsafe { opts.raw() });
         unsafe {
-            let opts = opts.map(|opts| opts.raw());
             try_call!(raw::git_stash_save_with_opts(
                 &mut raw_oid,
                 self.raw(),

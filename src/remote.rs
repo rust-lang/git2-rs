@@ -403,11 +403,11 @@ impl<'repo> Remote<'repo> {
         let mut base = ptr::null_mut();
         unsafe {
             try_call!(raw::git_remote_ls(&mut base, &mut size, self.raw));
-            assert_eq!(
-                mem::size_of::<RemoteHead<'_>>(),
-                mem::size_of::<*const raw::git_remote_head>()
-            );
         }
+        assert_eq!(
+            mem::size_of::<RemoteHead<'_>>(),
+            mem::size_of::<*const raw::git_remote_head>()
+        );
         if base.is_null() {
             // We cannot use slice::from_raw_parts() since that requires
             // that the pointer be non-null, but that is fine since the size
@@ -440,8 +440,8 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's list of fetch refspecs
     pub fn fetch_refspecs(&self) -> Result<StringArray, Error> {
+        let mut raw: raw::git_strarray = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw: raw::git_strarray = mem::zeroed();
             try_call!(raw::git_remote_get_fetch_refspecs(&mut raw, self.raw));
             Ok(StringArray::from_raw(raw))
         }
@@ -449,8 +449,8 @@ impl<'repo> Remote<'repo> {
 
     /// Get the remote's list of push refspecs
     pub fn push_refspecs(&self) -> Result<StringArray, Error> {
+        let mut raw: raw::git_strarray = unsafe { mem::zeroed() };
         unsafe {
-            let mut raw: raw::git_strarray = mem::zeroed();
             try_call!(raw::git_remote_get_push_refspecs(&mut raw, self.raw));
             Ok(StringArray::from_raw(raw))
         }

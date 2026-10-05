@@ -201,8 +201,8 @@ impl DoubleEndedIterator for MessageTrailersStrsIterator<'_> {
 
 fn to_str_tuple(trailers: &MessageTrailers, index: usize) -> (&str, &str) {
     let (rkey, rvalue) = to_raw_tuple(trailers, index);
-    let key = unsafe { CStr::from_ptr(rkey).to_str().unwrap() };
-    let value = unsafe { CStr::from_ptr(rvalue).to_str().unwrap() };
+    let key = unsafe { CStr::from_ptr(rkey) }.to_str().unwrap();
+    let value = unsafe { CStr::from_ptr(rvalue) }.to_str().unwrap();
     (key, value)
 }
 
@@ -243,8 +243,8 @@ impl DoubleEndedIterator for MessageTrailersBytesIterator<'_> {
 
 fn to_bytes_tuple(trailers: &MessageTrailers, index: usize) -> (&[u8], &[u8]) {
     let (rkey, rvalue) = to_raw_tuple(trailers, index);
-    let key = unsafe { CStr::from_ptr(rkey).to_bytes() };
-    let value = unsafe { CStr::from_ptr(rvalue).to_bytes() };
+    let key = unsafe { CStr::from_ptr(rkey) }.to_bytes();
+    let value = unsafe { CStr::from_ptr(rvalue) }.to_bytes();
     (key, value)
 }
 

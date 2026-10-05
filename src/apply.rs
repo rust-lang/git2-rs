@@ -47,10 +47,10 @@ type HunkCB<'a> = dyn FnMut(Option<DiffHunk<'_>>) -> bool + 'a;
 type DeltaCB<'a> = dyn FnMut(Option<DiffDelta<'_>>) -> bool + 'a;
 
 extern "C" fn delta_cb_c(delta: *const raw::git_diff_delta, data: *mut c_void) -> c_int {
-    panic::wrap(|| unsafe {
-        let delta = Binding::from_raw_opt(delta as *mut _);
+    panic::wrap(|| {
+        let delta = unsafe { Binding::from_raw_opt(delta as *mut _) };
 
-        let payload = &mut *(data as *mut ApplyOptions<'_>);
+        let payload = unsafe { &mut *(data as *mut ApplyOptions<'_>) };
         let callback = match payload.delta_cb {
             Some(ref mut c) => c,
             None => return -1,
@@ -67,10 +67,10 @@ extern "C" fn delta_cb_c(delta: *const raw::git_diff_delta, data: *mut c_void) -
 }
 
 extern "C" fn hunk_cb_c(hunk: *const raw::git_diff_hunk, data: *mut c_void) -> c_int {
-    panic::wrap(|| unsafe {
-        let hunk = Binding::from_raw_opt(hunk);
+    panic::wrap(|| {
+        let hunk = unsafe { Binding::from_raw_opt(hunk) };
 
-        let payload = &mut *(data as *mut ApplyOptions<'_>);
+        let payload = unsafe { &mut *(data as *mut ApplyOptions<'_>) };
         let callback = match payload.hunk_cb {
             Some(ref mut c) => c,
             None => return -1,

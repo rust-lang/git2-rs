@@ -25,9 +25,9 @@ extern "C" fn revwalk_hide_cb<C>(commit_id: *const raw::git_oid, payload: *mut c
 where
     C: FnMut(Oid) -> bool,
 {
-    panic::wrap(|| unsafe {
+    panic::wrap(|| {
         let hide_cb = payload as *mut C;
-        if (*hide_cb)(Oid::from_raw(commit_id)) {
+        if unsafe { (*hide_cb)(Oid::from_raw(commit_id)) } {
             1
         } else {
             0
