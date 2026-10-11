@@ -62,6 +62,20 @@ If the `ssh` feature is enabled then this library depends
 on libssh2 which depends on OpenSSL. To get OpenSSL working follow the
 [`openssl` crate's instructions](https://github.com/sfackler/rust-openssl/blob/master/openssl/src/lib.rs#L31).
 
+## Building for WASI
+
+libgit2 can be built for `wasm32-wasip1`, without the `https` and `ssh`
+features since WASI preview 1 cannot open network connections. libgit2 is
+always built from source for this target, which needs a C compiler for WASI
+such as [wasi-sdk](https://github.com/WebAssembly/wasi-sdk); point the
+[`cc` crate](https://docs.rs/cc) at it:
+
+```sh
+$ export CC_wasm32_wasip1=/path/to/wasi-sdk/bin/clang
+$ export AR_wasm32_wasip1=/path/to/wasi-sdk/bin/llvm-ar
+$ cargo build --target wasm32-wasip1
+```
+
 # License
 
 This project is licensed under either of

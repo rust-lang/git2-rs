@@ -75,6 +75,36 @@ jobs:
       run: rustup component add clippy
     - run: cargo clippy --all-targets --all-features -- -Dwarnings
 
+  wasi:
+    name: WASI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build: [stable, beta, nightly, MSRV]
+        include:
+          - build: stable
+            rust: stable
+          - build: beta
+            rust: beta
+          - build: nightly
+            rust: nightly
+          - build: MSRV
+            rust: "1.87"
+    env:
+      WASI_SDK_VERSION: 34
+    steps:
+    - uses: actions/checkout@master
+      with:
+        submodules: true
+    - name: Install Rust (rustup)
+      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }} && rustup target add wasm32-wasip1
+    - name: Install wasi-sdk
+      run: |
+        curl -fsSL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux.tar.gz | tar xz
+        echo "CC_wasm32_wasip1=$PWD/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux/bin/clang" >> $GITHUB_ENV
+        echo "AR_wasm32_wasip1=$PWD/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux/bin/llvm-ar" >> $GITHUB_ENV
+    - run: cargo build --locked --target wasm32-wasip1
+
   rustfmt:
     name: Rustfmt
     runs-on: ubuntu-latest
@@ -94,6 +124,7 @@ jobs:
     if: always()
     needs:
       - test
+      - wasi
       - rustfmt
     runs-on: ubuntu-latest
     steps:

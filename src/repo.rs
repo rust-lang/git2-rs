@@ -1,5 +1,4 @@
 use libc::{c_char, c_int, c_uint, c_void, size_t};
-use std::env;
 use std::ffi::{CStr, CString, OsStr};
 use std::mem;
 use std::path::{Path, PathBuf};
@@ -217,7 +216,7 @@ impl Repository {
         crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
-        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs_os = util::join_paths(ceiling_dirs)?;
         let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
@@ -277,7 +276,7 @@ impl Repository {
         let buf = Buf::new();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
-        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs_os = util::join_paths(ceiling_dirs)?;
         let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
         unsafe {
             try_call!(raw::git_repository_discover(
