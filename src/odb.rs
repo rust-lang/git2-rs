@@ -586,11 +586,10 @@ pub(crate) extern "C" fn write_pack_progress_cb(
 mod tests {
     use crate::{Buf, ObjectType, Oid, Repository};
     use std::io::prelude::*;
-    use tempfile::TempDir;
 
     #[test]
     fn read() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let id = repo.blob(&dat).unwrap();
@@ -605,7 +604,7 @@ mod tests {
 
     #[test]
     fn read_header() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let id = repo.blob(&dat).unwrap();
@@ -618,7 +617,7 @@ mod tests {
 
     #[test]
     fn write() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let db = repo.odb().unwrap();
@@ -629,7 +628,7 @@ mod tests {
 
     #[test]
     fn writer() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let db = repo.odb().unwrap();
@@ -645,7 +644,7 @@ mod tests {
 
     #[test]
     fn exists() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let db = repo.odb().unwrap();
@@ -655,7 +654,7 @@ mod tests {
 
     #[test]
     fn exists_prefix() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let dat = [4, 3, 5, 6, 9];
         let db = repo.odb().unwrap();
