@@ -64,6 +64,11 @@ zlib-ng-compat = ["libgit2-sys/zlib-ng-compat"]
 [workspace]
 members = ["systest", "git2-curl"]
 
+# DO NOT MERGE: wasm32-wasip1 needs rust-lang/libz-sys#273, which is not
+# released yet. Drop this once rust-lang/libz-sys#276 ships 1.1.30.
+[patch.crates-io]
+libz-sys = { git = "https://github.com/rust-lang/libz-sys", rev = "86e55f804bc117885acdde4b4d663d5e20bc293f" }
+
 [package.metadata.docs.rs]
 features = ["https", "ssh"]
 
