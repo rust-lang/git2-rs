@@ -506,12 +506,11 @@ mod test {
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::Path;
-    use tempfile::TempDir;
 
     use crate::{Config, ConfigLevel, Cred, CredentialHelper};
 
     macro_rules! test_cfg( ($($k:expr => $v:expr),*) => ({
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let mut cfg = Config::new().unwrap();
         cfg.add_file(&td.path().join("cfg"), ConfigLevel::App, false).unwrap();
         $(cfg.set_str($k, $v).unwrap();)*
@@ -566,7 +565,7 @@ mod test {
             return;
         } // shell scripts don't work on Windows
 
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("script");
         let written_bytes = File::create(&path)
             .unwrap()
@@ -597,7 +596,7 @@ echo username=c
         if cfg!(windows) {
             return;
         } // shell scripts don't work on Windows
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("git-credential-some-script");
         let written_bytes = File::create(&path)
             .unwrap()
@@ -643,7 +642,7 @@ echo username=$1
         if cfg!(windows) {
             return;
         } // shell scripts don't work on Windows
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("script");
         let written_bytes = File::create(&path)
             .unwrap()

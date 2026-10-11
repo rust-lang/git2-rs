@@ -395,7 +395,10 @@ mod tests {
         }
     }
 
+    // wasmtime can't remove directories whose paths end in a slash, as
+    // libgit2 passes them: https://github.com/bytecodealliance/wasmtime/issues/11524
     #[test]
+    #[cfg_attr(target_os = "wasi", ignore)]
     fn keeping_original_author_msg() {
         let (td, repo) = crate::test::repo_init();
         let head_target = repo.head().unwrap().target().unwrap();
