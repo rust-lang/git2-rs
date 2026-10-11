@@ -331,7 +331,6 @@ impl<'cb> Default for SubmoduleUpdateOptions<'cb> {
 mod tests {
     use std::fs;
     use std::path::Path;
-    use tempfile::TempDir;
     use url::Url;
 
     use crate::Repository;
@@ -339,7 +338,7 @@ mod tests {
 
     #[test]
     fn smoke() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
         let mut s1 = repo
             .submodule("/path/to/nowhere", Path::new("foo"), true)
@@ -455,7 +454,7 @@ mod tests {
         crate::test::commit(&parent);
 
         // Clone the parent to init its submodules
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let new_parent = Repository::clone(url_parent.as_ref(), &td).unwrap();
 
         let mut submodules = new_parent.submodules().unwrap();

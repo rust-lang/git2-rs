@@ -475,7 +475,7 @@ mod tests {
     #[test]
     fn buffer_signatures() {
         // Regression tests for #1253
-        let td = tempfile::TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let repo = crate::Repository::init(path).unwrap();
@@ -560,7 +560,7 @@ mod tests {
     #[test]
     fn buffer_empty() {
         // Regression tests for #1288
-        let td = tempfile::TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let repo = crate::Repository::init(path).unwrap();
