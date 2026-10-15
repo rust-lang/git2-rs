@@ -504,6 +504,7 @@ pub fn merge_file(
     theirs: &MergeFileInput<'_>,
     opts: Option<&mut MergeFileOptions>,
 ) -> Result<MergeFileResult, Error> {
+    crate::init();
     let ancestor = ancestor.raw();
     let ours = ours.raw();
     let theirs = theirs.raw();
