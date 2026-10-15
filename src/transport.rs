@@ -170,8 +170,8 @@ impl Transport {
                 remote.raw(),
                 &mut defn as *mut _ as *mut _
             ));
-            mem::forget(raw); // ownership transport to `ret`
         }
+        mem::forget(raw); // ownership transport to `ret`
         return Ok(Transport {
             raw: ret,
             owned: true,
@@ -214,14 +214,16 @@ extern "C" fn transport_factory(
         }
     }
 
-    panic::wrap(|| unsafe {
+    panic::wrap(|| {
         let remote = Bomb {
-            remote: Some(Binding::from_raw(owner)),
+            remote: Some(unsafe { Binding::from_raw(owner) }),
         };
-        let data = &mut *(param as *mut TransportData);
+        let data = unsafe { &mut *(param as *mut TransportData) };
         match (data.factory)(remote.remote.as_ref().unwrap()) {
             Ok(mut transport) => {
-                *out = transport.raw;
+                unsafe {
+                    *out = transport.raw;
+                }
                 transport.owned = false;
                 0
             }
@@ -239,8 +241,8 @@ extern "C" fn subtransport_action(
     url: *const c_char,
     action: raw::git_smart_service_t,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let url = CStr::from_ptr(url).to_bytes();
+    panic::wrap(|| {
+        let url = unsafe { CStr::from_ptr(url) }.to_bytes();
         let url = match str::from_utf8(url).ok() {
             Some(s) => s,
             None => return -1,
@@ -253,7 +255,7 @@ extern "C" fn subtransport_action(
             n => panic!("unknown action: {}", n),
         };
 
-        let transport = &mut *(raw_transport as *mut RawSmartSubtransport);
+        let transport = unsafe { &mut *(raw_transport as *mut RawSmartSubtransport) };
         // Note: we only need to generate if rpc is on. Else, for receive-pack and upload-pack
         // libgit2 reuses the stream generated for receive-pack-ls or upload-pack-ls.
         let generate_stream =
@@ -261,26 +263,30 @@ extern "C" fn subtransport_action(
         if generate_stream {
             let obj = match transport.obj.action(url, action) {
                 Ok(s) => s,
-                Err(e) => return e.raw_set_git_error(),
+                Err(e) => return unsafe { e.raw_set_git_error() },
             };
-            *stream = mem::transmute::<
-                Box<RawSmartSubtransportStream>,
-                *mut raw::git_smart_subtransport_stream,
-            >(Box::new(RawSmartSubtransportStream {
-                raw: raw::git_smart_subtransport_stream {
-                    subtransport: raw_transport,
-                    read: Some(stream_read),
-                    write: Some(stream_write),
-                    free: Some(stream_free),
-                },
-                obj,
-            }));
-            transport.stream = Some(*stream);
+            unsafe {
+                *stream = mem::transmute::<
+                    Box<RawSmartSubtransportStream>,
+                    *mut raw::git_smart_subtransport_stream,
+                >(Box::new(RawSmartSubtransportStream {
+                    raw: raw::git_smart_subtransport_stream {
+                        subtransport: raw_transport,
+                        read: Some(stream_read),
+                        write: Some(stream_write),
+                        free: Some(stream_free),
+                    },
+                    obj,
+                }));
+            }
+            transport.stream = Some(unsafe { *stream });
         } else {
             if transport.stream.is_none() {
                 return -1;
             }
-            *stream = transport.stream.unwrap();
+            unsafe {
+                *stream = transport.stream.unwrap();
+            }
         }
         0
     })
@@ -290,8 +296,8 @@ extern "C" fn subtransport_action(
 // callback used by smart transports to close a `SmartSubtransport` trait
 // object.
 extern "C" fn subtransport_close(transport: *mut raw::git_smart_subtransport) -> c_int {
-    let ret = panic::wrap(|| unsafe {
-        let transport = &mut *(transport as *mut RawSmartSubtransport);
+    let ret = panic::wrap(|| {
+        let transport = unsafe { &mut *(transport as *mut RawSmartSubtransport) };
         transport.obj.close()
     });
     match ret {
@@ -317,12 +323,14 @@ extern "C" fn stream_read(
     buf_size: size_t,
     bytes_read: *mut size_t,
 ) -> c_int {
-    let ret = panic::wrap(|| unsafe {
-        let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-        let buf = slice::from_raw_parts_mut(buffer as *mut u8, buf_size as usize);
+    let ret = panic::wrap(|| {
+        let transport = unsafe { &mut *(stream as *mut RawSmartSubtransportStream) };
+        let buf = unsafe { slice::from_raw_parts_mut(buffer as *mut u8, buf_size as usize) };
         match transport.obj.read(buf) {
             Ok(n) => {
-                *bytes_read = n as size_t;
+                unsafe {
+                    *bytes_read = n as size_t;
+                }
                 Ok(n)
             }
             e => e,
@@ -330,10 +338,12 @@ extern "C" fn stream_read(
     });
     match ret {
         Some(Ok(_)) => 0,
-        Some(Err(e)) => unsafe {
-            set_err_io(&e);
+        Some(Err(e)) => {
+            unsafe {
+                set_err_io(&e);
+            }
             -2
-        },
+        }
         None => -1,
     }
 }
@@ -345,17 +355,19 @@ extern "C" fn stream_write(
     buffer: *const c_char,
     len: size_t,
 ) -> c_int {
-    let ret = panic::wrap(|| unsafe {
-        let transport = &mut *(stream as *mut RawSmartSubtransportStream);
-        let buf = slice::from_raw_parts(buffer as *const u8, len as usize);
+    let ret = panic::wrap(|| {
+        let transport = unsafe { &mut *(stream as *mut RawSmartSubtransportStream) };
+        let buf = unsafe { slice::from_raw_parts(buffer as *const u8, len as usize) };
         transport.obj.write_all(buf)
     });
     match ret {
         Some(Ok(())) => 0,
-        Some(Err(e)) => unsafe {
-            set_err_io(&e);
+        Some(Err(e)) => {
+            unsafe {
+                set_err_io(&e);
+            }
             -2
-        },
+        }
         None => -1,
     }
 }

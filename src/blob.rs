@@ -122,10 +122,8 @@ impl<'repo> Drop for BlobWriter<'repo> {
     fn drop(&mut self) {
         // We need cleanup in case the stream has not been committed
         if self.need_cleanup {
-            unsafe {
-                if let Some(f) = (*self.raw).free {
-                    f(self.raw)
-                }
+            if let Some(f) = unsafe { (*self.raw).free } {
+                f(self.raw)
             }
         }
     }

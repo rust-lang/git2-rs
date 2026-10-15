@@ -159,8 +159,8 @@ impl<'repo> PackBuilder<'repo> {
                 None,
                 ptr::null_mut()
             ));
-            self._progress = None;
         }
+        self._progress = None;
         Ok(())
     }
 
@@ -257,15 +257,13 @@ impl Binding for PackBuilderStage {
 }
 
 extern "C" fn foreach_c(buf: *const c_void, size: size_t, data: *mut c_void) -> c_int {
-    let r;
-    unsafe {
-        let buf = slice::from_raw_parts(buf as *const u8, size as usize);
+    let buf = unsafe { slice::from_raw_parts(buf as *const u8, size as usize) };
 
-        r = panic::wrap(|| {
-            let data = data as *mut &mut ForEachCb<'_>;
-            (*data)(buf)
-        });
-    }
+    let r = panic::wrap(|| {
+        let data = data as *mut &mut ForEachCb<'_>;
+        unsafe { (*data)(buf) }
+    });
+
     if r == Some(true) {
         0
     } else {
@@ -279,15 +277,13 @@ extern "C" fn progress_c(
     total: c_uint,
     data: *mut c_void,
 ) -> c_int {
-    let r;
-    unsafe {
-        let stage = Binding::from_raw(stage);
+    let stage = unsafe { Binding::from_raw(stage) };
 
-        r = panic::wrap(|| {
-            let data = data as *mut Box<ProgressCb<'_>>;
-            (*data)(stage, current, total)
-        });
-    }
+    let r = panic::wrap(|| {
+        let data = data as *mut Box<ProgressCb<'_>>;
+        unsafe { (*data)(stage, current, total) }
+    });
+
     if r == Some(true) {
         0
     } else {

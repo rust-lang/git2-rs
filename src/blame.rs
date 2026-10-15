@@ -245,15 +245,14 @@ impl Default for BlameOptions {
 impl BlameOptions {
     /// Initialize options
     pub fn new() -> BlameOptions {
-        unsafe {
-            let mut raw: raw::git_blame_options = mem::zeroed();
-            assert_eq!(
-                raw::git_blame_init_options(&mut raw, raw::GIT_BLAME_OPTIONS_VERSION),
-                0
-            );
+        let mut raw: raw::git_blame_options = unsafe { mem::zeroed() };
 
-            Binding::from_raw(&raw as *const _ as *mut _)
-        }
+        assert_eq!(
+            unsafe { raw::git_blame_init_options(&mut raw, raw::GIT_BLAME_OPTIONS_VERSION) },
+            0
+        );
+
+        unsafe { Binding::from_raw(&raw as *const _ as *mut _) }
     }
 
     fn flag(&mut self, opt: u32, val: bool) -> &mut BlameOptions {

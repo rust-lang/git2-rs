@@ -156,14 +156,14 @@ pub(crate) extern "C" fn stash_cb(
     stash_id: *const raw::git_oid,
     payload: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let data = &mut *(payload as *mut StashCbData<'_>);
+    panic::wrap(|| {
+        let data = unsafe { &mut *(payload as *mut StashCbData<'_>) };
         let res = {
             let callback = &mut data.callback;
             callback(
                 index,
-                CStr::from_ptr(message).to_str().unwrap(),
-                &Binding::from_raw(stash_id),
+                unsafe { CStr::from_ptr(message) }.to_str().unwrap(),
+                unsafe { &Binding::from_raw(stash_id) },
             )
         };
 
@@ -195,8 +195,8 @@ extern "C" fn stash_apply_progress_cb(
     progress: raw::git_stash_apply_progress_t,
     payload: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let options = &mut *(payload as *mut StashApplyOptions<'_>);
+    panic::wrap(|| {
+        let options = unsafe { &mut *(payload as *mut StashApplyOptions<'_>) };
         let res = {
             let callback = options.progress.as_mut().unwrap();
             callback(convert_progress(progress))

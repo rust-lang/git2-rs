@@ -123,14 +123,14 @@ impl<'repo> TreeBuilder<'repo> {
 type FilterCb<'a> = dyn FnMut(&TreeEntry<'_>) -> bool + 'a;
 
 extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void) -> c_int {
-    let ret = panic::wrap(|| unsafe {
+    let ret = panic::wrap(|| {
         // There's no way to return early from git_treebuilder_filter.
         if panic::panicked() {
             true
         } else {
-            let entry = tree::entry_from_raw_const(entry);
+            let entry = unsafe { tree::entry_from_raw_const(entry) };
             let payload = payload as *mut &mut FilterCb<'_>;
-            (*payload)(&entry)
+            unsafe { (*payload)(&entry) }
         }
     });
     if ret == Some(false) {

@@ -260,12 +260,13 @@ impl<'a> Binding for RemoteCallbacks<'a> {
 
     fn raw(&self) -> raw::git_remote_callbacks {
         let mut callbacks: raw::git_remote_callbacks = unsafe { mem::zeroed() };
-        unsafe {
-            assert_eq!(
-                raw::git_remote_init_callbacks(&mut callbacks, raw::GIT_REMOTE_CALLBACKS_VERSION),
-                0
-            );
-        }
+        assert_eq!(
+            unsafe {
+                raw::git_remote_init_callbacks(&mut callbacks, raw::GIT_REMOTE_CALLBACKS_VERSION)
+            },
+            0
+        );
+
         if self.progress.is_some() {
             callbacks.transfer_progress = Some(transfer_progress_cb);
         }
@@ -311,16 +312,18 @@ extern "C" fn credentials_cb(
     allowed_types: c_uint,
     payload: *mut c_void,
 ) -> c_int {
-    let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+    let ok = panic::wrap(|| {
+        let payload = unsafe { &mut *(payload as *mut RemoteCallbacks<'_>) };
         let callback = payload
             .credentials
             .as_mut()
             .ok_or(raw::GIT_PASSTHROUGH as c_int)?;
-        *ret = ptr::null_mut();
-        let url = str::from_utf8(CStr::from_ptr(url).to_bytes())
+        unsafe {
+            *ret = ptr::null_mut();
+        }
+        let url = str::from_utf8(unsafe { CStr::from_ptr(url) }.to_bytes())
             .map_err(|_| raw::GIT_PASSTHROUGH as c_int)?;
-        let username_from_url = match crate::opt_bytes(&url, username_from_url) {
+        let username_from_url = match unsafe { crate::opt_bytes(&url, username_from_url) } {
             Some(username) => {
                 Some(str::from_utf8(username).map_err(|_| raw::GIT_PASSTHROUGH as c_int)?)
             }
@@ -329,7 +332,7 @@ extern "C" fn credentials_cb(
 
         let cred_type = CredentialType::from_bits_truncate(allowed_types as u32);
 
-        callback(url, username_from_url, cred_type).map_err(|e| e.raw_set_git_error())
+        callback(url, username_from_url, cred_type).map_err(|e| unsafe { e.raw_set_git_error() })
     });
     match ok {
         Some(Ok(cred)) => {
@@ -353,13 +356,13 @@ extern "C" fn transfer_progress_cb(
     stats: *const raw::git_indexer_progress,
     payload: *mut c_void,
 ) -> c_int {
-    let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+    let ok = panic::wrap(|| {
+        let payload = unsafe { &mut *(payload as *mut RemoteCallbacks<'_>) };
         let callback = match payload.progress {
             Some(ref mut c) => c,
             None => return true,
         };
-        let progress = Binding::from_raw(stats);
+        let progress = unsafe { Binding::from_raw(stats) };
         callback(progress)
     });
     if ok == Some(true) {
@@ -370,13 +373,13 @@ extern "C" fn transfer_progress_cb(
 }
 
 extern "C" fn sideband_progress_cb(str: *const c_char, len: c_int, payload: *mut c_void) -> c_int {
-    let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+    let ok = panic::wrap(|| {
+        let payload = unsafe { &mut *(payload as *mut RemoteCallbacks<'_>) };
         let callback = match payload.sideband_progress {
             Some(ref mut c) => c,
             None => return true,
         };
-        let buf = slice::from_raw_parts(str as *const u8, len as usize);
+        let buf = unsafe { slice::from_raw_parts(str as *const u8, len as usize) };
         callback(buf)
     });
     if ok == Some(true) {
@@ -392,15 +395,15 @@ extern "C" fn update_tips_cb(
     b: *const raw::git_oid,
     data: *mut c_void,
 ) -> c_int {
-    let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
+    let ok = panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut RemoteCallbacks<'_>) };
         let callback = match payload.update_tips {
             Some(ref mut c) => c,
             None => return true,
         };
-        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes()).unwrap();
-        let a = Binding::from_raw(a);
-        let b = Binding::from_raw(b);
+        let refname = str::from_utf8(unsafe { CStr::from_ptr(refname) }.to_bytes()).unwrap();
+        let a = unsafe { Binding::from_raw(a) };
+        let b = unsafe { Binding::from_raw(b) };
         callback(refname, a, b)
     });
     if ok == Some(true) {
@@ -416,14 +419,14 @@ extern "C" fn certificate_check_cb(
     hostname: *const c_char,
     data: *mut c_void,
 ) -> c_int {
-    let ok = panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
+    let ok = panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut RemoteCallbacks<'_>) };
         let callback = match payload.certificate_check {
             Some(ref mut c) => c,
             None => return Ok(CertificateCheckStatus::CertificatePassthrough),
         };
-        let cert = Binding::from_raw(cert);
-        let hostname = str::from_utf8(CStr::from_ptr(hostname).to_bytes()).unwrap();
+        let cert = unsafe { Binding::from_raw(cert) };
+        let hostname = str::from_utf8(unsafe { CStr::from_ptr(hostname) }.to_bytes()).unwrap();
         callback(&cert, hostname)
     });
     match ok {
@@ -442,21 +445,21 @@ extern "C" fn push_update_reference_cb(
     status: *const c_char,
     data: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
+    panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut RemoteCallbacks<'_>) };
         let callback = match payload.push_update_reference {
             Some(ref mut c) => c,
             None => return 0,
         };
-        let refname = str::from_utf8(CStr::from_ptr(refname).to_bytes()).unwrap();
+        let refname = str::from_utf8(unsafe { CStr::from_ptr(refname) }.to_bytes()).unwrap();
         let status = if status.is_null() {
             None
         } else {
-            Some(str::from_utf8(CStr::from_ptr(status).to_bytes()).unwrap())
+            Some(str::from_utf8(unsafe { CStr::from_ptr(status) }.to_bytes()).unwrap())
         };
         match callback(refname, status) {
             Ok(()) => 0,
-            Err(e) => e.raw_set_git_error(),
+            Err(e) => unsafe { e.raw_set_git_error() },
         }
     })
     .unwrap_or(-1)
@@ -468,8 +471,8 @@ extern "C" fn push_transfer_progress_cb(
     bytes: size_t,
     data: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
+    panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut RemoteCallbacks<'_>) };
         let callback = match payload.push_progress {
             Some(ref mut c) => c,
             None => return 0,
@@ -488,14 +491,14 @@ extern "C" fn pack_progress_cb(
     total: c_uint,
     data: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let payload = &mut *(data as *mut RemoteCallbacks<'_>);
+    panic::wrap(|| {
+        let payload = unsafe { &mut *(data as *mut RemoteCallbacks<'_>) };
         let callback = match payload.pack_progress {
             Some(ref mut c) => c,
             None => return 0,
         };
 
-        let stage = Binding::from_raw(stage);
+        let stage = unsafe { Binding::from_raw(stage) };
 
         callback(stage, current as usize, total as usize);
 
@@ -509,17 +512,17 @@ extern "C" fn push_negotiation_cb(
     len: size_t,
     payload: *mut c_void,
 ) -> c_int {
-    panic::wrap(|| unsafe {
-        let payload = &mut *(payload as *mut RemoteCallbacks<'_>);
+    panic::wrap(|| {
+        let payload = unsafe { &mut *(payload as *mut RemoteCallbacks<'_>) };
         let callback = match payload.push_negotiation {
             Some(ref mut c) => c,
             None => return 0,
         };
 
-        let updates = slice::from_raw_parts(updates as *mut PushUpdate<'_>, len);
+        let updates = unsafe { slice::from_raw_parts(updates as *mut PushUpdate<'_>, len) };
         match callback(updates) {
             Ok(()) => 0,
-            Err(e) => e.raw_set_git_error(),
+            Err(e) => unsafe { e.raw_set_git_error() },
         }
     })
     .unwrap_or(-1)

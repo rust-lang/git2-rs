@@ -70,9 +70,9 @@ impl Worktree {
     /// .git file within the worktree. This path can be passed to
     /// repo::Repository::open.
     pub fn path(&self) -> &Path {
-        unsafe {
-            util::bytes2path(crate::opt_bytes(self, raw::git_worktree_path(self.raw)).unwrap())
-        }
+        util::bytes2path(unsafe {
+            crate::opt_bytes(self, raw::git_worktree_path(self.raw)).unwrap()
+        })
     }
 
     /// Validates the worktree
@@ -147,12 +147,12 @@ impl<'a> WorktreeAddOptions<'a> {
     /// By default this will not lock the worktree
     pub fn new() -> WorktreeAddOptions<'a> {
         let mut raw = unsafe { mem::zeroed() };
-        unsafe {
-            assert_eq!(
-                raw::git_worktree_add_options_init(&mut raw, raw::GIT_WORKTREE_ADD_OPTIONS_VERSION),
-                0
-            );
-        }
+        assert_eq!(
+            unsafe {
+                raw::git_worktree_add_options_init(&mut raw, raw::GIT_WORKTREE_ADD_OPTIONS_VERSION)
+            },
+            0
+        );
         WorktreeAddOptions {
             raw,
             _marker: marker::PhantomData,
@@ -206,15 +206,15 @@ impl WorktreePruneOptions {
     /// unlocked and not checked out
     pub fn new() -> WorktreePruneOptions {
         let mut raw = unsafe { mem::zeroed() };
-        unsafe {
-            assert_eq!(
+        assert_eq!(
+            unsafe {
                 raw::git_worktree_prune_options_init(
                     &mut raw,
-                    raw::GIT_WORKTREE_PRUNE_OPTIONS_VERSION
-                ),
-                0
-            );
-        }
+                    raw::GIT_WORKTREE_PRUNE_OPTIONS_VERSION,
+                )
+            },
+            0
+        );
         WorktreePruneOptions { raw }
     }
 
