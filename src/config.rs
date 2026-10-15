@@ -85,7 +85,7 @@ impl Config {
     }
 
     /// Create a new config instance based on the provided string contents
-    pub fn from_str(contents: &str) -> Result<Config, Error> {
+    pub fn create_from_str(contents: &str) -> Result<Config, Error> {
         let config = Self::new()?;
 
         let mut raw_backend = ptr::null_mut();
@@ -760,9 +760,9 @@ mod tests {
     }
 
     #[test]
-    fn cfg_from_str() {
+    fn cfg_create_from_str() {
         // Empty string, no entries
-        let empty = Config::from_str("").unwrap();
+        let empty = Config::create_from_str("").unwrap();
         let mut entries = empty.entries(None).unwrap();
         // Should start with None because it is empty
         assert!(entries.next().is_none());
@@ -781,15 +781,15 @@ mod tests {
         };
 
         // One entry
-        let signed = Config::from_str("[commit]\ngpgsign=true\n").unwrap();
+        let signed = Config::create_from_str("[commit]\ngpgsign=true\n").unwrap();
         assert_eq!(
             dump(signed.entries(Some("commit.gpgsign")).unwrap()),
             ["commit.gpgsign = true"]
         );
-        assert_eq!(true, signed.get_bool("commit.gpgsign").unwrap());
+        assert!(signed.get_bool("commit.gpgsign").unwrap());
 
         // A few entries
-        let big_config = Config::from_str(
+        let big_config = Config::create_from_str(
             "[core]\n
                 \tbare=false\n
                 \tignorecase=true\n
@@ -817,8 +817,8 @@ mod tests {
             "origin",
             big_config.get_string("branch.main.remote").unwrap()
         );
-        assert_eq!(false, big_config.get_bool("core.bare").unwrap());
-        assert_eq!(true, big_config.get_bool("core.ignorecase").unwrap());
+        assert!(!big_config.get_bool("core.bare").unwrap());
+        assert!(big_config.get_bool("core.ignorecase").unwrap());
         assert_eq!(
             "https://github.com/rust-lang/rust.git",
             big_config.get_string("remote.origin.url").unwrap()
