@@ -1,6 +1,6 @@
 [package]
 name = "git2"
-version = "0.21.0"
+version = "0.22.0-rc.1"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
@@ -21,7 +21,7 @@ url = { version = "2.5.4", optional = true }
 bitflags = "2.1.0"
 libc = "0.2"
 log = "0.4.8"
-libgit2-sys = { path = "libgit2-sys", version = "0.18.8" }
+libgit2-sys = { path = "libgit2-sys", version = "0.19.0-rc.1" }
 
 [target."cfg(all(unix, not(target_os = \"macos\")))".dependencies]
 openssl-sys = { version = "0.9.45", optional = true }
@@ -36,21 +36,7 @@ url = "2.5.4"
 
 [features]
 unstable = []
-# Experimental SHA256 OID support,
-# reflecting upstream libgit2's GIT_EXPERIMENTAL_SHA256.
-#
-# This is an ABI-breaking change.
-# Future releases with this feature may introduce breakages without notice
-# Use at your own risk.
-#
-# Library authors:
-# DO NOT enable this feature by default in your dependencies.
-# Due to Cargo's additive features,
-# downstream users cannot deactivate it once enabled.
-#
-# NOTE: libgit2's builtin SHA256 implementation is not thread-safe.
-# Enable the `https` feature to route hashing through thread-safe OpenSSL impl.
-# See https://github.com/rust-lang/git2-rs/issues/1255.
+# Exposes the SHA-256 object format APIs, such as `ObjectFormat::Sha256`.
 unstable-sha256 = ["libgit2-sys/unstable-sha256"]
 default = []
 ssh = ["libgit2-sys/ssh", "cred"]

@@ -1,6 +1,6 @@
 [package]
 name = "libgit2-sys"
-version = "0.18.8+1.9.7"
+version = "0.19.0-rc.1+2.0.0-rc.1"
 authors = ["Josh Triplett <josh@joshtriplett.org>", "Alex Crichton <alex@alexcrichton.com>"]
 links = "git2"
 build = "build.rs"
@@ -39,15 +39,5 @@ https = ["openssl-sys"]
 vendored = []
 vendored-openssl = ["openssl-sys/vendored"]
 zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]
-# Experimental SHA256 OID support,
-# reflecting upstream libgit2's GIT_EXPERIMENTAL_SHA256.
-#
-# This is an ABI-breaking change.
-# Future releases with this feature may introduce breakages without notice
-# Use at your own risk.
-#
-# Library authors:
-# DO NOT enable this feature by default in your dependencies.
-# Due to Cargo's additive features,
-# downstream users cannot deactivate it once enabled.
+# Has no effect: libgit2 2.0 always supports SHA-256.
 unstable-sha256 = []

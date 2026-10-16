@@ -68,7 +68,6 @@ impl Oid {
     /// An all-zero SHA1 OID.
     pub const ZERO_SHA1: Oid = Oid {
         raw: raw::git_oid {
-            #[cfg(feature = "unstable-sha256")]
             kind: raw::GIT_OID_SHA1 as libc::c_uchar,
             id: [0; raw::GIT_OID_MAX_SIZE],
         },
@@ -112,57 +111,33 @@ impl Oid {
         let mut raw = crate::util::zeroed_raw_oid();
         let data = s.as_bytes().as_ptr() as *const libc::c_char;
         let len = s.len() as libc::size_t;
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_oid_fromstrn(&mut raw, data, len));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
         unsafe {
-            try_call!(raw::git_oid_fromstrn(&mut raw, data, len, format.raw()));
+            try_call!(raw::git_oid_from_prefix(&mut raw, data, len, format.raw()));
         }
         Ok(Oid { raw })
     }
 
     /// Parse a raw object id into an Oid structure.
     ///
-    /// If the array given is not 20 bytes in length, an error is returned.
+    /// The object format is inferred from the length:
+    /// 20 bytes for SHA1 and 32 bytes for SHA256.
+    /// Any other length is an error.
     pub fn from_bytes(bytes: &[u8]) -> Result<Oid, Error> {
         crate::init();
         let mut raw = crate::util::zeroed_raw_oid();
-
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            if bytes.len() != raw::GIT_OID_SHA1_SIZE {
+        let oid_type = match bytes.len() {
+            raw::GIT_OID_SHA1_SIZE => raw::GIT_OID_SHA1,
+            raw::GIT_OID_SHA256_SIZE => raw::GIT_OID_SHA256,
+            _ => {
                 return Err(Error::from_str(&format!(
-                    "raw byte array must be 20 bytes, but got {}",
+                    "raw byte array must be 20 bytes (SHA1) or 32 bytes (SHA256), but got {}",
                     bytes.len()
                 )));
             }
-            unsafe {
-                try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr()));
-            }
+        };
+        unsafe {
+            try_call!(raw::git_oid_from_raw(&mut raw, bytes.as_ptr(), oid_type));
         }
-
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let oid_type = match bytes.len() {
-                raw::GIT_OID_SHA1_SIZE => raw::GIT_OID_SHA1,
-                raw::GIT_OID_SHA256_SIZE => raw::GIT_OID_SHA256,
-                _ => {
-                    return Err(Error::from_str(&format!(
-                        "raw byte array must be 20 bytes (SHA1) or 32 bytes (SHA256), but got {}",
-                        bytes.len()
-                    )));
-                }
-            };
-            unsafe {
-                try_call!(raw::git_oid_fromraw(&mut raw, bytes.as_ptr(), oid_type));
-            }
-        }
-
         Ok(Oid { raw })
     }
 
@@ -189,21 +164,13 @@ impl Oid {
 
         let mut out = crate::util::zeroed_raw_oid();
         let data = bytes.as_ptr() as *const libc::c_void;
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_odb_hash(&mut out, data, bytes.len(), kind.raw()));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
+        let opts = object_id_options(kind, format)?;
         unsafe {
-            try_call!(raw::git_odb_hash(
+            try_call!(raw::git_object_id_from_buffer(
                 &mut out,
                 data,
                 bytes.len(),
-                kind.raw(),
-                format.raw()
+                &opts
             ));
         }
 
@@ -235,21 +202,9 @@ impl Oid {
         let rpath = path.as_ref().into_c_string()?;
 
         let mut out = crate::util::zeroed_raw_oid();
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_odb_hashfile(&mut out, rpath, kind.raw()));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
+        let opts = object_id_options(kind, format)?;
         unsafe {
-            try_call!(raw::git_odb_hashfile(
-                &mut out,
-                rpath,
-                kind.raw(),
-                format.raw()
-            ));
+            try_call!(raw::git_object_id_from_file(&mut out, rpath, &opts));
         }
 
         Ok(Oid { raw: out })
@@ -258,19 +213,12 @@ impl Oid {
     /// View this OID as a byte-slice in its logical length:
     /// 20 bytes for SHA1, 32 bytes for SHA256.
     pub fn as_bytes(&self) -> &[u8] {
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            &self.raw.id
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let size = match self.raw.kind as raw::git_oid_t {
-                raw::GIT_OID_SHA1 => raw::GIT_OID_SHA1_SIZE,
-                raw::GIT_OID_SHA256 => raw::GIT_OID_SHA256_SIZE,
-                _ => panic!("Unknown git oid type"),
-            };
-            &self.raw.id[..size]
-        }
+        let size = match self.raw.kind as raw::git_oid_t {
+            raw::GIT_OID_SHA1 => raw::GIT_OID_SHA1_SIZE,
+            raw::GIT_OID_SHA256 => raw::GIT_OID_SHA256_SIZE,
+            _ => panic!("Unknown git oid type"),
+        };
+        &self.raw.id[..size]
     }
 
     /// Test if this OID is all zeros.
@@ -279,19 +227,25 @@ impl Oid {
     }
 
     /// Returns the [`ObjectFormat`] of this OID.
-    ///
-    /// Without the `unstable-sha256` feature, this always returns
-    /// [`ObjectFormat::Sha1`].
     pub fn object_format(&self) -> ObjectFormat {
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            ObjectFormat::Sha1
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            unsafe { Binding::from_raw(self.raw.kind as raw::git_oid_t) }
-        }
+        unsafe { Binding::from_raw(self.raw.kind as raw::git_oid_t) }
     }
+}
+
+fn object_id_options(
+    kind: ObjectType,
+    format: ObjectFormat,
+) -> Result<raw::git_object_id_options, Error> {
+    let mut opts: raw::git_object_id_options = unsafe { std::mem::zeroed() };
+    unsafe {
+        try_call!(raw::git_object_id_options_init(
+            &mut opts,
+            raw::GIT_OBJECT_ID_OPTIONS_VERSION
+        ));
+    }
+    opts.object_type = kind.raw();
+    opts.oid_type = format.raw();
+    Ok(opts)
 }
 
 impl Binding for Oid {
@@ -365,7 +319,6 @@ impl Ord for Oid {
 
 impl Hash for Oid {
     fn hash<H: Hasher>(&self, into: &mut H) {
-        #[cfg(feature = "unstable-sha256")]
         self.raw.kind.hash(into);
         self.raw.id.hash(into)
     }
@@ -380,9 +333,6 @@ impl AsRef<[u8]> for Oid {
 // Double-check libgit2's OID size constants to keep the docs and the
 // public API surface honest. If any of these break, the doc comments on
 // `Oid::as_bytes` need to be revisited.
-#[cfg(not(feature = "unstable-sha256"))]
-const _: () = assert!(raw::GIT_OID_MAX_SIZE == 20);
-#[cfg(feature = "unstable-sha256")]
 const _: () = {
     assert!(raw::GIT_OID_SHA1_SIZE == 20);
     assert!(raw::GIT_OID_SHA256_SIZE == 32);

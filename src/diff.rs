@@ -286,21 +286,13 @@ impl Diff<'static> {
         let data = buffer.as_ptr() as *const c_char;
         let len = buffer.len();
         // NOTE: Doesn't depend on repo, so lifetime can be 'static
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_diff_from_buffer(&mut diff, data, len));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
-            opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
-            opts.oid_type = format.raw();
-            unsafe {
-                try_call!(raw::git_diff_from_buffer(&mut diff, data, len, &mut opts));
-            }
+        let mut opts: raw::git_diff_parse_options = unsafe { std::mem::zeroed() };
+        opts.version = raw::GIT_DIFF_PARSE_OPTIONS_VERSION;
+        opts.oid_type = format.raw();
+        unsafe {
+            try_call!(raw::git_diff_from_buffer_ext(
+                &mut diff, data, len, &mut opts
+            ));
         }
         Ok(unsafe { Diff::from_raw(diff) })
     }

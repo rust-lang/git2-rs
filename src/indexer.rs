@@ -147,22 +147,11 @@ impl<'a> Indexer<'a> {
         opts.progress_cb = progress_cb;
         opts.progress_cb_payload = progress_payload_ptr as *mut c_void;
         opts.verify = verify.into();
-
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_indexer_new(&mut out, path, mode, odb, &mut opts));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            opts.mode = mode;
-            opts.oid_type = format.raw();
-            opts.odb = odb;
-            unsafe {
-                try_call!(raw::git_indexer_new(&mut out, path, &mut opts));
-            }
+        opts.mode = mode;
+        opts.oid_type = format.raw();
+        opts.odb = odb;
+        unsafe {
+            try_call!(raw::git_indexer_new(&mut out, path, &mut opts));
         }
 
         Ok(Self {

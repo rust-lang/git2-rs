@@ -158,6 +158,7 @@ mod impls {
 
     impl Convert<raw::git_config_level_t> for ConfigLevel {
         fn convert(&self) -> raw::git_config_level_t {
+            #[allow(deprecated)]
             match *self {
                 ConfigLevel::ProgramData => raw::GIT_CONFIG_LEVEL_PROGRAMDATA,
                 ConfigLevel::System => raw::GIT_CONFIG_LEVEL_SYSTEM,

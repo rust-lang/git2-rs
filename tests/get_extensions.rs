@@ -17,6 +17,8 @@ fn test_get_extensions() -> Result<(), Error> {
             "objectformat",
             // The preciousobjects extension was added in 1.9
             "preciousobjects",
+            // The refstorage extension was added in 2.0
+            "refstorage",
             // The relativeworktrees extension was added in 1.9.4
             "relativeworktrees",
             // The worktreeconfig extension was added in 1.8

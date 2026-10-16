@@ -3528,13 +3528,17 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
-    /// Normally a '/.git/' will be appended to the repo path for non-bare repos
-    /// (if it is not already there), but passing this flag prevents that
-    /// behavior.
+    /// This option has no effect.
     ///
-    /// Defaults to false.
+    /// It used to prevent a '/.git/' from being appended to the repo path for
+    /// non-bare repos.
+    /// Since libgit2 2.0, that is implied by setting
+    /// [`RepositoryInitOptions::workdir_path`],
+    /// and is otherwise unavailable.
+    #[deprecated(since = "0.22.0", note = "this option has no effect")]
     pub fn no_dotgit_dir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
-        self.flag(raw::GIT_REPOSITORY_INIT_NO_DOTGIT_DIR, enabled)
+        let _ = enabled;
+        self
     }
 
     /// Make the repo path (and workdir path) as needed. The ".git" directory
@@ -3667,7 +3671,6 @@ impl RepositoryInitOptions {
         opts.template_path = crate::call::convert(&self.template_path);
         opts.initial_head = crate::call::convert(&self.initial_head);
         opts.origin_url = crate::call::convert(&self.origin_url);
-        #[cfg(feature = "unstable-sha256")]
         if let Some(oid_type) = self.oid_type {
             opts.oid_type = oid_type;
         }
@@ -3750,7 +3753,7 @@ mod tests {
         opts.workdir_path(&workdir);
         let repo = Repository::init_opts(&gitdir, &opts).unwrap();
         assert!(!repo.is_bare());
-        assert!(repo.path().ends_with("gitdir/.git"));
+        assert!(repo.path().ends_with("gitdir"));
         assert!(repo.workdir().unwrap().ends_with("workdir"));
     }
 
