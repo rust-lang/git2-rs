@@ -43,10 +43,5 @@ fn search_path() -> Result<(), Box<dyn std::error::Error>> {
         original
     );
 
-    // ProgramData
-    #[allow(deprecated)]
-    let programdata = ConfigLevel::ProgramData;
-    assert!(unsafe { opts::get_search_path(programdata) }.is_err());
-
     Ok(())
 }

@@ -3528,19 +3528,6 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
-    /// This option has no effect.
-    ///
-    /// It used to prevent a '/.git/' from being appended to the repo path for
-    /// non-bare repos.
-    /// Since libgit2 2.0, that is implied by setting
-    /// [`RepositoryInitOptions::workdir_path`],
-    /// and is otherwise unavailable.
-    #[deprecated(since = "0.22.0", note = "this option has no effect")]
-    pub fn no_dotgit_dir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
-        let _ = enabled;
-        self
-    }
-
     /// Make the repo path (and workdir path) as needed. The ".git" directory
     /// will always be created regardless of this flag.
     ///

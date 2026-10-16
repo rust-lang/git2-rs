@@ -395,14 +395,8 @@ pub enum BranchType {
 /// searching for config entries.
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ConfigLevel {
-    /// System-wide on Windows, for compatibility with portable git
-    #[deprecated(
-        since = "0.22.0",
-        note = "libgit2 no longer reads the ProgramData configuration"
-    )]
-    ProgramData = 1,
     /// System-wide configuration file, e.g. /etc/gitconfig
-    System,
+    System = 2,
     /// XDG-compatible configuration file, e.g. ~/.config/git/config
     XDG,
     /// User-specific configuration, e.g. ~/.gitconfig
@@ -999,9 +993,7 @@ impl fmt::Display for ReferenceType {
 impl ConfigLevel {
     /// Converts a raw configuration level to a ConfigLevel
     pub fn from_raw(raw: raw::git_config_level_t) -> ConfigLevel {
-        #[allow(deprecated)]
         match raw {
-            raw::GIT_CONFIG_LEVEL_PROGRAMDATA => ConfigLevel::ProgramData,
             raw::GIT_CONFIG_LEVEL_SYSTEM => ConfigLevel::System,
             raw::GIT_CONFIG_LEVEL_XDG => ConfigLevel::XDG,
             raw::GIT_CONFIG_LEVEL_GLOBAL => ConfigLevel::Global,
