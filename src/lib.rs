@@ -11,15 +11,15 @@
 //! is automatic as well as adding strong types to all interfaces (including
 //! `Result`).
 //!
-//! ## Creating a `Repository`
+//! ## Creating a [`Repository`]
 //!
-//! The `Repository` is the source from which almost all other objects in git-rs
+//! The [`Repository`] is the source from which almost all other objects in git-rs
 //! are spawned. A repository can be created through opening, initializing, or
 //! cloning.
 //!
 //! ### Initializing a new repository
 //!
-//! The `init` method will create a new repository, assuming one does not
+//! The [`Repository::init`] method will create a new repository, assuming one does not
 //! already exist.
 //!
 //! ```no_run
@@ -59,10 +59,10 @@
 //!
 //! To clone using SSH, refer to [RepoBuilder](./build/struct.RepoBuilder.html).
 //!
-//! ## Working with a `Repository`
+//! ## Working with a [`Repository`]
 //!
 //! All derivative objects, references, etc are attached to the lifetime of the
-//! source `Repository`, to ensure that they do not outlive the repository
+//! source [`Repository`], to ensure that they do not outlive the repository
 //! itself.
 
 #![doc(html_root_url = "https://docs.rs/git2/0.21")]

@@ -295,7 +295,7 @@ impl Repository {
     ///
     /// This by default will create any necessary directories to create the
     /// repository, and it will read any user-specified templates when creating
-    /// the repository. This behavior can be configured through `init_opts`.
+    /// the repository. This behavior can be configured through [`Repository::init_opts`].
     pub fn init<P: AsRef<Path>>(path: P) -> Result<Repository, Error> {
         Repository::init_opts(path, &RepositoryInitOptions::new())
     }
@@ -309,7 +309,7 @@ impl Repository {
 
     /// Creates a new repository in the specified folder with the given options.
     ///
-    /// See `RepositoryInitOptions` struct for more information.
+    /// See [`RepositoryInitOptions`] struct for more information.
     pub fn init_opts<P: AsRef<Path>>(
         path: P,
         opts: &RepositoryInitOptions,
@@ -327,8 +327,8 @@ impl Repository {
 
     /// Clone a remote repository.
     ///
-    /// See the `RepoBuilder` struct for more information. This function will
-    /// delegate to a fresh `RepoBuilder`
+    /// See the [`RepoBuilder`] struct for more information. This function will
+    /// delegate to a fresh [`RepoBuilder`]
     pub fn clone<P: AsRef<Path>>(url: &str, into: P) -> Result<Repository, Error> {
         crate::init();
         RepoBuilder::new().clone(url, into.as_ref())
@@ -1150,7 +1150,7 @@ impl Repository {
 
     /// Write an in-memory buffer to the ODB as a blob.
     ///
-    /// The Oid returned can in turn be passed to `find_blob` to get a handle to
+    /// The Oid returned can in turn be passed to [`Repository::find_blob`] to get a handle to
     /// the blob.
     pub fn blob(&self, data: &[u8]) -> Result<Oid, Error> {
         let mut raw = crate::util::zeroed_raw_oid();
@@ -1170,7 +1170,7 @@ impl Repository {
     /// Read a file from the filesystem and write its content to the Object
     /// Database as a loose blob
     ///
-    /// The Oid returned can in turn be passed to `find_blob` to get a handle to
+    /// The Oid returned can in turn be passed to [`Repository::find_blob`] to get a handle to
     /// the blob.
     pub fn blob_path(&self, path: &Path) -> Result<Oid, Error> {
         // Normal file path OK (does not need Windows conversion).
