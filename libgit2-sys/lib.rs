@@ -1015,8 +1015,6 @@ pub struct git_config_entry {
 
 git_enum! {
     pub enum git_config_level_t: c_int {
-        #[deprecated = "ignored by libgit2"]
-        GIT_CONFIG_LEVEL_PROGRAMDATA = 1,
         GIT_CONFIG_LEVEL_SYSTEM = 2,
         GIT_CONFIG_LEVEL_XDG = 3,
         GIT_CONFIG_LEVEL_GLOBAL = 4,
@@ -1274,8 +1272,6 @@ git_enum! {
     pub enum git_repository_init_flag_t {
         GIT_REPOSITORY_INIT_BARE              = 1 << 0,
         GIT_REPOSITORY_INIT_NO_REINIT         = 1 << 1,
-        #[deprecated = "ignored by libgit2; `workdir_path` no longer creates a `.git` subdirectory"]
-        GIT_REPOSITORY_INIT_NO_DOTGIT_DIR     = 0,
         GIT_REPOSITORY_INIT_MKDIR             = 1 << 3,
         GIT_REPOSITORY_INIT_MKPATH            = 1 << 4,
         GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE = 1 << 5,
@@ -2575,8 +2571,6 @@ extern "C" {
     pub fn git_object_short_id(out: *mut git_buf, obj: *const git_object) -> c_int;
     pub fn git_object_type2string(kind: git_object_t) -> *const c_char;
     pub fn git_object_string2type(s: *const c_char) -> git_object_t;
-    #[deprecated = "use `git_object_type_is_valid`"]
-    pub fn git_object_typeisloose(kind: git_object_t) -> c_int;
     pub fn git_object_type_is_valid(kind: git_object_t) -> c_int;
     pub fn git_object_id_options_init(opts: *mut git_object_id_options, version: c_uint) -> c_int;
     pub fn git_object_id_from_buffer(
@@ -2601,14 +2595,6 @@ extern "C" {
         oid_type: git_oid_t,
     ) -> c_int;
     pub fn git_oid_from_raw(out: *mut git_oid, raw: *const c_uchar, oid_type: git_oid_t) -> c_int;
-    #[deprecated = "use `git_oid_from_raw`"]
-    pub fn git_oid_fromraw(out: *mut git_oid, raw: *const c_uchar) -> c_int;
-    #[deprecated = "use `git_oid_from_prefix`"]
-    pub fn git_oid_fromstrn(out: *mut git_oid, str: *const c_char, len: size_t) -> c_int;
-    #[deprecated = "use `git_oid_from_string`"]
-    pub fn git_oid_fromstr(out: *mut git_oid, str: *const c_char) -> c_int;
-    #[deprecated = "use `git_oid_from_string`"]
-    pub fn git_oid_fromstrp(out: *mut git_oid, str: *const c_char) -> c_int;
 
     pub fn git_oid_tostr(out: *mut c_char, n: size_t, id: *const git_oid) -> *mut c_char;
     pub fn git_oid_cmp(a: *const git_oid, b: *const git_oid) -> c_int;
@@ -3568,8 +3554,6 @@ extern "C" {
         name: *const c_char,
         regexp: *const c_char,
     ) -> c_int;
-    #[deprecated = "always returns `GIT_ENOTFOUND`"]
-    pub fn git_config_find_programdata(out: *mut git_buf) -> c_int;
     pub fn git_config_find_global(out: *mut git_buf) -> c_int;
     pub fn git_config_find_system(out: *mut git_buf) -> c_int;
     pub fn git_config_find_xdg(out: *mut git_buf) -> c_int;
@@ -4580,17 +4564,6 @@ extern "C" {
         progress_cb: git_indexer_progress_cb,
         progress_payload: *mut c_void,
     ) -> c_int;
-
-    #[deprecated = "use `git_object_id_from_buffer`"]
-    pub fn git_odb_hash(
-        out: *mut git_oid,
-        data: *const c_void,
-        len: size_t,
-        otype: git_object_t,
-    ) -> c_int;
-
-    #[deprecated = "use `git_object_id_from_file`"]
-    pub fn git_odb_hashfile(out: *mut git_oid, path: *const c_char, otype: git_object_t) -> c_int;
 
     pub fn git_odb_exists_prefix(
         out: *mut git_oid,
