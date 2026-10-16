@@ -29,7 +29,7 @@ fn try_system_libgit2(
         {
             Ok(lib) => {
                 let sha256_constant_in_header = lib.include_paths.iter().any(|path| {
-                    let header = path.join("git2/experimental.h");
+                    let header = path.join("git2-experimental/experimental.h");
                     let contents = match std::fs::read_to_string(header) {
                         Ok(s) => s,
                         Err(_) => return false,
