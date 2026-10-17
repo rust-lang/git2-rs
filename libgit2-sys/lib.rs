@@ -489,12 +489,6 @@ pub struct git_indexer_progress {
 pub type git_indexer_progress_cb =
     Option<extern "C" fn(*const git_indexer_progress, *mut c_void) -> c_int>;
 
-#[deprecated(
-    since = "0.10.0",
-    note = "renamed to `git_indexer_progress` to match upstream"
-)]
-pub type git_transfer_progress = git_indexer_progress;
-
 #[repr(C)]
 pub struct git_indexer_options {
     pub version: c_uint,
@@ -2610,8 +2604,6 @@ extern "C" {
     pub fn git_oid_cmp(a: *const git_oid, b: *const git_oid) -> c_int;
     pub fn git_oid_equal(a: *const git_oid, b: *const git_oid) -> c_int;
     pub fn git_oid_streq(id: *const git_oid, str: *const c_char) -> c_int;
-    #[deprecated = "use `git_oid_is_zero`"]
-    pub fn git_oid_iszero(id: *const git_oid) -> c_int;
     pub fn git_oid_is_zero(id: *const git_oid) -> c_int;
 
     // error
@@ -4696,9 +4688,6 @@ extern "C" {
         backend: *mut git_odb_backend,
         priority: c_int,
     ) -> c_int;
-
-    #[deprecated(note = "only kept for compatibility; prefer git_odb_backend_data_alloc")]
-    pub fn git_odb_backend_malloc(backend: *mut git_odb_backend, len: size_t) -> *mut c_void;
 
     pub fn git_odb_backend_data_alloc(backend: *mut git_odb_backend, len: size_t) -> *mut c_void;
     pub fn git_odb_backend_data_free(backend: *mut git_odb_backend, data: *mut c_void);
