@@ -50,8 +50,6 @@ use crate::{CheckoutNotificationType, DiffFile, FileMode, Remote};
 pub struct RepoBuilder<'cb> {
     bare: bool,
     branch: Option<CString>,
-    local: bool,
-    hardlinks: bool,
     checkout: Option<CheckoutBuilder<'cb>>,
     fetch_opts: Option<FetchOptions<'cb>>,
     clone_local: Option<CloneLocal>,
@@ -153,9 +151,7 @@ impl<'cb> RepoBuilder<'cb> {
         RepoBuilder {
             bare: false,
             branch: None,
-            local: true,
             clone_local: None,
-            hardlinks: true,
             checkout: None,
             fetch_opts: None,
             remote_create: None,
@@ -184,27 +180,6 @@ impl<'cb> RepoBuilder<'cb> {
     /// faster. If possible, it will hardlink the files to save space.
     pub fn clone_local(&mut self, clone_local: CloneLocal) -> &mut RepoBuilder<'cb> {
         self.clone_local = Some(clone_local);
-        self
-    }
-
-    /// Set the flag for bypassing the git aware transport mechanism for local
-    /// paths.
-    ///
-    /// If `true`, the git-aware transport will be bypassed for local paths. If
-    /// `false`, the git-aware transport will not be bypassed.
-    #[deprecated(note = "use `clone_local` instead")]
-    #[doc(hidden)]
-    pub fn local(&mut self, local: bool) -> &mut RepoBuilder<'cb> {
-        self.local = local;
-        self
-    }
-
-    /// Set the flag for whether hardlinks are used when using a local git-aware
-    /// transport mechanism.
-    #[deprecated(note = "use `clone_local` instead")]
-    #[doc(hidden)]
-    pub fn hardlinks(&mut self, links: bool) -> &mut RepoBuilder<'cb> {
-        self.hardlinks = links;
         self
     }
 
@@ -253,15 +228,10 @@ impl<'cb> RepoBuilder<'cb> {
             .map(|s| s.as_ptr())
             .unwrap_or(ptr::null());
 
-        if let Some(ref local) = self.clone_local {
-            opts.local = *local as raw::git_clone_local_t;
-        } else {
-            opts.local = match (self.local, self.hardlinks) {
-                (true, false) => raw::GIT_CLONE_LOCAL_NO_LINKS,
-                (false, _) => raw::GIT_CLONE_NO_LOCAL,
-                (true, _) => raw::GIT_CLONE_LOCAL_AUTO,
-            };
-        }
+        opts.local = match self.clone_local {
+            Some(local) => local as raw::git_clone_local_t,
+            None => raw::GIT_CLONE_LOCAL_AUTO,
+        };
 
         if let Some(ref mut cbs) = self.fetch_opts {
             opts.fetch_opts = cbs.raw();

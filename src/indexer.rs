@@ -87,20 +87,6 @@ impl<'a> Binding for Progress<'a> {
     }
 }
 
-/// Callback to be invoked while a transfer is in progress.
-///
-/// This callback will be periodically called with updates to the progress of
-/// the transfer so far. The return value indicates whether the transfer should
-/// continue. A return value of `false` will cancel the transfer.
-///
-/// * `progress` - the progress being made so far.
-#[deprecated(
-    since = "0.11.0",
-    note = "renamed to `IndexerProgress` to match upstream"
-)]
-#[allow(dead_code)]
-pub type TransportProgress<'a> = IndexerProgress<'a>;
-
 /// A stream to write and index a packfile
 ///
 /// This is equivalent to [`crate::OdbPackwriter`], but allows to store the pack

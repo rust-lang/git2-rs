@@ -65,13 +65,6 @@ impl<'repo> Submodule<'repo> {
     }
 
     /// Get the URL for the submodule.
-    #[doc(hidden)]
-    #[deprecated(note = "renamed to `opt_url_bytes`")]
-    pub fn url_bytes(&self) -> &[u8] {
-        self.opt_url_bytes().unwrap()
-    }
-
-    /// Get the URL for the submodule.
     ///
     /// Returns `None` if the URL isn't present
     // TODO: delete this method and fix the signature of `url_bytes` on next
