@@ -109,8 +109,18 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         return;
     }
 
+    let target = env::var("TARGET").unwrap();
+    let wasi = env::var("CARGO_CFG_TARGET_OS").unwrap() == "wasi";
+    if wasi && target.ends_with("-threads") {
+        panic!("libgit2 is built without thread support on WASI, so the `{target}` target is not supported");
+    }
+    if wasi && (https || ssh) {
+        panic!("the `https` and `ssh` features are not supported on WASI, which cannot open network connections");
+    }
+
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
-    let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
+    // There is no system libgit2 to link against when targeting WASI.
+    let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat && !wasi;
     if try_to_use_system_libgit2 && try_system_libgit2(unstable_sha256).is_ok() {
         // using system libgit2 has worked
         return;
@@ -124,7 +134,6 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
             .status();
     }
 
-    let target = env::var("TARGET").unwrap();
     let windows = target.contains("windows");
     let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let include = dst.join("include");
@@ -153,7 +162,13 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     // compiled apparently and have internal #define's to make sure they're
     // compiled correctly.
     add_c_files(&mut cfg, "libgit2/src/libgit2/transports");
-    add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
+    if wasi {
+        // WASI preview 1 has no sockets or name resolution; `wasi/compat.c`
+        // provides a socket stream that always fails instead.
+        add_c_files_except(&mut cfg, "libgit2/src/libgit2/streams", &["socket.c"]);
+    } else {
+        add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
+    }
 
     // Always use bundled HTTP parser (llhttp) for now
     cfg.include("libgit2/deps/llhttp");
@@ -204,6 +219,27 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         if target.contains("gnu") {
             cfg.define("__USE_MINGW_ANSI_STDIO", "1");
         }
+    } else if wasi {
+        // Of the unix sources only realpath.c applies: WASI has no processes,
+        // and no mmap (NO_MMAP makes libgit2 read files into memory, see
+        // util/posix.c).
+        cfg.file("libgit2/src/util/unix/realpath.c");
+        cfg.define("NO_MMAP", None);
+        // Declarations and stubs for the POSIX bits wasi-libc lacks
+        // (user/process identity, pwd.h, sockets).
+        cfg.include("wasi/include");
+        cfg.flag("-include").flag("wasi/compat.h");
+        cfg.file("wasi/compat.c");
+        // Declare getpid without wasi-libc's deprecation warning. Rust's
+        // bundled wasi-libc has no libwasi-emulated-getpid, so wasi/compat.c
+        // defines it.
+        cfg.define("_WASI_EMULATED_GETPID", None);
+        // On wasm32 size_t is unsigned long while SIZE_MAX == UINT_MAX, so
+        // libgit2's integer.h passes size_t * to __builtin_uadd_overflow. Same
+        // width, so downgrade clang's error until libgit2 uses the type-generic
+        // builtin: https://github.com/libgit2/libgit2/pull/7406
+        cfg.flag("-Wno-incompatible-pointer-types");
+        cfg.flag("-fvisibility=hidden");
     } else {
         add_c_files(&mut cfg, "libgit2/src/util/unix");
         cfg.flag("-fvisibility=hidden");
@@ -217,7 +253,10 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     features.push_str("#ifndef INCLUDE_features_h\n");
     features.push_str("#define INCLUDE_features_h\n");
-    features.push_str("#define GIT_THREADS 1\n");
+    // WASI is built without threads; the -threads targets are rejected above.
+    if !wasi {
+        features.push_str("#define GIT_THREADS 1\n");
+    }
     features.push_str("#define GIT_TRACE 1\n");
     features.push_str("#define GIT_HTTPPARSER_BUILTIN 1\n");
 
@@ -227,6 +266,11 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     if windows {
         features.push_str("#define GIT_IO_WSAPOLL 1\n");
+    } else if wasi {
+        // posix.c requires a poll backend even though only socket.c polls.
+        features.push_str("#define GIT_IO_POLL 1\n");
+        // wasi-libc has getentropy (WASI random_get) and no /dev/urandom.
+        features.push_str("#define GIT_RAND_GETENTROPY 1\n");
     } else {
         // Should we fallback to `select` as more systems have that?
         features.push_str("#define GIT_IO_POLL 1\n");
@@ -327,6 +371,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     println!("cargo:rerun-if-changed=libgit2/include");
     println!("cargo:rerun-if-changed=libgit2/src");
     println!("cargo:rerun-if-changed=libgit2/deps");
+    println!("cargo:rerun-if-changed=wasi");
 }
 
 fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
@@ -345,6 +390,10 @@ fn cp_r(from: impl AsRef<Path>, to: impl AsRef<Path>) {
 }
 
 fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
+    add_c_files_except(build, path, &[]);
+}
+
+fn add_c_files_except(build: &mut cc::Build, path: impl AsRef<Path>, skip: &[&str]) {
     let path = path.as_ref();
     if !path.exists() {
         panic!("Path {} does not exist", path.display());
@@ -358,7 +407,9 @@ fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
         let path = e.path();
         if e.file_type().unwrap().is_dir() {
             // skip dirs for now
-        } else if path.extension().and_then(|s| s.to_str()) == Some("c") {
+        } else if path.extension().and_then(|s| s.to_str()) == Some("c")
+            && !skip.iter().any(|&s| e.file_name() == s)
+        {
             build.file(&path);
         }
     }
