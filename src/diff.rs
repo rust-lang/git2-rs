@@ -704,7 +704,7 @@ impl DiffOptions {
             old_prefix: None,
             new_prefix: None,
         };
-        assert_eq!(unsafe { raw::git_diff_init_options(&mut opts.raw, 1) }, 0);
+        assert_eq!(unsafe { raw::git_diff_options_init(&mut opts.raw, 1) }, 0);
         opts
     }
 
@@ -1374,7 +1374,7 @@ impl DiffFindOptions {
             raw: unsafe { mem::zeroed() },
         };
         assert_eq!(
-            unsafe { raw::git_diff_find_init_options(&mut opts.raw, 1) },
+            unsafe { raw::git_diff_find_options_init(&mut opts.raw, 1) },
             0
         );
         opts

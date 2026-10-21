@@ -66,7 +66,7 @@ impl MergeOptions {
         let mut opts = MergeOptions {
             raw: unsafe { mem::zeroed() },
         };
-        assert_eq!(unsafe { raw::git_merge_init_options(&mut opts.raw, 1) }, 0);
+        assert_eq!(unsafe { raw::git_merge_options_init(&mut opts.raw, 1) }, 0);
         opts
     }
 

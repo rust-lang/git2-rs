@@ -12,7 +12,7 @@ use crate::{raw, Error, IntoCString};
 
 /// A structure to represent git credentials in libgit2.
 pub struct Cred {
-    raw: *mut raw::git_cred,
+    raw: *mut raw::git_credential,
 }
 
 /// Management of the gitcredentials(7) interface.
@@ -37,7 +37,7 @@ impl Cred {
         crate::init();
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_default_new(&mut out));
+            try_call!(raw::git_credential_default_new(&mut out));
             Ok(Binding::from_raw(out))
         }
     }
@@ -50,7 +50,7 @@ impl Cred {
         let mut out = ptr::null_mut();
         let username = CString::new(username)?;
         unsafe {
-            try_call!(raw::git_cred_ssh_key_from_agent(&mut out, username));
+            try_call!(raw::git_credential_ssh_key_from_agent(&mut out, username));
             Ok(Binding::from_raw(out))
         }
     }
@@ -69,7 +69,7 @@ impl Cred {
         let passphrase = crate::opt_cstr(passphrase)?;
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_ssh_key_new(
+            try_call!(raw::git_credential_ssh_key_new(
                 &mut out, username, publickey, privatekey, passphrase
             ));
             Ok(Binding::from_raw(out))
@@ -90,7 +90,7 @@ impl Cred {
         let passphrase = crate::opt_cstr(passphrase)?;
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_ssh_key_memory_new(
+            try_call!(raw::git_credential_ssh_key_memory_new(
                 &mut out, username, publickey, privatekey, passphrase
             ));
             Ok(Binding::from_raw(out))
@@ -104,7 +104,7 @@ impl Cred {
         let password = CString::new(password)?;
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_userpass_plaintext_new(
+            try_call!(raw::git_credential_userpass_plaintext_new(
                 &mut out, username, password
             ));
             Ok(Binding::from_raw(out))
@@ -149,18 +149,18 @@ impl Cred {
         let username = CString::new(username)?;
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_cred_username_new(&mut out, username));
+            try_call!(raw::git_credential_username_new(&mut out, username));
             Ok(Binding::from_raw(out))
         }
     }
 
     /// Check whether a credential object contains username information.
     pub fn has_username(&self) -> bool {
-        unsafe { raw::git_cred_has_username(self.raw) == 1 }
+        unsafe { raw::git_credential_has_username(self.raw) == 1 }
     }
 
     /// Return the type of credentials that this object represents.
-    pub fn credtype(&self) -> raw::git_credtype_t {
+    pub fn credtype(&self) -> raw::git_credential_t {
         unsafe { (*self.raw).credtype }
     }
 
@@ -170,18 +170,18 @@ impl Cred {
     ///
     /// The caller must assume responsibility for freeing the credential if
     /// needed. See the drop implementation for guidance.
-    pub unsafe fn unwrap(mut self) -> *mut raw::git_cred {
+    pub unsafe fn unwrap(mut self) -> *mut raw::git_credential {
         mem::replace(&mut self.raw, ptr::null_mut())
     }
 }
 
 impl Binding for Cred {
-    type Raw = *mut raw::git_cred;
+    type Raw = *mut raw::git_credential;
 
-    unsafe fn from_raw(raw: *mut raw::git_cred) -> Cred {
+    unsafe fn from_raw(raw: *mut raw::git_credential) -> Cred {
         Cred { raw }
     }
-    fn raw(&self) -> *mut raw::git_cred {
+    fn raw(&self) -> *mut raw::git_credential {
         self.raw
     }
 }

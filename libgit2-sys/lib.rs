@@ -2133,7 +2133,14 @@ pub struct git_rebase_options {
     pub merge_options: git_merge_options,
     pub checkout_options: git_checkout_options,
     pub commit_create_cb: git_commit_create_cb,
-    pub signing_cb: git_commit_signing_cb,
+    pub signing_cb: Option<
+        extern "C" fn(
+            signature: *mut git_buf,
+            signature_field: *mut git_buf,
+            commit_content: *const c_char,
+            payload: *mut c_void,
+        ) -> c_int,
+    >,
     pub payload: *mut c_void,
 }
 
@@ -3622,16 +3629,16 @@ extern "C" {
     pub fn git_attr_value(value: *const c_char) -> git_attr_value_t;
 
     // cred
-    pub fn git_cred_default_new(out: *mut *mut git_cred) -> c_int;
+    pub fn git_cred_default_new(out: *mut *mut git_credential) -> c_int;
     pub fn git_credential_default_new(out: *mut *mut git_credential) -> c_int;
-    pub fn git_cred_has_username(cred: *mut git_cred) -> c_int;
+    pub fn git_cred_has_username(cred: *mut git_credential) -> c_int;
     pub fn git_credential_has_username(cred: *mut git_credential) -> c_int;
     pub fn git_cred_ssh_custom_new(
-        out: *mut *mut git_cred,
+        out: *mut *mut git_credential,
         username: *const c_char,
         publickey: *const c_char,
         publickey_len: size_t,
-        sign_callback: git_cred_sign_callback,
+        sign_callback: git_credential_sign_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_credential_ssh_custom_new(
@@ -3643,9 +3650,9 @@ extern "C" {
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_cred_ssh_interactive_new(
-        out: *mut *mut git_cred,
+        out: *mut *mut git_credential,
         username: *const c_char,
-        prompt_callback: git_cred_ssh_interactive_callback,
+        prompt_callback: git_credential_ssh_interactive_cb,
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_credential_ssh_interactive_new(
@@ -3654,13 +3661,16 @@ extern "C" {
         prompt_callback: git_credential_ssh_interactive_cb,
         payload: *mut c_void,
     ) -> c_int;
-    pub fn git_cred_ssh_key_from_agent(out: *mut *mut git_cred, username: *const c_char) -> c_int;
+    pub fn git_cred_ssh_key_from_agent(
+        out: *mut *mut git_credential,
+        username: *const c_char,
+    ) -> c_int;
     pub fn git_credential_ssh_key_from_agent(
         out: *mut *mut git_credential,
         username: *const c_char,
     ) -> c_int;
     pub fn git_cred_ssh_key_new(
-        out: *mut *mut git_cred,
+        out: *mut *mut git_credential,
         username: *const c_char,
         publickey: *const c_char,
         privatekey: *const c_char,
@@ -3674,7 +3684,7 @@ extern "C" {
         passphrase: *const c_char,
     ) -> c_int;
     pub fn git_cred_ssh_key_memory_new(
-        out: *mut *mut git_cred,
+        out: *mut *mut git_credential,
         username: *const c_char,
         publickey: *const c_char,
         privatekey: *const c_char,
@@ -3688,7 +3698,7 @@ extern "C" {
         passphrase: *const c_char,
     ) -> c_int;
     pub fn git_cred_userpass(
-        cred: *mut *mut git_cred,
+        cred: *mut *mut git_credential,
         url: *const c_char,
         user_from_url: *const c_char,
         allowed_types: c_uint,
@@ -3702,7 +3712,7 @@ extern "C" {
         payload: *mut c_void,
     ) -> c_int;
     pub fn git_cred_userpass_plaintext_new(
-        out: *mut *mut git_cred,
+        out: *mut *mut git_credential,
         username: *const c_char,
         password: *const c_char,
     ) -> c_int;
@@ -3711,7 +3721,7 @@ extern "C" {
         username: *const c_char,
         password: *const c_char,
     ) -> c_int;
-    pub fn git_cred_username_new(cred: *mut *mut git_cred, username: *const c_char) -> c_int;
+    pub fn git_cred_username_new(cred: *mut *mut git_credential, username: *const c_char) -> c_int;
     pub fn git_credential_username_new(
         cred: *mut *mut git_credential,
         username: *const c_char,

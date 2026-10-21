@@ -67,7 +67,7 @@ impl<'repo> Blame<'repo> {
 
     /// Gets the number of hunks that exist in the blame structure.
     pub fn len(&self) -> usize {
-        unsafe { raw::git_blame_get_hunk_count(self.raw) as usize }
+        unsafe { raw::git_blame_hunkcount(self.raw) }
     }
 
     /// Return `true` is there is no hunk in the blame structure.
@@ -77,7 +77,7 @@ impl<'repo> Blame<'repo> {
 
     /// Gets the blame hunk at the given index.
     pub fn get_index(&self, index: usize) -> Option<BlameHunk<'_>> {
-        let ptr = unsafe { raw::git_blame_get_hunk_byindex(self.raw(), index as u32) };
+        let ptr = unsafe { raw::git_blame_hunk_byindex(self.raw(), index) };
         if ptr.is_null() {
             None
         } else {
@@ -88,7 +88,7 @@ impl<'repo> Blame<'repo> {
     /// Gets the hunk that relates to the given line number in the newest
     /// commit.
     pub fn get_line(&self, lineno: usize) -> Option<BlameHunk<'_>> {
-        let ptr = unsafe { raw::git_blame_get_hunk_byline(self.raw(), lineno) };
+        let ptr = unsafe { raw::git_blame_hunk_byline(self.raw(), lineno) };
         if ptr.is_null() {
             None
         } else {
@@ -248,7 +248,7 @@ impl BlameOptions {
         let mut raw: raw::git_blame_options = unsafe { mem::zeroed() };
 
         assert_eq!(
-            unsafe { raw::git_blame_init_options(&mut raw, raw::GIT_BLAME_OPTIONS_VERSION) },
+            unsafe { raw::git_blame_options_init(&mut raw, raw::GIT_BLAME_OPTIONS_VERSION) },
             0
         );
 

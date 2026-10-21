@@ -153,6 +153,6 @@ impl<'a> ExactSizeIterator for IterBytes<'a> {}
 
 impl Drop for StringArray {
     fn drop(&mut self) {
-        unsafe { raw::git_strarray_free(&mut self.raw) }
+        unsafe { raw::git_strarray_dispose(&mut self.raw) }
     }
 }

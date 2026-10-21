@@ -30,7 +30,7 @@ impl<'cb> RebaseOptions<'cb> {
             merge_options: None,
             checkout_options: None,
         };
-        assert_eq!(unsafe { raw::git_rebase_init_options(&mut opts.raw, 1) }, 0);
+        assert_eq!(unsafe { raw::git_rebase_options_init(&mut opts.raw, 1) }, 0);
         opts
     }
 

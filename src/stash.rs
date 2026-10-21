@@ -103,7 +103,7 @@ impl<'cb> StashApplyOptions<'cb> {
             raw_opts: unsafe { mem::zeroed() },
         };
         assert_eq!(
-            unsafe { raw::git_stash_apply_init_options(&mut opts.raw_opts, 1) },
+            unsafe { raw::git_stash_apply_options_init(&mut opts.raw_opts, 1) },
             0
         );
         opts

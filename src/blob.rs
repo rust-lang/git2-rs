@@ -97,7 +97,7 @@ impl<'repo> BlobWriter<'repo> {
         self.need_cleanup = false;
         let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
-            try_call!(raw::git_blob_create_fromstream_commit(&mut raw, self.raw));
+            try_call!(raw::git_blob_create_from_stream_commit(&mut raw, self.raw));
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
