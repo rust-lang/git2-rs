@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+[0.18.8...main](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.8+1.9.7...main)
+
+### Added
+
+- Added bindings for `git_config_backend_from_string` and `git_config_backend_memory_options`.
+  [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
+
+### Changed
+
+- Declared the minimum supported Rust version as 1.87.
+  [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
+
 ## 0.18.8+1.9.7 - 2026-08-21
 [0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)
 
