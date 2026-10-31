@@ -56,6 +56,7 @@ pub struct DiffFindOptions {
 }
 
 /// Control behavior of formatting emails
+#[allow(deprecated)] // wraps the deprecated `git_diff_format_email` bindings
 pub struct DiffFormatEmailOptions {
     raw: raw::git_diff_format_email_options,
 }
@@ -258,6 +259,7 @@ impl<'repo> Diff<'repo> {
     /// Matches the format created by `git format-patch`
     #[doc(hidden)]
     #[deprecated(note = "refactored to `Email::from_diff` to match upstream")]
+    #[allow(deprecated)] // wraps the deprecated `git_diff_format_email` bindings
     pub fn format_email(
         &mut self,
         patch_no: usize,
@@ -1543,6 +1545,7 @@ impl Default for DiffFormatEmailOptions {
     }
 }
 
+#[allow(deprecated)] // wraps the deprecated `git_diff_format_email` bindings
 impl DiffFormatEmailOptions {
     /// Creates a new set of email options,
     /// initialized to the default values
