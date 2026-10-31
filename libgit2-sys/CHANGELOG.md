@@ -7,11 +7,74 @@
 
 - Added bindings for `git_config_backend_from_string` and `git_config_backend_memory_options`.
   [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
+- Added bindings for these libgit2 APIs, deprecating the ones they replace.
+  The deprecated bindings will be removed when updating to libgit2 2.0:
+  - `git_blame_hunk_byindex`, replacing `git_blame_get_hunk_byindex`
+  - `git_blame_hunk_byline`, replacing `git_blame_get_hunk_byline`
+  - `git_blame_hunkcount`, replacing `git_blame_get_hunk_count`
+  - `git_blame_options_init`, replacing `git_blame_init_options`
+  - `git_blob_create_from_buffer`, replacing `git_blob_create_frombuffer`
+  - `git_blob_create_from_disk`, replacing `git_blob_create_fromdisk`
+  - `git_blob_create_from_stream`, replacing `git_blob_create_fromstream`
+  - `git_blob_create_from_stream_commit`, replacing `git_blob_create_fromstream_commit`
+  - `git_blob_create_from_workdir`, replacing `git_blob_create_fromworkdir`
+  - `git_checkout_options_init`, replacing `git_checkout_init_options`
+  - `git_cherrypick_options_init`, replacing `git_cherrypick_init_options`
+  - `git_clone_options_init`, replacing `git_clone_init_options`
+  - `git_credential`, replacing `git_cred`
+  - `git_credential_acquire_cb`, replacing `git_cred_acquire_cb`
+  - `git_credential_default_new`, replacing `git_cred_default_new`
+  - `git_credential_has_username`, replacing `git_cred_has_username`
+  - `git_credential_sign_cb`, replacing `git_cred_sign_callback`
+  - `git_credential_ssh_custom_new`, replacing `git_cred_ssh_custom_new`
+  - `git_credential_ssh_interactive_cb`, replacing `git_cred_ssh_interactive_callback`
+  - `git_credential_ssh_interactive_new`, replacing `git_cred_ssh_interactive_new`
+  - `git_credential_ssh_key_from_agent`, replacing `git_cred_ssh_key_from_agent`
+  - `git_credential_ssh_key_memory_new`, replacing `git_cred_ssh_key_memory_new`
+  - `git_credential_ssh_key_new`, replacing `git_cred_ssh_key_new`
+  - `git_credential_t` and its `GIT_CREDENTIAL_*` constants, replacing `git_credtype_t` and `GIT_CREDTYPE_*`
+  - `git_credential_username_new`, replacing `git_cred_username_new`
+  - `git_credential_userpass`, replacing `git_cred_userpass`
+  - `git_credential_userpass_plaintext_new`, replacing `git_cred_userpass_plaintext_new`
+  - `git_diff_find_options_init`, replacing `git_diff_find_init_options`
+  - `git_diff_options_init`, replacing `git_diff_init_options`
+  - `GIT_ERROR_SHA`, replacing `GIT_ERROR_SHA1`
+  - `git_fetch_options_init`, replacing `git_fetch_init_options`
+  - `git_index_add_from_buffer`, replacing `git_index_add_frombuffer`
+  - `git_merge_options_init`, replacing `git_merge_init_options`
+  - `git_oidarray_dispose`, replacing `git_oidarray_free`
+  - `git_push_transfer_progress_cb`, replacing `git_push_transfer_progress`
+  - `git_rebase_options_init`, replacing `git_rebase_init_options`
+  - `git_remote_completion_t`, replacing `git_remote_completion_type`
+  - `git_repository_init_options_init`, replacing `git_repository_init_init_options`
+  - `git_revspec_t` and its `GIT_REVSPEC_*` constants, replacing `git_revparse_mode_t` and `GIT_REVPARSE_*`
+  - `git_stash_apply_options_init`, replacing `git_stash_apply_init_options`
+  - `git_status_options_init`, replacing `git_status_init_options`
+  - `git_strarray_dispose`, replacing `git_strarray_free`
+  - `git_submodule_update_options_init`, replacing `git_submodule_update_init_options`
+  - `git_tag_create_from_buffer`, replacing `git_tag_create_frombuffer`
+  <!-- -->
+  [#1325](https://github.com/rust-lang/git2-rs/pull/1325)
 
 ### Changed
 
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
+- Deprecated these bindings, which will also be removed when updating to libgit2 2.0:
+  - `git_buf_grow`, which has no replacement
+  - `git_buf_set`, which has no replacement
+  - `git_commit_signing_cb`, replaced by `git_commit_create_cb`
+  - `git_diff_format_email`, replaced by `git_email_create_from_diff`
+  - `GIT_DIFF_FORMAT_EMAIL_EXCLUDE_SUBJECT_PATCH_MARKER`, replaced by `git_email_create_from_diff`
+  - `GIT_DIFF_FORMAT_EMAIL_NONE`, replaced by `git_email_create_from_diff`
+  - `git_diff_format_email_options`, replaced by `git_email_create_from_diff`
+  - `git_diff_format_email_options_init`, replaced by `git_email_create_from_diff`
+  - `GIT_DIFF_FORMAT_EMAIL_OPTIONS_VERSION`, replaced by `git_email_create_from_diff`
+  - `git_reference_is_valid_name`, replaced by `git_reference_name_is_valid`
+  - `git_remote_is_valid_name`, replaced by `git_remote_name_is_valid`
+  - `git_transfer_progress_cb`, replaced by `git_indexer_progress_cb`
+  <!-- -->
+  [#1325](https://github.com/rust-lang/git2-rs/pull/1325)
 
 ## 0.18.8+1.9.7 - 2026-08-21
 [0.18.7...0.18.8](https://github.com/rust-lang/git2-rs/compare/libgit2-sys-0.18.7+1.9.6...libgit2-sys-0.18.8+1.9.7)

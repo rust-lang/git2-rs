@@ -46,7 +46,7 @@ impl<'cb> RevertOptions<'cb> {
     pub fn raw(&mut self) -> raw::git_revert_options {
         let mut checkout_opts: raw::git_checkout_options = unsafe { mem::zeroed() };
         unsafe {
-            raw::git_checkout_init_options(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
+            raw::git_checkout_options_init(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
         }
         if let Some(ref mut cb) = self.checkout_builder {
             unsafe {
@@ -56,7 +56,7 @@ impl<'cb> RevertOptions<'cb> {
 
         let mut merge_opts: raw::git_merge_options = unsafe { mem::zeroed() };
         unsafe {
-            raw::git_merge_init_options(&mut merge_opts, raw::GIT_MERGE_OPTIONS_VERSION);
+            raw::git_merge_options_init(&mut merge_opts, raw::GIT_MERGE_OPTIONS_VERSION);
         }
         if let Some(ref opts) = self.merge_opts {
             unsafe {

@@ -204,7 +204,7 @@ impl Error {
             raw::GIT_ERROR_FILESYSTEM => super::ErrorClass::Filesystem,
             raw::GIT_ERROR_PATCH => super::ErrorClass::Patch,
             raw::GIT_ERROR_WORKTREE => super::ErrorClass::Worktree,
-            raw::GIT_ERROR_SHA1 => super::ErrorClass::Sha1,
+            raw::GIT_ERROR_SHA => super::ErrorClass::Sha1,
             raw::GIT_ERROR_HTTP => super::ErrorClass::Http,
             _ => super::ErrorClass::None,
         }
@@ -249,7 +249,7 @@ impl Error {
             ErrorClass::Filesystem => raw::GIT_ERROR_FILESYSTEM,
             ErrorClass::Patch => raw::GIT_ERROR_PATCH,
             ErrorClass::Worktree => raw::GIT_ERROR_WORKTREE,
-            ErrorClass::Sha1 => raw::GIT_ERROR_SHA1,
+            ErrorClass::Sha1 => raw::GIT_ERROR_SHA,
             ErrorClass::Http => raw::GIT_ERROR_HTTP,
         } as c_int;
     }
@@ -343,7 +343,7 @@ impl Error {
             GIT_ERROR_FILESYSTEM,
             GIT_ERROR_PATCH,
             GIT_ERROR_WORKTREE,
-            GIT_ERROR_SHA1,
+            GIT_ERROR_SHA,
             GIT_ERROR_HTTP,
         )
     }

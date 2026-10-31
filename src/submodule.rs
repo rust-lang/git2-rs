@@ -290,7 +290,7 @@ impl<'cb> SubmoduleUpdateOptions<'cb> {
     unsafe fn raw(&mut self) -> raw::git_submodule_update_options {
         let mut checkout_opts: raw::git_checkout_options = mem::zeroed();
         let init_res =
-            raw::git_checkout_init_options(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
+            raw::git_checkout_options_init(&mut checkout_opts, raw::GIT_CHECKOUT_OPTIONS_VERSION);
         assert_eq!(0, init_res);
         self.checkout_builder.configure(&mut checkout_opts);
         raw::git_submodule_update_options {

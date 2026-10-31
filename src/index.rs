@@ -288,7 +288,7 @@ impl Index {
         let ptr = data.as_ptr() as *const c_void;
         let len = data.len() as size_t;
         unsafe {
-            try_call!(raw::git_index_add_frombuffer(self.raw, &raw, ptr, len));
+            try_call!(raw::git_index_add_from_buffer(self.raw, &raw, ptr, len));
         }
         Ok(())
     }

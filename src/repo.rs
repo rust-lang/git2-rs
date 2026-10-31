@@ -788,7 +788,7 @@ impl Repository {
     ) -> Result<(), Error> {
         let mut opts: raw::git_checkout_options = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -1157,7 +1157,7 @@ impl Repository {
         let ptr = data.as_ptr() as *const c_void;
         let len = data.len() as size_t;
         unsafe {
-            try_call!(raw::git_blob_create_frombuffer(
+            try_call!(raw::git_blob_create_from_buffer(
                 &mut raw,
                 self.raw(),
                 ptr,
@@ -1177,7 +1177,7 @@ impl Repository {
         let path = path.into_c_string()?;
         let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
-            try_call!(raw::git_blob_create_fromdisk(&mut raw, self.raw(), path));
+            try_call!(raw::git_blob_create_from_disk(&mut raw, self.raw(), path));
             Ok(Binding::from_raw(&raw as *const _))
         }
     }
@@ -1204,7 +1204,7 @@ impl Repository {
         };
         let mut out = ptr::null_mut();
         unsafe {
-            try_call!(raw::git_blob_create_fromstream(&mut out, self.raw(), path));
+            try_call!(raw::git_blob_create_from_stream(&mut out, self.raw(), path));
             Ok(BlobWriter::from_raw(out))
         }
     }
@@ -2173,7 +2173,7 @@ impl Repository {
     pub fn checkout_head(&self, opts: Option<&mut CheckoutBuilder<'_>>) -> Result<(), Error> {
         let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -2200,7 +2200,7 @@ impl Repository {
     ) -> Result<(), Error> {
         let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -2230,7 +2230,7 @@ impl Repository {
     ) -> Result<(), Error> {
         let mut raw_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -2268,7 +2268,7 @@ impl Repository {
 
         let mut raw_checkout_opts = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_checkout_init_options(
+            try_call!(raw::git_checkout_options_init(
                 &mut raw_checkout_opts,
                 raw::GIT_CHECKOUT_OPTIONS_VERSION
             ));
@@ -3654,7 +3654,7 @@ impl RepositoryInitOptions {
     pub unsafe fn raw(&self) -> raw::git_repository_init_options {
         let mut opts = mem::zeroed();
         assert_eq!(
-            raw::git_repository_init_init_options(
+            raw::git_repository_init_options_init(
                 &mut opts,
                 raw::GIT_REPOSITORY_INIT_OPTIONS_VERSION
             ),

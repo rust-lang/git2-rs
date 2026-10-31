@@ -69,7 +69,7 @@ impl StatusOptions {
     /// Creates a new blank set of status options.
     pub fn new() -> StatusOptions {
         let mut raw = unsafe { mem::zeroed() };
-        let r = unsafe { raw::git_status_init_options(&mut raw, raw::GIT_STATUS_OPTIONS_VERSION) };
+        let r = unsafe { raw::git_status_options_init(&mut raw, raw::GIT_STATUS_OPTIONS_VERSION) };
         assert_eq!(r, 0);
         StatusOptions {
             raw,

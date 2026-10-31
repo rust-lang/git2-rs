@@ -55,7 +55,12 @@ fn main() {
     cfg.define("GIT_FILEMODE_BLOB_GROUP_WRITABLE", Some("0100664"));
 
     // not entirely sure why this is failing...
-    cfg.skip_roundtrip(|t| t == "git_clone_options" || t == "git_submodule_update_options");
+    cfg.skip_roundtrip(|t| {
+        t == "git_clone_options"
+            || t == "git_submodule_update_options"
+            // ctest2 sees differing padding bytes through this deprecated typedef alias.
+            || t == "git_cred"
+    });
 
     cfg.skip_type(|t| t == "__enum_ty");
     cfg.generate("../libgit2-sys/lib.rs", "all.rs");

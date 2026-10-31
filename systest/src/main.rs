@@ -1,4 +1,4 @@
-#![allow(bad_style, improper_ctypes)]
+#![allow(bad_style, deprecated, improper_ctypes)]
 
 use libc::*;
 use libgit2_sys::*;

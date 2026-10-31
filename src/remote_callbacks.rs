@@ -306,7 +306,7 @@ impl<'a> Binding for RemoteCallbacks<'a> {
 }
 
 extern "C" fn credentials_cb(
-    ret: *mut *mut raw::git_cred,
+    ret: *mut *mut raw::git_credential,
     url: *const c_char,
     username_from_url: *const c_char,
     allowed_types: c_uint,

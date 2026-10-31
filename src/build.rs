@@ -241,7 +241,7 @@ impl<'cb> RepoBuilder<'cb> {
     pub fn clone(&mut self, url: &str, into: &Path) -> Result<Repository, Error> {
         let mut opts: raw::git_clone_options = unsafe { mem::zeroed() };
         unsafe {
-            try_call!(raw::git_clone_init_options(
+            try_call!(raw::git_clone_options_init(
                 &mut opts,
                 raw::GIT_CLONE_OPTIONS_VERSION
             ));

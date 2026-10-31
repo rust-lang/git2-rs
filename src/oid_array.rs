@@ -47,6 +47,6 @@ impl std::fmt::Debug for OidArray {
 
 impl Drop for OidArray {
     fn drop(&mut self) {
-        unsafe { raw::git_oidarray_free(&mut self.raw) }
+        unsafe { raw::git_oidarray_dispose(&mut self.raw) }
     }
 }
