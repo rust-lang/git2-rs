@@ -36,12 +36,14 @@
 - ❗ Removed deprecated APIs:
   - `Diff::format_email()`, replaced by `Email::from_diff()`
   - `Oid::zero()`, replaced by `Oid::ZERO_SHA1`
+  - `PackBuilder::hash()`, replaced by `PackBuilder::name()`
   - `RepoBuilder::hardlinks()`, replaced by `RepoBuilder::clone_local()`
   - `RepoBuilder::local()`, replaced by `RepoBuilder::clone_local()`
   - `Submodule::url_bytes()`, replaced by `Submodule::opt_url_bytes()`
   - `TransportProgress`, replaced by `IndexerProgress`
   <!-- -->
   [#1326](https://github.com/rust-lang/git2-rs/pull/1326)
+  [#1327](https://github.com/rust-lang/git2-rs/pull/1327)
 - `TreeWalkResult` now implements `From` instead of `Into` for its conversions to `i32` and `raw::git_treewalk_mode`.
   [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
 - Declared the minimum supported Rust version as 1.87.
