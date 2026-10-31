@@ -2,7 +2,8 @@ use crate::build::CheckoutBuilder;
 use crate::util::{self, Binding};
 use crate::{panic, raw, IntoCString, Oid, Signature, StashApplyProgress, StashFlags};
 use libc::{c_char, c_int, c_void, size_t};
-use std::ffi::{c_uint, CStr, CString};
+use std::borrow::Cow;
+use std::ffi::{c_uint, CString};
 use std::mem;
 
 /// Stash application options structure
@@ -162,7 +163,11 @@ pub(crate) extern "C" fn stash_cb(
             let callback = &mut data.callback;
             callback(
                 index,
-                unsafe { CStr::from_ptr(message) }.to_str().unwrap(),
+                match unsafe { crate::opt_bytes(&index, message) } {
+                    Some(bytes) => String::from_utf8_lossy(bytes),
+                    None => Cow::Borrowed(""),
+                }
+                .as_ref(),
                 unsafe { &Binding::from_raw(stash_id) },
             )
         };
@@ -346,5 +351,53 @@ mod tests {
         repo.stash_pop(0, None).unwrap();
 
         assert_eq!(repo.statuses(None).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn stash_foreach_missing_and_non_utf8_message() {
+        let (_td, mut repo) = repo_init();
+        let signature = repo.signature().unwrap();
+
+        let file = create_file(&repo, "file.txt", "base");
+        let mut index = repo.index().unwrap();
+        index.add_path(Path::new("file.txt")).unwrap();
+        let tree = repo.find_tree(index.write_tree().unwrap()).unwrap();
+        {
+            let head = repo.head().unwrap().peel_to_commit().unwrap();
+            repo.commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                "base",
+                &tree,
+                &[&head],
+            )
+            .unwrap();
+        }
+        drop(tree);
+        fs::write(&file, "changed").unwrap();
+
+        repo.stash_save(&signature, "Example stash", None).unwrap();
+
+        // Rewrite the stash reflog so its message is first empty and then invalid
+        // UTF-8. Neither must crash the callback (issue #1320).
+        let reflog = Path::new(repo.path()).join("logs/refs/stash");
+        let entry = fs::read(&reflog).unwrap();
+        let head =
+            &entry[..entry.len() - entry.iter().rev().position(|b| *b == b'\t').unwrap() - 1];
+        let no_message = head.to_vec();
+        let mut non_utf8 = head.to_vec();
+        non_utf8.extend_from_slice(b"\tcaf\xe9\n");
+
+        for (contents, expected) in [(&no_message, ""), (&non_utf8, "caf\u{fffd}")] {
+            fs::write(&reflog, contents).unwrap();
+            let mut messages = Vec::new();
+            repo.stash_foreach(|_, message, _| {
+                messages.push(message.to_string());
+                true
+            })
+            .unwrap();
+            assert_eq!(messages, [expected]);
+        }
     }
 }
