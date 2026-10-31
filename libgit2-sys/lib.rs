@@ -9,12 +9,6 @@ use libc::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void, size_t};
 use libssh2_sys as libssh2;
 use std::ffi::CStr;
 
-#[cfg(not(feature = "unstable-sha256"))]
-#[deprecated(note = "use `GIT_OID_SHA1_SIZE` instead")]
-pub const GIT_OID_RAWSZ: usize = GIT_OID_SHA1_SIZE;
-#[cfg(not(feature = "unstable-sha256"))]
-#[deprecated(note = "use `GIT_OID_SHA1_HEXSIZE` instead")]
-pub const GIT_OID_HEXSZ: usize = GIT_OID_SHA1_HEXSIZE;
 pub const GIT_OID_SHA1_SIZE: usize = 20;
 pub const GIT_OID_SHA1_HEXSIZE: usize = GIT_OID_SHA1_SIZE * 2;
 #[cfg(feature = "unstable-sha256")]
@@ -4471,8 +4465,6 @@ extern "C" {
         progress_cb: git_indexer_progress_cb,
         progress_cb_payload: *mut c_void,
     ) -> c_int;
-    #[deprecated = "use `git_packbuilder_name` to retrieve the filename"]
-    pub fn git_packbuilder_hash(pb: *mut git_packbuilder) -> *const git_oid;
     pub fn git_packbuilder_name(pb: *mut git_packbuilder) -> *const c_char;
     pub fn git_packbuilder_foreach(
         pb: *mut git_packbuilder,
@@ -4510,8 +4502,6 @@ extern "C" {
         stats: *mut git_indexer_progress,
     ) -> c_int;
     pub fn git_indexer_commit(idx: *mut git_indexer, stats: *mut git_indexer_progress) -> c_int;
-    #[deprecated = "use `git_indexer_name` to retrieve the filename"]
-    pub fn git_indexer_hash(idx: *const git_indexer) -> *const git_oid;
     pub fn git_indexer_name(idx: *const git_indexer) -> *const c_char;
     pub fn git_indexer_free(idx: *mut git_indexer);
 
