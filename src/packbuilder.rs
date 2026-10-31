@@ -181,19 +181,6 @@ impl<'repo> PackBuilder<'repo> {
         unsafe { raw::git_packbuilder_written(self.raw) }
     }
 
-    /// Get the packfile's hash. A packfile's name is derived from the sorted
-    /// hashing of all object names. This is only correct after the packfile
-    /// has been written.
-    #[deprecated = "use `name()` to retrieve the filename"]
-    #[allow(deprecated)]
-    pub fn hash(&self) -> Option<Oid> {
-        if self.object_count() == 0 {
-            unsafe { Some(Binding::from_raw(raw::git_packbuilder_hash(self.raw))) }
-        } else {
-            None
-        }
-    }
-
     /// Get the unique name for the resulting packfile.
     ///
     /// The packfile's name is derived from the packfile's content. This is only
@@ -346,10 +333,6 @@ mod tests {
         let mut builder = t!(repo.packbuilder());
         let mut buf = Buf::new();
         t!(builder.write_buf(&mut buf));
-        #[allow(deprecated)]
-        {
-            assert!(builder.hash().unwrap().is_zero());
-        }
         assert!(builder.name().expect("Should return Ok result").is_none());
         assert_eq!(&*buf, &*empty_pack_header());
     }
@@ -373,12 +356,6 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let mut builder = t!(repo.packbuilder());
         t!(builder.write(repo.path(), 0));
-        #[cfg(not(feature = "unstable-sha256"))]
-        #[allow(deprecated)]
-        {
-            let oid = crate::Oid::from_str(EMPTY_PACKFILE_OID).unwrap();
-            assert_eq!(builder.hash().unwrap(), oid);
-        }
         assert_eq!(builder.name().unwrap(), Some(EMPTY_PACKFILE_OID));
     }
 
