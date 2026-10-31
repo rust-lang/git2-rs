@@ -58,6 +58,12 @@
 
 ### Changed
 
+- ❗ Removed deprecated bindings:
+  - `git_odb_backend_malloc`, replaced by `git_odb_backend_data_alloc`
+  - `git_oid_iszero`, replaced by `git_oid_is_zero`
+  - `git_transfer_progress`, replaced by `git_indexer_progress`
+  <!-- -->
+  [#1326](https://github.com/rust-lang/git2-rs/pull/1326)
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
 - Deprecated these bindings, which will also be removed when updating to libgit2 2.0:
