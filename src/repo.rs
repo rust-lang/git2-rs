@@ -3636,7 +3636,7 @@ impl RepositoryInitOptions {
     /// Set the object format (hash algorithm) for the repository.
     ///
     /// The default is [`ObjectFormat::Sha1`].
-    /// Setting this to [`ObjectFormat::Sha256`] (requires `unstable-sha256`)
+    /// Setting this to [`ObjectFormat::Sha256`]
     /// will create a repository that uses SHA256 object IDs.
     pub fn object_format(&mut self, format: ObjectFormat) -> &mut RepositoryInitOptions {
         self.oid_type = Some(format.raw());
@@ -3693,7 +3693,6 @@ mod tests {
     use crate::AttrCheckFlags;
     use crate::Error;
     use crate::ObjectFormat;
-    #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
@@ -3722,7 +3721,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_init_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3769,7 +3767,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_init_bare_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3805,7 +3802,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_open_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3848,7 +3844,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_open_bare_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3874,7 +3869,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_checkout_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         repo.checkout_head(None).unwrap();
@@ -3902,7 +3896,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_revparse_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let rev = repo.revparse("HEAD").unwrap();
@@ -4103,7 +4096,6 @@ mod tests {
 
         let void_oid = match repo.object_format() {
             ObjectFormat::Sha1 => Oid::ZERO_SHA1,
-            #[cfg(feature = "unstable-sha256")]
             ObjectFormat::Sha256 => Oid::ZERO_SHA256,
         };
         assert!(repo.set_head_detached(void_oid).is_err());

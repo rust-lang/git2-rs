@@ -36,8 +36,6 @@ url = "2.5.4"
 
 [features]
 unstable = []
-# Exposes the SHA-256 object format APIs, such as `ObjectFormat::Sha256`.
-unstable-sha256 = ["libgit2-sys/unstable-sha256"]
 default = []
 ssh = ["libgit2-sys/ssh", "cred"]
 https = ["libgit2-sys/https", "openssl-sys", "openssl-probe", "cred"]

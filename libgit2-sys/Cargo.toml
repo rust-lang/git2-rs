@@ -39,5 +39,3 @@ https = ["openssl-sys"]
 vendored = []
 vendored-openssl = ["openssl-sys/vendored"]
 zlib-ng-compat = ["libz-sys/zlib-ng", "libssh2-sys?/zlib-ng-compat"]
-# Has no effect: libgit2 2.0 always supports SHA-256.
-unstable-sha256 = []

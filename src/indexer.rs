@@ -260,7 +260,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn indexer_sha256() {
         let (_td, repo_source) = crate::test::repo_init_sha256();
         let (_td, repo_target) = crate::test::repo_init_sha256();

@@ -10,12 +10,11 @@ use crate::util::{c_cmp_to_ordering, Binding};
 
 /// Object ID format (hash algorithm).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(not(feature = "unstable-sha256"), non_exhaustive)]
+#[non_exhaustive]
 pub enum ObjectFormat {
     /// SHA1 object format (20-byte object IDs)
     Sha1,
     /// SHA256 object format (32-byte object IDs)
-    #[cfg(feature = "unstable-sha256")]
     Sha256,
 }
 
@@ -24,7 +23,6 @@ impl ObjectFormat {
     pub fn str(&self) -> &'static str {
         match self {
             ObjectFormat::Sha1 => "sha1",
-            #[cfg(feature = "unstable-sha256")]
             ObjectFormat::Sha256 => "sha256",
         }
     }
@@ -42,7 +40,6 @@ impl Binding for ObjectFormat {
     unsafe fn from_raw(raw: raw::git_oid_t) -> Self {
         match raw {
             raw::GIT_OID_SHA1 => ObjectFormat::Sha1,
-            #[cfg(feature = "unstable-sha256")]
             raw::GIT_OID_SHA256 => ObjectFormat::Sha256,
             _ => panic!("Unknown git oid type"),
         }
@@ -51,7 +48,6 @@ impl Binding for ObjectFormat {
     fn raw(&self) -> Self::Raw {
         match self {
             ObjectFormat::Sha1 => raw::GIT_OID_SHA1,
-            #[cfg(feature = "unstable-sha256")]
             ObjectFormat::Sha256 => raw::GIT_OID_SHA256,
         }
     }
@@ -74,7 +70,6 @@ impl Oid {
     };
 
     /// An all-zero SHA256 OID.
-    #[cfg(feature = "unstable-sha256")]
     pub const ZERO_SHA256: Oid = Oid {
         raw: raw::git_oid {
             kind: raw::GIT_OID_SHA256 as libc::c_uchar,
@@ -375,7 +370,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn conversions_ext_sha256() {
         assert!(Oid::from_str_ext("foo", ObjectFormat::Sha256).is_err());
         assert!(Oid::from_str_ext(
@@ -409,7 +403,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn object_format_from_oid_ext_sha256() {
         assert_eq!(Oid::ZERO_SHA256.object_format(), ObjectFormat::Sha256);
 
@@ -462,7 +455,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn comparisons_ext_sha256() -> Result<(), Error> {
         const HEX: &str = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
@@ -496,7 +488,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn zero_sha256_is_zero() {
         assert!(Oid::ZERO_SHA256.is_zero());
         assert_eq!(Oid::ZERO_SHA256.object_format(), ObjectFormat::Sha256);
@@ -519,7 +510,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn hash_object_ext_sha256() -> Result<(), Error> {
         let bytes = b"hello world";
         let sha1 = Oid::hash_object_ext(ObjectType::Blob, bytes, ObjectFormat::Sha1)?;
@@ -555,7 +545,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn hash_file_ext_sha256() -> Result<(), Error> {
         let td = TempDir::new().unwrap();
         let path = td.path().join("test.txt");

@@ -1035,7 +1035,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn index_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut index = repo.index().unwrap();
@@ -1054,7 +1053,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_in_memory_index_sha256() {
         let _index = Index::new_ext(ObjectFormat::Sha256).unwrap();
     }
