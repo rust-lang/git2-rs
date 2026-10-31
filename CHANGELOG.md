@@ -20,6 +20,18 @@
 
 ### Changed
 
+- ❗ Linking against a system libgit2 now requires 2.0.x.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+- ❗ SHA-256 support is no longer experimental.
+  The `unstable-sha256` Cargo feature is removed,
+  and `ObjectFormat::Sha256` and `Oid::ZERO_SHA256` are always available.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+- ❗ `Reference` and `Branch` equality and ordering now take the reference name into account,
+  following [libgit2#6346](https://github.com/libgit2/libgit2/pull/6346).
+  Two branches pointing at the same commit are no longer equal.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+- ❗ `RepositoryInitOptions::workdir_path()` no longer appends `.git` to the repository path.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
 - ❗ `Branch::name()` now returns `Result<&str, Error>` instead of `Result<Option<&str>, Error>`,
   and a non-UTF-8 name is an error.
   [#1274](https://github.com/rust-lang/git2-rs/pull/1274)
@@ -44,6 +56,11 @@
   <!-- -->
   [#1326](https://github.com/rust-lang/git2-rs/pull/1326)
   [#1327](https://github.com/rust-lang/git2-rs/pull/1327)
+- ❗ Removed APIs that libgit2 2.0 makes obsolete:
+  - `ConfigLevel::ProgramData`, which has no replacement
+  - `RepositoryInitOptions::no_dotgit_dir()`, replaced by `RepositoryInitOptions::workdir_path()`
+  <!-- -->
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
 - `TreeWalkResult` now implements `From` instead of `Into` for its conversions to `i32` and `raw::git_treewalk_mode`.
   [#1291](https://github.com/rust-lang/git2-rs/pull/1291)
 - Declared the minimum supported Rust version as 1.87.
