@@ -166,12 +166,6 @@ impl Oid {
         Ok(Oid { raw })
     }
 
-    /// Creates an all-zero SHA1 OID.
-    #[deprecated(since = "0.21.0", note = "use `Oid::ZERO_SHA1` instead")]
-    pub fn zero() -> Oid {
-        Self::ZERO_SHA1
-    }
-
     /// Hashes the provided data as an object of the provided type, and returns
     /// an Oid corresponding to the result. This does not store the object
     /// inside any object database or repository.
