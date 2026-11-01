@@ -1,5 +1,4 @@
 use libc::{c_char, c_int, c_uint, c_void, size_t};
-use std::env;
 use std::ffi::{CStr, CString, OsStr};
 use std::mem;
 use std::path::{Path, PathBuf};
@@ -217,7 +216,7 @@ impl Repository {
         crate::init();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
-        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs_os = util::join_paths(ceiling_dirs)?;
         let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
         let mut ret = ptr::null_mut();
         unsafe {
@@ -277,7 +276,7 @@ impl Repository {
         let buf = Buf::new();
         // Normal file path OK (does not need Windows conversion).
         let path = path.as_ref().into_c_string()?;
-        let ceiling_dirs_os = env::join_paths(ceiling_dirs)?;
+        let ceiling_dirs_os = util::join_paths(ceiling_dirs)?;
         let ceiling_dirs = ceiling_dirs_os.into_c_string()?;
         unsafe {
             try_call!(raw::git_repository_discover(
@@ -3706,7 +3705,7 @@ mod tests {
 
     #[test]
     fn smoke_init() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let repo = Repository::init(path).unwrap();
@@ -3721,7 +3720,7 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn smoke_init_sha256() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let mut opts = RepositoryInitOptions::new();
@@ -3742,7 +3741,7 @@ mod tests {
 
     #[test]
     fn smoke_init_bare() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let repo = Repository::init_bare(path).unwrap();
@@ -3754,7 +3753,7 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn smoke_init_bare_sha256() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let mut opts = RepositoryInitOptions::new();
@@ -3769,7 +3768,7 @@ mod tests {
 
     #[test]
     fn smoke_open() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
         Repository::init(td.path()).unwrap();
         let repo = Repository::open(path).unwrap();
@@ -3790,7 +3789,7 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn smoke_open_sha256() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let mut opts = RepositoryInitOptions::new();
@@ -3818,7 +3817,7 @@ mod tests {
 
     #[test]
     fn smoke_open_bare() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
         Repository::init_bare(td.path()).unwrap();
 
@@ -3833,7 +3832,7 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn smoke_open_bare_sha256() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path();
 
         let mut opts = RepositoryInitOptions::new();
@@ -3908,13 +3907,13 @@ mod tests {
 
     #[test]
     fn makes_dirs() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         Repository::init(td.path().join("a/b/c/d")).unwrap();
     }
 
     #[test]
     fn smoke_discover() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let subdir = td.path().join("subdi");
         fs::create_dir(&subdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
@@ -3927,7 +3926,7 @@ mod tests {
 
     #[test]
     fn smoke_discover_path() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let subdir = td.path().join("subdi");
         fs::create_dir(&subdir).unwrap();
         Repository::init_bare(td.path()).unwrap();
@@ -3940,7 +3939,7 @@ mod tests {
 
     #[test]
     fn smoke_discover_path_ceiling_dir() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let subdir = td.path().join("subdi");
         fs::create_dir(&subdir).unwrap();
         let ceilingdir = subdir.join("ceiling");
@@ -3955,7 +3954,7 @@ mod tests {
 
     #[test]
     fn smoke_open_ext() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let subdir = td.path().join("subdir");
         fs::create_dir(&subdir).unwrap();
         Repository::init(td.path()).unwrap();
@@ -4878,7 +4877,7 @@ Committer Name <committer.proper@email> <committer@email>"#,
 
     #[test]
     fn refdb_compress_bare_repo() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init_bare(td.path()).unwrap();
         // Compressing a bare repo with no refs should succeed.
         repo.refdb_compress().unwrap();
