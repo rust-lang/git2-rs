@@ -3741,6 +3741,20 @@ mod tests {
     }
 
     #[test]
+    fn init_with_workdir_path() {
+        let td = TempDir::new().unwrap();
+        let gitdir = td.path().join("gitdir");
+        let workdir = td.path().join("workdir");
+
+        let mut opts = crate::RepositoryInitOptions::new();
+        opts.workdir_path(&workdir);
+        let repo = Repository::init_opts(&gitdir, &opts).unwrap();
+        assert!(!repo.is_bare());
+        assert!(repo.path().ends_with("gitdir/.git"));
+        assert!(repo.workdir().unwrap().ends_with("workdir"));
+    }
+
+    #[test]
     fn smoke_init_bare() {
         let td = TempDir::new().unwrap();
         let path = td.path();

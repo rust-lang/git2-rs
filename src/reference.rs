@@ -532,6 +532,24 @@ mod tests {
     }
 
     #[test]
+    fn cmp_refs_with_same_target() {
+        let (_td, repo) = crate::test::repo_init();
+        let target = repo.head().unwrap().target().unwrap();
+        let a = repo.reference("refs/tags/a", target, false, "").unwrap();
+        let b = repo.reference("refs/tags/b", target, false, "").unwrap();
+        assert!(a == b);
+        assert_eq!(a.cmp(&b), std::cmp::Ordering::Equal);
+
+        let sym_a = repo
+            .reference_symbolic("refs/sym/a", "refs/heads/main", false, "")
+            .unwrap();
+        let sym_b = repo
+            .reference_symbolic("refs/sym/b", "refs/heads/main", false, "")
+            .unwrap();
+        assert!(sym_a == sym_b);
+    }
+
+    #[test]
     fn smoke() {
         let (_td, repo) = crate::test::repo_init();
         let mut head = repo.head().unwrap();
