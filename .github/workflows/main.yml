@@ -48,10 +48,16 @@ jobs:
         mv tests/compile_fail/MSRV-repo_namespace_remove.stderr tests/compile_fail/repo_namespace_remove.stderr
         mv tests/compile_fail/MSRV-repo_namespace_set_bytes.stderr tests/compile_fail/repo_namespace_set_bytes.stderr
         mv tests/compile_fail/MSRV-repo_namespace_set.stderr tests/compile_fail/repo_namespace_set.stderr
+        mv tests/compile_fail/MSRV-odb_finalize_repeated.stderr tests/compile_fail/odb_finalize_repeated.stderr
 
     - name: Update compile fail expected output (nightly)
       if: ${{ matrix.build == 'nightly' }}
       run: mv tests/compile_fail/NEXT_SOLVER-diff_send.stderr tests/compile_fail/diff_send.stderr
+
+    - name: Update compile fail expected output (1.101+)
+      if: ${{ matrix.build == 'beta' || matrix.build == 'nightly' }}
+      run: |
+        mv tests/compile_fail/EXTRA_CONTEXT-odb_finalize_repeated.stderr tests/compile_fail/odb_finalize_repeated.stderr
 
     - run: cargo test --locked
     - run: cargo test --features https,ssh
