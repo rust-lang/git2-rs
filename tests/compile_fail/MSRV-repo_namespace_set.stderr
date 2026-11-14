@@ -1,0 +1,9 @@
+error[E0502]: cannot borrow `repo` as mutable because it is also borrowed as immutable
+  --> tests/compile_fail/repo_namespace_set.rs:12:2
+   |
+11 |     let ns = repo.namespace().unwrap().unwrap();
+   |              ---- immutable borrow occurs here
+12 |     repo.set_namespace("second").unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+13 |     println!("{ns}");
+   |               ---- immutable borrow later used here
