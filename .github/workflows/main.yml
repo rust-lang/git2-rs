@@ -37,6 +37,17 @@ jobs:
     - name: Install Rust (rustup)
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       shell: bash
+
+    - name: Update compile fail expected output (MSRV)
+      if: ${{ matrix.build == 'MSRV' }}
+      run: |
+        mv tests/compile_fail/MSRV-odb_finalize_repeated.stderr tests/compile_fail/odb_finalize_repeated.stderr
+
+    - name: Update compile fail expected output (1.101+)
+      if: ${{ matrix.build == 'beta' || matrix.build == 'nightly' }}
+      run: |
+        mv tests/compile_fail/EXTRA_CONTEXT-odb_finalize_repeated.stderr tests/compile_fail/odb_finalize_repeated.stderr
+
     - run: cargo test --locked
     - run: cargo test --features https,ssh
     # Single-threaded: libgit2's builtin SHA256 is not thread-safe.
