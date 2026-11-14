@@ -23,8 +23,6 @@ pub struct Diff<'repo> {
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
-unsafe impl<'repo> Send for Diff<'repo> {}
-
 /// Description of changes to one entry.
 pub struct DiffDelta<'a> {
     raw: *mut raw::git_diff_delta,

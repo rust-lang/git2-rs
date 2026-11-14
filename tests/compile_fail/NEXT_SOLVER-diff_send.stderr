@@ -1,0 +1,23 @@
+error[E0277]: `*mut libgit2_sys::git_diff` cannot be sent between threads safely
+  --> tests/compile_fail/diff_send.rs:27:17
+   |
+27 |         s.spawn(move || theirs.stats().unwrap().insertions());
+   |           ----- -------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |           |     |
+   |           |     `*mut libgit2_sys::git_diff` cannot be sent between threads safely
+   |           |     within this `{closure@$DIR/tests/compile_fail/diff_send.rs:27:17: 27:24}`
+   |           required by a bound introduced by this call
+   |
+   = help: within `{closure@$DIR/tests/compile_fail/diff_send.rs:27:17: 27:24}`, the trait `Send` is not implemented for `*mut libgit2_sys::git_diff`
+note: required because it appears within the type `Diff<'_>`
+  --> src/diff.rs
+   |
+   | pub struct Diff<'repo> {
+   |            ^^^^
+note: required because `theirs` is used within this closure
+  --> tests/compile_fail/diff_send.rs:27:25
+   |
+27 |         s.spawn(move || theirs.stats().unwrap().insertions());
+   |                         ^^^^^^
+note: required by a bound in `Scope::<'scope, 'env>::spawn`
+  --> $RUST/std/src/thread/scoped.rs
