@@ -227,7 +227,7 @@ extern "C" fn transport_factory(
                 transport.owned = false;
                 0
             }
-            Err(e) => unsafe { e.raw_set_git_error() as c_int },
+            Err(e) => (unsafe { e.raw_set_git_error() }) as c_int,
         }
     })
     .unwrap_or(-1)
@@ -302,7 +302,7 @@ extern "C" fn subtransport_close(transport: *mut raw::git_smart_subtransport) ->
     });
     match ret {
         Some(Ok(())) => 0,
-        Some(Err(e)) => unsafe { e.raw_set_git_error() as c_int },
+        Some(Err(e)) => (unsafe { e.raw_set_git_error() }) as c_int,
         None => -1,
     }
 }
@@ -455,9 +455,9 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let mut remote = t!(repo.remote_anonymous("failfactory://x"));
 
-        match remote.connect(crate::Direction::Fetch) {
-            Ok(()) => unreachable!(),
-            Err(e) => assert_eq!(e, factory_error()),
-        }
+        let err = remote
+            .connect(crate::Direction::Fetch)
+            .expect_err("Connection should fail");
+        assert_eq!(err, factory_error());
     }
 }
