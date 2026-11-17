@@ -40,7 +40,11 @@ jobs:
 
     - name: Update compile fail expected output (MSRV)
       if: ${{ matrix.build == 'MSRV' }}
-      run: mv tests/compile_fail/MSRV-diff_send.stderr tests/compile_fail/diff_send.stderr
+      run: |
+        mv tests/compile_fail/MSRV-diff_send.stderr tests/compile_fail/diff_send.stderr
+        mv tests/compile_fail/MSRV-repo_namespace_remove.stderr tests/compile_fail/repo_namespace_remove.stderr
+        mv tests/compile_fail/MSRV-repo_namespace_set_bytes.stderr tests/compile_fail/repo_namespace_set_bytes.stderr
+        mv tests/compile_fail/MSRV-repo_namespace_set.stderr tests/compile_fail/repo_namespace_set.stderr
 
     - name: Update compile fail expected output (nightly)
       if: ${{ matrix.build == 'nightly' }}

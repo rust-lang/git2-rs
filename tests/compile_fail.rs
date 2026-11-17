@@ -5,4 +5,7 @@ fn test_compile_fail() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/compile_fail/remote_refspec.rs");
     t.compile_fail("tests/compile_fail/diff_send.rs");
+    t.compile_fail("tests/compile_fail/repo_namespace_remove.rs");
+    t.compile_fail("tests/compile_fail/repo_namespace_set_bytes.rs");
+    t.compile_fail("tests/compile_fail/repo_namespace_set.rs");
 }

@@ -557,12 +557,12 @@ impl Repository {
     }
 
     /// Set the active namespace for this repository.
-    pub fn set_namespace(&self, namespace: &str) -> Result<(), Error> {
+    pub fn set_namespace(&mut self, namespace: &str) -> Result<(), Error> {
         self.set_namespace_bytes(namespace.as_bytes())
     }
 
     /// Set the active namespace for this repository as a byte array.
-    pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
+    pub fn set_namespace_bytes(&mut self, namespace: &[u8]) -> Result<(), Error> {
         let namespace = CString::new(namespace)?;
         unsafe {
             try_call!(raw::git_repository_set_namespace(self.raw, namespace));
@@ -571,7 +571,7 @@ impl Repository {
     }
 
     /// Remove the active namespace for this repository.
-    pub fn remove_namespace(&self) -> Result<(), Error> {
+    pub fn remove_namespace(&mut self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_repository_set_namespace(self.raw, ptr::null()));
         }
