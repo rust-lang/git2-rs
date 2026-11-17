@@ -1,6 +1,10 @@
 use libc::{c_char, c_int, size_t};
 use std::cmp::Ordering;
 use std::ffi::{CString, OsStr, OsString};
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
+#[cfg(target_os = "wasi")]
+use std::os::wasi::ffi::OsStrExt;
 use std::path::{Component, Path, PathBuf};
 
 use crate::{raw, Error};
@@ -82,6 +86,36 @@ where
     iter2cstrs(cstrs)
 }
 
+/// Joins paths into a list such as libgit2's ceiling directories.
+///
+/// This is `env::join_paths`, except on WASI, where std does not support it
+/// and the paths are joined with `:` as on unix.
+pub fn join_paths<T, I>(paths: I) -> Result<OsString, Error>
+where
+    T: AsRef<OsStr>,
+    I: IntoIterator<Item = T>,
+{
+    #[cfg(not(target_os = "wasi"))]
+    {
+        Ok(std::env::join_paths(paths)?)
+    }
+    #[cfg(target_os = "wasi")]
+    {
+        let mut joined = OsString::new();
+        for (i, path) in paths.into_iter().enumerate() {
+            let path = path.as_ref();
+            if path.as_bytes().contains(&b':') {
+                return Err(Error::from_str("path segment contains separator `:`"));
+            }
+            if i > 0 {
+                joined.push(":");
+            }
+            joined.push(path);
+        }
+        Ok(joined)
+    }
+}
+
 /// Converts an iterator of things into a git array of c-strings.
 ///
 /// Returns a tuple `(cstrings, pointers, git_strarray)`. The first two values
@@ -105,9 +139,8 @@ where
     Ok((cstrs, ptrs, raw))
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 pub fn bytes2path(b: &[u8]) -> &Path {
-    use std::os::unix::prelude::*;
     Path::new(OsStr::from_bytes(b))
 }
 #[cfg(windows)]
@@ -170,9 +203,8 @@ impl IntoCString for &OsStr {
 }
 
 impl IntoCString for OsString {
-    #[cfg(unix)]
+    #[cfg(any(unix, target_os = "wasi"))]
     fn into_c_string(self) -> Result<CString, Error> {
-        use std::os::unix::prelude::*;
         let s: &OsStr = self.as_ref();
         Ok(CString::new(s.as_bytes())?)
     }

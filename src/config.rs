@@ -666,7 +666,6 @@ impl<'cfg> Drop for ConfigEntry<'cfg> {
 #[cfg(test)]
 mod tests {
     use std::fs::File;
-    use tempfile::TempDir;
 
     use crate::Config;
 
@@ -680,7 +679,7 @@ mod tests {
 
     #[test]
     fn persisted() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("foo");
         File::create(&path).unwrap();
 
@@ -710,7 +709,7 @@ mod tests {
 
     #[test]
     fn multivar() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("foo");
         File::create(&path).unwrap();
 

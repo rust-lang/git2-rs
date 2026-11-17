@@ -14,13 +14,21 @@ use std::ptr;
 
 use tempfile::TempDir;
 
+/// Creates a temporary directory. std has no temporary directory on WASI, so
+/// tests there use `/tmp`, which the test runner must preopen.
+fn tempdir() -> std::io::Result<TempDir> {
+    #[cfg(target_os = "wasi")]
+    let _ = tempfile::env::override_temp_dir(Path::new("/tmp"));
+    TempDir::new()
+}
+
 // Skip on MacOS, where git cannot even create a branch with a non-UTF8 name
-// Same on Windows
+// Same on Windows, and on WASI, whose paths must be UTF-8
 
 #[test]
-#[cfg_attr(any(windows, target_os = "macos"), ignore)]
+#[cfg_attr(any(windows, target_os = "macos", target_os = "wasi"), ignore)]
 fn non_utf8_branch() {
-    let td = TempDir::new().unwrap();
+    let td = tempdir().unwrap();
     let path = td.path();
     {
         let mut opts = RepositoryInitOptions::new();
@@ -56,10 +64,13 @@ fn non_utf8_branch() {
         // based on util.rs IntoCString for OsString
         // Need cfg() guards since the file is compiled on Windows even when
         // the test is skipped
-        #[cfg(unix)]
+        #[cfg(any(unix, target_os = "wasi"))]
         fn ostr_to_cstr(s: OsString) -> CString {
             use std::ffi::OsStr;
-            use std::os::unix::prelude::*;
+            #[cfg(unix)]
+            use std::os::unix::ffi::OsStrExt;
+            #[cfg(target_os = "wasi")]
+            use std::os::wasi::ffi::OsStrExt;
             let s: &OsStr = s.as_ref();
             CString::new(s.as_bytes()).unwrap()
         }
@@ -163,7 +174,7 @@ fn non_utf8_branch() {
 #[test]
 fn stash_length() {
     // Test that reflog() and len() allow tracking the number of stashed entries
-    let td = TempDir::new().unwrap();
+    let td = tempdir().unwrap();
     let path = td.path();
 
     let mut opts = RepositoryInitOptions::new();
@@ -231,7 +242,7 @@ fn branch_name_on_init() {
     // no commits are made yet and the branch doesn't exist
     // Test with "main"
     {
-        let td = TempDir::new().unwrap();
+        let td = tempdir().unwrap();
         let path = td.path();
 
         let mut opts = RepositoryInitOptions::new();
@@ -247,7 +258,7 @@ fn branch_name_on_init() {
     }
     // Test with "somerandombranchnamehere"
     {
-        let td = TempDir::new().unwrap();
+        let td = tempdir().unwrap();
         let path = td.path();
 
         let mut opts = RepositoryInitOptions::new();
@@ -265,7 +276,7 @@ fn branch_name_on_init() {
 
 #[test]
 fn repo_status() {
-    let td = TempDir::new().unwrap();
+    let td = tempdir().unwrap();
     let path = td.path();
 
     let mut opts = RepositoryInitOptions::new();
@@ -322,6 +333,16 @@ fn repo_status() {
 
         #[cfg(windows)]
         std::os::windows::fs::symlink_file(to, from).unwrap();
+
+        // WASI only allows relative symlinks that stay within a preopened
+        // directory, and std's symlink there is unstable.
+        #[cfg(target_os = "wasi")]
+        {
+            use std::os::wasi::ffi::OsStrExt;
+            let to = CString::new(to.file_name().unwrap().as_bytes()).unwrap();
+            let from = CString::new(from.as_os_str().as_bytes()).unwrap();
+            assert_eq!(unsafe { libc::symlink(to.as_ptr(), from.as_ptr()) }, 0);
+        }
     }
     create_symlink(&path.join("Unchanged"), &path.join("IndexTypechange"));
 
@@ -408,7 +429,7 @@ fn repo_status() {
 
 #[test]
 fn repo_status_clean() {
-    let td = TempDir::new().unwrap();
+    let td = tempdir().unwrap();
     let path = td.path();
 
     let mut opts = RepositoryInitOptions::new();

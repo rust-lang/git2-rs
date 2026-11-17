@@ -744,7 +744,6 @@ mod tests {
     use crate::{CheckoutNotificationType, FileMode, Repository};
     use std::fs;
     use std::path::Path;
-    use tempfile::TempDir;
 
     #[test]
     fn smoke() {
@@ -754,9 +753,9 @@ mod tests {
 
     #[test]
     fn smoke2() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         Repository::init_bare(td.path().join("bare")).unwrap();
-        let url = if cfg!(unix) {
+        let url = if !cfg!(windows) {
             format!("file://{}/bare", td.path().display())
         } else {
             format!(
@@ -791,8 +790,8 @@ mod tests {
     /// Issue regression test #365
     #[test]
     fn notify_callback() {
-        let td = TempDir::new().unwrap();
-        let cd = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
+        let cd = crate::test::tempdir().unwrap();
 
         {
             let mut opts = crate::RepositoryInitOptions::new();

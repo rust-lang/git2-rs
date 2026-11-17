@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 use std::ptr;
 use tempfile::TempDir;
 use url::Url;
@@ -17,8 +17,16 @@ macro_rules! t {
     };
 }
 
+/// Creates a temporary directory. std has no temporary directory on WASI, so
+/// tests there use `/tmp`, which the test runner must preopen.
+pub fn tempdir() -> io::Result<TempDir> {
+    #[cfg(target_os = "wasi")]
+    let _ = tempfile::env::override_temp_dir(Path::new("/tmp"));
+    TempDir::new()
+}
+
 fn repo_init_ext(format: ObjectFormat) -> (TempDir, Repository) {
-    let td = TempDir::new().unwrap();
+    let td = tempdir().unwrap();
     let mut opts = RepositoryInitOptions::new();
     opts.initial_head("main");
     opts.object_format(format);
@@ -70,7 +78,7 @@ pub fn worktrees_env_init(repo: &Repository) -> (TempDir, Branch<'_>) {
     let oid = repo.head().unwrap().target().unwrap();
     let commit = repo.find_commit(oid).unwrap();
     let branch = repo.branch("wt-branch", &commit, true).unwrap();
-    let wtdir = TempDir::new().unwrap();
+    let wtdir = tempdir().unwrap();
     (wtdir, branch)
 }
 
@@ -78,11 +86,14 @@ pub fn worktrees_env_init(repo: &Repository) -> (TempDir, Branch<'_>) {
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
     Ok(original.canonicalize()?.to_path_buf())
 }
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 pub fn realpath(original: &Path) -> io::Result<PathBuf> {
     use libc::c_char;
     use std::ffi::{CStr, CString, OsString};
-    use std::os::unix::prelude::*;
+    #[cfg(unix)]
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+    #[cfg(target_os = "wasi")]
+    use std::os::wasi::ffi::{OsStrExt, OsStringExt};
     extern "C" {
         fn realpath(name: *const c_char, resolved: *mut c_char) -> *mut c_char;
     }

@@ -8,7 +8,16 @@ use git2::{ConfigLevel, IntoCString};
 // initialization in libgit2's `git_sysdir_global_init` function.
 #[test]
 fn search_path() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(not(target_os = "wasi"))]
     use std::env::join_paths;
+    // std::env::join_paths is unsupported on WASI, where libgit2 separates
+    // paths with ':' as on unix.
+    #[cfg(target_os = "wasi")]
+    fn join_paths<'a>(
+        paths: impl Iterator<Item = &'a &'a str>,
+    ) -> std::io::Result<std::ffi::OsString> {
+        Ok(paths.copied().collect::<Vec<_>>().join(":").into())
+    }
 
     let path = "fake_path";
     let original = unsafe { opts::get_search_path(ConfigLevel::Global) };
