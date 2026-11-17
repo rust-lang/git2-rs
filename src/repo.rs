@@ -526,7 +526,7 @@ impl Repository {
     /// If `update_link` is true, create/update the gitlink file in the workdir
     /// and set config "core.worktree" (if workdir is not the parent of the .git
     /// directory).
-    pub fn set_workdir(&self, path: &Path, update_gitlink: bool) -> Result<(), Error> {
+    pub fn set_workdir(&mut self, path: &Path, update_gitlink: bool) -> Result<(), Error> {
         // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         unsafe {
