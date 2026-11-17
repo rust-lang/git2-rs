@@ -37,6 +37,15 @@ jobs:
     - name: Install Rust (rustup)
       run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       shell: bash
+
+    - name: Update compile fail expected output (MSRV)
+      if: ${{ matrix.build == 'MSRV' }}
+      run: mv tests/compile_fail/MSRV-diff_send.stderr tests/compile_fail/diff_send.stderr
+
+    - name: Update compile fail expected output (nightly)
+      if: ${{ matrix.build == 'nightly' }}
+      run: mv tests/compile_fail/NEXT_SOLVER-diff_send.stderr tests/compile_fail/diff_send.stderr
+
     - run: cargo test --locked
     - run: cargo test --features https,ssh
     # Single-threaded: libgit2's builtin SHA256 is not thread-safe.
