@@ -827,7 +827,6 @@ mod tests {
     use crate::{AutotagOption, PushOptions, RemoteUpdateFlags};
     use crate::{Direction, FetchOptions, ObjectFormat, Remote, RemoteCallbacks, Repository};
     use std::cell::Cell;
-    use tempfile::TempDir;
 
     #[test]
     fn smoke() {
@@ -852,12 +851,12 @@ mod tests {
 
     #[test]
     fn create_remote() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let remote = td.path().join("remote");
         Repository::init_bare(&remote).unwrap();
 
         let (_td, repo) = crate::test::repo_init();
-        let url = if cfg!(unix) {
+        let url = if !cfg!(windows) {
             format!("file://{}", remote.display())
         } else {
             format!(
@@ -944,7 +943,7 @@ mod tests {
 
     #[test]
     fn create_remote_anonymous() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
 
         let origin = repo.remote_anonymous("/path/to/nowhere").unwrap();
@@ -955,12 +954,12 @@ mod tests {
     #[test]
     fn empty_remote_list() {
         // Regression tests for issue #1217
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let repo = Repository::init(td.path()).unwrap();
 
-        let remote_dir = TempDir::new().unwrap();
+        let remote_dir = crate::test::tempdir().unwrap();
         let _remote_repo = Repository::init_bare(remote_dir.path()).unwrap();
-        let remote_url = if cfg!(unix) {
+        let remote_url = if !cfg!(windows) {
             format!("file://{}", remote_dir.path().display())
         } else {
             format!(
@@ -985,7 +984,7 @@ mod tests {
     #[test]
     fn transfer_cb() {
         let (td, _repo) = crate::test::repo_init();
-        let td2 = TempDir::new().unwrap();
+        let td2 = crate::test::tempdir().unwrap();
         let url = crate::test::path2url(td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
@@ -1021,7 +1020,7 @@ mod tests {
     #[test]
     fn connect_list() {
         let (td, _repo) = crate::test::repo_init();
-        let td2 = TempDir::new().unwrap();
+        let td2 = crate::test::tempdir().unwrap();
         let url = crate::test::path2url(td.path());
 
         let repo = Repository::init(td2.path()).unwrap();
@@ -1052,8 +1051,8 @@ mod tests {
     #[test]
     fn push() {
         let (_td, repo) = crate::test::repo_init();
-        let td2 = TempDir::new().unwrap();
-        let td3 = TempDir::new().unwrap();
+        let td2 = crate::test::tempdir().unwrap();
+        let td3 = crate::test::tempdir().unwrap();
         let url = crate::test::path2url(td2.path());
 
         let mut opts = crate::RepositoryInitOptions::new();
@@ -1085,14 +1084,17 @@ mod tests {
         assert_eq!(commit.message(), Ok("initial\n\nbody"));
     }
 
+    // wasmtime can't remove directories whose paths end in a slash, as
+    // libgit2 passes them: https://github.com/bytecodealliance/wasmtime/issues/11524
     #[test]
+    #[cfg_attr(target_os = "wasi", ignore)]
     fn prune() {
         let (td, remote_repo) = crate::test::repo_init();
         let oid = remote_repo.head().unwrap().target().unwrap();
         let commit = remote_repo.find_commit(oid).unwrap();
         remote_repo.branch("stale", &commit, true).unwrap();
 
-        let td2 = TempDir::new().unwrap();
+        let td2 = crate::test::tempdir().unwrap();
         let url = crate::test::path2url(td.path());
         let repo = Repository::clone(&url, &td2).unwrap();
 
@@ -1132,7 +1134,7 @@ mod tests {
         let (_td, repo) = crate::test::repo_init();
         let oid = repo.head().unwrap().target().unwrap();
 
-        let td2 = TempDir::new().unwrap();
+        let td2 = crate::test::tempdir().unwrap();
         let url = crate::test::path2url(td2.path());
         let mut opts = crate::RepositoryInitOptions::new();
         opts.bare(true);

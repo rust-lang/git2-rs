@@ -285,13 +285,11 @@ mod tests {
     use crate::WorktreeAddOptions;
     use crate::WorktreeLockStatus;
 
-    use tempfile::TempDir;
-
     #[test]
     fn smoke_add_no_ref() {
         let (_td, repo) = crate::test::repo_init();
 
-        let wtdir = TempDir::new().unwrap();
+        let wtdir = crate::test::tempdir().unwrap();
         let wt_path = wtdir.path().join("tree-no-ref-dir");
         let opts = WorktreeAddOptions::new();
 
@@ -309,7 +307,7 @@ mod tests {
     fn smoke_add_locked() {
         let (_td, repo) = crate::test::repo_init();
 
-        let wtdir = TempDir::new().unwrap();
+        let wtdir = crate::test::tempdir().unwrap();
         let wt_path = wtdir.path().join("locked-tree");
         let mut opts = WorktreeAddOptions::new();
         opts.lock(true);

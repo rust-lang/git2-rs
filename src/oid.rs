@@ -400,7 +400,6 @@ mod tests {
     use super::Oid;
     use crate::ObjectFormat;
     use crate::ObjectType;
-    use tempfile::TempDir;
 
     #[test]
     fn conversions() {
@@ -582,7 +581,7 @@ mod tests {
 
     #[test]
     fn hash_file() {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("hello.txt");
         let mut file = File::create(&path).unwrap();
         file.write_all("Hello".as_bytes()).unwrap();
@@ -593,7 +592,7 @@ mod tests {
 
     #[test]
     fn hash_file_ext_sha1() -> Result<(), Error> {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("test.txt");
         let mut file = File::create(&path).unwrap();
         file.write_all(b"test content").unwrap();
@@ -607,7 +606,7 @@ mod tests {
     #[test]
     #[cfg(feature = "unstable-sha256")]
     fn hash_file_ext_sha256() -> Result<(), Error> {
-        let td = TempDir::new().unwrap();
+        let td = crate::test::tempdir().unwrap();
         let path = td.path().join("test.txt");
         let mut file = File::create(&path).unwrap();
         file.write_all(b"test content").unwrap();

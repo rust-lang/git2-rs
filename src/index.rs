@@ -885,7 +885,6 @@ impl Binding for IndexEntry {
 mod tests {
     use std::fs::{self, File};
     use std::path::Path;
-    use tempfile::TempDir;
 
     use crate::{
         ErrorCode, Index, IndexEntry, IndexTime, ObjectFormat, Oid, Repository, ResetType,
@@ -983,7 +982,7 @@ mod tests {
         let obj = repo.find_object(commit, None).unwrap();
         repo.reset(&obj, ResetType::Hard, None).unwrap();
 
-        let td2 = TempDir::new().unwrap();
+        let td2 = crate::test::tempdir().unwrap();
         let url = crate::test::path2url(root);
         let repo = Repository::clone(&url, td2.path()).unwrap();
         let obj = repo.find_object(commit, None).unwrap();
