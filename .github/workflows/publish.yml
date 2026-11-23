@@ -19,15 +19,16 @@ on:
         type: string
         default: main
 
-permissions:
-  contents: write
-  id-token: write
+permissions: {}
 
 jobs:
   publish:
     name: Publish to crates.io
     runs-on: ubuntu-latest
     environment: publish
+    permissions:
+      contents: write # Required by `ci/publish.sh` to push the release tag.
+      id-token: write # Required by `rust-lang/crates-io-auth-action` to obtain the crates.io token via OIDC.
     steps:
       - uses: actions/checkout@master
         with:
