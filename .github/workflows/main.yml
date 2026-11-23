@@ -4,6 +4,8 @@ on:
   merge_group:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   test:
     name: Test
