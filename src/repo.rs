@@ -128,6 +128,15 @@ pub struct RepositoryInitOptions {
 }
 
 impl Repository {
+    /// Rejects an object id whose hash type is not the repository's.
+    ///
+    /// libgit2 sizes ODB path buffers by the repository's object format but
+    /// formats them with the id's own format, so a mismatched id must never
+    /// reach it.
+    fn check_oid_format(&self, oid: &Oid) -> Result<(), Error> {
+        self.object_format().check_oid(oid)
+    }
+
     /// Attempt to open an already-existing repository at `path`.
     ///
     /// The path can point to either a normal or bare repository.
@@ -887,6 +896,7 @@ impl Repository {
     /// Otherwise, the HEAD will eventually be detached and will directly point
     /// to the peeled commit.
     pub fn set_head_detached(&self, commitish: Oid) -> Result<(), Error> {
+        self.check_oid_format(&commitish)?;
         unsafe {
             try_call!(raw::git_repository_set_head_detached(
                 self.raw,
@@ -1211,6 +1221,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_blob(&self, oid: Oid) -> Result<Blob<'_>, Error> {
+        self.check_oid_format(&oid)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_blob_lookup(&mut raw, self.raw(), oid.raw()));
@@ -1223,7 +1234,7 @@ impl Repository {
         let mut odb = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_odb(&mut odb, self.raw()));
-            Ok(Odb::from_raw(odb))
+            Ok(Odb::from_raw_with_format(odb, self.object_format()))
         }
     }
 
@@ -1461,6 +1472,7 @@ impl Repository {
 
     /// Lookup a reference to one of the commits in a repository.
     pub fn find_commit(&self, oid: Oid) -> Result<Commit<'_>, Error> {
+        self.check_oid_format(&oid)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_commit_lookup(&mut raw, self.raw(), oid.raw()));
@@ -1485,6 +1497,7 @@ impl Repository {
 
     /// Creates an `AnnotatedCommit` from the given commit id.
     pub fn find_annotated_commit(&self, id: Oid) -> Result<AnnotatedCommit<'_>, Error> {
+        self.check_oid_format(&id)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_annotated_commit_lookup(
@@ -1498,6 +1511,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_object(&self, oid: Oid, kind: Option<ObjectType>) -> Result<Object<'_>, Error> {
+        self.check_oid_format(&oid)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_object_lookup(
@@ -1544,6 +1558,7 @@ impl Repository {
     ) -> Result<Reference<'_>, Error> {
         let name = CString::new(name)?;
         let log_message = CString::new(log_message)?;
+        self.check_oid_format(&id)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_reference_create(
@@ -1966,6 +1981,7 @@ impl Repository {
 
     /// Lookup a reference to one of the objects in a repository.
     pub fn find_tree(&self, oid: Oid) -> Result<Tree<'_>, Error> {
+        self.check_oid_format(&oid)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tree_lookup(&mut raw, self.raw(), oid.raw()));
@@ -1986,7 +2002,7 @@ impl Repository {
         };
         unsafe {
             try_call!(raw::git_treebuilder_new(&mut ret, self.raw, tree));
-            Ok(Binding::from_raw(ret))
+            Ok(TreeBuilder::from_raw_with_format(ret, self.object_format()))
         }
     }
 
@@ -2083,6 +2099,7 @@ impl Repository {
 
     /// Lookup a tag object from the repository.
     pub fn find_tag(&self, id: Oid) -> Result<Tag<'_>, Error> {
+        self.check_oid_format(&id)?;
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_tag_lookup(&mut raw, self.raw, id.raw()));
@@ -2547,7 +2564,7 @@ impl Repository {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
-            Ok(Binding::from_raw(raw))
+            Ok(Revwalk::from_raw_with_format(raw, self.object_format()))
         }
     }
 
@@ -2557,6 +2574,9 @@ impl Repository {
         path: &Path,
         opts: Option<&mut BlameOptions>,
     ) -> Result<Blame<'_>, Error> {
+        if let Some(opts) = opts.as_deref() {
+            opts.check_oid_formats(self.object_format())?;
+        }
         let path = path_to_repo_path(path)?;
         let mut raw = ptr::null_mut();
 
@@ -2573,6 +2593,8 @@ impl Repository {
 
     /// Find a merge base between two commits
     pub fn merge_base(&self, one: Oid, two: Oid) -> Result<Oid, Error> {
+        self.check_oid_format(&one)?;
+        self.check_oid_format(&two)?;
         let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_merge_base(
@@ -2619,6 +2641,9 @@ impl Repository {
     /// If you're looking to recieve the common merge base between all the
     /// given commits, use [`Self::merge_base_octopus`].
     pub fn merge_base_many(&self, oids: &[Oid]) -> Result<Oid, Error> {
+        for oid in oids {
+            self.check_oid_format(oid)?;
+        }
         let mut raw = crate::util::zeroed_raw_oid();
 
         unsafe {
@@ -2634,6 +2659,9 @@ impl Repository {
 
     /// Find a common merge base between all given a list of commits
     pub fn merge_base_octopus(&self, oids: &[Oid]) -> Result<Oid, Error> {
+        for oid in oids {
+            self.check_oid_format(oid)?;
+        }
         let mut raw = crate::util::zeroed_raw_oid();
 
         unsafe {
@@ -2715,6 +2743,8 @@ impl Repository {
     /// other as its upstream, the ahead and behind values will be what git
     /// would report for the branches.
     pub fn graph_ahead_behind(&self, local: Oid, upstream: Oid) -> Result<(usize, usize), Error> {
+        self.check_oid_format(&local)?;
+        self.check_oid_format(&upstream)?;
         let mut ahead: size_t = 0;
         let mut behind: size_t = 0;
         unsafe {
@@ -2734,6 +2764,8 @@ impl Repository {
     /// Note that a commit is not considered a descendant of itself, in contrast
     /// to `git merge-base --is-ancestor`.
     pub fn graph_descendant_of(&self, commit: Oid, ancestor: Oid) -> Result<bool, Error> {
+        self.check_oid_format(&commit)?;
+        self.check_oid_format(&ancestor)?;
         let rv = unsafe {
             try_call!(raw::git_graph_descendant_of(
                 self.raw(),
@@ -3055,7 +3087,7 @@ impl Repository {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_packbuilder_new(&mut ret, self.raw()));
-            Ok(Binding::from_raw(ret))
+            Ok(PackBuilder::from_raw_with_format(ret, self.object_format()))
         }
     }
 

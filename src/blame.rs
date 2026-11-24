@@ -1,5 +1,7 @@
 use crate::util::{self, Binding};
-use crate::{raw, signature, Error, ErrorClass, ErrorCode, Oid, Repository, Signature};
+use crate::{
+    raw, signature, Error, ErrorClass, ErrorCode, ObjectFormat, Oid, Repository, Signature,
+};
 use libc::c_char;
 use std::iter::FusedIterator;
 use std::mem;
@@ -243,6 +245,17 @@ impl Default for BlameOptions {
 }
 
 impl BlameOptions {
+    /// Rejects a bound commit whose hash type is not the repository's.
+    pub(crate) fn check_oid_formats(&self, format: ObjectFormat) -> Result<(), Error> {
+        for oid in [&self.raw.newest_commit, &self.raw.oldest_commit] {
+            if unsafe { raw::git_oid_is_zero(oid) } == 0 {
+                let oid = unsafe { Oid::from_raw(oid) };
+                format.check_oid(&oid)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Initialize options
     pub fn new() -> BlameOptions {
         let mut raw: raw::git_blame_options = unsafe { mem::zeroed() };

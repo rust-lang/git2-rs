@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::str;
 
-use crate::{raw, Error, IntoCString, ObjectType};
+use crate::{raw, Error, ErrorClass, ErrorCode, IntoCString, ObjectType};
 
 use crate::util::{c_cmp_to_ordering, Binding};
 
@@ -27,6 +27,18 @@ impl ObjectFormat {
             #[cfg(feature = "unstable-sha256")]
             ObjectFormat::Sha256 => "sha256",
         }
+    }
+
+    /// Rejects an `Oid` whose hash type is not this format.
+    pub(crate) fn check_oid(self, oid: &Oid) -> Result<(), Error> {
+        if oid.object_format() != self {
+            return Err(Error::new(
+                ErrorCode::Invalid,
+                ErrorClass::Invalid,
+                "object ID type does not match repository object format",
+            ));
+        }
+        Ok(())
     }
 }
 

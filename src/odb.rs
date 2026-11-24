@@ -17,6 +17,7 @@ use crate::{
 /// A structure to represent a git object database
 pub struct Odb<'repo> {
     raw: *mut raw::git_odb,
+    format: ObjectFormat,
     _marker: marker::PhantomData<Object<'repo>>,
 }
 
@@ -28,10 +29,7 @@ impl<'repo> Binding for Odb<'repo> {
     type Raw = *mut raw::git_odb;
 
     unsafe fn from_raw(raw: *mut raw::git_odb) -> Odb<'repo> {
-        Odb {
-            raw,
-            _marker: marker::PhantomData,
-        }
+        Odb::from_raw_with_format(raw, ObjectFormat::Sha1)
     }
     fn raw(&self) -> *mut raw::git_odb {
         self.raw
@@ -45,6 +43,22 @@ impl<'repo> Drop for Odb<'repo> {
 }
 
 impl<'repo> Odb<'repo> {
+    pub(crate) unsafe fn from_raw_with_format(
+        raw: *mut raw::git_odb,
+        format: ObjectFormat,
+    ) -> Odb<'repo> {
+        Odb {
+            raw,
+            format,
+            _marker: marker::PhantomData,
+        }
+    }
+
+    /// Rejects an object id whose hash type is not this database's.
+    fn check_oid_format(&self, oid: &Oid) -> Result<(), Error> {
+        self.format.check_oid(oid)
+    }
+
     /// Creates an object database without any backends.
     ///
     /// This always creates a SHA1 object database.
@@ -76,7 +90,7 @@ impl<'repo> Odb<'repo> {
                 try_call!(raw::git_odb_new(&mut out, &opts));
             }
         }
-        Ok(unsafe { Odb::from_raw(out) })
+        Ok(unsafe { Odb::from_raw_with_format(out, format) })
     }
 
     /// Create object database reading stream.
@@ -84,6 +98,7 @@ impl<'repo> Odb<'repo> {
     /// Note that most backends do not support streaming reads because they store their objects as compressed/delta'ed blobs.
     /// If the backend does not support streaming reads, use the `read` method instead.
     pub fn reader(&self, oid: Oid) -> Result<(OdbReader<'_>, usize, ObjectType), Error> {
+        self.check_oid_format(&oid)?;
         let mut out = ptr::null_mut();
         let mut size = 0usize;
         let mut otype: raw::git_object_t = ObjectType::Any.raw();
@@ -141,6 +156,7 @@ impl<'repo> Odb<'repo> {
 
     /// Read an object from the database.
     pub fn read(&self, oid: Oid) -> Result<OdbObject<'_>, Error> {
+        self.check_oid_format(&oid)?;
         let mut out = ptr::null_mut();
         unsafe {
             try_call!(raw::git_odb_read(&mut out, self.raw, oid.raw()));
@@ -151,6 +167,7 @@ impl<'repo> Odb<'repo> {
     /// Reads the header of an object from the database
     /// without reading the full content.
     pub fn read_header(&self, oid: Oid) -> Result<(usize, ObjectType), Error> {
+        self.check_oid_format(&oid)?;
         let mut size: usize = 0;
         let mut kind_id: i32 = ObjectType::Any.raw();
 
@@ -205,16 +222,23 @@ impl<'repo> Odb<'repo> {
 
     /// Checks if the object database has an object.
     pub fn exists(&self, oid: Oid) -> bool {
+        if oid.object_format() != self.format {
+            return false;
+        }
         unsafe { raw::git_odb_exists(self.raw, oid.raw()) != 0 }
     }
 
     /// Checks if the object database has an object, with extended flags.
     pub fn exists_ext(&self, oid: Oid, flags: OdbLookupFlags) -> bool {
+        if oid.object_format() != self.format {
+            return false;
+        }
         unsafe { raw::git_odb_exists_ext(self.raw, oid.raw(), flags.bits() as c_uint) != 0 }
     }
 
     /// Potentially finds an object that starts with the given prefix.
     pub fn exists_prefix(&self, short_oid: Oid, len: usize) -> Result<Oid, Error> {
+        self.check_oid_format(&short_oid)?;
         let mut out = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_odb_exists_prefix(

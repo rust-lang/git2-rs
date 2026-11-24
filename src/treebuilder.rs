@@ -4,7 +4,7 @@ use std::ptr;
 use libc::{c_int, c_void};
 
 use crate::util::{Binding, IntoCString};
-use crate::{panic, raw, tree, Error, Oid, Repository, TreeEntry};
+use crate::{panic, raw, tree, Error, ObjectFormat, Oid, Repository, TreeEntry};
 
 /// Constructor for in-memory trees (low-level)
 ///
@@ -17,6 +17,7 @@ use crate::{panic, raw, tree, Error, Oid, Repository, TreeEntry};
 /// [`build::TreeUpdateBuilder`]: crate::build::TreeUpdateBuilder
 pub struct TreeBuilder<'repo> {
     raw: *mut raw::git_treebuilder,
+    format: ObjectFormat,
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
@@ -66,6 +67,7 @@ impl<'repo> TreeBuilder<'repo> {
         oid: Oid,
         filemode: i32,
     ) -> Result<TreeEntry<'_>, Error> {
+        self.format.check_oid(&oid)?;
         let filename = filename.into_c_string()?;
         let filemode = filemode as raw::git_filemode_t;
 
@@ -140,14 +142,24 @@ extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void)
     }
 }
 
+impl<'repo> TreeBuilder<'repo> {
+    pub(crate) unsafe fn from_raw_with_format(
+        raw: *mut raw::git_treebuilder,
+        format: ObjectFormat,
+    ) -> TreeBuilder<'repo> {
+        TreeBuilder {
+            raw,
+            format,
+            _marker: marker::PhantomData,
+        }
+    }
+}
+
 impl<'repo> Binding for TreeBuilder<'repo> {
     type Raw = *mut raw::git_treebuilder;
 
     unsafe fn from_raw(raw: *mut raw::git_treebuilder) -> TreeBuilder<'repo> {
-        TreeBuilder {
-            raw,
-            _marker: marker::PhantomData,
-        }
+        TreeBuilder::from_raw_with_format(raw, ObjectFormat::Sha1)
     }
     fn raw(&self) -> *mut raw::git_treebuilder {
         self.raw

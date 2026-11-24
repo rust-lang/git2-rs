@@ -91,6 +91,18 @@ pub struct IndexEntry {
 }
 
 impl Index {
+    /// Rejects an object id whose hash type is not the owner repository's.
+    fn check_oid_format(&self, oid: &Oid) -> Result<(), Error> {
+        unsafe {
+            let repo = raw::git_index_owner(self.raw);
+            if repo.is_null() {
+                return Ok(());
+            }
+            let format: ObjectFormat = Binding::from_raw(raw::git_repository_oid_type(repo));
+            format.check_oid(oid)
+        }
+    }
+
     /// Creates a new in-memory index.
     ///
     /// This index object cannot be read/written to the filesystem, but may be
@@ -194,6 +206,7 @@ impl Index {
     /// given 'source_entry', it will be replaced. Otherwise, the 'source_entry'
     /// will be added.
     pub fn add(&mut self, entry: &IndexEntry) -> Result<(), Error> {
+        self.check_oid_format(&entry.id)?;
         let path = CString::new(&entry.path[..])?;
 
         // libgit2 encodes the length of the path in the lower bits of the

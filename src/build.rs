@@ -724,6 +724,12 @@ impl TreeUpdateBuilder {
     ///
     /// The baseline tree must exist in the specified repository.
     pub fn create_updated(&mut self, repo: &Repository, baseline: &Tree<'_>) -> Result<Oid, Error> {
+        for update in &self.updates {
+            if unsafe { raw::git_oid_is_zero(&update.id) } == 0 {
+                let oid = unsafe { Oid::from_raw(&update.id) };
+                repo.object_format().check_oid(&oid)?;
+            }
+        }
         let mut ret = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_tree_create_updated(
