@@ -162,7 +162,9 @@ fn non_utf8_branch() {
 
 #[test]
 fn stash_length() {
-    // Test that reflog() and len() allow tracking the number of stashed entries
+    // Test that reflog() and len() allow tracking the number of stashed entries.
+    // A Reflog borrows the repository, so it must not be held across the
+    // mutable stash operations; query it fresh at each step instead.
     let td = TempDir::new().unwrap();
     let path = td.path();
 
@@ -170,8 +172,7 @@ fn stash_length() {
     opts.initial_head("main");
     let mut repo = Repository::init_opts(path, &opts).unwrap();
 
-    let initial_reflog = repo.reflog("refs/stash").expect("Should work");
-    assert_eq!(0, initial_reflog.len());
+    assert_eq!(0, repo.reflog("refs/stash").expect("Should work").len());
 
     let mut config = repo.config().unwrap();
     config.set_str("user.name", "name").unwrap();
@@ -191,38 +192,21 @@ fn stash_length() {
     repo.stash_save(&sig, "Stashed", Some(StashFlags::INCLUDE_UNTRACKED))
         .unwrap();
 
-    // Existing reflog references are not updated
-    assert_eq!(0, initial_reflog.len());
-
-    let after_stash1 = repo.reflog("refs/stash").expect("Should work");
-    assert_eq!(1, after_stash1.len());
+    assert_eq!(1, repo.reflog("refs/stash").expect("Should work").len());
 
     fs::write(path.join("README.md2"), "README content").unwrap();
     repo.stash_save(&sig, "Stashed2", Some(StashFlags::INCLUDE_UNTRACKED))
         .unwrap();
 
-    assert_eq!(0, initial_reflog.len());
-    assert_eq!(1, after_stash1.len());
-
-    let after_stash2 = repo.reflog("refs/stash").expect("Should work");
-    assert_eq!(2, after_stash2.len());
+    assert_eq!(2, repo.reflog("refs/stash").expect("Should work").len());
 
     repo.stash_drop(1).expect("Should succeed");
 
-    assert_eq!(0, initial_reflog.len());
-    assert_eq!(1, after_stash1.len());
-    assert_eq!(2, after_stash2.len());
-    let after_drop1 = repo.reflog("refs/stash").expect("Should work");
-    assert_eq!(1, after_drop1.len());
+    assert_eq!(1, repo.reflog("refs/stash").expect("Should work").len());
 
     repo.stash_drop(0).expect("Should succeed");
 
-    assert_eq!(0, initial_reflog.len());
-    assert_eq!(1, after_stash1.len());
-    assert_eq!(2, after_stash2.len());
-    assert_eq!(1, after_drop1.len());
-    let after_drop2 = repo.reflog("refs/stash").expect("Should work");
-    assert_eq!(0, after_drop2.len());
+    assert_eq!(0, repo.reflog("refs/stash").expect("Should work").len());
 }
 
 #[test]

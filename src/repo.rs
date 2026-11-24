@@ -2748,7 +2748,7 @@ impl Repository {
     ///
     /// If there is no reflog file for the given reference yet, an empty reflog
     /// object will be returned.
-    pub fn reflog(&self, name: &str) -> Result<Reflog, Error> {
+    pub fn reflog(&self, name: &str) -> Result<Reflog<'_>, Error> {
         let name = CString::new(name)?;
         let mut ret = ptr::null_mut();
         unsafe {
