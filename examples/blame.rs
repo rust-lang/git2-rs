@@ -73,7 +73,15 @@ fn run(args: &Args) -> Result<(), git2::Error> {
         }
     }
 
-    let spec = format!("{}:{}", commit_id, path.display());
+    let spec = if cfg!(unix) {
+        format!("{}:{}", commit_id, path.display())
+    } else {
+        format!(
+            "{}:{}",
+            commit_id,
+            path.display().to_string().replace("\\", "/")
+        )
+    };
     let blame = repo.blame_file(path, Some(&mut opts))?;
     let object = repo.revparse_single(&spec[..])?;
     let blob = repo.find_blob(object.id())?;
