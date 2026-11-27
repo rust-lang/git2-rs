@@ -1,0 +1,9 @@
+error[E0502]: cannot borrow `repo` as mutable because it is also borrowed as immutable
+  --> tests/compile_fail/repo_workdir_set.rs:11:5
+   |
+10 |     let workdir = repo.workdir().unwrap();
+   |                   ---- immutable borrow occurs here
+11 |     repo.set_workdir(&dir.join(".git"), false).unwrap();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+12 |     println!("{}", workdir.display());
+   |                    ------- immutable borrow later used here
