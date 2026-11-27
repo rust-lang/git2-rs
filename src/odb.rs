@@ -177,6 +177,20 @@ impl<'repo> Odb<'repo> {
         let progress_payload = Box::new(OdbPackwriterCb { cb: None });
         let progress_payload_ptr = Box::into_raw(progress_payload);
 
+        // TODO: Use DropGuard once MSRV is 1.100+
+        // and/or use Box::as_mut_ptr() once MSRV is 1.98+
+        struct DropGuard<F: FnMut()>(F);
+        impl<F: FnMut()> Drop for DropGuard<F> {
+            fn drop(&mut self) {
+                (self.0)();
+            }
+        }
+        let guard = DropGuard(|| {
+            // SAFETY: Extracted with Box::into_raw() a few lines above
+            let _ = unsafe { Box::from_raw(progress_payload_ptr) };
+        });
+
+        // If this call returns, the DropGuard will run
         unsafe {
             try_call!(raw::git_odb_write_pack(
                 &mut out,
@@ -185,6 +199,10 @@ impl<'repo> Odb<'repo> {
                 progress_payload_ptr as *mut c_void
             ));
         }
+
+        // We are going to track the payload pointer in OdbPackwriter, no need
+        // to restore it
+        std::mem::forget(guard);
 
         Ok(OdbPackwriter {
             raw: out,
