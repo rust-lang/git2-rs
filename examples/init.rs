@@ -42,7 +42,7 @@ struct Args {
     /// permissions to create the repository with
     flag_shared: Option<String>,
     #[structopt(name = "object-format", long, value_parser = parse_object_format)]
-    /// object format to use (sha1 or sha256, requires unstable-sha256 feature to use the sha256 format)
+    /// object format to use (sha1 or sha256)
     flag_object_format: Option<ObjectFormat>,
 }
 
@@ -74,7 +74,6 @@ fn run(args: &Args) -> Result<(), Error> {
             opts.mode(parse_shared(s)?);
         }
 
-        #[cfg(feature = "unstable-sha256")]
         if let Some(format) = args.flag_object_format {
             opts.object_format(format);
         }
@@ -150,7 +149,6 @@ fn parse_shared(shared: &str) -> Result<RepositoryInitMode, Error> {
 fn parse_object_format(format: &str) -> Result<ObjectFormat, Error> {
     match format {
         "sha1" => Ok(ObjectFormat::Sha1),
-        #[cfg(feature = "unstable-sha256")]
         "sha256" => Ok(ObjectFormat::Sha256),
         _ => Err(Error::from_str("object format must be 'sha1' or 'sha256'")),
     }

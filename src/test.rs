@@ -42,7 +42,6 @@ pub fn repo_init() -> (TempDir, Repository) {
     repo_init_ext(ObjectFormat::Sha1)
 }
 
-#[cfg(feature = "unstable-sha256")]
 pub fn repo_init_sha256() -> (TempDir, Repository) {
     repo_init_ext(ObjectFormat::Sha256)
 }
