@@ -125,6 +125,7 @@ pub struct RepositoryInitOptions {
     initial_head: Option<CString>,
     origin_url: Option<CString>,
     oid_type: Option<raw::git_oid_t>,
+    refdb_type: Option<raw::git_refdb_t>,
 }
 
 impl Repository {
@@ -3510,6 +3511,7 @@ impl RepositoryInitOptions {
             initial_head: None,
             origin_url: None,
             oid_type: None,
+            refdb_type: None,
         }
     }
 
@@ -3630,6 +3632,16 @@ impl RepositoryInitOptions {
         self
     }
 
+    /// Selects the storage format for references and reflogs in a new repository.
+    ///
+    /// New repositories use [`crate::RefdbType::Files`] by default. Setting
+    /// this option rejects reinitialization of an existing repository instead
+    /// of migrating its references.
+    pub fn refdb_type(&mut self, format: crate::RefdbType) -> &mut RepositoryInitOptions {
+        self.refdb_type = Some(format.raw());
+        self
+    }
+
     /// Creates a set of raw init options to be used with
     /// `git_repository_init_ext`.
     ///
@@ -3660,6 +3672,10 @@ impl RepositoryInitOptions {
         opts.origin_url = crate::call::convert(&self.origin_url);
         if let Some(oid_type) = self.oid_type {
             opts.oid_type = oid_type;
+        }
+        if let Some(refdb_type) = self.refdb_type {
+            opts.refdb_type = refdb_type;
+            opts.flags |= raw::GIT_REPOSITORY_INIT_NO_REINIT as u32;
         }
         opts
     }

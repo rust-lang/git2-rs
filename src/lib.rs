@@ -124,7 +124,7 @@ pub use crate::pathspec::{PathspecDiffEntries, PathspecEntries};
 pub use crate::proxy_options::ProxyOptions;
 pub use crate::push_update::PushUpdate;
 pub use crate::rebase::{Rebase, RebaseOperation, RebaseOperationType, RebaseOptions};
-pub use crate::refdb::Refdb;
+pub use crate::refdb::{Refdb, RefdbType};
 pub use crate::reference::{Reference, ReferenceNames, References};
 pub use crate::reflog::{Reflog, ReflogEntry, ReflogIter};
 pub use crate::refspec::Refspec;

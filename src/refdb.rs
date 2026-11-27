@@ -3,6 +3,25 @@ use std::marker;
 use crate::util::Binding;
 use crate::{raw, Error, Repository};
 
+/// The storage format used for a repository's references and reflogs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum RefdbType {
+    /// Store loose references and packed references in files.
+    Files,
+    /// Store references and reflogs in reftable tables.
+    Reftable,
+}
+
+impl RefdbType {
+    pub(crate) fn raw(self) -> raw::git_refdb_t {
+        match self {
+            Self::Files => raw::GIT_REFDB_FILES,
+            Self::Reftable => raw::GIT_REFDB_REFTABLE,
+        }
+    }
+}
+
 /// A structure to represent a git reference database.
 pub struct Refdb<'repo> {
     raw: *mut raw::git_refdb,
