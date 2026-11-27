@@ -177,6 +177,20 @@ impl<'repo> Odb<'repo> {
         let progress_payload = Box::new(OdbPackwriterCb { cb: None });
         let progress_payload_ptr = Box::into_raw(progress_payload);
 
+        // TODO: Use DropGuard once MSRV is 1.100+
+        // and/or use Box::as_mut_ptr() once MSRV is 1.98+
+        struct DropGuard<F: FnMut()>(F);
+        impl<F: FnMut()> Drop for DropGuard<F> {
+            fn drop(&mut self) {
+                (self.0)();
+            }
+        }
+        let guard = DropGuard(|| {
+            // SAFETY: Extracted with Box::into_raw() a few lines above
+            let _ = unsafe { Box::from_raw(progress_payload_ptr) };
+        });
+
+        // If this call returns, the DropGuard will run
         unsafe {
             try_call!(raw::git_odb_write_pack(
                 &mut out,
@@ -185,6 +199,10 @@ impl<'repo> Odb<'repo> {
                 progress_payload_ptr as *mut c_void
             ));
         }
+
+        // We are going to track the payload pointer in OdbPackwriter, no need
+        // to restore it
+        std::mem::forget(guard);
 
         Ok(OdbPackwriter {
             raw: out,
@@ -770,5 +788,23 @@ mod tests {
         let r = reader.read(&mut x).unwrap();
         assert_eq!(r, 14);
         assert_eq!(&x[..FOO_TEXT.len()], FOO_TEXT);
+    }
+
+    #[test]
+    fn packwriter_leak() {
+        // Regression test for https://github.com/rust-lang/git2-rs/issues/1346
+        let odb = crate::Odb::new().expect("Should be able to create new Odb");
+        let packwriter_err = match odb.packwriter() {
+            Err(e) => e,
+            Ok(_) => panic!("Expected packwriter() to fail"),
+        };
+        assert_eq!(
+            crate::Error::new(
+                crate::ErrorCode::GenericError,
+                crate::ErrorClass::Odb,
+                "cannot write pack - unsupported in the loaded odb backends"
+            ),
+            packwriter_err
+        );
     }
 }
