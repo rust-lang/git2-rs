@@ -771,4 +771,22 @@ mod tests {
         assert_eq!(r, 14);
         assert_eq!(&x[..FOO_TEXT.len()], FOO_TEXT);
     }
+
+    #[test]
+    fn packwriter_leak() {
+        // Regression test for https://github.com/rust-lang/git2-rs/issues/1346
+        let odb = crate::Odb::new().expect("Should be able to create new Odb");
+        let packwriter_err = match odb.packwriter() {
+            Err(e) => e,
+            Ok(_) => panic!("Expected packwriter() to fail"),
+        };
+        assert_eq!(
+            crate::Error::new(
+                crate::ErrorCode::GenericError,
+                crate::ErrorClass::Odb,
+                "cannot write pack - unsupported in the loaded odb backends"
+            ),
+            packwriter_err
+        );
+    }
 }
