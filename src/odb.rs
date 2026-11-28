@@ -48,9 +48,11 @@ impl<'repo> Drop for Odb<'repo> {
 impl<'repo> Odb<'repo> {
     /// # Safety
     ///
-    /// `raw` must be a valid, non-null `git_odb` pointer that the returned
-    /// `Odb` takes ownership of and frees on drop. `format` must be the
-    /// object format of the repository that produced the handle.
+    /// `raw` must be a valid, non-null `git_odb` pointer with an owned
+    /// reference transferred to the returned `Odb`, which releases that
+    /// reference on drop. `format` must match the database's object format,
+    /// including for a standalone database. Any resources borrowed by the
+    /// database must remain valid for at least `'repo`.
     pub(crate) unsafe fn from_raw_with_format(
         raw: *mut raw::git_odb,
         format: ObjectFormat,
@@ -88,7 +90,7 @@ impl<'repo> Odb<'repo> {
         unsafe {
             try_call!(raw::git_odb_new_ext(&mut out, &opts));
         }
-        // SAFETY: on success, `git_odb_new` wrote a valid, unowned `git_odb`
+        // SAFETY: on success, `git_odb_new_ext` wrote a valid, owned `git_odb`
         // into `out`, and `format` is the object format requested for this
         // database.
         Ok(unsafe { Odb::from_raw_with_format(out, format) })
