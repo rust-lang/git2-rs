@@ -82,7 +82,15 @@ pub unsafe fn get_search_path(level: ConfigLevel) -> Result<CString, Error> {
 /// loading a large number of objects that will not be referenced again.
 /// Disabling this will cause repository objects to clear their caches when next
 /// accessed.
-pub fn enable_caching(enabled: bool) {
+///
+/// # Safety
+///
+/// This modifies libgit2's process-wide `git_cache__enabled` flag, which object
+/// cache lookups and stores read without synchronization. The caller must
+/// ensure that no other thread performs libgit2 operations that read this flag
+/// while the setter runs, and that no other thread calls this setter
+/// concurrently.
+pub unsafe fn enable_caching(enabled: bool) {
     crate::init();
     let error = unsafe {
         raw::git_libgit2_opts(
@@ -157,7 +165,14 @@ pub unsafe fn get_cached_memory() -> Result<(libc::ssize_t, libc::ssize_t), Erro
 /// significantly improve performance, at the cost of potentially allowing the
 /// creation of objects that reference invalid objects (due to programming
 /// error or repository corruption).
-pub fn strict_object_creation(enabled: bool) {
+///
+/// # Safety
+///
+/// This modifies libgit2's process-wide `git_object__strict_input_validation`
+/// flag, which object creation and parsing read without synchronization. The
+/// caller must ensure that no other thread performs those operations while the
+/// setter runs, and that no other thread calls this setter concurrently.
+pub unsafe fn strict_object_creation(enabled: bool) {
     crate::init();
     let error = unsafe {
         raw::git_libgit2_opts(
@@ -174,7 +189,14 @@ pub fn strict_object_creation(enabled: bool) {
 /// expected hash. Enabled by default, but disabling this can significantly
 /// improve performance, at the cost of relying on repository integrity
 /// without checking it.
-pub fn strict_hash_verification(enabled: bool) {
+///
+/// # Safety
+///
+/// This modifies libgit2's process-wide `git_odb__strict_hash_verification`
+/// flag, which object database reads use without synchronization. The caller
+/// must ensure that no other thread performs those reads while the setter runs,
+/// and that no other thread calls this setter concurrently.
+pub unsafe fn strict_hash_verification(enabled: bool) {
     crate::init();
     let error = unsafe {
         raw::git_libgit2_opts(
@@ -497,8 +519,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn smoke() {
-        strict_hash_verification(false);
+    fn setters_have_bool_signature() {
+        // A safe `fn` also coerces to an `unsafe fn` pointer, so this only
+        // checks the argument/return shape. The compile-fail test
+        // `opts_unsafe_setters` is the regression test for the unsafe contract.
+        let _: unsafe fn(bool) = enable_caching;
+        let _: unsafe fn(bool) = strict_object_creation;
+        let _: unsafe fn(bool) = strict_hash_verification;
     }
 
     #[test]
