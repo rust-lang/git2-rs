@@ -470,7 +470,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let head = repo.head().unwrap();

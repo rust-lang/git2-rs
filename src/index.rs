@@ -108,21 +108,11 @@ impl Index {
     pub fn new_ext(format: ObjectFormat) -> Result<Index, Error> {
         crate::init();
         let mut raw = ptr::null_mut();
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_index_new(&mut raw));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let mut opts: raw::git_index_options = unsafe { std::mem::zeroed() };
-            opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
-            opts.oid_type = format.raw();
-            unsafe {
-                try_call!(raw::git_index_new(&mut raw, &opts));
-            }
+        let mut opts: raw::git_index_options = unsafe { std::mem::zeroed() };
+        opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+        opts.oid_type = format.raw();
+        unsafe {
+            try_call!(raw::git_index_new_ext(&mut raw, &opts));
         }
         Ok(unsafe { Binding::from_raw(raw) })
     }
@@ -150,20 +140,10 @@ impl Index {
         let mut raw = ptr::null_mut();
         // Normal file path OK (does not need Windows conversion).
         let index_path = index_path.into_c_string()?;
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_index_open(&mut raw, index_path));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let mut opts: raw::git_index_options = unsafe { std::mem::zeroed() };
-            opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
-            opts.oid_type = format.raw();
-            unsafe { try_call!(raw::git_index_open(&mut raw, index_path, &opts)) };
-        }
+        let mut opts: raw::git_index_options = unsafe { std::mem::zeroed() };
+        opts.version = raw::GIT_INDEX_OPTIONS_VERSION;
+        opts.oid_type = format.raw();
+        unsafe { try_call!(raw::git_index_open_ext(&mut raw, index_path, &opts)) };
         Ok(unsafe { Binding::from_raw(raw) })
     }
 
@@ -1047,10 +1027,7 @@ mod tests {
             uid: 0,
             gid: 0,
             file_size: 0,
-            #[cfg(not(feature = "unstable-sha256"))]
             id: Oid::ZERO_SHA1,
-            #[cfg(feature = "unstable-sha256")]
-            id: Oid::ZERO_SHA256,
             flags: 0,
             flags_extended: 0,
             path: Vec::new(),
@@ -1058,7 +1035,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn index_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut index = repo.index().unwrap();
@@ -1077,7 +1053,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_in_memory_index_sha256() {
         let _index = Index::new_ext(ObjectFormat::Sha256).unwrap();
     }

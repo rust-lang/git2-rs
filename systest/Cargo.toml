@@ -11,6 +11,3 @@ libc = "0.2"
 
 [build-dependencies]
 ctest2 = "0.4"
-
-[features]
-unstable-sha256 = ["libgit2-sys/unstable-sha256"]

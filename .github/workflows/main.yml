@@ -43,21 +43,26 @@ jobs:
 
     - name: Update compile fail expected output (MSRV)
       if: ${{ matrix.build == 'MSRV' }}
-      run: mv tests/compile_fail/MSRV-diff_send.stderr tests/compile_fail/diff_send.stderr
+      run: |
+        mv tests/compile_fail/MSRV-diff_send.stderr tests/compile_fail/diff_send.stderr
+        mv tests/compile_fail/MSRV-repo_namespace_remove.stderr tests/compile_fail/repo_namespace_remove.stderr
+        mv tests/compile_fail/MSRV-repo_namespace_set_bytes.stderr tests/compile_fail/repo_namespace_set_bytes.stderr
+        mv tests/compile_fail/MSRV-repo_namespace_set.stderr tests/compile_fail/repo_namespace_set.stderr
+        mv tests/compile_fail/MSRV-odb_finalize_repeated.stderr tests/compile_fail/odb_finalize_repeated.stderr
 
     - name: Update compile fail expected output (nightly)
       if: ${{ matrix.build == 'nightly' }}
       run: mv tests/compile_fail/NEXT_SOLVER-diff_send.stderr tests/compile_fail/diff_send.stderr
 
+    - name: Update compile fail expected output (1.101+)
+      if: ${{ matrix.build == 'beta' || matrix.build == 'nightly' }}
+      run: |
+        mv tests/compile_fail/EXTRA_CONTEXT-odb_finalize_repeated.stderr tests/compile_fail/odb_finalize_repeated.stderr
+
     - run: cargo test --locked
     - run: cargo test --features https,ssh
-    # Single-threaded: libgit2's builtin SHA256 is not thread-safe.
-    # See https://github.com/rust-lang/git2-rs/issues/1255.
-    - run: cargo test --features unstable-sha256 -- --test-threads=1
-    - run: cargo test --features https,ssh,unstable-sha256
     - run: cargo test -p git2-curl
     - run: cargo run -p systest
-    - run: cargo run -p systest --features unstable-sha256
 
   clippy:
     name: Clippy
