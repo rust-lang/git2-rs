@@ -62,7 +62,7 @@ extern "C" fn mergehead_foreach_cb(oid: *const raw::git_oid, payload: *mut c_voi
             1
         }
     })
-    .unwrap_or(1)
+    .unwrap_or(-1)
 }
 
 extern "C" fn fetchhead_foreach_cb(
@@ -77,12 +77,18 @@ extern "C" fn fetchhead_foreach_cb(
         let res = {
             let callback = &mut data.callback;
 
-            assert!(!ref_name.is_null());
-            assert!(!remote_url.is_null());
             assert!(!oid.is_null());
 
-            let ref_name = str::from_utf8(unsafe { CStr::from_ptr(ref_name) }.to_bytes()).unwrap();
-            let remote_url = unsafe { CStr::from_ptr(remote_url) }.to_bytes();
+            let ref_name = if ref_name.is_null() {
+                ""
+            } else {
+                str::from_utf8(unsafe { CStr::from_ptr(ref_name) }.to_bytes()).unwrap()
+            };
+            let remote_url = if remote_url.is_null() {
+                &[]
+            } else {
+                unsafe { CStr::from_ptr(remote_url) }.to_bytes()
+            };
             let oid = unsafe { Binding::from_raw(oid) };
             let is_merge = is_merge == 1;
 
@@ -95,7 +101,7 @@ extern "C" fn fetchhead_foreach_cb(
             1
         }
     })
-    .unwrap_or(1)
+    .unwrap_or(-1)
 }
 
 /// An owned git repository, representing all state associated with the
@@ -3452,10 +3458,10 @@ impl Repository {
 
     /// Invoke 'callback' for each entry in the given FETCH_HEAD file.
     ///
-    /// `callback` will be called with with following arguments:
+    /// `callback` will be called with the following arguments:
     ///
-    /// - `&str`: the reference name
-    /// - `&[u8]`: the remote URL
+    /// - `&str`: the reference name, or an empty string if absent
+    /// - `&[u8]`: the remote URL, or an empty slice if absent
     /// - `&Oid`: the reference target OID
     /// - `bool`: was the reference the result of a merge
     pub fn fetchhead_foreach<C>(&self, mut callback: C) -> Result<(), Error>
@@ -3692,6 +3698,75 @@ mod tests {
 
     use libgit2_sys as raw;
     use tempfile::TempDir;
+
+    #[test]
+    fn fetchhead_foreach_includes_unnamed_entries() {
+        let dir = TempDir::new().unwrap();
+        let repo = Repository::init(dir.path()).unwrap();
+        let head = repo.blob(b"head").unwrap();
+        let branch = repo.blob(b"branch").unwrap();
+        let legacy = repo.blob(b"legacy").unwrap();
+        let url = "https://example.com/project";
+        fs::write(
+            repo.path().join("FETCH_HEAD"),
+            format!("{head}\t\t{url}\n{branch}\tnot-for-merge\tbranch 'main' of {url}\n{legacy}\n"),
+        )
+        .unwrap();
+
+        let mut entries = Vec::new();
+        repo.fetchhead_foreach(|name, remote, oid, is_merge| {
+            assert_eq!(remote, if *oid == legacy { &[] } else { url.as_bytes() });
+            entries.push((name.to_owned(), *oid, is_merge));
+            true
+        })
+        .unwrap();
+        assert_eq!(
+            entries,
+            [
+                (String::new(), head, true),
+                ("refs/heads/main".to_owned(), branch, false),
+                (String::new(), legacy, true),
+            ]
+        );
+
+        let mut calls = 0;
+        repo.fetchhead_foreach(|_, _, _, _| {
+            calls += 1;
+            false
+        })
+        .unwrap();
+        assert_eq!(calls, 1);
+    }
+
+    #[test]
+    fn head_foreach_propagates_callback_panics() {
+        let dir = TempDir::new().unwrap();
+        let mut repo = Repository::init(dir.path()).unwrap();
+        let oid = repo.blob(b"head").unwrap();
+        fs::write(
+            repo.path().join("FETCH_HEAD"),
+            format!("{oid}\t\tbranch 'main' of https://example.com/project\n"),
+        )
+        .unwrap();
+        fs::write(repo.path().join("MERGE_HEAD"), format!("{oid}\n")).unwrap();
+        repo.mergehead_foreach(|_| false).unwrap();
+
+        let fetch = std::panic::catch_unwind(|| {
+            repo.fetchhead_foreach(|_, _, _, _| std::panic::panic_any("fetch callback"))
+        });
+        assert_eq!(
+            fetch.unwrap_err().downcast_ref::<&str>(),
+            Some(&"fetch callback")
+        );
+
+        let merge = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            repo.mergehead_foreach(|_| std::panic::panic_any("merge callback"))
+        }));
+        assert_eq!(
+            merge.unwrap_err().downcast_ref::<&str>(),
+            Some(&"merge callback")
+        );
+    }
 
     #[test]
     fn smoke_init() {
