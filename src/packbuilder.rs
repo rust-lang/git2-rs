@@ -329,7 +329,6 @@ mod tests {
             .collect::<Vec<u8>>()
     }
 
-    #[cfg(feature = "unstable-sha256")]
     fn empty_pack_header_sha256() -> Vec<u8> {
         pack_header(0)
             .iter()
@@ -363,7 +362,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -385,7 +383,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_write_object_format() {
         // SHA256 hash of a packfile constructed without any objects in it
         const EMPTY_PACKFILE_OID_SHA256: &str =
@@ -410,7 +407,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_foreach_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -436,7 +432,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -464,7 +459,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_tree_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -493,7 +487,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_commit_write_buf_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -519,7 +512,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -543,7 +535,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_tree_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());
@@ -568,7 +559,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn insert_commit_write_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let mut builder = t!(repo.packbuilder());

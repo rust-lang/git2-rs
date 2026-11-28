@@ -82,21 +82,11 @@ impl<'repo> Odb<'repo> {
     pub fn new_ext<'a>(format: ObjectFormat) -> Result<Odb<'a>, Error> {
         crate::init();
         let mut out = ptr::null_mut();
-        #[cfg(not(feature = "unstable-sha256"))]
-        {
-            let _ = format;
-            unsafe {
-                try_call!(raw::git_odb_new(&mut out));
-            }
-        }
-        #[cfg(feature = "unstable-sha256")]
-        {
-            let mut opts: raw::git_odb_options = unsafe { std::mem::zeroed() };
-            opts.version = raw::GIT_ODB_OPTIONS_VERSION;
-            opts.oid_type = format.raw();
-            unsafe {
-                try_call!(raw::git_odb_new(&mut out, &opts));
-            }
+        let mut opts: raw::git_odb_options = unsafe { std::mem::zeroed() };
+        opts.version = raw::GIT_ODB_OPTIONS_VERSION;
+        opts.oid_type = format.raw();
+        unsafe {
+            try_call!(raw::git_odb_new_ext(&mut out, &opts));
         }
         // SAFETY: on success, `git_odb_new` wrote a valid, unowned `git_odb`
         // into `out`, and `format` is the object format requested for this
@@ -298,10 +288,7 @@ impl<'repo> Odb<'repo> {
     /// ```compile_fail
     /// use git2::Odb;
     /// let mempack = {
-    ///     #[cfg(not(feature = "unstable-sha256"))]
     ///     let odb = Odb::new().unwrap();
-    ///     #[cfg(feature = "unstable-sha256")]
-    ///     let odb = Odb::new_ext(git2::ObjectFormat::Sha1).unwrap();
     ///     odb.add_new_mempack_backend(1000).unwrap()
     /// };
     /// ```
@@ -446,8 +433,7 @@ impl<'repo> OdbWriter<'repo> {
     /// This method can be used to finalize writing object to the database and get an identifier.
     /// The object will take its final name and will be available to the odb.
     /// This method will fail if the total number of received bytes differs from the size declared with odb_writer()
-    /// Attempting write after finishing will be ignored.
-    pub fn finalize(&mut self) -> Result<Oid, Error> {
+    pub fn finalize(self) -> Result<Oid, Error> {
         let mut raw = crate::util::zeroed_raw_oid();
         unsafe {
             try_call!(raw::git_odb_stream_finalize_write(&mut raw, self.raw));

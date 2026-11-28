@@ -1,5 +1,3 @@
-#![cfg(feature = "unstable-sha256")]
-
 //! A safe API must not hand libgit2 an `Oid` whose hash type differs from the
 //! repository's. Its loose backend sizes the object path by the repository's
 //! format but formats it with the id's own format, which overflows the path

@@ -11,7 +11,7 @@ use crate::{raw, Buf, ConfigLevel, Error, IntoCString, ObjectType};
 /// shared attributes and ignore files, too.
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
-/// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
+/// [`ConfigLevel::XDG`].
 ///
 /// `path` lists directories delimited by `GIT_PATH_LIST_SEPARATOR`.
 /// Use magic path `$PATH` to include the old value of the path
@@ -39,7 +39,7 @@ where
 /// (generally based on environment variables).
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
-/// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
+/// [`ConfigLevel::XDG`].
 ///
 /// # Safety
 ///
@@ -59,7 +59,7 @@ pub unsafe fn reset_search_path(level: ConfigLevel) -> Result<(), Error> {
 /// Get the search path for a given level of config data.
 ///
 /// `level` must be one of [`ConfigLevel::System`], [`ConfigLevel::Global`],
-/// [`ConfigLevel::XDG`], [`ConfigLevel::ProgramData`].
+/// [`ConfigLevel::XDG`].
 ///
 /// # Safety
 ///
