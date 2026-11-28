@@ -5,66 +5,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// Tries to use system libgit2 and emits necessary build script instructions.
-fn try_system_libgit2(
-    experimental_sha256: bool,
-) -> Result<pkg_config::Library, Box<dyn std::error::Error>> {
+fn try_system_libgit2() -> Result<pkg_config::Library, Box<dyn std::error::Error>> {
     let mut cfg = pkg_config::Config::new();
-    let range_version = "1.9.7".."1.10.0";
-
-    let lib = if experimental_sha256 {
-        // Determine whether experimental SHA256 object support is enabled.
-        //
-        // Given the SHA256 support is ABI-incompatible,
-        // we take a conservative approach here:
-        //
-        // 1. Only accept if the library name has the `-experimental` suffix
-        // 2. The experimental library must have an `experimental.h` header file
-        //    containing an enabled `GIT_EXPERIMENTAL_SHA256` constant.
-        //
-        // See how libgit2 handles experimental features:
-        // https://github.com/libgit2/libgit2/blob/3ac4c0adb1064bad16a7f980d87e7261753fd07e/cmake/ExperimentalFeatures.cmake
-        match cfg
-            .range_version(range_version.clone())
-            .probe("libgit2-experimental")
-        {
-            Ok(lib) => {
-                let sha256_constant_in_header = lib.include_paths.iter().any(|path| {
-                    let header = path.join("git2/experimental.h");
-                    let contents = match std::fs::read_to_string(header) {
-                        Ok(s) => s,
-                        Err(_) => return false,
-                    };
-                    if contents.contains("#cmakedefine") {
-                        // still template
-                        return false;
-                    }
-                    contents
-                        .lines()
-                        .any(|l| l.starts_with("#define GIT_EXPERIMENTAL_SHA256 1"))
-                });
-                if sha256_constant_in_header {
-                    println!("cargo:rustc-cfg=libgit2_experimental_sha256");
-                    lib
-                } else {
-                    println!("cargo:warning=no GIT_EXPERIMENTAL_SHA256 constant in headers");
-                    return Err(
-                        "GIT_EXPERIMENTAL_SHA256 wasn't enabled for libgit2-experimental library"
-                            .into(),
-                    );
-                }
-            }
-            Err(e) => {
-                println!("cargo:warning=failed to probe system libgit2-experimental: {e}");
-                return Err(e.into());
-            }
-        }
-    } else {
-        match cfg.range_version(range_version).probe("libgit2") {
-            Ok(lib) => lib,
-            Err(e) => {
-                println!("cargo:warning=failed to probe system libgit2: {e}");
-                return Err(e.into());
-            }
+    let lib = match cfg.range_version("2.0.0".."2.1.0").probe("libgit2") {
+        Ok(lib) => lib,
+        Err(e) => {
+            println!("cargo:warning=failed to probe system libgit2: {e}");
+            return Err(e.into());
         }
     };
 
@@ -75,18 +22,12 @@ fn try_system_libgit2(
 }
 
 fn main() {
-    println!(
-        "cargo:rustc-check-cfg=cfg(\
-            libgit2_vendored,\
-            libgit2_experimental_sha256,\
-        )"
-    );
+    println!("cargo:rustc-check-cfg=cfg(libgit2_vendored)");
 
     let https = env::var("CARGO_FEATURE_HTTPS").is_ok();
     let ssh = env::var("CARGO_FEATURE_SSH").is_ok();
     let vendored = env::var("CARGO_FEATURE_VENDORED").is_ok();
     let zlib_ng_compat = env::var("CARGO_FEATURE_ZLIB_NG_COMPAT").is_ok();
-    let unstable_sha256 = env::var("CARGO_FEATURE_UNSTABLE_SHA256").is_ok();
 
     // Specify `LIBGIT2_NO_VENDOR` to force to use system libgit2.
     // Due to the additive nature of Cargo features, if some crate in the
@@ -96,7 +37,7 @@ fn main() {
     let forced_no_vendor = env::var_os("LIBGIT2_NO_VENDOR").is_some_and(|s| s != "0");
 
     if forced_no_vendor {
-        if try_system_libgit2(unstable_sha256).is_err() {
+        if try_system_libgit2().is_err() {
             panic!(
                 "\
 The environment variable `LIBGIT2_NO_VENDOR` has been set but no compatible system libgit2 could be found.
@@ -111,7 +52,7 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
 
     // To use zlib-ng in zlib-compat mode, we have to build libgit2 ourselves.
     let try_to_use_system_libgit2 = !vendored && !zlib_ng_compat;
-    if try_to_use_system_libgit2 && try_system_libgit2(unstable_sha256).is_ok() {
+    if try_to_use_system_libgit2 && try_system_libgit2().is_ok() {
         // using system libgit2 has worked
         return;
     }
@@ -140,11 +81,6 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         .out_dir(dst.join("build"))
         .warnings(false);
 
-    if unstable_sha256 {
-        println!("cargo:rustc-cfg=libgit2_experimental_sha256");
-        cfg.define("GIT_EXPERIMENTAL_SHA256", "1");
-    }
-
     // Include all cross-platform C files
     add_c_files(&mut cfg, "libgit2/src/libgit2");
     add_c_files(&mut cfg, "libgit2/src/util");
@@ -154,6 +90,10 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     // compiled correctly.
     add_c_files(&mut cfg, "libgit2/src/libgit2/transports");
     add_c_files(&mut cfg, "libgit2/src/libgit2/streams");
+
+    // The reftable reference backend is unconditionally built by libgit2.
+    cfg.include("libgit2/deps/reftable");
+    add_c_files(&mut cfg, "libgit2/deps/reftable");
 
     // Always use bundled HTTP parser (llhttp) for now
     cfg.include("libgit2/deps/llhttp");
@@ -195,6 +135,10 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         }
         add_c_files(&mut cfg, "libgit2/src/util/win32");
         cfg.define("STRSAFE_NO_DEPRECATE", None);
+        // Without this, libgit2 headers declare the public API as
+        // `__declspec(dllimport)`, which conflicts with the definitions
+        // compiled into this static library.
+        cfg.define("GIT_STATIC", None);
         cfg.define("WIN32", None);
         cfg.define("_WIN32_WINNT", Some("0x0600"));
 
@@ -218,11 +162,25 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     features.push_str("#ifndef INCLUDE_features_h\n");
     features.push_str("#define INCLUDE_features_h\n");
     features.push_str("#define GIT_THREADS 1\n");
+    if windows {
+        features.push_str("#define GIT_THREADS_WIN32 1\n");
+    } else {
+        features.push_str("#define GIT_THREADS_PTHREADS 1\n");
+    }
     features.push_str("#define GIT_TRACE 1\n");
+    features.push_str("#define GIT_HTTP 1\n");
     features.push_str("#define GIT_HTTPPARSER_BUILTIN 1\n");
+    features.push_str("#define GIT_COMPRESSION_ZLIB 1\n");
 
-    if !target.contains("android") {
-        features.push_str("#define GIT_USE_NSEC 1\n");
+    if windows {
+        features.push_str("#define GIT_NSEC 1\n");
+        features.push_str("#define GIT_NSEC_WIN32 1\n");
+    } else if target.contains("apple") {
+        features.push_str("#define GIT_NSEC 1\n");
+        features.push_str("#define GIT_NSEC_MTIMESPEC 1\n");
+    } else if !target.contains("android") {
+        features.push_str("#define GIT_NSEC 1\n");
+        features.push_str("#define GIT_NSEC_MTIM 1\n");
     }
 
     if windows {
@@ -231,12 +189,6 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         // Should we fallback to `select` as more systems have that?
         features.push_str("#define GIT_IO_POLL 1\n");
         features.push_str("#define GIT_IO_SELECT 1\n");
-    }
-
-    if target.contains("apple") {
-        features.push_str("#define GIT_USE_STAT_MTIMESPEC 1\n");
-    } else {
-        features.push_str("#define GIT_USE_STAT_MTIM 1\n");
     }
 
     if env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap() == "32" {
@@ -257,11 +209,11 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
         features.push_str("#define GIT_HTTPS 1\n");
 
         if windows {
-            features.push_str("#define GIT_WINHTTP 1\n");
+            features.push_str("#define GIT_HTTPS_WINHTTP 1\n");
         } else if target.contains("apple") {
-            features.push_str("#define GIT_SECURE_TRANSPORT 1\n");
+            features.push_str("#define GIT_HTTPS_SECURETRANSPORT 1\n");
         } else {
-            features.push_str("#define GIT_OPENSSL 1\n");
+            features.push_str("#define GIT_HTTPS_OPENSSL 1\n");
             if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
                 cfg.include(path);
             }
@@ -269,10 +221,11 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     }
 
     // Use the CollisionDetection SHA1 implementation.
-    features.push_str("#define GIT_SHA1_COLLISIONDETECT 1\n");
+    features.push_str("#define GIT_SHA1_BUILTIN 1\n");
     cfg.define("SHA1DC_NO_STANDARD_INCLUDES", "1");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_SHA1_C", "\"common.h\"");
     cfg.define("SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C", "\"common.h\"");
+    cfg.define("SHA1DC_FORCE_ALIGNED_ACCESS", None);
     cfg.file("libgit2/src/util/hash/collisiondetect.c");
     cfg.file("libgit2/src/util/hash/sha1dc/sha1.c");
     cfg.file("libgit2/src/util/hash/sha1dc/ubc_check.c");
@@ -299,7 +252,8 @@ The build is now aborting. To disable, unset the variable or use `LIBGIT2_NO_VEN
     }
 
     if target.contains("apple") {
-        features.push_str("#define GIT_USE_ICONV 1\n");
+        features.push_str("#define GIT_I18N 1\n");
+        features.push_str("#define GIT_I18N_ICONV 1\n");
     }
 
     features.push_str("#endif\n");

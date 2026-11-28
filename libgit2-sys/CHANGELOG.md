@@ -7,8 +7,39 @@
 
 - Added bindings for `git_config_backend_from_string` and `git_config_backend_memory_options`.
   [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
+- Added bindings for these libgit2 2.0 APIs:
+  - `git_diff_from_buffer_ext`
+  - `GIT_FEATURE_AUTH_NEGOTIATE`
+  - `GIT_FEATURE_AUTH_NTLM`
+  - `GIT_FEATURE_COMPRESSION`
+  - `GIT_FEATURE_HTTP`
+  - `GIT_FEATURE_HTTP_PARSER`
+  - `GIT_FEATURE_I18N`
+  - `GIT_FEATURE_REGEX`
+  - `GIT_FEATURE_SHA1`
+  - `GIT_FEATURE_SHA256`
+  - `git_index_new_ext`
+  - `git_index_open_ext`
+  - `git_object_id_from_buffer`
+  - `git_object_id_from_file`
+  - `git_object_id_options`
+  - `git_object_id_options_init`
+  - `GIT_OBJECT_ID_OPTIONS_VERSION`
+  - `git_object_type_is_valid`
+  - `git_odb_new_ext`
+  - `git_odb_open_ext`
+  - `git_oid_from_prefix`
+  - `git_oid_from_raw`
+  - `git_oid_from_string`
+  - `git_refdb_backend_init_flag_t` and its `GIT_REFDB_BACKEND_INIT_*` constants
+  - `git_refdb_mode_t`
+  - `git_refdb_t` and its `GIT_REFDB_*` constants
+  - `git_repository_init_options::refdb_type`
+  - `git_repository_new_ext`
+  <!-- -->
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
 - Added bindings for these libgit2 APIs, deprecating the ones they replace.
-  The deprecated bindings will be removed when updating to libgit2 2.0:
+  The deprecated bindings will be removed in a future release:
   - `git_blame_hunk_byindex`, replacing `git_blame_get_hunk_byindex`
   - `git_blame_hunk_byline`, replacing `git_blame_get_hunk_byline`
   - `git_blame_hunkcount`, replacing `git_blame_get_hunk_count`
@@ -58,6 +89,18 @@
 
 ### Changed
 
+- ❗ Updated to libgit2 2.0.0-rc.1.
+  A system libgit2 must now be `>=2.0.0, <2.1.0`.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+- ❗ SHA-256 support is no longer experimental.
+  The `unstable-sha256` Cargo feature is removed,
+  `git_oid` always has room for a SHA-256 ID and its type,
+  and functions that took an object format under that feature use their new `*_ext` variants instead.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+- ❗ `git_refdb_backend` has a new `init` callback after `version`.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+- The vendored build now compiles libgit2's bundled reftable library.
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
 - ❗ Removed deprecated bindings:
   - `git_indexer_hash`, replaced by `git_indexer_name`
   - `git_odb_backend_malloc`, replaced by `git_odb_backend_data_alloc`
@@ -69,9 +112,24 @@
   <!-- -->
   [#1326](https://github.com/rust-lang/git2-rs/pull/1326)
   [#1327](https://github.com/rust-lang/git2-rs/pull/1327)
+- ❗ Removed bindings that libgit2 2.0 removes or deprecates:
+  - `git_config_find_programdata`, which has no replacement
+  - `GIT_CONFIG_LEVEL_PROGRAMDATA`, which has no replacement
+  - `GIT_OBJECT_OFS_DELTA`, which has no replacement
+  - `GIT_OBJECT_REF_DELTA`, which has no replacement
+  - `git_object_typeisloose`, replaced by `git_object_type_is_valid`
+  - `git_odb_hash`, replaced by `git_object_id_from_buffer`
+  - `git_odb_hashfile`, replaced by `git_object_id_from_file`
+  - `git_oid_fromraw`, replaced by `git_oid_from_raw`
+  - `git_oid_fromstr`, replaced by `git_oid_from_string`
+  - `git_oid_fromstrn`, replaced by `git_oid_from_prefix`
+  - `git_oid_fromstrp`, replaced by `git_oid_from_string`
+  - `GIT_REPOSITORY_INIT_NO_DOTGIT_DIR`, which has no replacement
+  <!-- -->
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
 - Declared the minimum supported Rust version as 1.87.
   [#1277](https://github.com/rust-lang/git2-rs/pull/1277)
-- Deprecated these bindings, which will also be removed when updating to libgit2 2.0:
+- Deprecated these bindings, which will also be removed in a future release:
   - `git_buf_grow`, which has no replacement
   - `git_buf_set`, which has no replacement
   - `git_commit_signing_cb`, replaced by `git_commit_create_cb`

@@ -526,7 +526,7 @@ impl Repository {
     /// If `update_link` is true, create/update the gitlink file in the workdir
     /// and set config "core.worktree" (if workdir is not the parent of the .git
     /// directory).
-    pub fn set_workdir(&self, path: &Path, update_gitlink: bool) -> Result<(), Error> {
+    pub fn set_workdir(&mut self, path: &Path, update_gitlink: bool) -> Result<(), Error> {
         // Normal file path OK (does not need Windows conversion).
         let path = path.into_c_string()?;
         unsafe {
@@ -557,12 +557,12 @@ impl Repository {
     }
 
     /// Set the active namespace for this repository.
-    pub fn set_namespace(&self, namespace: &str) -> Result<(), Error> {
+    pub fn set_namespace(&mut self, namespace: &str) -> Result<(), Error> {
         self.set_namespace_bytes(namespace.as_bytes())
     }
 
     /// Set the active namespace for this repository as a byte array.
-    pub fn set_namespace_bytes(&self, namespace: &[u8]) -> Result<(), Error> {
+    pub fn set_namespace_bytes(&mut self, namespace: &[u8]) -> Result<(), Error> {
         let namespace = CString::new(namespace)?;
         unsafe {
             try_call!(raw::git_repository_set_namespace(self.raw, namespace));
@@ -571,7 +571,7 @@ impl Repository {
     }
 
     /// Remove the active namespace for this repository.
-    pub fn remove_namespace(&self) -> Result<(), Error> {
+    pub fn remove_namespace(&mut self) -> Result<(), Error> {
         unsafe {
             try_call!(raw::git_repository_set_namespace(self.raw, ptr::null()));
         }
@@ -3528,15 +3528,6 @@ impl RepositoryInitOptions {
         self.flag(raw::GIT_REPOSITORY_INIT_NO_REINIT, enabled)
     }
 
-    /// Normally a '/.git/' will be appended to the repo path for non-bare repos
-    /// (if it is not already there), but passing this flag prevents that
-    /// behavior.
-    ///
-    /// Defaults to false.
-    pub fn no_dotgit_dir(&mut self, enabled: bool) -> &mut RepositoryInitOptions {
-        self.flag(raw::GIT_REPOSITORY_INIT_NO_DOTGIT_DIR, enabled)
-    }
-
     /// Make the repo path (and workdir path) as needed. The ".git" directory
     /// will always be created regardless of this flag.
     ///
@@ -3632,7 +3623,7 @@ impl RepositoryInitOptions {
     /// Set the object format (hash algorithm) for the repository.
     ///
     /// The default is [`ObjectFormat::Sha1`].
-    /// Setting this to [`ObjectFormat::Sha256`] (requires `unstable-sha256`)
+    /// Setting this to [`ObjectFormat::Sha256`]
     /// will create a repository that uses SHA256 object IDs.
     pub fn object_format(&mut self, format: ObjectFormat) -> &mut RepositoryInitOptions {
         self.oid_type = Some(format.raw());
@@ -3667,7 +3658,6 @@ impl RepositoryInitOptions {
         opts.template_path = crate::call::convert(&self.template_path);
         opts.initial_head = crate::call::convert(&self.initial_head);
         opts.origin_url = crate::call::convert(&self.origin_url);
-        #[cfg(feature = "unstable-sha256")]
         if let Some(oid_type) = self.oid_type {
             opts.oid_type = oid_type;
         }
@@ -3690,7 +3680,6 @@ mod tests {
     use crate::AttrCheckFlags;
     use crate::Error;
     use crate::ObjectFormat;
-    #[cfg(feature = "unstable-sha256")]
     use crate::RepositoryInitOptions;
     use crate::{CherrypickOptions, MergeFileOptions};
     use crate::{
@@ -3719,7 +3708,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_init_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3750,7 +3738,7 @@ mod tests {
         opts.workdir_path(&workdir);
         let repo = Repository::init_opts(&gitdir, &opts).unwrap();
         assert!(!repo.is_bare());
-        assert!(repo.path().ends_with("gitdir/.git"));
+        assert!(repo.path().ends_with("gitdir"));
         assert!(repo.workdir().unwrap().ends_with("workdir"));
     }
 
@@ -3766,7 +3754,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_init_bare_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3802,7 +3789,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_open_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3845,7 +3831,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_open_bare_sha256() {
         let td = TempDir::new().unwrap();
         let path = td.path();
@@ -3871,7 +3856,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_checkout_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         repo.checkout_head(None).unwrap();
@@ -3899,7 +3883,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "unstable-sha256")]
     fn smoke_revparse_sha256() {
         let (_td, repo) = crate::test::repo_init_sha256();
         let rev = repo.revparse("HEAD").unwrap();
@@ -4100,7 +4083,6 @@ mod tests {
 
         let void_oid = match repo.object_format() {
             ObjectFormat::Sha1 => Oid::ZERO_SHA1,
-            #[cfg(feature = "unstable-sha256")]
             ObjectFormat::Sha256 => Oid::ZERO_SHA256,
         };
         assert!(repo.set_head_detached(void_oid).is_err());

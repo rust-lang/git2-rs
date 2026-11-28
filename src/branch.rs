@@ -199,7 +199,7 @@ mod tests {
         assert!(!b1.is_head());
         let b2 = repo.branch("foo2", &commit, false).unwrap();
 
-        assert!(b1 == b2);
+        assert!(b1 != b2);
 
         assert_eq!(repo.branches(None).unwrap().count(), 3);
         repo.find_branch("foo", BranchType::Local).unwrap();

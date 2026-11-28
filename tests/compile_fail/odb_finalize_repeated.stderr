@@ -1,0 +1,16 @@
+error[E0382]: use of moved value: `writer`
+  --> tests/compile_fail/odb_finalize_repeated.rs:11:13
+   |
+ 8 |     let mut writer = odb.writer(5, git2::ObjectType::Blob).unwrap();
+   |         ---------- move occurs because `writer` has type `OdbWriter<'_>`, which does not implement the `Copy` trait
+ 9 |     writer.write_all(b"hello").unwrap();
+10 |     writer.finalize().unwrap();
+   |            ---------- `writer` moved due to this method call
+11 |     let _ = writer.finalize();
+   |             ^^^^^^ value used here after move
+   |
+note: `git2::OdbWriter::<'repo>::finalize` takes ownership of the receiver `self`, which moves `writer`
+  --> src/odb.rs
+   |
+   |     pub fn finalize(self) -> Result<Oid, Error> {
+   |                     ^^^^

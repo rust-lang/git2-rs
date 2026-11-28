@@ -537,8 +537,8 @@ mod tests {
         let target = repo.head().unwrap().target().unwrap();
         let a = repo.reference("refs/tags/a", target, false, "").unwrap();
         let b = repo.reference("refs/tags/b", target, false, "").unwrap();
-        assert!(a == b);
-        assert_eq!(a.cmp(&b), std::cmp::Ordering::Equal);
+        assert!(a != b);
+        assert_eq!(a.cmp(&b), std::cmp::Ordering::Less);
 
         let sym_a = repo
             .reference_symbolic("refs/sym/a", "refs/heads/main", false, "")
@@ -546,7 +546,7 @@ mod tests {
         let sym_b = repo
             .reference_symbolic("refs/sym/b", "refs/heads/main", false, "")
             .unwrap();
-        assert!(sym_a == sym_b);
+        assert!(sym_a != sym_b);
     }
 
     #[test]
