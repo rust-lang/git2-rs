@@ -1,0 +1,11 @@
+error[E0505]: cannot move out of `odb` because it is borrowed
+ --> tests/compile_fail/indexer_odb_drop.rs:7:10
+  |
+5 |     let odb = Odb::new().unwrap();
+  |         --- binding `odb` declared here
+6 |     let indexer = Indexer::new(Some(&odb), Path::new("."), 0, true).unwrap();
+  |                                     ---- borrow of `odb` occurs here
+7 |     drop(odb);
+  |          ^^^ move out of `odb` occurs here
+8 |     drop(indexer);
+  |          ------- borrow later used here

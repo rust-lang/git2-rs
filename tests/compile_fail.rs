@@ -5,4 +5,6 @@ fn test_compile_fail() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/compile_fail/remote_refspec.rs");
     t.compile_fail("tests/compile_fail/diff_send.rs");
+    t.compile_fail("tests/compile_fail/indexer_odb_temporary.rs");
+    t.compile_fail("tests/compile_fail/indexer_odb_drop.rs");
 }
