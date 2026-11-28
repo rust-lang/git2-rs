@@ -68,6 +68,9 @@
 
 ### Fixed
 
+- `Repository::fetchhead_foreach` now includes unnamed entries. Both
+  `fetchhead_foreach` and `mergehead_foreach` propagate callback panics immediately.
+  [#1340](https://github.com/rust-lang/git2-rs/issues/1340)
 - These functions now return `false`, `None`, or an error instead of panicking
   when a string argument contains a NUL byte:
   - `ObjectType::from_str()`
