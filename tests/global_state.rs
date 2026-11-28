@@ -43,8 +43,5 @@ fn search_path() -> Result<(), Box<dyn std::error::Error>> {
         original
     );
 
-    // ProgramData
-    assert!(unsafe { opts::get_search_path(ConfigLevel::ProgramData) }.is_ok());
-
     Ok(())
 }

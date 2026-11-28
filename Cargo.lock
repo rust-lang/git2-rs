@@ -317,7 +317,7 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.21.0"
+version = "0.22.0-rc.1"
 dependencies = [
  "bitflags 2.9.1",
  "clap",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "git2-curl"
-version = "0.22.0"
+version = "0.23.0-rc.1"
 dependencies = [
  "curl",
  "git2",
@@ -508,7 +508,7 @@ checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
 
 [[package]]
 name = "libgit2-sys"
-version = "0.18.8+1.9.7"
+version = "0.19.0-rc.1+2.0.0-rc.1"
 dependencies = [
  "cc",
  "libc",

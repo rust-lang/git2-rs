@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+[0.22.0...main](https://github.com/rust-lang/git2-rs/compare/git2-curl-0.22.0...main)
+
+- Updated to [git2 0.22.0-rc.1](../CHANGELOG.md#unreleased).
+  [#1363](https://github.com/rust-lang/git2-rs/pull/1363)
+
 ## 0.22.0 - 2026-05-18
 [0.21.0...0.22.0](https://github.com/rust-lang/git2-rs/compare/git2-curl-0.21.0...git2-curl-0.22.0)
 
