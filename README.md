@@ -42,6 +42,10 @@ conditions both hold:
 
 In particular, note that the environment variable overrides the Cargo feature.
 
+Use `RepositoryInitOptions::refdb_type(RefdbType::Reftable)` to create a
+reftable repository. New repositories use `files` by default, and this
+option does not migrate existing repositories.
+
 ## Building git2-rs
 
 ```sh

@@ -5,6 +5,10 @@
 
 ### Added
 
+- Added `RefdbType` and `RepositoryInitOptions::refdb_type()` for selecting
+  files or reftable reference storage when creating a repository. Files remains
+  the default, and existing repositories are not migrated. Existing reftable
+  repositories are supported by the bundled libgit2 2.0.0-rc.1.
 - Added `Config::create_from_str()` for building an in-memory configuration from a string.
   [#1249](https://github.com/rust-lang/git2-rs/pull/1249)
 - `Branch` now implements `PartialEq`, `Eq`, `PartialOrd`, and `Ord`,
