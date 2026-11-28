@@ -5,26 +5,27 @@ use std::ops::Range;
 use std::str;
 
 use crate::util::Binding;
-use crate::{raw, signature, Error, Oid, Signature};
+use crate::{raw, signature, Error, Oid, Repository, Signature};
 
 /// A reference log of a git repository.
-pub struct Reflog {
+pub struct Reflog<'repo> {
     raw: *mut raw::git_reflog,
+    _marker: marker::PhantomData<&'repo Repository>,
 }
 
 /// An entry inside the reflog of a repository
 pub struct ReflogEntry<'reflog> {
     raw: *const raw::git_reflog_entry,
-    _marker: marker::PhantomData<&'reflog Reflog>,
+    _marker: marker::PhantomData<&'reflog Reflog<'reflog>>,
 }
 
 /// An iterator over the entries inside of a reflog.
 pub struct ReflogIter<'reflog> {
     range: Range<usize>,
-    reflog: &'reflog Reflog,
+    reflog: &'reflog Reflog<'reflog>,
 }
 
-impl Reflog {
+impl<'repo> Reflog<'repo> {
     /// Add a new entry to the in-memory reflog.
     pub fn append(
         &mut self,
@@ -100,18 +101,21 @@ impl Reflog {
     }
 }
 
-impl Binding for Reflog {
+impl<'repo> Binding for Reflog<'repo> {
     type Raw = *mut raw::git_reflog;
 
-    unsafe fn from_raw(raw: *mut raw::git_reflog) -> Reflog {
-        Reflog { raw }
+    unsafe fn from_raw(raw: *mut raw::git_reflog) -> Reflog<'repo> {
+        Reflog {
+            raw,
+            _marker: marker::PhantomData,
+        }
     }
     fn raw(&self) -> *mut raw::git_reflog {
         self.raw
     }
 }
 
-impl Drop for Reflog {
+impl Drop for Reflog<'_> {
     fn drop(&mut self) {
         unsafe { raw::git_reflog_free(self.raw) }
     }

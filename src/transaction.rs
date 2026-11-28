@@ -112,7 +112,7 @@ impl<'repo> Transaction<'repo> {
     /// If this is combined with setting the target, that update won't be
     /// written to the log (i.e. the `reflog_signature` and `reflog_message`
     /// parameters will be ignored).
-    pub fn set_reflog(&mut self, refname: &str, reflog: Reflog) -> Result<(), Error> {
+    pub fn set_reflog(&mut self, refname: &str, reflog: Reflog<'_>) -> Result<(), Error> {
         let refname = CString::new(refname)?;
         unsafe {
             try_call!(raw::git_transaction_set_reflog(

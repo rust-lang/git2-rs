@@ -1,0 +1,11 @@
+error[E0597]: `repo` does not live long enough
+ --> tests/compile_fail/reflog_escape.rs:6:9
+  |
+4 |     let reflog = {
+  |         ------ borrow later stored here
+5 |         let repo = Repository::init(".").unwrap();
+  |             ---- binding `repo` declared here
+6 |         repo.reflog("HEAD").unwrap()
+  |         ^^^^ borrowed value does not live long enough
+7 |     };
+  |     - `repo` dropped here while still borrowed
