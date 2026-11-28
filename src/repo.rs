@@ -1234,6 +1234,11 @@ impl Repository {
         let mut odb = ptr::null_mut();
         unsafe {
             try_call!(raw::git_repository_odb(&mut odb, self.raw()));
+            // SAFETY: on success, `git_repository_odb` returns a new reference
+            // to the repository's ODB, which the `Odb` wrapper owns;
+            // `self.object_format()` is that database's format. The returned
+            // `Odb<'_>` is tied to `&self`, so the repository remains valid for
+            // the wrapper.
             Ok(Odb::from_raw_with_format(odb, self.object_format()))
         }
     }
@@ -2002,6 +2007,10 @@ impl Repository {
         };
         unsafe {
             try_call!(raw::git_treebuilder_new(&mut ret, self.raw, tree));
+            // SAFETY: on success, `git_treebuilder_new` returns an owned
+            // `git_treebuilder`, and `self.object_format()` is the owning
+            // repository's format. The returned wrapper's `'repo` is tied to
+            // `&self`, so the repository remains valid for it.
             Ok(TreeBuilder::from_raw_with_format(ret, self.object_format()))
         }
     }
@@ -2564,6 +2573,10 @@ impl Repository {
         let mut raw = ptr::null_mut();
         unsafe {
             try_call!(raw::git_revwalk_new(&mut raw, self.raw()));
+            // SAFETY: on success, `git_revwalk_new` returns an owned
+            // `git_revwalk`, and `self.object_format()` is the owning
+            // repository's format. The returned wrapper's `'repo` is tied to
+            // `&self`, so the repository remains valid for it.
             Ok(Revwalk::from_raw_with_format(raw, self.object_format()))
         }
     }
@@ -3087,6 +3100,10 @@ impl Repository {
         let mut ret = ptr::null_mut();
         unsafe {
             try_call!(raw::git_packbuilder_new(&mut ret, self.raw()));
+            // SAFETY: on success, `git_packbuilder_new` returns an owned
+            // `git_packbuilder`, and `self.object_format()` is the owning
+            // repository's format. The returned wrapper's `'repo` is tied to
+            // `&self`, so the repository remains valid for it.
             Ok(PackBuilder::from_raw_with_format(ret, self.object_format()))
         }
     }

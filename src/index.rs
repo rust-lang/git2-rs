@@ -93,14 +93,22 @@ pub struct IndexEntry {
 impl Index {
     /// Rejects an object id whose hash type is not the owner repository's.
     fn check_oid_format(&self, oid: &Oid) -> Result<(), Error> {
-        unsafe {
-            let repo = raw::git_index_owner(self.raw);
-            if repo.is_null() {
-                return Ok(());
-            }
-            let format: ObjectFormat = Binding::from_raw(raw::git_repository_oid_type(repo));
-            format.check_oid(oid)
+        // SAFETY: `self.raw` is a valid `git_index` for the lifetime of
+        // `self`; `git_index_owner` returns a borrowed repository pointer,
+        // which may be null for an index not attached to a repository.
+        let repo = unsafe { raw::git_index_owner(self.raw) };
+        if repo.is_null() {
+            return Ok(());
         }
+        // SAFETY: `repo` is non-null. `git_index_owner` returns the repository
+        // that owns the index; the index does not own the repository. When the
+        // repository is freed, libgit2 clears the index's owner link, so a
+        // non-null owner is a live repository; the null case is handled above.
+        let oid_type = unsafe { raw::git_repository_oid_type(repo) };
+        // SAFETY: `git_repository_oid_type` returns a valid `git_oid_t`; the
+        // `Binding` impl for `ObjectFormat` accepts it.
+        let format: ObjectFormat = unsafe { Binding::from_raw(oid_type) };
+        format.check_oid(oid)
     }
 
     /// Creates a new in-memory index.

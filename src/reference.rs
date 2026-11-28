@@ -46,11 +46,16 @@ pub struct ReferenceNames<'repo, 'references> {
 impl<'repo> Reference<'repo> {
     /// Rejects an object id whose hash type is not the owner repository's.
     fn check_oid_format(&self, oid: &Oid) -> Result<(), Error> {
-        unsafe {
-            let repo = raw::git_reference_owner(self.raw);
-            let format: ObjectFormat = Binding::from_raw(raw::git_repository_oid_type(repo));
-            format.check_oid(oid)
-        }
+        // SAFETY: `self.raw` is a valid `git_reference` for the lifetime of
+        // `self`; `Reference<'repo>` borrows the repository for `'repo`, so
+        // `git_reference_owner` returns that live, non-null repository.
+        let repo = unsafe { raw::git_reference_owner(self.raw) };
+        // SAFETY: `repo` is non-null and valid for this call.
+        let oid_type = unsafe { raw::git_repository_oid_type(repo) };
+        // SAFETY: `git_repository_oid_type` returns a valid `git_oid_t`; the
+        // `Binding` impl for `ObjectFormat` accepts it.
+        let format: ObjectFormat = unsafe { Binding::from_raw(oid_type) };
+        format.check_oid(oid)
     }
 
     /// Ensure the reference name is well-formed.

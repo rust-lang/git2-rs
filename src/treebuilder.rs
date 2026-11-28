@@ -143,6 +143,12 @@ extern "C" fn filter_cb(entry: *const raw::git_tree_entry, payload: *mut c_void)
 }
 
 impl<'repo> TreeBuilder<'repo> {
+    /// # Safety
+    ///
+    /// `raw` must be a valid, non-null `git_treebuilder` pointer that the
+    /// returned `TreeBuilder` takes ownership of and frees on drop. `format`
+    /// must be the object format of the repository that produced the handle.
+    /// The owning repository must remain valid for at least `'repo`.
     pub(crate) unsafe fn from_raw_with_format(
         raw: *mut raw::git_treebuilder,
         format: ObjectFormat,
@@ -159,7 +165,11 @@ impl<'repo> Binding for TreeBuilder<'repo> {
     type Raw = *mut raw::git_treebuilder;
 
     unsafe fn from_raw(raw: *mut raw::git_treebuilder) -> TreeBuilder<'repo> {
-        TreeBuilder::from_raw_with_format(raw, ObjectFormat::Sha1)
+        // SAFETY: the caller of `Binding::from_raw` guarantees that `raw` is a
+        // valid, unowned `git_treebuilder`; `ObjectFormat::Sha1` is the
+        // historical default for this binding. The caller must also ensure the
+        // owning repository remains valid for the returned `'repo` lifetime.
+        unsafe { TreeBuilder::from_raw_with_format(raw, ObjectFormat::Sha1) }
     }
     fn raw(&self) -> *mut raw::git_treebuilder {
         self.raw

@@ -29,7 +29,10 @@ impl<'repo> Binding for Odb<'repo> {
     type Raw = *mut raw::git_odb;
 
     unsafe fn from_raw(raw: *mut raw::git_odb) -> Odb<'repo> {
-        Odb::from_raw_with_format(raw, ObjectFormat::Sha1)
+        // SAFETY: the caller of `Binding::from_raw` guarantees that `raw` is a
+        // valid, unowned `git_odb`; `ObjectFormat::Sha1` is the historical
+        // default for this binding.
+        unsafe { Odb::from_raw_with_format(raw, ObjectFormat::Sha1) }
     }
     fn raw(&self) -> *mut raw::git_odb {
         self.raw
@@ -43,6 +46,11 @@ impl<'repo> Drop for Odb<'repo> {
 }
 
 impl<'repo> Odb<'repo> {
+    /// # Safety
+    ///
+    /// `raw` must be a valid, non-null `git_odb` pointer that the returned
+    /// `Odb` takes ownership of and frees on drop. `format` must be the
+    /// object format of the repository that produced the handle.
     pub(crate) unsafe fn from_raw_with_format(
         raw: *mut raw::git_odb,
         format: ObjectFormat,
@@ -90,6 +98,9 @@ impl<'repo> Odb<'repo> {
                 try_call!(raw::git_odb_new(&mut out, &opts));
             }
         }
+        // SAFETY: on success, `git_odb_new` wrote a valid, unowned `git_odb`
+        // into `out`, and `format` is the object format requested for this
+        // database.
         Ok(unsafe { Odb::from_raw_with_format(out, format) })
     }
 

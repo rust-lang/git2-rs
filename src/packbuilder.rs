@@ -209,6 +209,12 @@ impl<'repo> PackBuilder<'repo> {
 }
 
 impl<'repo> PackBuilder<'repo> {
+    /// # Safety
+    ///
+    /// `ptr` must be a valid, non-null `git_packbuilder` pointer that the
+    /// returned `PackBuilder` takes ownership of and frees on drop. `format`
+    /// must be the object format of the repository that produced the handle.
+    /// The owning repository must remain valid for at least `'repo`.
     pub(crate) unsafe fn from_raw_with_format(
         ptr: *mut raw::git_packbuilder,
         format: ObjectFormat,
@@ -225,7 +231,11 @@ impl<'repo> PackBuilder<'repo> {
 impl<'repo> Binding for PackBuilder<'repo> {
     type Raw = *mut raw::git_packbuilder;
     unsafe fn from_raw(ptr: *mut raw::git_packbuilder) -> PackBuilder<'repo> {
-        PackBuilder::from_raw_with_format(ptr, ObjectFormat::Sha1)
+        // SAFETY: the caller of `Binding::from_raw` guarantees that `ptr` is a
+        // valid, unowned `git_packbuilder`; `ObjectFormat::Sha1` is the
+        // historical default for this binding. The caller must also ensure the
+        // owning repository remains valid for the returned `'repo` lifetime.
+        unsafe { PackBuilder::from_raw_with_format(ptr, ObjectFormat::Sha1) }
     }
     fn raw(&self) -> *mut raw::git_packbuilder {
         self.raw

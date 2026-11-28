@@ -725,7 +725,12 @@ impl TreeUpdateBuilder {
     /// The baseline tree must exist in the specified repository.
     pub fn create_updated(&mut self, repo: &Repository, baseline: &Tree<'_>) -> Result<Oid, Error> {
         for update in &self.updates {
+            // SAFETY: `update.id` is an initialized `git_oid` in
+            // `self.updates`, valid for the duration of this loop.
             if unsafe { raw::git_oid_is_zero(&update.id) } == 0 {
+                // SAFETY: the pointer is valid as above; `Oid::from_raw`
+                // copies the `git_oid` value, so the resulting `Oid` does not
+                // borrow it.
                 let oid = unsafe { Oid::from_raw(&update.id) };
                 repo.object_format().check_oid(&oid)?;
             }

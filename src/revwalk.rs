@@ -220,6 +220,12 @@ impl<'repo> Revwalk<'repo> {
 }
 
 impl<'repo> Revwalk<'repo> {
+    /// # Safety
+    ///
+    /// `raw` must be a valid, non-null `git_revwalk` pointer that the returned
+    /// `Revwalk` takes ownership of and frees on drop. `format` must be the
+    /// object format of the repository that produced the handle. The owning
+    /// repository must remain valid for at least `'repo`.
     pub(crate) unsafe fn from_raw_with_format(
         raw: *mut raw::git_revwalk,
         format: ObjectFormat,
@@ -235,7 +241,11 @@ impl<'repo> Revwalk<'repo> {
 impl<'repo> Binding for Revwalk<'repo> {
     type Raw = *mut raw::git_revwalk;
     unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
-        Revwalk::from_raw_with_format(raw, ObjectFormat::Sha1)
+        // SAFETY: the caller of `Binding::from_raw` guarantees that `raw` is a
+        // valid, unowned `git_revwalk`; `ObjectFormat::Sha1` is the historical
+        // default for this binding. The caller must also ensure the owning
+        // repository remains valid for the returned `'repo` lifetime.
+        unsafe { Revwalk::from_raw_with_format(raw, ObjectFormat::Sha1) }
     }
     fn raw(&self) -> *mut raw::git_revwalk {
         self.raw
