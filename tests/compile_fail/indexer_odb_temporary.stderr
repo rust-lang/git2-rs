@@ -1,0 +1,15 @@
+error[E0716]: temporary value dropped while borrowed
+ --> tests/compile_fail/indexer_odb_temporary.rs:5:38
+  |
+5 |     let indexer = Indexer::new(Some(&Odb::new().unwrap()), Path::new("."), 0, true).unwrap();
+  |                                      ^^^^^^^^^^^^^^^^^^^                                    - temporary value is freed at the end of this statement
+  |                                      |
+  |                                      creates a temporary value which is freed while still in use
+6 |     drop(indexer);
+  |          ------- borrow later used here
+  |
+help: consider using a `let` binding to create a longer lived value
+  |
+5 ~     let binding = Odb::new().unwrap();
+6 ~     let indexer = Indexer::new(Some(&binding), Path::new("."), 0, true).unwrap();
+  |

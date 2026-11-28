@@ -10,4 +10,6 @@ fn test_compile_fail() {
     t.compile_fail("tests/compile_fail/repo_namespace_set_bytes.rs");
     t.compile_fail("tests/compile_fail/repo_namespace_set.rs");
     t.compile_fail("tests/compile_fail/repo_workdir_set.rs");
+    t.compile_fail("tests/compile_fail/indexer_odb_temporary.rs");
+    t.compile_fail("tests/compile_fail/indexer_odb_drop.rs");
 }

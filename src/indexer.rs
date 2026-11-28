@@ -92,18 +92,32 @@ impl<'a> Binding for Progress<'a> {
 /// This is equivalent to [`crate::OdbPackwriter`], but allows to store the pack
 /// and index at an arbitrary path. It also does not require access to an object
 /// database if, and only if, the pack file is self-contained (i.e. not "thin").
+/// Without an ODB, thin packs that require external delta bases are rejected
+/// when [`Indexer::commit`] resolves the pending deltas.
 pub struct Indexer<'odb> {
     raw: *mut raw::git_indexer,
     progress: raw::git_indexer_progress,
     progress_payload_ptr: *mut OdbPackwriterCb<'odb>,
+    // libgit2's git_indexer stores a bare git_odb pointer (it does not addref
+    // it), so keep the Rust borrow alive for as long as the indexer exists.
+    _odb: Option<&'odb Odb<'odb>>,
 }
 
-impl<'a> Indexer<'a> {
+impl<'odb> Indexer<'odb> {
     /// Create a new indexer
     ///
-    /// The [`Odb`] is used to resolve base objects when fixing thin packs. It
-    /// can be `None` if no thin pack is expected, in which case missing bases
-    /// will result in an error.
+    /// The [`Odb`] is used to resolve base objects when fixing thin packs and
+    /// to check connectivity. libgit2 stores a bare `git_odb *` without taking
+    /// a reference, so a `Some(&odb)` borrow must outlive the indexer.
+    ///
+    /// Pass `None` when the pack is self-contained: libgit2 accepts a NULL ODB,
+    /// but it cannot resolve a thin pack's external bases. Such a pack is
+    /// rejected when [`Indexer::commit`] resolves the pending deltas, with
+    /// "cannot fix a thin pack without an ODB".
+    ///
+    /// When `verify` is enabled, connectivity is still checked. An object
+    /// referenced by the pack but absent from it cannot be resolved without an
+    /// ODB, so the commit fails; this is not a skipped external-reference check.
     ///
     /// `path` is the directory where the packfile should be stored.
     ///
@@ -113,7 +127,12 @@ impl<'a> Indexer<'a> {
     ///
     /// This creates an indexer assuming SHA1 object format. Use
     /// [`Indexer::new_ext`] to specify a different format.
-    pub fn new(odb: Option<&Odb<'a>>, path: &Path, mode: u32, verify: bool) -> Result<Self, Error> {
+    pub fn new(
+        odb: Option<&'odb Odb<'odb>>,
+        path: &Path,
+        mode: u32,
+        verify: bool,
+    ) -> Result<Self, Error> {
         Self::new_ext(odb, path, mode, verify, ObjectFormat::Sha1)
     }
 
@@ -121,7 +140,7 @@ impl<'a> Indexer<'a> {
     ///
     /// See [`Indexer::new`] for more details.
     pub fn new_ext(
-        odb: Option<&Odb<'a>>,
+        odb: Option<&'odb Odb<'odb>>,
         path: &Path,
         mode: u32,
         verify: bool,
@@ -130,7 +149,8 @@ impl<'a> Indexer<'a> {
         crate::init();
         let path = path.into_c_string()?;
 
-        let odb = odb.map(Binding::raw).unwrap_or_else(ptr::null_mut);
+        let odb_ref = odb;
+        let odb = odb_ref.map(Binding::raw).unwrap_or_else(ptr::null_mut);
 
         let mut out = ptr::null_mut();
         let progress_cb: raw::git_indexer_progress_cb = Some(write_pack_progress_cb);
@@ -158,6 +178,7 @@ impl<'a> Indexer<'a> {
             raw: out,
             progress: Default::default(),
             progress_payload_ptr,
+            _odb: odb_ref,
         })
     }
 
@@ -180,11 +201,11 @@ impl<'a> Indexer<'a> {
     /// called inline, so performance may be affected.
     pub fn progress<F>(&mut self, cb: F) -> &mut Self
     where
-        F: FnMut(Progress<'_>) -> bool + 'a,
+        F: FnMut(Progress<'_>) -> bool + 'odb,
     {
         let progress_payload =
             unsafe { &mut *(self.progress_payload_ptr as *mut OdbPackwriterCb<'_>) };
-        progress_payload.cb = Some(Box::new(cb) as Box<IndexerProgress<'a>>);
+        progress_payload.cb = Some(Box::new(cb) as Box<IndexerProgress<'odb>>);
 
         self
     }
