@@ -3,12 +3,13 @@ use std::ffi::CString;
 use std::marker;
 
 use crate::util::Binding;
-use crate::{panic, raw, Error, Oid, Repository, Sort};
+use crate::{panic, raw, Error, ObjectFormat, Oid, Repository, Sort};
 
 /// A revwalk allows traversal of the commit graph defined by including one or
 /// more leaves and excluding one or more roots.
 pub struct Revwalk<'repo> {
     raw: *mut raw::git_revwalk,
+    format: ObjectFormat,
     _marker: marker::PhantomData<&'repo Repository>,
 }
 
@@ -87,6 +88,7 @@ impl<'repo> Revwalk<'repo> {
     /// revision walk. At least one commit must be pushed onto the walker before
     /// a walk can be started.
     pub fn push(&mut self, oid: Oid) -> Result<(), Error> {
+        self.format.check_oid(&oid)?;
         unsafe {
             try_call!(raw::git_revwalk_push(self.raw(), oid.raw()));
         }
@@ -147,6 +149,7 @@ impl<'repo> Revwalk<'repo> {
 
     /// Mark a commit as not of interest to this revwalk.
     pub fn hide(&mut self, oid: Oid) -> Result<(), Error> {
+        self.format.check_oid(&oid)?;
         unsafe {
             try_call!(raw::git_revwalk_hide(self.raw(), oid.raw()));
         }
@@ -216,13 +219,33 @@ impl<'repo> Revwalk<'repo> {
     }
 }
 
+impl<'repo> Revwalk<'repo> {
+    /// # Safety
+    ///
+    /// `raw` must be a valid, non-null `git_revwalk` pointer that the returned
+    /// `Revwalk` takes ownership of and frees on drop. `format` must be the
+    /// object format of the repository that produced the handle. The owning
+    /// repository must remain valid for at least `'repo`.
+    pub(crate) unsafe fn from_raw_with_format(
+        raw: *mut raw::git_revwalk,
+        format: ObjectFormat,
+    ) -> Revwalk<'repo> {
+        Revwalk {
+            raw,
+            format,
+            _marker: marker::PhantomData,
+        }
+    }
+}
+
 impl<'repo> Binding for Revwalk<'repo> {
     type Raw = *mut raw::git_revwalk;
     unsafe fn from_raw(raw: *mut raw::git_revwalk) -> Revwalk<'repo> {
-        Revwalk {
-            raw,
-            _marker: marker::PhantomData,
-        }
+        // SAFETY: the caller of `Binding::from_raw` guarantees that `raw` is a
+        // valid, unowned `git_revwalk`; `ObjectFormat::Sha1` is the historical
+        // default for this binding. The caller must also ensure the owning
+        // repository remains valid for the returned `'repo` lifetime.
+        unsafe { Revwalk::from_raw_with_format(raw, ObjectFormat::Sha1) }
     }
     fn raw(&self) -> *mut raw::git_revwalk {
         self.raw

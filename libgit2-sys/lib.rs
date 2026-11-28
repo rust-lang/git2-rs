@@ -2857,6 +2857,7 @@ extern "C" {
         refname: *const c_char,
     ) -> c_int;
     pub fn git_reference_name(r: *const git_reference) -> *const c_char;
+    pub fn git_reference_owner(r: *const git_reference) -> *mut git_repository;
     pub fn git_reference_name_to_id(
         out: *mut git_oid,
         repo: *mut git_repository,
@@ -3427,6 +3428,7 @@ extern "C" {
     ) -> c_int;
 
     // index
+    pub fn git_index_owner(index: *const git_index) -> *mut git_repository;
     pub fn git_index_version(index: *mut git_index) -> c_uint;
     pub fn git_index_set_version(index: *mut git_index, version: c_uint) -> c_int;
     pub fn git_index_add(index: *mut git_index, entry: *const git_index_entry) -> c_int;

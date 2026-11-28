@@ -8,8 +8,8 @@ use std::str;
 use crate::object::CastOrPanic;
 use crate::util::{c_cmp_to_ordering, Binding};
 use crate::{
-    call, raw, Blob, Commit, Error, Object, ObjectType, Oid, ReferenceFormat, ReferenceType,
-    Repository, Tag, Tree,
+    call, raw, Blob, Commit, Error, Object, ObjectFormat, ObjectType, Oid, ReferenceFormat,
+    ReferenceType, Repository, Tag, Tree,
 };
 
 // Not in the public header files (yet?), but a hard limit used by libgit2
@@ -44,6 +44,20 @@ pub struct ReferenceNames<'repo, 'references> {
 }
 
 impl<'repo> Reference<'repo> {
+    /// Rejects an object id whose hash type is not the owner repository's.
+    fn check_oid_format(&self, oid: &Oid) -> Result<(), Error> {
+        // SAFETY: `self.raw` is a valid `git_reference` for the lifetime of
+        // `self`; `Reference<'repo>` borrows the repository for `'repo`, so
+        // `git_reference_owner` returns that live, non-null repository.
+        let repo = unsafe { raw::git_reference_owner(self.raw) };
+        // SAFETY: `repo` is non-null and valid for this call.
+        let oid_type = unsafe { raw::git_repository_oid_type(repo) };
+        // SAFETY: `git_repository_oid_type` returns a valid `git_oid_t`; the
+        // `Binding` impl for `ObjectFormat` accepts it.
+        let format: ObjectFormat = unsafe { Binding::from_raw(oid_type) };
+        format.check_oid(oid)
+    }
+
     /// Ensure the reference name is well-formed.
     ///
     /// Validation is performed as if [`ReferenceFormat::ALLOW_ONELEVEL`]
@@ -365,6 +379,7 @@ impl<'repo> Reference<'repo> {
     pub fn set_target(&mut self, id: Oid, reflog_msg: &str) -> Result<Reference<'repo>, Error> {
         let mut raw = ptr::null_mut();
         let msg = CString::new(reflog_msg)?;
+        self.check_oid_format(&id)?;
         unsafe {
             try_call!(raw::git_reference_set_target(
                 &mut raw,

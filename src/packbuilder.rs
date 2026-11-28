@@ -8,7 +8,7 @@ use std::str;
 use crate::odb::{write_pack_progress_cb, OdbPackwriterCb};
 use crate::util::Binding;
 use crate::IntoCString;
-use crate::{panic, raw, Buf, Error, Oid, Repository, Revwalk};
+use crate::{panic, raw, Buf, Error, ObjectFormat, Oid, Repository, Revwalk};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 /// Stages that are reported by the `PackBuilder` progress callback.
@@ -25,6 +25,7 @@ pub type ForEachCb<'a> = dyn FnMut(&[u8]) -> bool + 'a;
 /// A builder for creating a packfile
 pub struct PackBuilder<'repo> {
     raw: *mut raw::git_packbuilder,
+    format: ObjectFormat,
     _progress: Option<Box<Box<ProgressCb<'repo>>>>,
     _marker: marker::PhantomData<&'repo Repository>,
 }
@@ -33,6 +34,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Insert a single object. For an optimal pack it's mandatory to insert
     /// objects in recency order, commits followed by trees and blobs.
     pub fn insert_object(&mut self, id: Oid, name: Option<&str>) -> Result<(), Error> {
+        self.format.check_oid(&id)?;
         let name = crate::opt_cstr(name)?;
         unsafe {
             try_call!(raw::git_packbuilder_insert(self.raw, id.raw(), name));
@@ -43,6 +45,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Insert a root tree object. This will add the tree as well as all
     /// referenced trees and blobs.
     pub fn insert_tree(&mut self, id: Oid) -> Result<(), Error> {
+        self.format.check_oid(&id)?;
         unsafe {
             try_call!(raw::git_packbuilder_insert_tree(self.raw, id.raw()));
         }
@@ -52,6 +55,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Insert a commit object. This will add a commit as well as the completed
     /// referenced tree.
     pub fn insert_commit(&mut self, id: Oid) -> Result<(), Error> {
+        self.format.check_oid(&id)?;
         unsafe {
             try_call!(raw::git_packbuilder_insert_commit(self.raw, id.raw()));
         }
@@ -70,6 +74,7 @@ impl<'repo> PackBuilder<'repo> {
     /// Recursively insert an object and its referenced objects. Insert the
     /// object as well as any object it references.
     pub fn insert_recursive(&mut self, id: Oid, name: Option<&str>) -> Result<(), Error> {
+        self.format.check_oid(&id)?;
         let name = crate::opt_cstr(name)?;
         unsafe {
             try_call!(raw::git_packbuilder_insert_recur(self.raw, id.raw(), name));
@@ -203,14 +208,34 @@ impl<'repo> PackBuilder<'repo> {
     }
 }
 
-impl<'repo> Binding for PackBuilder<'repo> {
-    type Raw = *mut raw::git_packbuilder;
-    unsafe fn from_raw(ptr: *mut raw::git_packbuilder) -> PackBuilder<'repo> {
+impl<'repo> PackBuilder<'repo> {
+    /// # Safety
+    ///
+    /// `ptr` must be a valid, non-null `git_packbuilder` pointer that the
+    /// returned `PackBuilder` takes ownership of and frees on drop. `format`
+    /// must be the object format of the repository that produced the handle.
+    /// The owning repository must remain valid for at least `'repo`.
+    pub(crate) unsafe fn from_raw_with_format(
+        ptr: *mut raw::git_packbuilder,
+        format: ObjectFormat,
+    ) -> PackBuilder<'repo> {
         PackBuilder {
             raw: ptr,
+            format,
             _progress: None,
             _marker: marker::PhantomData,
         }
+    }
+}
+
+impl<'repo> Binding for PackBuilder<'repo> {
+    type Raw = *mut raw::git_packbuilder;
+    unsafe fn from_raw(ptr: *mut raw::git_packbuilder) -> PackBuilder<'repo> {
+        // SAFETY: the caller of `Binding::from_raw` guarantees that `ptr` is a
+        // valid, unowned `git_packbuilder`; `ObjectFormat::Sha1` is the
+        // historical default for this binding. The caller must also ensure the
+        // owning repository remains valid for the returned `'repo` lifetime.
+        unsafe { PackBuilder::from_raw_with_format(ptr, ObjectFormat::Sha1) }
     }
     fn raw(&self) -> *mut raw::git_packbuilder {
         self.raw
